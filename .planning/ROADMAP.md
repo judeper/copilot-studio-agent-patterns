@@ -46,10 +46,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Every file that references the Dataverse table uses cr_assistantcard for the logical name and cr_assistantcards for the entity set name -- no mixed usage
   2. Schema files, PowerShell scripts, documentation, and PCF code all pass a grep audit for the naming convention with zero violations
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Create naming audit script, run audit, and fix any violations (audit-table-naming.ps1)
 
 ### Phase 3: PCF Build Configuration
 **Goal**: The PCF control builds successfully with the correct platform library versions and dependency pins
@@ -138,7 +138,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Output Schema Contract | 0/2 | Planned | - |
-| 2. Table Naming Consistency | 0/TBD | Not started | - |
+| 2. Table Naming Consistency | 0/1 | Planned | - |
 | 3. PCF Build Configuration | 0/TBD | Not started | - |
 | 4. PCF API Correctness | 0/TBD | Not started | - |
 | 5. PCF Security Hardening | 0/TBD | Not started | - |
