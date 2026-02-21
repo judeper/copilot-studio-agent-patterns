@@ -26,6 +26,23 @@ param(
 $ErrorActionPreference = "Stop"
 
 # ─────────────────────────────────────
+# 0. Validate Prerequisites
+# ─────────────────────────────────────
+Write-Host "Validating prerequisites..." -ForegroundColor Cyan
+
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+    throw "Azure CLI (az) is not installed. Install from https://aka.ms/installazurecli"
+}
+$azVer = az version --query '"azure-cli"' -o tsv 2>&1
+Write-Host "  Azure CLI: $azVer" -ForegroundColor Green
+
+$azAccount = az account show 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Azure CLI is not authenticated. Run 'az login --tenant <tenant-id>' first."
+}
+Write-Host "  Azure CLI auth: OK" -ForegroundColor Green
+
+# ─────────────────────────────────────
 # 1. Get Access Token
 # ─────────────────────────────────────
 Write-Host "Authenticating..." -ForegroundColor Cyan
@@ -116,10 +133,10 @@ foreach ($privName in $privilegeNames) {
 
             Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
         } else {
-            Write-Warning "  Privilege '$privName' not found. Table may not be published yet."
+            throw "Privilege '$privName' not found. The ${PublisherPrefix}_assistantcard table may not be published yet. Import the solution first, then re-run this script."
         }
     } catch {
-        Write-Warning "  Failed to assign '$privName': $($_.Exception.Message)"
+        throw "Failed to assign privilege '$privName': $($_.Exception.Message)"
     }
 }
 
