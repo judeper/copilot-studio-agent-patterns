@@ -115,14 +115,15 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Deployment guide specifies the correct Copilot Studio UI path for enabling JSON output mode (matching the current product UI, not a stale path)
   2. Agent-flows.md includes at least one concrete Power Automate expression example for Choice column integer-to-label mapping
-  3. Agent-flows.md documents how to find and configure the "Run a prompt" action in the Copilot Studio connector
+  3. Agent-flows.md documents how to find and configure the "Execute Agent and wait" action in the Microsoft Copilot Studio connector (clarifying the distinction from AI Builder's "Run a prompt")
   4. Deployment guide includes research tool action registration steps
   5. Documentation states Bun >= 1.x and Node.js >= 20 as prerequisites in the requirements section
   6. Agent-flows.md PA simplified schema uses non-nullable string for item_summary (consistent with Phase 1 contract)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: TBD
+- [ ] 07-01-PLAN.md — Fix deployment guide: JSON output UI path, prerequisites, research tool registration freshness dates
+- [ ] 07-02-PLAN.md — Fix agent-flows: connector action name, Choice column expressions, item_summary nullability, research tool cross-reference
 
 ### Phase 8: Test Infrastructure and Unit Tests
 **Goal**: The PCF project has working unit tests that verify core logic and component rendering, demonstrating testing practices for the reference pattern
