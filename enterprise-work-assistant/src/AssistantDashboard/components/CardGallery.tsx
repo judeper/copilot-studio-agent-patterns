@@ -1,6 +1,5 @@
 import * as React from "react";
-import { Text } from "@fluentui/react-components";
-import { tokens } from "@fluentui/react-theme";
+import { Text, tokens } from "@fluentui/react-components";
 import type { AssistantCard } from "./types";
 import { CardItem } from "./CardItem";
 

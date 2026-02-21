@@ -8,8 +8,8 @@ import {
     Spinner,
     MessageBar,
     MessageBarBody,
+    tokens,
 } from "@fluentui/react-components";
-import { tokens } from "@fluentui/react-components";
 import { ArrowLeftRegular } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
 

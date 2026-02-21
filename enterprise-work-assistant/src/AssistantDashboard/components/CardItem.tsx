@@ -3,8 +3,8 @@ import {
     Card,
     Badge,
     Text,
+    tokens,
 } from "@fluentui/react-components";
-import { tokens } from "@fluentui/react-components";
 import {
     MailRegular,
     ChatRegular,
