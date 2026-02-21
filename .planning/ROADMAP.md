@@ -102,10 +102,10 @@ Plans:
   2. create-security-roles.ps1 accepts a -PublisherPrefix parameter instead of hardcoding 'cr_' and uses it for all table/column references
   3. deploy-solution.ps1 uses bun install and bun run build (not npm) for PCF build steps, consistent with Phase 3 Bun migration
   4. deploy-solution.ps1 prerequisite check verifies Bun is installed alongside Node.js
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 06-01: TBD
+- [ ] 06-01-PLAN.md — Fix deploy-solution.ps1 (WhatIf, Bun, logging, prereqs, exit codes), harden create-security-roles.ps1 error handling, update deployment guide Bun commands
 
 ### Phase 7: Documentation Accuracy
 **Goal**: A developer following the deployment guide and agent-flows documentation can configure the solution without encountering incorrect instructions
