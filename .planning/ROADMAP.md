@@ -75,10 +75,10 @@ Plans:
   3. CardDetail.tsx has no residual !== "N/A" guards (contract drift from Phase 1 SCHM-06)
   4. useCardData.ts and CardItem.tsx do not treat item_summary as nullable (matches Phase 1 non-nullable contract)
   5. bun run build and bun run lint still pass with zero errors and zero warnings after all changes
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md — Fix Fluent UI v9 API correctness, clean up N/A contract drift, consolidate priority colors into shared constants
 
 ### Phase 5: PCF Security Hardening
 **Goal**: External URLs rendered in the PCF control cannot be exploited for XSS attacks
