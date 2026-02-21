@@ -107,7 +107,7 @@
   ],
   "notes": {
     "design_rationale": "Full JSON blob in cr_fulljson plus discrete columns only for server-side filtering. This avoids schema drift — the Canvas app uses ParseJSON() on cr_fulljson for detailed rendering while Dataverse queries filter on discrete choice columns.",
-    "skip_items": "SKIP-tier items are NOT written to Dataverse. The Power Automate flow checks triage_tier before writing. This avoids the constraint that cr_itemsummary (the primary column) cannot be null.",
+    "skip_items": "SKIP-tier items ARE written to Dataverse with a brief summary in cr_itemsummary. SKIP items are hidden by default in the dashboard — users can toggle a filter to view them.",
     "non_discrete_fields": "Fields like research_log, key_findings, verified_sources, and draft_payload are only accessible via ParseJSON() on cr_fulljson. They do not have discrete columns because they are not used for server-side filtering.",
     "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user sees only their own cards.",
     "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
