@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "PCF React dashboard component for the Enterprise Work Assistant",
   "scripts": {
+    "postinstall": "node scripts/patch-manifest-schema.js",
     "build": "pcf-scripts build",
     "clean": "pcf-scripts clean",
     "lint": "eslint AssistantDashboard --ext .ts,.tsx",
@@ -15,6 +16,7 @@
     "@fluentui/react-icons": "^2.0.245"
   },
   "devDependencies": {
+    "@types/powerapps-component-framework": "^1.3.18",
     "@types/react": "~16.14.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",

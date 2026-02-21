@@ -43,7 +43,7 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
                     id: record.getRecordId(),
                     trigger_type: (parsed.trigger_type as TriggerType) ?? "EMAIL",
                     triage_tier: (parsed.triage_tier as TriageTier) ?? "LIGHT",
-                    item_summary: (parsed.item_summary ?? record.getValue("cr_itemsummary")) as string | null,
+                    item_summary: String(parsed.item_summary ?? record.getValue("cr_itemsummary") ?? ""),
                     priority: (parsed.priority as Priority) ?? "N/A",
                     temporal_horizon: (parsed.temporal_horizon as TemporalHorizon) ?? "N/A",
                     research_log: parsed.research_log ?? null,
