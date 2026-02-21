@@ -9,7 +9,7 @@ import {
     MessageBar,
     MessageBarBody,
 } from "@fluentui/react-components";
-import { tokens } from "@fluentui/react-theme";
+import { tokens } from "@fluentui/react-components";
 import { ArrowLeftRegular } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
 
@@ -128,8 +128,8 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         Sources
                     </Text>
                     <ul className="card-detail-sources">
-                        {card.verified_sources.map((source) => (
-                            <li key={source.url}>
+                        {card.verified_sources.map((source, idx) => (
+                            <li key={`${source.tier}-${idx}`}>
                                 <Link
                                     href={/^https?:\/\//.test(source.url) ? source.url : "#"}
                                     target="_blank"
@@ -158,6 +158,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                             value={card.humanized_draft}
                             resize="vertical"
                             readOnly
+                            onChange={() => { /* readOnly — no-op to satisfy React controlled component */ }}
                         />
                     ) : isDraftPayloadObject(card.draft_payload) ? (
                         <div className="card-detail-draft-pending">

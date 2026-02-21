@@ -29,7 +29,9 @@ $ErrorActionPreference = "Stop"
 # 1. Get Access Token
 # ─────────────────────────────────────
 Write-Host "Authenticating..." -ForegroundColor Cyan
-$token = (pac auth token --resource $OrgUrl --json | ConvertFrom-Json).token
+# Get access token via Azure CLI (pac auth token does not exist)
+$token = az account get-access-token --resource $OrgUrl --query accessToken -o tsv
+if (-not $token) { throw "Failed to get access token. Ensure Azure CLI is installed and authenticated (az login)." }
 $headers = @{
     "Authorization"    = "Bearer $token"
     "Content-Type"     = "application/json"
@@ -104,11 +106,6 @@ foreach ($privName in $privilegeNames) {
             $privId = $privResult.value[0].privilegeid
 
             # Add privilege to role with Basic depth
-            $privAssign = @{
-                "Depth"    = $basicDepth
-                "PrivilegeId" = $privId
-            } | ConvertTo-Json
-
             Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
                 Privileges = @(@{
                     Depth = "Basic"

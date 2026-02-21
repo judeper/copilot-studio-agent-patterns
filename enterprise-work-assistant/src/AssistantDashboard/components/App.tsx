@@ -1,5 +1,5 @@
 import * as React from "react";
-import { FluentProvider, webLightTheme } from "@fluentui/react-components";
+import { FluentProvider, webLightTheme, webDarkTheme } from "@fluentui/react-components";
 import type { AssistantCard, AppProps } from "./types";
 import { CardGallery } from "./CardGallery";
 import { CardDetail } from "./CardDetail";
@@ -7,7 +7,7 @@ import { FilterBar } from "./FilterBar";
 
 type ViewState =
     | { mode: "gallery" }
-    | { mode: "detail"; card: AssistantCard };
+    | { mode: "detail"; cardId: string };
 
 function applyFilters(
     cards: AssistantCard[],
@@ -25,6 +25,26 @@ function applyFilters(
     });
 }
 
+/**
+ * Detect if the host prefers dark mode via matchMedia.
+ * Falls back to light theme if matchMedia is unavailable.
+ */
+function usePrefersDarkMode(): boolean {
+    const [dark, setDark] = React.useState(() =>
+        typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches,
+    );
+
+    React.useEffect(() => {
+        if (typeof window === "undefined" || !window.matchMedia) return;
+        const mql = window.matchMedia("(prefers-color-scheme: dark)");
+        const handler = (e: MediaQueryListEvent) => setDark(e.matches);
+        mql.addEventListener("change", handler);
+        return () => mql.removeEventListener("change", handler);
+    }, []);
+
+    return dark;
+}
+
 export const App: React.FC<AppProps> = ({
     cards,
     filterTriggerType,
@@ -38,17 +58,31 @@ export const App: React.FC<AppProps> = ({
     onDismissCard,
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery" });
+    const prefersDark = usePrefersDarkMode();
 
     const filteredCards = React.useMemo(
         () => applyFilters(cards, filterTriggerType, filterPriority, filterCardStatus, filterTemporalHorizon),
         [cards, filterTriggerType, filterPriority, filterCardStatus, filterTemporalHorizon],
     );
 
+    // Derive the selected card from the live dataset to avoid stale snapshots
+    const selectedCard = React.useMemo(() => {
+        if (viewState.mode !== "detail") return null;
+        return cards.find((c) => c.id === viewState.cardId) ?? null;
+    }, [cards, viewState]);
+
+    // If the selected card was removed from the dataset, return to gallery
+    React.useEffect(() => {
+        if (viewState.mode === "detail" && !selectedCard) {
+            setViewState({ mode: "gallery" });
+        }
+    }, [viewState, selectedCard]);
+
     const handleSelectCard = React.useCallback(
         (cardId: string) => {
             const card = cards.find((c) => c.id === cardId);
             if (card) {
-                setViewState({ mode: "detail", card });
+                setViewState({ mode: "detail", cardId });
                 onSelectCard(cardId);
             }
         },
@@ -60,9 +94,9 @@ export const App: React.FC<AppProps> = ({
     }, []);
 
     return (
-        <FluentProvider theme={webLightTheme}>
+        <FluentProvider theme={prefersDark ? webDarkTheme : webLightTheme}>
             <div className="assistant-dashboard" style={{ width, height }}>
-                {viewState.mode === "gallery" ? (
+                {viewState.mode === "gallery" || !selectedCard ? (
                     <>
                         <FilterBar
                             cardCount={filteredCards.length}
@@ -78,7 +112,7 @@ export const App: React.FC<AppProps> = ({
                     </>
                 ) : (
                     <CardDetail
-                        card={viewState.card}
+                        card={selectedCard}
                         onBack={handleBack}
                         onEditDraft={onEditDraft}
                         onDismissCard={onDismissCard}

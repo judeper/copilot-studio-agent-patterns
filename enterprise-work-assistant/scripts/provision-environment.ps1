@@ -19,7 +19,7 @@
     Deployment region. Default: "unitedstates"
 
 .PARAMETER AdminEmail
-    Admin email for environment setup (required).
+    Admin email to assign as environment admin (optional).
 
 .PARAMETER PublisherPrefix
     Dataverse publisher prefix for custom columns. Default: "cr"
@@ -39,7 +39,6 @@ param(
 
     [string]$Region = "unitedstates",
 
-    [Parameter(Mandatory = $true)]
     [string]$AdminEmail,
 
     [string]$PublisherPrefix = "cr"
@@ -64,7 +63,7 @@ $envResult = pac admin create `
     --region $Region `
     --currency USD `
     --language 1033 `
-    --domain ($EnvironmentName -replace '[^a-zA-Z0-9]', '').ToLower() `
+    --domain (($EnvironmentName -replace '[^a-zA-Z0-9]', '').ToLower().Substring(0, [Math]::Min(($EnvironmentName -replace '[^a-zA-Z0-9]', '').Length, 22))) `
     --async
 
 # Poll for environment readiness
@@ -74,18 +73,20 @@ $attempt = 0
 do {
     Start-Sleep -Seconds 10
     $attempt++
-    $envList = pac admin list --json | ConvertFrom-Json
+    $envListRaw = pac admin list --json 2>&1
+    if ($LASTEXITCODE -ne 0) { Write-Host "  pac admin list failed, retrying..." -ForegroundColor Yellow; continue }
+    $envList = $envListRaw | ConvertFrom-Json
     $env = $envList | Where-Object { $_.DisplayName -eq $EnvironmentName }
-    if ($env -and $env.State -eq "Ready") {
+    if ($env -and $env.EnvironmentUrl) {
         Write-Host "Environment ready." -ForegroundColor Green
         break
     }
-    Write-Host "  Attempt $attempt/$maxAttempts - Environment state: $($env.State ?? 'Provisioning...')"
+    Write-Host "  Attempt $attempt/$maxAttempts - Waiting for environment..."
 } while ($attempt -lt $maxAttempts)
 
 if ($attempt -ge $maxAttempts) { throw "Environment provisioning timed out after $($maxAttempts * 10) seconds." }
 
-$OrgUrl = $env.Url
+$OrgUrl = $env.EnvironmentUrl.TrimEnd('/')
 $EnvironmentId = $env.EnvironmentId
 Write-Host "Environment URL: $OrgUrl" -ForegroundColor Green
 Write-Host "Environment ID: $EnvironmentId" -ForegroundColor Green
@@ -98,8 +99,10 @@ pac org select --environment $EnvironmentId
 # ─────────────────────────────────────
 Write-Host "Creating AssistantCards Dataverse table..." -ForegroundColor Cyan
 
-# Get access token for Dataverse
-$token = (pac auth token --resource $OrgUrl --json | ConvertFrom-Json).token
+# Get access token for Dataverse via Azure CLI (pac auth token does not exist)
+# Requires: az login --tenant $TenantId (already authenticated via pac auth above)
+$token = az account get-access-token --resource $OrgUrl --query accessToken -o tsv
+if (-not $token) { throw "Failed to get access token. Ensure Azure CLI is installed and run 'az login --tenant $TenantId' first." }
 $headers = @{
     "Authorization" = "Bearer $token"
     "Content-Type"  = "application/json"
@@ -238,6 +241,15 @@ function New-ChoiceColumn {
         Write-Warning "  Column '$DisplayName' failed: $($_.Exception.Message)"
     }
 }
+
+# Triage Tier
+New-ChoiceColumn -SchemaName "${PublisherPrefix}_triagetier" -DisplayName "Triage Tier" `
+    -Description "Classification tier assigned during triage." `
+    -Options @(
+        @{ Label = "SKIP"; Value = 100000000 },
+        @{ Label = "LIGHT"; Value = 100000001 },
+        @{ Label = "FULL"; Value = 100000002 }
+    )
 
 # Trigger Type
 New-ChoiceColumn -SchemaName "${PublisherPrefix}_triggertype" -DisplayName "Trigger Type" `
@@ -386,15 +398,9 @@ Write-Host "  Note: This requires Power Platform Admin API access." -ForegroundC
 Write-Host "  If this step fails, enable manually:" -ForegroundColor Yellow
 Write-Host "    Admin Center → Environments → $EnvironmentName → Settings → Features → PCF for Canvas apps → ON" -ForegroundColor Yellow
 
-# Attempt via admin API (requires appropriate permissions)
-try {
-    pac admin update-settings `
-        --environment $EnvironmentId `
-        --settings "pcfDatasetComponentsEnabled=true"
-    Write-Host "  PCF enabled." -ForegroundColor Green
-} catch {
-    Write-Warning "  Could not enable PCF via CLI. Please enable manually in the Admin Center."
-}
+# PCF for Canvas apps must be enabled manually — there is no CLI command for this.
+Write-Warning "  MANUAL STEP: Enable PCF for Canvas apps in the Admin Center:"
+Write-Host "    Admin Center → Environments → $EnvironmentName → Settings → Features → 'Allow publishing of canvas apps with code components' → ON" -ForegroundColor Yellow
 
 # ─────────────────────────────────────
 # 5. Print Manual Steps

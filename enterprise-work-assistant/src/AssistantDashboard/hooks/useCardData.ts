@@ -16,8 +16,12 @@ interface DataSetRecord {
  * Converts the PCF dataset API into a typed AssistantCard array.
  * Reads discrete columns for display and parses cr_fulljson for the full object.
  * Skips malformed rows rather than crashing the gallery.
+ *
+ * @param dataset - PCF DataSet object (mutated in place by the platform)
+ * @param version - Counter incremented on each updateView call; forces useMemo
+ *                  to recompute since the dataset reference itself never changes.
  */
-export function useCardData(dataset: DataSet | undefined): AssistantCard[] {
+export function useCardData(dataset: DataSet | undefined, version: number): AssistantCard[] {
     return React.useMemo(() => {
         if (!dataset || !dataset.sortedRecordIds || dataset.sortedRecordIds.length === 0) {
             return [];
@@ -56,10 +60,11 @@ export function useCardData(dataset: DataSet | undefined): AssistantCard[] {
                 cards.push(card);
             } catch {
                 // Skip malformed rows — don't crash the gallery for one bad record
+                console.warn(`useCardData: failed to parse record ${id}, skipping.`);
                 continue;
             }
         }
 
         return cards;
-    }, [dataset]);
+    }, [version]);
 }

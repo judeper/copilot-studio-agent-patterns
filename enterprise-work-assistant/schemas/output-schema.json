@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "EnterpriseWorkAssistantOutput",
-  "description": "Output schema for the Enterprise Work Assistant Copilot Studio agent. Every agent invocation returns exactly one object conforming to this schema.",
+  "description": "Output schema for the Enterprise Work Assistant Copilot Studio agent. Every agent invocation returns exactly one object conforming to this schema. NOTE: The draft_payload field uses oneOf which is NOT supported by Power Automate Parse JSON. See docs/agent-flows.md for the simplified schema to use in flows.",
   "type": "object",
   "required": [
     "trigger_type",
