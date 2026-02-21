@@ -20,8 +20,8 @@ Requirements for production readiness. Each maps to roadmap phases.
 ### PCF Component Code
 
 - [x] **PCF-01**: ControlManifest.Input.xml platform-library version updated to 9.46.2 (current ceiling)
-- [ ] **PCF-02**: Badge component uses valid Fluent UI v9 size prop values (small/medium/large, not tiny)
-- [ ] **PCF-03**: Color tokens use correct Fluent UI v9 names (colorPaletteMarigoldBorder2, not colorPaletteYellowBorder2)
+- [x] **PCF-02**: Badge component uses valid Fluent UI v9 size prop values (small/medium/large, not tiny)
+- [x] **PCF-03**: Color tokens use correct Fluent UI v9 names (colorPaletteMarigoldBorder2, not colorPaletteYellowBorder2)
 - [ ] **PCF-04**: CardDetail.tsx sanitizes external URLs before rendering to prevent XSS
 - [x] **PCF-05**: Fluent UI token imports use @fluentui/react-components (platform-shared), not @fluentui/react-theme
 - [x] **PCF-06**: @fluentui/react-components version pinned to compatible ceiling (^9.46.0) in package.json
@@ -83,8 +83,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCHM-06 | Phase 1 | Complete |
 | SCHM-07 | Phase 2 | Complete |
 | PCF-01 | Phase 3 | Complete |
-| PCF-02 | Phase 4 | Pending |
-| PCF-03 | Phase 4 | Pending |
+| PCF-02 | Phase 4 | Complete |
+| PCF-03 | Phase 4 | Complete |
 | PCF-04 | Phase 5 | Pending |
 | PCF-05 | Phase 3 | Complete |
 | PCF-06 | Phase 3 | Complete |
