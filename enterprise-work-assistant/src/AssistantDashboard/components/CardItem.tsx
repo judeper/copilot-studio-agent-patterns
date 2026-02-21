@@ -11,18 +11,12 @@ import {
     CalendarRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard } from "./types";
+import { PRIORITY_COLORS } from "./constants";
 
 interface CardItemProps {
     card: AssistantCard;
     onClick: (cardId: string) => void;
 }
-
-const priorityColors: Record<string, string> = {
-    High: tokens.colorPaletteRedBorder2,
-    Medium: tokens.colorPaletteMarigoldBorder2,
-    Low: tokens.colorPaletteGreenBorder2,
-    "N/A": tokens.colorNeutralStroke1,
-};
 
 const triggerIcons: Record<string, React.ReactElement> = {
     EMAIL: <MailRegular />,
@@ -45,12 +39,12 @@ const statusColor: Record<string, "success" | "warning" | "informative" | "subtl
 };
 
 export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
-    const borderColor = priorityColors[card.priority] || tokens.colorNeutralStroke1;
+    const borderColor = card.priority ? PRIORITY_COLORS[card.priority] : undefined;
 
     return (
         <Card
             className="assistant-card-item"
-            style={{ borderLeft: `4px solid ${borderColor}` }}
+            style={borderColor ? { borderLeft: `4px solid ${borderColor}` } : undefined}
             onClick={() => onClick(card.id)}
         >
             <div className="card-item-header">
@@ -65,7 +59,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
                     >
                         {card.card_status}
                     </Badge>
-                    {card.temporal_horizon !== "N/A" && (
+                    {card.temporal_horizon && (
                         <Badge appearance="outline" size="small">
                             {card.temporal_horizon}
                         </Badge>
@@ -73,7 +67,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
                 </div>
             </div>
             <Text className="card-item-summary" block>
-                {card.item_summary ?? "No summary available"}
+                {card.item_summary}
             </Text>
             <div className="card-item-footer">
                 <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
