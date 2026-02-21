@@ -58,11 +58,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. ControlManifest.Input.xml declares platform-library version="9.46.2"
   2. package.json pins @fluentui/react-components to a version within the 9.46.2 ceiling and uses @fluentui/react-components (not @fluentui/react-theme) for all token imports
-  3. npm install followed by npm run build completes without errors
-**Plans**: TBD
+  3. bun install followed by bun run build completes without errors or warnings
+**Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md — Fix manifest version, consolidate Fluent UI imports, switch to Bun, and verify clean build
 
 ### Phase 4: PCF API Correctness
 **Goal**: All Fluent UI v9 component usage matches the actual API surface -- no invalid prop values or nonexistent tokens
@@ -139,7 +139,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 |-------|----------------|--------|-----------|
 | 1. Output Schema Contract | 0/2 | Planned | - |
 | 2. Table Naming Consistency | 0/1 | Planned | - |
-| 3. PCF Build Configuration | 0/TBD | Not started | - |
+| 3. PCF Build Configuration | 0/1 | Planned | - |
 | 4. PCF API Correctness | 0/TBD | Not started | - |
 | 5. PCF Security Hardening | 0/TBD | Not started | - |
 | 6. PowerShell Script Fixes | 0/TBD | Not started | - |
