@@ -6,6 +6,7 @@ End-to-end deployment checklist for the Enterprise Work Assistant solution.
 
 - [ ] **PAC CLI** installed (`dotnet tool install --global Microsoft.PowerApps.CLI.Tool`)
 - [ ] **Azure CLI** installed (`az` — required for Dataverse API authentication in provisioning scripts)
+- [ ] **Bun** installed (`curl -fsSL https://bun.sh/install | bash` or see https://bun.sh)
 - [ ] **Node.js 18+** installed
 - [ ] **PowerShell 7+** installed
 - [ ] Power Platform environment with Copilot Studio capacity allocated
@@ -206,8 +207,8 @@ Or manually:
 
 ```bash
 cd enterprise-work-assistant/src
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 Then pack and import the solution via PAC CLI.
