@@ -12,6 +12,7 @@ import {
 import { ArrowLeftRegular } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
 import { PRIORITY_COLORS } from "./constants";
+import { isSafeUrl } from "../utils/urlSanitizer";
 
 interface CardDetailProps {
     card: AssistantCard;
@@ -125,13 +126,17 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                     <ul className="card-detail-sources">
                         {card.verified_sources.map((source, idx) => (
                             <li key={`${source.tier}-${idx}`}>
-                                <Link
-                                    href={/^https?:\/\//.test(source.url) ? source.url : "#"}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    {source.title}
-                                </Link>
+                                {isSafeUrl(source.url) ? (
+                                    <Link
+                                        href={source.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {source.title}
+                                    </Link>
+                                ) : (
+                                    <Text>{source.title}</Text>
+                                )}
                                 <Badge appearance="outline" size="small" className="source-tier-badge">
                                     Tier {source.tier}
                                 </Badge>
