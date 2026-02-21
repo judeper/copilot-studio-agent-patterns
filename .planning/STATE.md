@@ -66,7 +66,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+1. **Research Copilot Outlook catchup feature for OOO agent** — Evaluate Copilot in Outlook's "Catch Up" OOO summary feature as a potential new agent pattern for the Enterprise Work Assistant canvas
 
 ### Blockers/Concerns
 
