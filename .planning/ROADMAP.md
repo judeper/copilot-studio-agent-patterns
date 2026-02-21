@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: PCF Build Configuration** - Pin Fluent UI version, update manifest, and lock dependency versions for correct builds
 - [x] **Phase 4: PCF API Correctness** - Fix Fluent UI v9 Badge size, color token names, and clean up contract drift from earlier phases (completed 2026-02-21)
 - [ ] **Phase 5: PCF Security Hardening** - Sanitize external URLs in CardDetail.tsx to prevent XSS
-- [ ] **Phase 6: PowerShell Script Fixes** - Fix deploy-solution.ps1 polling logic and parameterize create-security-roles.ps1
+- [x] **Phase 6: PowerShell Script Fixes** - Fix deploy-solution.ps1 polling logic and parameterize create-security-roles.ps1 (completed 2026-02-21)
 - [ ] **Phase 7: Documentation Accuracy** - Correct deployment guide UI paths, add Power Automate expression examples, and document prerequisites
 - [ ] **Phase 8: Test Infrastructure and Unit Tests** - Configure Jest for PCF and write unit tests for hooks, filters, and components
 
@@ -151,6 +151,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 3. PCF Build Configuration | 1/1 | Complete | 2026-02-21 |
 | 4. PCF API Correctness | 0/TBD | Complete    | 2026-02-21 |
 | 5. PCF Security Hardening | 0/TBD | Not started | - |
-| 6. PowerShell Script Fixes | 0/TBD | Not started | - |
+| 6. PowerShell Script Fixes | 0/TBD | Complete    | 2026-02-21 |
 | 7. Documentation Accuracy | 0/TBD | Not started | - |
 | 8. Test Infrastructure and Unit Tests | 0/TBD | Not started | - |
