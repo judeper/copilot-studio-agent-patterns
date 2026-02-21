@@ -33,11 +33,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. main-agent-system-prompt.md JSON examples produce output that validates against output-schema.json without errors
   4. humanizer-agent-prompt.md handoff object includes draft_type and uses the same null/nullability conventions as output-schema.json
   5. dataverse-table.json includes cr_triagetier Choice column with SKIP/LIGHT/FULL values and all column types match the schema
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Fix schema, types, and Dataverse table contract (output-schema.json, types.ts, dataverse-table.json)
+- [ ] 01-02-PLAN.md — Align prompt instructions and examples with updated schema (main-agent-system-prompt.md, humanizer-agent-prompt.md)
 
 ### Phase 2: Table Naming Consistency
 **Goal**: The table logical name cr_assistantcard (singular) and entity set name cr_assistantcards (plural) are used in the correct contexts everywhere
@@ -137,7 +137,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Output Schema Contract | 0/TBD | Not started | - |
+| 1. Output Schema Contract | 0/2 | Planned | - |
 | 2. Table Naming Consistency | 0/TBD | Not started | - |
 | 3. PCF Build Configuration | 0/TBD | Not started | - |
 | 4. PCF API Correctness | 0/TBD | Not started | - |
