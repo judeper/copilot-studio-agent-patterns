@@ -28,13 +28,13 @@ Requirements for production readiness. Each maps to roadmap phases.
 
 ### Documentation & Deployment
 
-- [ ] **DOC-01**: Deployment guide specifies correct Copilot Studio UI path for enabling JSON output mode
+- [x] **DOC-01**: Deployment guide specifies correct Copilot Studio UI path for enabling JSON output mode
 - [ ] **DOC-02**: Agent-flows.md includes concrete Power Automate expression examples for Choice value mapping (e.g., integer conversion)
 - [ ] **DOC-03**: Agent-flows.md documents how to locate and configure the Copilot Studio connector "Run a prompt" action
-- [ ] **DOC-04**: Deployment guide includes research tool action registration guidance
+- [x] **DOC-04**: Deployment guide includes research tool action registration guidance
 - [x] **DOC-05**: deploy-solution.ps1 polling logic checks import operation status (not solution existence)
 - [x] **DOC-06**: create-security-roles.ps1 accepts publisher prefix as parameter instead of hardcoding 'cr_'
-- [ ] **DOC-07**: Documentation specifies Node.js >= 20 prerequisite
+- [x] **DOC-07**: Documentation specifies Node.js >= 20 prerequisite
 
 ### Testing
 
@@ -88,13 +88,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PCF-04 | Phase 5 | Complete |
 | PCF-05 | Phase 3 | Complete |
 | PCF-06 | Phase 3 | Complete |
-| DOC-01 | Phase 7 | Pending |
+| DOC-01 | Phase 7 | Complete |
 | DOC-02 | Phase 7 | Pending |
 | DOC-03 | Phase 7 | Pending |
-| DOC-04 | Phase 7 | Pending |
+| DOC-04 | Phase 7 | Complete |
 | DOC-05 | Phase 6 | Complete |
 | DOC-06 | Phase 6 | Complete |
-| DOC-07 | Phase 7 | Pending |
+| DOC-07 | Phase 7 | Complete |
 | TEST-01 | Phase 8 | Pending |
 | TEST-02 | Phase 8 | Pending |
 | TEST-03 | Phase 8 | Pending |
