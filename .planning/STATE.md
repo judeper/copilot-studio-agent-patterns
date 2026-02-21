@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-20)
 
 **Core value:** Every artifact in the solution must be correct and consistent -- schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** Phase 6: PowerShell Script Fixes (COMPLETE)
+**Current focus:** Phase 7: Documentation Accuracy (COMPLETE)
 
 ## Current Position
 
-Phase: 6 of 8 (PowerShell Script Fixes)
-Plan: 1 of 1 in current phase (PHASE COMPLETE)
+Phase: 7 of 8 (Documentation Accuracy)
+Plan: 2 of 2 in current phase (PHASE COMPLETE)
 Status: Phase Complete
-Last activity: 2026-02-21 -- Completed plan 06-01 (deploy-solution.ps1 overhaul, create-security-roles.ps1 hardening, deployment-guide.md bun update)
+Last activity: 2026-02-21 -- Completed plan 07-02 (agent-flows.md connector actions, Choice expressions, schema nullability)
 
-Progress: [▓▓▓▓▓▓▓░░░] 75%
+Progress: [▓▓▓▓▓▓▓▓▓░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 9
 - Average duration: 4min
-- Total execution time: 0.4 hours
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
@@ -34,10 +34,12 @@ Progress: [▓▓▓▓▓▓▓░░░] 75%
 | Phase 04 P01 | 3min | 2 tasks | 5 files |
 | Phase 05 P01 | 3min | 2 tasks | 2 files |
 | Phase 06 P01 | 2min | 2 tasks | 3 files |
+| Phase 07 P01 | 2min | 1 task | 1 file |
+| Phase 07 P02 | 3min | 1 task | 1 file |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 14min, 3min, 3min, 2min
-- Trend: stable (script fixes fastest yet)
+- Last 5 plans: 3min, 3min, 2min, 2min, 3min
+- Trend: stable (documentation fixes consistently fast)
 
 *Updated after each plan completion*
 
@@ -70,6 +72,12 @@ Recent decisions affecting current work:
 - [Phase 06]: Existence-only prereq checks (no minimum version enforcement) -- build step itself will fail with clear error if wrong version
 - [Phase 06]: Removed pac solution list verification entirely -- trusts pac solution import synchronous exit code (DOC-05)
 - [Phase 06]: Privilege-not-found throws immediately (fail-fast) instead of warning and continuing with incomplete permissions
+- [Phase 07]: Function-first language for JSON output config since Copilot Studio UI paths are unstable -- describe what to do, hint at where
+- [Phase 07]: Prerequisites grouped into Development Tools, Power Platform Tools, Environment Requirements with tested-with versions
+- [Phase 07]: .NET SDK added as explicit prerequisite (was implicit via PAC CLI dependency)
+- [Phase 07]: Execute Agent and wait (Microsoft Copilot Studio connector) replaces Run a prompt (AI Builder) for all agent invocations
+- [Phase 07]: lastResponse field replaces text as the expected connector response field name
+- [Phase 07]: item_summary declared as non-nullable string in PA simplified schema, aligning with Phase 1 canonical contract
 
 ### Pending Todos
 
@@ -82,5 +90,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-21
-Stopped at: Completed 06-01-PLAN.md (Phase 06 complete)
+Stopped at: Completed 07-02-PLAN.md (Phase 07 complete)
 Resume file: None
