@@ -32,8 +32,8 @@ Requirements for production readiness. Each maps to roadmap phases.
 - [ ] **DOC-02**: Agent-flows.md includes concrete Power Automate expression examples for Choice value mapping (e.g., integer conversion)
 - [ ] **DOC-03**: Agent-flows.md documents how to locate and configure the Copilot Studio connector "Run a prompt" action
 - [ ] **DOC-04**: Deployment guide includes research tool action registration guidance
-- [ ] **DOC-05**: deploy-solution.ps1 polling logic checks import operation status (not solution existence)
-- [ ] **DOC-06**: create-security-roles.ps1 accepts publisher prefix as parameter instead of hardcoding 'cr_'
+- [x] **DOC-05**: deploy-solution.ps1 polling logic checks import operation status (not solution existence)
+- [x] **DOC-06**: create-security-roles.ps1 accepts publisher prefix as parameter instead of hardcoding 'cr_'
 - [ ] **DOC-07**: Documentation specifies Node.js >= 20 prerequisite
 
 ### Testing
@@ -92,8 +92,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOC-02 | Phase 7 | Pending |
 | DOC-03 | Phase 7 | Pending |
 | DOC-04 | Phase 7 | Pending |
-| DOC-05 | Phase 6 | Pending |
-| DOC-06 | Phase 6 | Pending |
+| DOC-05 | Phase 6 | Complete |
+| DOC-06 | Phase 6 | Complete |
 | DOC-07 | Phase 7 | Pending |
 | TEST-01 | Phase 8 | Pending |
 | TEST-02 | Phase 8 | Pending |
