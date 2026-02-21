@@ -87,10 +87,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. CardDetail.tsx validates all external URLs against an explicit allowlist of safe schemes (https, mailto) before rendering as clickable links
   2. URLs with javascript:, data:, or other dangerous schemes are either stripped or rendered as plain text, never as active links
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — Create URL sanitization utility and integrate into CardDetail.tsx for XSS prevention
 
 ### Phase 6: PowerShell Script Fixes
 **Goal**: Deployment scripts work correctly when run with standard parameters -- no hardcoded values, no broken polling, and build commands match the Bun package manager introduced in Phase 3
