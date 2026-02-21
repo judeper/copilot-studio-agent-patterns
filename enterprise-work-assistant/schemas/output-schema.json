@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EnterpriseWorkAssistantOutput",
+  "description": "Output schema for the Enterprise Work Assistant Copilot Studio agent. Every agent invocation returns exactly one object conforming to this schema.",
+  "type": "object",
+  "required": [
+    "trigger_type",
+    "triage_tier",
+    "item_summary",
+    "priority",
+    "temporal_horizon",
+    "research_log",
+    "key_findings",
+    "verified_sources",
+    "confidence_score",
+    "card_status",
+    "draft_payload",
+    "low_confidence_note"
+  ],
+  "properties": {
+    "trigger_type": {
+      "type": "string",
+      "enum": ["EMAIL", "TEAMS_MESSAGE", "CALENDAR_SCAN"],
+      "description": "The type of incoming signal that triggered this agent invocation."
+    },
+    "triage_tier": {
+      "type": "string",
+      "enum": ["SKIP", "LIGHT", "FULL"],
+      "description": "Classification tier assigned during triage."
+    },
+    "item_summary": {
+      "type": ["string", "null"],
+      "maxLength": 300,
+      "description": "1-2 sentence plain-text summary of the triggering item. Null for SKIP."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["High", "Medium", "Low", "N/A"],
+      "description": "Priority level. Title case. N/A for SKIP or items where priority is not applicable."
+    },
+    "temporal_horizon": {
+      "type": "string",
+      "enum": ["TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", "N/A"],
+      "description": "Temporal horizon for calendar items. N/A for non-calendar triggers or SKIP."
+    },
+    "research_log": {
+      "type": ["string", "null"],
+      "description": "Plain-text log of which research tiers were checked and what was found or not found. Null for SKIP and LIGHT."
+    },
+    "key_findings": {
+      "type": ["string", "null"],
+      "description": "Plain-text bulleted list of relevant findings from research. 'None retrieved' if nothing found. Null for SKIP and LIGHT."
+    },
+    "verified_sources": {
+      "type": ["array", "null"],
+      "description": "Array of explicitly retrieved sources with title, URL, and research tier. Null for SKIP and LIGHT.",
+      "items": {
+        "type": "object",
+        "required": ["title", "url", "tier"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Human-readable title or description of the source."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL or resource identifier for the source."
+          },
+          "tier": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Research tier (1-5) where this source was retrieved."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "confidence_score": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Confidence score 0-100 based on strength of retrieved evidence. Null for SKIP and LIGHT."
+    },
+    "card_status": {
+      "type": "string",
+      "enum": ["READY", "LOW_CONFIDENCE", "SUMMARY_ONLY", "NO_OUTPUT"],
+      "description": "Status of the output card. READY = full research + draft available, LOW_CONFIDENCE = insufficient evidence, SUMMARY_ONLY = LIGHT tier summary, NO_OUTPUT = SKIP tier."
+    },
+    "draft_payload": {
+      "description": "For EMAIL/TEAMS FULL with confidence >= 40: humanizer handoff object. For CALENDAR_SCAN FULL: plain-text meeting briefing. N/A for LIGHT. Null for SKIP or LOW_CONFIDENCE.",
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string" },
+        {
+          "type": "object",
+          "description": "Humanizer handoff object for EMAIL and TEAMS_MESSAGE FULL-tier items with confidence >= 40.",
+          "required": [
+            "draft_type",
+            "raw_draft",
+            "research_summary",
+            "recipient_relationship",
+            "inferred_tone",
+            "confidence_score",
+            "user_context"
+          ],
+          "properties": {
+            "draft_type": {
+              "type": "string",
+              "enum": ["EMAIL", "TEAMS_MESSAGE"],
+              "description": "The type of draft being handed off. Determines output format in the Humanizer Agent."
+            },
+            "raw_draft": {
+              "type": "string",
+              "description": "Plain-text draft reply/response grounded in retrieved research only."
+            },
+            "research_summary": {
+              "type": "string",
+              "description": "Plain-text summary of sources used and key findings."
+            },
+            "recipient_relationship": {
+              "type": "string",
+              "enum": ["Internal colleague", "External client", "Leadership", "Unknown"],
+              "description": "Categorization of the recipient's relationship to the user."
+            },
+            "inferred_tone": {
+              "type": "string",
+              "enum": ["formal", "semi-formal", "direct", "collaborative"],
+              "description": "Recommended tone for the humanized draft."
+            },
+            "confidence_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Confidence score passed through for humanizer context."
+            },
+            "user_context": {
+              "type": "string",
+              "description": "Authenticated user context (name, role, department) for tone calibration."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "low_confidence_note": {
+      "type": ["string", "null"],
+      "description": "Only populated when card_status = LOW_CONFIDENCE. States which tiers were checked, what was found, and what the user should verify manually. Null otherwise."
+    }
+  },
+  "additionalProperties": false
+}
