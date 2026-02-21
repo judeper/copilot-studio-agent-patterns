@@ -4,7 +4,7 @@ import {
     Badge,
     Text,
 } from "@fluentui/react-components";
-import { tokens } from "@fluentui/react-theme";
+import { tokens } from "@fluentui/react-components";
 import {
     MailRegular,
     ChatRegular,

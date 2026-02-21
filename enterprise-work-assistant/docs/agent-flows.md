@@ -4,11 +4,74 @@ This guide walks through building the three Power Automate agent flows that feed
 
 ## Prerequisites
 
-- Enterprise Work Assistant agent configured in Copilot Studio with JSON output mode enabled (see [deployment-guide.md](deployment-guide.md), Phase 2)
+- Enterprise Work Assistant agent **published** in Copilot Studio with JSON output mode enabled (see [deployment-guide.md](deployment-guide.md), Phase 2)
 - `Assistant Cards` Dataverse table provisioned (run `scripts/provision-environment.ps1`)
 - Connections created for: Office 365 Outlook, Microsoft Teams, Office 365 Users, Microsoft Graph, SharePoint
 
 > **Note on connections vs. connection references**: For initial development, you only need standard *connections* (authenticated links to connectors). If you later package these flows into a solution for deployment across environments, you will need *connection references* (solution-aware pointers to connections). See [Microsoft Learn: Connection references](https://learn.microsoft.com/en-us/power-apps/maker/data-platform/create-connection-reference) for details.
+
+---
+
+## Important: Row Ownership
+
+Power Automate flows run under the connection owner's identity. By default, Dataverse rows created by the flow are owned by whichever account authenticated the Dataverse connector — **not** the end user whose email/message triggered the flow.
+
+To ensure each user sees only their own cards (Row-Level Security), you **must** explicitly set the Owner field in every "Add a new row" action:
+
+1. In the "Add a new row" action, expand **Show advanced options**
+2. Set **Owner** to the user's Azure AD Object ID (from the "Get my profile V2" step):
+   `@{outputs('Get_my_profile_(V2)')?['body/id']}`
+
+This is **critical** for the ownership-based security model to work correctly.
+
+---
+
+## Important: Parse JSON Schema
+
+The canonical schema in `schemas/output-schema.json` uses `oneOf` for the `draft_payload` field. Power Automate's **Parse JSON** action does **not** support `oneOf` or `anyOf`. You must use the simplified schema below for all Parse JSON actions in these flows:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "trigger_type": { "type": "string" },
+    "triage_tier": { "type": "string" },
+    "item_summary": { "type": ["string", "null"] },
+    "priority": { "type": "string" },
+    "temporal_horizon": { "type": "string" },
+    "research_log": { "type": ["string", "null"] },
+    "key_findings": { "type": ["string", "null"] },
+    "verified_sources": {},
+    "confidence_score": { "type": ["integer", "null"] },
+    "card_status": { "type": "string" },
+    "draft_payload": {},
+    "low_confidence_note": { "type": ["string", "null"] }
+  }
+}
+```
+
+> The `{}` (empty schema) for `draft_payload` and `verified_sources` accepts any value (null, string, object, or array) without validation failure. The canonical `output-schema.json` remains the authoritative contract for development and testing.
+
+---
+
+## Error Handling Pattern
+
+Wrap the agent invocation and downstream processing in a **Scope** action for error handling. Add a parallel **Scope** (configure "Run after" → "has failed") for error logging:
+
+```
+Scope: Process Signal
+  ├── Invoke agent
+  ├── Parse JSON
+  ├── Condition: not SKIP
+  │   └── Add row to Dataverse
+  │       └── Condition: Humanizer handoff
+  │           ├── Invoke Humanizer
+  │           └── Update row
+  └── (on failure) → Scope: Handle Error
+                        └── Send notification / log to error table
+```
+
+For each flow, place steps 4–10 inside a **Scope** action named "Process Signal" and add a parallel error-handling scope.
 
 ---
 
@@ -23,9 +86,28 @@ This guide walks through building the three Power Automate agent flows that feed
 | Folder | Inbox |
 | Include Attachments | No |
 | Split On | Enabled (each email gets its own flow run) |
-| Pre-filter (Subject Filter) | Exclude known no-reply patterns if needed |
+| Subject Filter | *(leave blank — filtering is done in step 1a below)* |
 
 ### Actions
+
+**1a. Condition — Pre-filter low-value emails**
+
+Skip emails from known no-reply senders and system-generated messages to avoid unnecessary agent calls:
+
+```
+@and(
+  not(contains(toLower(triggerOutputs()?['body/from']), 'noreply')),
+  not(contains(toLower(triggerOutputs()?['body/from']), 'no-reply')),
+  not(contains(toLower(triggerOutputs()?['body/from']), 'mailer-daemon')),
+  not(equals(triggerOutputs()?['body/importance'], 'low'))
+)
+```
+
+> **Tip**: Customize this filter for your organization. Common additions: `notifications@`, `donotreply@`, automated report senders. If using the Office 365 Outlook V3 trigger, you can also use the built-in **From** filter setting.
+
+**If No (filtered out):** Terminate the flow (no further action needed).
+
+**If Yes:**
 
 **1. Compose — PAYLOAD**
 
@@ -35,7 +117,6 @@ This guide walks through building the three Power Automate agent flows that feed
   "to": "@{triggerOutputs()?['body/toRecipients']}",
   "cc": "@{triggerOutputs()?['body/ccRecipients']}",
   "subject": "@{triggerOutputs()?['body/subject']}",
-  "body": "@{triggerOutputs()?['body/body']}",
   "bodyPreview": "@{triggerOutputs()?['body/bodyPreview']}",
   "receivedDateTime": "@{triggerOutputs()?['body/receivedDateTime']}",
   "importance": "@{triggerOutputs()?['body/importance']}",
@@ -45,23 +126,25 @@ This guide walks through building the three Power Automate agent flows that feed
 }
 ```
 
+> **Note**: We use `bodyPreview` (plain text, max ~255 chars) instead of `body` (which returns HTML). The agent prompt expects plain text. If you need the full body, use `body/bodyPreview` for plain text or strip HTML using the built-in `stripHtml()` expression: `@{if(not(empty(triggerOutputs()?['body/body'])), stripHtml(triggerOutputs()?['body/body']), '')}`.
+
 **2. Get my profile (V2)** — Office 365 Users connector
 
 **3. Compose — USER_CONTEXT**
 
-```json
-{
-  "displayName": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}",
-  "jobTitle": "@{outputs('Get_my_profile_(V2)')?['body/jobTitle']}",
-  "department": "@{outputs('Get_my_profile_(V2)')?['body/department']}"
-}
+Format as a comma-separated string to match the agent prompt's few-shot examples:
+
 ```
+@{outputs('Get_my_profile_(V2)')?['body/displayName']}, @{outputs('Get_my_profile_(V2)')?['body/jobTitle']}, @{outputs('Get_my_profile_(V2)')?['body/department']}
+```
+
+> This produces a string like `"Jordan Martinez, Senior Account Manager, Enterprise Sales"` which matches the format used in the main agent prompt's few-shot examples.
 
 **4. Invoke the agent**
 
 Add the **Copilot Studio** connector (search for "Copilot" in the connector list). Select the **"Run a prompt"** action (in some environments this appears as **"Invoke a Copilot Agent"** — the exact label may vary by platform version). Choose the **Enterprise Work Assistant** agent.
 
-> **Important**: After adding the action, check the *dynamic content picker* to confirm the correct output field name for the agent's response. It is typically `text` or `responsemessage` depending on the connector version.
+> **Important**: After adding the action, check the *dynamic content picker* to confirm the correct output field name for the agent's response. It is typically `text` or `responsemessage` depending on the connector version. Use this field name consistently in steps 5 and 7.
 
 | Input Variable | Value |
 |---------------|-------|
@@ -72,7 +155,7 @@ Add the **Copilot Studio** connector (search for "Copilot" in the connector list
 
 **5. Parse JSON** — Parse the agent's response
 
-Use the schema from `schemas/output-schema.json`. Add a **Parse JSON** action and paste the schema into the schema field.
+Use the **simplified schema** from the "Parse JSON Schema" section above (not the canonical `output-schema.json` which contains unsupported `oneOf`).
 
 **6. Condition — Check triage tier**
 
@@ -109,7 +192,8 @@ Repeat this pattern for Priority, Card Status, Triage Tier, and Temporal Horizon
 | Card Status | Choice value from Compose (see mapping table) |
 | Temporal Horizon | Choice value from Compose (see mapping table) |
 | Confidence Score | `@{body('Parse_JSON')?['confidence_score']}` |
-| Full JSON Output | `@{body('Invoke_agent')?['text']}` (raw agent response — verify field name in dynamic content) |
+| Full JSON Output | `@{body('Invoke_agent')?['text']}` (raw agent response — **verify field name** in dynamic content) |
+| **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` **(required for RLS — see Row Ownership section)** |
 
 **8. Condition — Humanizer handoff**
 
@@ -129,7 +213,13 @@ Repeat this pattern for Priority, Card Status, Triage Tier, and Temporal Horizon
 
 **9. Invoke the Humanizer Agent**
 
-Add another Copilot Studio "Run a prompt" action. Select the **Humanizer Agent**. Pass `draft_payload` from the parsed response as the input.
+Add another Copilot Studio "Run a prompt" action. Select the **Humanizer Agent**. The Humanizer expects a JSON string as input — serialize the `draft_payload` object:
+
+```
+@{string(body('Parse_JSON')?['draft_payload'])}
+```
+
+> **Important**: Copilot Studio input variables are typed as text. You must convert the parsed object back to a JSON string using `string()`. Passing the object directly will produce an error or unexpected format.
 
 **10. Update a row** — Dataverse connector → Assistant Cards table
 
@@ -144,14 +234,27 @@ Add another Copilot Studio "Run a prompt" action. Select the **Humanizer Agent**
 
 ### Trigger
 
-**When a new channel message is added** or **When someone is mentioned** — Microsoft Teams connector
+**When someone is mentioned** — Microsoft Teams connector (preferred for targeted processing)
 
 | Setting | Value |
 |---------|-------|
 | Team | Select the relevant team |
-| Channel | Select the channel (or "Any") |
+| Channel | Select the specific channel to monitor |
+
+> **Important**: Avoid using `Channel = "Any"` as this captures every message in every channel across the entire team, generating excessive agent calls. Either select specific channels or use the **"When someone is mentioned"** trigger to process only messages where the user is @mentioned.
 
 ### Actions
+
+**1a. Condition — Pre-filter** (optional but recommended)
+
+Skip messages from bots and the current user (avoid self-processing):
+
+```
+@and(
+  not(equals(triggerOutputs()?['body/from/user/id'], outputs('Get_my_profile_(V2)')?['body/id'])),
+  not(contains(toLower(triggerOutputs()?['body/from/user/displayName']), 'bot'))
+)
+```
 
 **1. Compose — PAYLOAD**
 
@@ -167,7 +270,7 @@ Add another Copilot Studio "Run a prompt" action. Select the **Humanizer Agent**
 }
 ```
 
-**2-10.** Same pattern as Flow 1 — Get user profile, compose USER_CONTEXT, invoke agent, parse JSON, conditional Dataverse write, conditional humanizer handoff.
+**2-10.** Same pattern as Flow 1 — Get user profile, compose USER_CONTEXT (comma-separated string), invoke agent, parse JSON (simplified schema), conditional Dataverse write **(with Owner field set)**, conditional humanizer handoff **(with `string()` serialization)**.
 
 Change `TRIGGER_TYPE` to `TEAMS_MESSAGE`.
 
@@ -199,25 +302,32 @@ Change `TRIGGER_TYPE` to `TEAMS_MESSAGE`.
 
 **2. Get my profile (V2)** — Office 365 Users connector
 
-**3. Compose — USER_CONTEXT** (same as Flow 1)
+**3. Compose — USER_CONTEXT** (same comma-separated string format as Flow 1)
 
 **4. Apply to each** — Loop over events from step 1
 
 **4a. Condition — Pre-filter**
 
-Skip events matching low-value patterns:
+Skip events matching low-value patterns (case-insensitive):
 
 ```
 @not(
   or(
-    contains(items('Apply_to_each')?['subject'], 'Focus Time'),
-    contains(items('Apply_to_each')?['subject'], 'Lunch'),
-    contains(items('Apply_to_each')?['subject'], 'OOF'),
-    contains(items('Apply_to_each')?['subject'], 'Hold'),
-    contains(items('Apply_to_each')?['subject'], 'Holiday')
+    contains(toLower(items('Apply_to_each')?['subject']), 'focus time'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'lunch'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'ooh'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'oof'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'out of office'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'hold'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'holiday'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'personal'),
+    contains(toLower(items('Apply_to_each')?['subject']), 'private'),
+    equals(items('Apply_to_each')?['showAs'], 'free')
   )
 )
 ```
+
+> **Note**: Uses `toLower()` for case-insensitive matching. Also filters events marked as "free" (not blocking the user's calendar). Customize patterns as needed for your organization.
 
 **If Yes (not filtered out):**
 
@@ -226,7 +336,7 @@ Skip events matching low-value patterns:
 ```json
 {
   "subject": "@{items('Apply_to_each')?['subject']}",
-  "body": "@{items('Apply_to_each')?['body/content']}",
+  "body": "@{items('Apply_to_each')?['bodyPreview']}",
   "start": "@{items('Apply_to_each')?['start/dateTime']}",
   "end": "@{items('Apply_to_each')?['end/dateTime']}",
   "location": "@{items('Apply_to_each')?['location/displayName']}",
@@ -240,13 +350,13 @@ Skip events matching low-value patterns:
 
 **4c. Invoke agent** with `TRIGGER_TYPE = "CALENDAR_SCAN"`
 
-**4d. Parse JSON + Conditional Dataverse write** (same pattern as Flow 1 steps 5-7)
+**4d. Parse JSON + Conditional Dataverse write** (same pattern as Flow 1 steps 5-7, **including Owner field**)
 
 Note: Calendar items do NOT go through the Humanizer Agent. The `draft_payload` for CALENDAR_SCAN is a plain-text meeting briefing used as-is.
 
-**4e. Delay** — 2 seconds
+**4e. Delay** — 5 seconds
 
-Rate limiting between iterations to avoid connector throttling.
+Rate limiting between iterations to avoid Copilot Studio and connector throttling. Increase to 10 seconds if you encounter 429 (throttling) errors.
 
 ---
 

@@ -51,6 +51,13 @@ try {
     throw "PAC CLI is not installed. Install via: dotnet tool install --global Microsoft.PowerApps.CLI.Tool"
 }
 
+# Check PAC auth
+$authList = pac auth list 2>&1
+if ($authList -match "No profiles" -or $LASTEXITCODE -ne 0) {
+    throw "No PAC CLI auth profile found. Run 'pac auth create --tenant <tenant-id>' first."
+}
+Write-Host "  PAC auth: OK" -ForegroundColor Green
+
 # Resolve solution path
 $SolutionPath = Resolve-Path $SolutionPath
 Write-Host "  Solution path: $SolutionPath" -ForegroundColor Green

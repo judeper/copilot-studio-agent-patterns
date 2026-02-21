@@ -10,7 +10,7 @@ export type DraftType = "EMAIL" | "TEAMS_MESSAGE";
 export interface VerifiedSource {
     title: string;
     url: string;
-    tier: number;
+    tier: 1 | 2 | 3 | 4 | 5;
 }
 
 export interface DraftPayload {

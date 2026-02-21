@@ -5,6 +5,7 @@ End-to-end deployment checklist for the Enterprise Work Assistant solution.
 ## Prerequisites
 
 - [ ] **PAC CLI** installed (`dotnet tool install --global Microsoft.PowerApps.CLI.Tool`)
+- [ ] **Azure CLI** installed (`az` — required for Dataverse API authentication in provisioning scripts)
 - [ ] **Node.js 18+** installed
 - [ ] **PowerShell 7+** installed
 - [ ] Power Platform environment with Copilot Studio capacity allocated
@@ -16,34 +17,51 @@ End-to-end deployment checklist for the Enterprise Work Assistant solution.
 
 ## Phase 1 — Environment Provisioning
 
-### 1.1 Create Environment and Dataverse Table
+### 1.1 Authenticate
+
+```powershell
+# Authenticate PAC CLI
+pac auth create --tenant "<your-tenant-id>"
+
+# Authenticate Azure CLI (required for Dataverse API token)
+az login --tenant "<your-tenant-id>"
+```
+
+### 1.2 Create Environment and Dataverse Table
 
 ```powershell
 cd enterprise-work-assistant/scripts
 
 .\provision-environment.ps1 `
     -TenantId "<your-tenant-id>" `
-    -AdminEmail "<admin@yourdomain.com>" `
     -EnvironmentName "EnterpriseWorkAssistant-Dev" `
     -EnvironmentType "Sandbox"
 ```
 
 This creates:
 - A Power Platform environment with Dataverse
-- The `cr_assistantcard` table (entity set name `cr_assistantcards`) with all required columns
-- Enables PCF for Canvas apps
+- The `cr_assistantcard` table (entity set name `cr_assistantcards`) with all required columns including `cr_triagetier`
 
 > **Important**: Save the **Environment ID** and **Organization URL** (e.g., `https://orgname.crm.dynamics.com`) from the script output. You will need these values in later steps.
 
-### 1.2 Create Security Roles
+### 1.3 Enable PCF for Canvas Apps
+
+This must be done manually — there is no CLI command:
+
+1. Go to **Power Platform Admin Center** → **Environments** → select your environment
+2. Click **Settings** → **Features**
+3. Enable **Allow publishing of canvas apps with code components**
+4. Click **Save**
+
+### 1.4 Create Security Roles
 
 ```powershell
 .\create-security-roles.ps1 -OrgUrl "https://<your-org>.crm.dynamics.com"
 ```
 
-### 1.3 Create Connection References
+### 1.5 Create Connections
 
-Manually create connection references in Power Automate for:
+Manually create connections in Power Automate for:
 
 1. **Office 365 Outlook** — email triggers and send actions
 2. **Microsoft Teams** — message triggers
@@ -52,6 +70,8 @@ Manually create connection references in Power Automate for:
 5. **SharePoint** — internal knowledge search
 
 Navigate to: Power Automate → Connections → New connection
+
+> **Note on connections vs. connection references**: For initial development, you only need standard connections. For multi-environment deployment, convert to connection references inside a solution.
 
 ---
 
@@ -66,8 +86,11 @@ Navigate to: Power Automate → Connections → New connection
 
 ### 2.2 Configure JSON Output Mode
 
-1. In the agent settings, navigate to **Settings** → **Generative AI** (the exact label may vary by Copilot Studio version — look for the AI/model configuration section, not the "Instructions" or "Topics" tab)
-2. Enable **Structured outputs** (or **JSON output** in older versions)
+1. In the agent settings, navigate to the AI/model configuration section
+   - In newer Copilot Studio versions: **Settings** → **Generative AI** → **Structured outputs**
+   - In older versions: **Settings** → **AI capabilities** → **JSON output**
+   - The exact label varies by version — look for structured output or JSON mode settings, not the "Instructions" or "Topics" tab
+2. Enable **Structured outputs** (or **JSON output**)
 3. Select **Custom format**
 4. Paste the following as the JSON example (this locks the schema):
 
@@ -96,7 +119,7 @@ Create four input variables in the agent:
 |----------|------|-------------|
 | TRIGGER_TYPE | Choice (EMAIL, TEAMS_MESSAGE, CALENDAR_SCAN) | Signal type |
 | PAYLOAD | Multi-line text | Raw content JSON |
-| USER_CONTEXT | Text | User profile JSON |
+| USER_CONTEXT | Text | Comma-separated string: "DisplayName, JobTitle, Department" |
 | CURRENT_DATETIME | Text | ISO 8601 timestamp |
 
 ### 2.4 Register Research Tools (Actions)
@@ -109,13 +132,23 @@ For connector-based actions, select the relevant connector and the specific oper
 |--------|-----------|-----------|---------------|
 | SearchUserEmail | Office 365 Outlook | Search email (V2) | Tier 1 — Personal Context |
 | SearchSentItems | Office 365 Outlook | Search email (V2) on Sent Items folder | Tier 1 — Personal Context |
-| SearchTeamsMessages | Microsoft Graph | `GET /me/chats/messages` or Teams Search | Tier 1 — Personal Context |
+| SearchTeamsMessages | Microsoft Teams (or Microsoft Search) | Search messages | Tier 1 — Personal Context |
 | SearchSharePoint | SharePoint | Search (V2) | Tier 2 — Organizational Knowledge |
 | SearchPlannerTasks | Microsoft Graph | `GET /me/planner/tasks` | Tier 3 — Project Tools |
 | WebSearch | Bing Search (or MCP plugin) | Web search | Tier 4 — Public Sources |
 | SearchMSLearn | Bing Search (or MCP plugin) | Web search with `site:learn.microsoft.com` | Tier 5 — Official Docs |
 
+> **Note on Teams search**: The Microsoft Graph endpoint for searching Teams messages requires the Microsoft Search API (`/search/query` with `entityTypes: ["chatMessage"]`), not a direct chat messages endpoint. Alternatively, use the Microsoft Teams connector's built-in search action or configure a Microsoft Search connector action.
+
 > **Tip**: The agent prompt references these actions by name. If you use different action names, update the corresponding tool references in `prompts/main-agent-system-prompt.md`.
+
+### 2.5 Publish the Agent
+
+1. Click **Publish** in the top-right corner of Copilot Studio
+2. Wait for publishing to complete (this may take 1-2 minutes)
+3. Verify the agent is listed as "Published" in the agent overview
+
+> **Critical**: The agent must be published before Power Automate flows can invoke it. An unpublished agent will cause the "Invoke agent" action to fail.
 
 ---
 
@@ -128,12 +161,14 @@ Build the three agent flows following `docs/agent-flows.md`:
 - Test with a real email to your inbox
 
 ### 3.2 TEAMS_MESSAGE Flow
-- Trigger: When a new channel message is added
+- Trigger: When someone is mentioned (preferred) or When a new channel message is added
 - Test by posting in the configured channel
 
 ### 3.3 CALENDAR_SCAN Flow
 - Trigger: Daily recurrence at 7 AM
 - Test by running manually
+
+> **Important**: Review the [agent-flows.md](agent-flows.md) sections on **Row Ownership** (required for RLS), **Parse JSON Schema** (simplified schema without `oneOf`), and **Error Handling** before building flows.
 
 ---
 
@@ -143,8 +178,19 @@ Build the three agent flows following `docs/agent-flows.md`:
 
 1. In Copilot Studio, create a second agent: **"Humanizer Agent"**
 2. Paste the prompt from `prompts/humanizer-agent-prompt.md`
-3. Configure as a **Connected Agent** available to the main agent
-4. Alternatively, invoke it from the agent flows — see the "Humanizer handoff" steps (steps 8–10) in [agent-flows.md](agent-flows.md) for how the EMAIL and TEAMS_MESSAGE flows call the Humanizer after writing the initial card to Dataverse
+3. Publish the agent
+
+### 4.2 Choose Integration Method
+
+Pick **one** of the following approaches (they are mutually exclusive):
+
+**Option A — Flow-based invocation (recommended):**
+The Power Automate flows invoke the Humanizer Agent directly in steps 8-10 (see [agent-flows.md](agent-flows.md)). This is the approach documented in the agent flows guide and is recommended for most deployments because it gives you explicit control over when humanization happens.
+
+**Option B — Connected Agent:**
+Configure the Humanizer as a Connected Agent available to the main agent within Copilot Studio. In this approach, the main agent orchestrates the humanization call internally. This simplifies the flows but makes the humanization step less visible and harder to debug.
+
+> Do not use both approaches simultaneously — this would result in double humanization.
 
 ---
 
@@ -166,6 +212,8 @@ npm run build
 
 Then pack and import the solution via PAC CLI.
 
+> **Note**: The solution is packaged as **Unmanaged**, which is appropriate for development and testing. For production deployment, change `SolutionPackageType` to `Managed` in `src/Solutions/Solution.cdsproj` before building.
+
 ---
 
 ## Phase 6 — Canvas App
@@ -178,12 +226,15 @@ Follow `docs/canvas-app-setup.md` to create and configure the Canvas app.
 
 ### 7.1 Data Loss Prevention (DLP) Policies
 
-Ensure the environment's DLP policies allow the required connector combinations:
+Ensure the environment's DLP policies allow the required connector combinations. All of these connectors must be in the **same DLP group** (typically "Business"):
 
-- Office 365 Outlook + Dataverse (same group)
-- Microsoft Teams + Dataverse (same group)
-- Microsoft Graph + Dataverse (same group)
-- SharePoint + Dataverse (same group)
+- Office 365 Outlook + Dataverse
+- Microsoft Teams + Dataverse
+- Microsoft Graph + Dataverse
+- SharePoint + Dataverse
+- Copilot Studio + Dataverse
+
+> **Note**: The Copilot Studio connector is required for the "Invoke agent" actions in the Power Automate flows. If it is blocked by DLP, the flows will fail silently.
 
 ### 7.2 Audit and Retention
 
@@ -201,16 +252,19 @@ Ensure the environment's DLP policies allow the required connector combinations:
 ## Verification Checklist
 
 - [ ] Environment provisioned and accessible
-- [ ] AssistantCards table has all columns
+- [ ] AssistantCards table has all columns (including `cr_triagetier`)
+- [ ] PCF for Canvas apps enabled in environment settings
 - [ ] Security role assigned to test users
-- [ ] Connection references created and authenticated
-- [ ] Main agent responds with valid JSON
-- [ ] EMAIL flow fires on new email and writes to Dataverse
+- [ ] Connections created and authenticated
+- [ ] Main agent published and responds with valid JSON
+- [ ] Humanizer agent published
+- [ ] EMAIL flow fires on new email and writes to Dataverse (verify Owner field is set to triggering user)
 - [ ] TEAMS_MESSAGE flow fires on channel message
 - [ ] CALENDAR_SCAN flow runs on schedule
 - [ ] Humanizer agent produces polished drafts
 - [ ] PCF component renders cards in test harness
-- [ ] Canvas app shows cards from Dataverse
+- [ ] Canvas app shows cards from Dataverse (only current user's cards visible)
 - [ ] Filters work correctly
 - [ ] Card detail view shows all sections
 - [ ] Edit Draft and Dismiss actions work
+- [ ] DLP policies allow all required connector combinations

@@ -7,7 +7,7 @@ This guide covers creating the Canvas Power App that serves as the user-facing d
 - Power Platform environment provisioned with Dataverse
 - `Assistant Cards` table created (run `scripts/provision-environment.ps1`)
 - Power Apps Component Framework (PCF) component deployed (run `scripts/deploy-solution.ps1`)
-- PCF for Canvas apps enabled in environment settings (the provisioning script attempts this automatically)
+- PCF for Canvas apps enabled in environment settings (must be enabled manually — see [deployment-guide.md](deployment-guide.md), Phase 1)
 
 ---
 
@@ -85,11 +85,11 @@ Select the AssistantDashboard control and set the **cardDataset** property:
 ```
 Filter(
     'Assistant Cards',
-    Owner = User()
+    Owner.'Primary Email' = User().Email
 )
 ```
 
-This binds the PCF to the user's own Assistant Cards rows. Dataverse Row-Level Security (RLS) provides an additional security layer.
+> **Note on Owner comparison**: The Owner column is a lookup type. Comparing directly with `Owner = User()` may not resolve correctly. Using `Owner.'Primary Email' = User().Email` provides a reliable string-based match. Dataverse Row-Level Security (RLS) provides an additional security layer, so even if this formula is adjusted, users only see their own rows.
 
 To add server-side filtering (reduces data loaded):
 
@@ -97,13 +97,14 @@ To add server-side filtering (reduces data loaded):
 SortByColumns(
     Filter(
         'Assistant Cards',
-        Owner = User(),
-        'Card Status' <> 'Card Status'.NO_OUTPUT
+        Owner.'Primary Email' = User().Email
     ),
     "createdon",
     SortOrder.Descending
 )
 ```
+
+> **Delegation warning**: Choice column comparisons (e.g., `'Card Status' <> 'Card Status'.NO_OUTPUT`) are **not delegable** to Dataverse. If omitted, all non-NO_OUTPUT cards are already returned since SKIP items are never written to Dataverse. The filter above is sufficient.
 
 ## 7. Configure Input Properties
 
@@ -128,12 +129,13 @@ If(
     Navigate(scrEditDraft)
 );
 
-// Handle Dismiss Card action
+// Handle Dismiss Card action — mark as dismissed
+// Uses the primary key column (cr_assistantcardid) for GUID matching
 If(
     !IsBlank(AssistantDashboard1.dismissCardAction),
     Patch(
         'Assistant Cards',
-        LookUp('Assistant Cards', 'Assistant Card' = GUID(AssistantDashboard1.dismissCardAction)),
+        LookUp('Assistant Cards', cr_assistantcardid = GUID(AssistantDashboard1.dismissCardAction)),
         { 'Card Status': 'Card Status'.SUMMARY_ONLY }
     )
 );
@@ -154,10 +156,11 @@ Create a second screen `scrEditDraft` for editing and copying drafts:
 3. Add a **Back** button that navigates back to Screen1
 
 ```
-// On the TextInput Default property — uses the display name "Humanized Draft"
+// On the TextInput Default property
+// Uses the primary key column (cr_assistantcardid) for GUID matching
 LookUp(
     'Assistant Cards',
-    'Assistant Card' = GUID(varEditCardId)
+    cr_assistantcardid = GUID(varEditCardId)
 ).'Humanized Draft'
 ```
 

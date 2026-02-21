@@ -61,7 +61,7 @@
 
     <!-- Platform libraries: share the platform React tree (virtual control) -->
     <platform-library name="React" version="16.14.0" />
-    <platform-library name="Fluent" version="9" />
+    <platform-library name="Fluent" version="9.0" />
 
     <resources>
       <code path="index.ts" order="1" />
