@@ -1,0 +1,16 @@
+{
+  "extends": "./node_modules/pcf-scripts/tsconfig_base.json",
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ES2015",
+    "jsx": "react",
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "moduleResolution": "node",
+    "outDir": "./out",
+    "rootDir": ".",
+    "typeRoots": ["node_modules/@types"]
+  }
+}

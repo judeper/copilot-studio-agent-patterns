@@ -1,0 +1,27 @@
+{
+  "name": "enterprise-work-assistant-pcf",
+  "version": "1.0.0",
+  "description": "PCF React dashboard component for the Enterprise Work Assistant",
+  "scripts": {
+    "build": "pcf-scripts build",
+    "clean": "pcf-scripts clean",
+    "lint": "eslint AssistantDashboard --ext .ts,.tsx",
+    "rebuild": "pcf-scripts build rebuild",
+    "start": "pcf-scripts start",
+    "refreshTypes": "pcf-scripts refreshTypes"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.46.0",
+    "@fluentui/react-icons": "^2.0.245",
+    "@fluentui/react-theme": "^9.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "~16.14.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
+    "pcf-scripts": "^1",
+    "pcf-start": "^1",
+    "typescript": "^4.9.5"
+  }
+}

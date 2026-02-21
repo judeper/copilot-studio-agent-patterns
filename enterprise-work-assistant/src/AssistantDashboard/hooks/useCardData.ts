@@ -1,0 +1,65 @@
+import * as React from "react";
+import type { AssistantCard, TriggerType, TriageTier, Priority, CardStatus, TemporalHorizon } from "../components/types";
+
+interface DataSet {
+    sortedRecordIds: string[];
+    records: Record<string, DataSetRecord>;
+}
+
+interface DataSetRecord {
+    getRecordId(): string;
+    getValue(columnName: string): string | number | null;
+    getFormattedValue(columnName: string): string;
+}
+
+/**
+ * Converts the PCF dataset API into a typed AssistantCard array.
+ * Reads discrete columns for display and parses cr_fulljson for the full object.
+ * Skips malformed rows rather than crashing the gallery.
+ */
+export function useCardData(dataset: DataSet | undefined): AssistantCard[] {
+    return React.useMemo(() => {
+        if (!dataset || !dataset.sortedRecordIds || dataset.sortedRecordIds.length === 0) {
+            return [];
+        }
+
+        const cards: AssistantCard[] = [];
+
+        for (const id of dataset.sortedRecordIds) {
+            const record = dataset.records[id];
+            if (!record) continue;
+
+            try {
+                const fullJsonStr = record.getValue("cr_fulljson") as string | null;
+                if (!fullJsonStr) continue;
+
+                const parsed = JSON.parse(fullJsonStr);
+
+                const card: AssistantCard = {
+                    id: record.getRecordId(),
+                    trigger_type: (parsed.trigger_type as TriggerType) ?? "EMAIL",
+                    triage_tier: (parsed.triage_tier as TriageTier) ?? "LIGHT",
+                    item_summary: (parsed.item_summary ?? record.getValue("cr_itemsummary")) as string | null,
+                    priority: (parsed.priority as Priority) ?? "N/A",
+                    temporal_horizon: (parsed.temporal_horizon as TemporalHorizon) ?? "N/A",
+                    research_log: parsed.research_log ?? null,
+                    key_findings: parsed.key_findings ?? null,
+                    verified_sources: Array.isArray(parsed.verified_sources) ? parsed.verified_sources : null,
+                    confidence_score: typeof parsed.confidence_score === "number" ? parsed.confidence_score : null,
+                    card_status: (parsed.card_status as CardStatus) ?? "SUMMARY_ONLY",
+                    draft_payload: parsed.draft_payload ?? null,
+                    low_confidence_note: parsed.low_confidence_note ?? null,
+                    humanized_draft: record.getValue("cr_humanizeddraft") as string | null,
+                    created_on: record.getFormattedValue("createdon") ?? "",
+                };
+
+                cards.push(card);
+            } catch {
+                // Skip malformed rows — don't crash the gallery for one bad record
+                continue;
+            }
+        }
+
+        return cards;
+    }, [dataset]);
+}

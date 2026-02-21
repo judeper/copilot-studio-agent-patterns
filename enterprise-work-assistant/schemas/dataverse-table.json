@@ -1,0 +1,115 @@
+{
+  "tableName": "cr_assistantcard",
+  "entitySetName": "cr_assistantcards",
+  "displayName": "Assistant Cards",
+  "pluralName": "Assistant Cards",
+  "description": "Stores structured output from the Enterprise Work Assistant agent. Each row represents one processed incoming signal (email, Teams message, or calendar event).",
+  "primaryColumn": "cr_itemsummary",
+  "ownershipType": "UserOwned",
+  "columns": [
+    {
+      "logicalName": "cr_triagetier",
+      "displayName": "Triage Tier",
+      "type": "Choice",
+      "required": true,
+      "description": "Classification tier assigned during triage. Primary routing dimension for filtering.",
+      "options": [
+        { "label": "SKIP", "value": 100000000 },
+        { "label": "LIGHT", "value": 100000001 },
+        { "label": "FULL", "value": 100000002 }
+      ]
+    },
+    {
+      "logicalName": "cr_triggertype",
+      "displayName": "Trigger Type",
+      "type": "Choice",
+      "required": true,
+      "description": "The type of incoming signal that triggered the agent.",
+      "options": [
+        { "label": "EMAIL", "value": 100000000 },
+        { "label": "TEAMS_MESSAGE", "value": 100000001 },
+        { "label": "CALENDAR_SCAN", "value": 100000002 }
+      ]
+    },
+    {
+      "logicalName": "cr_itemsummary",
+      "displayName": "Item Summary",
+      "type": "Text",
+      "maxLength": 300,
+      "required": true,
+      "description": "1-2 sentence plain-text summary of the triggering item."
+    },
+    {
+      "logicalName": "cr_priority",
+      "displayName": "Priority",
+      "type": "Choice",
+      "required": true,
+      "description": "Priority level assigned during triage.",
+      "options": [
+        { "label": "High", "value": 100000000 },
+        { "label": "Medium", "value": 100000001 },
+        { "label": "Low", "value": 100000002 },
+        { "label": "N/A", "value": 100000003 }
+      ]
+    },
+    {
+      "logicalName": "cr_cardstatus",
+      "displayName": "Card Status",
+      "type": "Choice",
+      "required": true,
+      "description": "Processing status of the card.",
+      "options": [
+        { "label": "READY", "value": 100000000 },
+        { "label": "LOW_CONFIDENCE", "value": 100000001 },
+        { "label": "SUMMARY_ONLY", "value": 100000002 },
+        { "label": "NO_OUTPUT", "value": 100000003 }
+      ]
+    },
+    {
+      "logicalName": "cr_temporalhorizon",
+      "displayName": "Temporal Horizon",
+      "type": "Choice",
+      "required": false,
+      "description": "Temporal horizon for calendar items.",
+      "options": [
+        { "label": "TODAY", "value": 100000000 },
+        { "label": "THIS_WEEK", "value": 100000001 },
+        { "label": "NEXT_WEEK", "value": 100000002 },
+        { "label": "BEYOND", "value": 100000003 },
+        { "label": "N/A", "value": 100000004 }
+      ]
+    },
+    {
+      "logicalName": "cr_confidencescore",
+      "displayName": "Confidence Score",
+      "type": "WholeNumber",
+      "minValue": 0,
+      "maxValue": 100,
+      "required": false,
+      "description": "Confidence score 0-100 based on strength of retrieved evidence. Null for SKIP and LIGHT."
+    },
+    {
+      "logicalName": "cr_fulljson",
+      "displayName": "Full JSON Output",
+      "type": "MultilineText",
+      "maxLength": 1048576,
+      "required": true,
+      "description": "Complete JSON output from the agent. Parsed by the Canvas app and PCF control for rendering."
+    },
+    {
+      "logicalName": "cr_humanizeddraft",
+      "displayName": "Humanized Draft",
+      "type": "MultilineText",
+      "maxLength": 100000,
+      "required": false,
+      "description": "Polished draft produced by the Humanizer Agent. Populated asynchronously after initial card creation."
+    }
+  ],
+  "notes": {
+    "design_rationale": "Full JSON blob in cr_fulljson plus discrete columns only for server-side filtering. This avoids schema drift — the Canvas app uses ParseJSON() on cr_fulljson for detailed rendering while Dataverse queries filter on discrete choice columns.",
+    "skip_items": "SKIP-tier items are NOT written to Dataverse. The Power Automate flow checks triage_tier before writing. This avoids the constraint that cr_itemsummary (the primary column) cannot be null.",
+    "non_discrete_fields": "Fields like research_log, key_findings, verified_sources, and draft_payload are only accessible via ParseJSON() on cr_fulljson. They do not have discrete columns because they are not used for server-side filtering.",
+    "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user sees only their own cards.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
+  }
+}

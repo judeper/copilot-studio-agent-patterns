@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.PowerApps.MSBuild.Solution/1.0.0">
+  <PropertyGroup>
+    <SolutionPackageType>Unmanaged</SolutionPackageType>
+    <SolutionUniqueName>EnterpriseWorkAssistant</SolutionUniqueName>
+    <SolutionVersion>1.0.0</SolutionVersion>
+    <SolutionLocalizedName>Enterprise Work Assistant</SolutionLocalizedName>
+    <SolutionDescription>PCF dashboard component for the Enterprise Work Assistant agent.</SolutionDescription>
+    <OutputPath>$(MSBuildThisFileDirectory)bin\Debug</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AssistantDashboard.pcfproj" />
+  </ItemGroup>
+</Project>

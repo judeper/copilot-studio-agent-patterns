@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+generated/
+
+# Solution packages
+*.zip
+*.msapp
+
+# Environment
+.env
+.env.*
+
+# IDE / OS
+.vs/
+.vscode/
+*.suo
+*.user
+.DS_Store
+Thumbs.db
+
+# .NET build
+bin/
+obj/
+
+# PCF
+**/bundle.js
+**/bundle.js.map

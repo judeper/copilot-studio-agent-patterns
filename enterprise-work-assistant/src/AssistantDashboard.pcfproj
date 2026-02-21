@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.PowerApps.MSBuild.Pcf/1.0.0">
+  <PropertyGroup>
+    <Name>AssistantDashboard</Name>
+    <ProjectGuid>e1a12b34-5678-90ab-cdef-1234567890ab</ProjectGuid>
+    <OutputPath>$(MSBuildThisFileDirectory)out\controls</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerApps.MSBuild.Pcf" Version="1.*" />
+  </ItemGroup>
+</Project>

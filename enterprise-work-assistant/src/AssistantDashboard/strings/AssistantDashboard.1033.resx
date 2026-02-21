@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- Control -->
+  <data name="AssistantDashboard_DisplayName" xml:space="preserve">
+    <value>Assistant Dashboard</value>
+  </data>
+  <data name="AssistantDashboard_Description" xml:space="preserve">
+    <value>Enterprise Work Assistant dashboard displaying AI-generated briefing cards with research, findings, and drafts.</value>
+  </data>
+  <!-- Dataset -->
+  <data name="CardDataset_DisplayName" xml:space="preserve">
+    <value>Card Dataset</value>
+  </data>
+  <!-- Input Properties -->
+  <data name="FilterTriggerType_DisplayName" xml:space="preserve">
+    <value>Filter: Trigger Type</value>
+  </data>
+  <data name="FilterTriggerType_Description" xml:space="preserve">
+    <value>Filter cards by trigger type (EMAIL, TEAMS_MESSAGE, CALENDAR_SCAN). Empty for no filter.</value>
+  </data>
+  <data name="FilterPriority_DisplayName" xml:space="preserve">
+    <value>Filter: Priority</value>
+  </data>
+  <data name="FilterPriority_Description" xml:space="preserve">
+    <value>Filter cards by priority (High, Medium, Low, N/A). Empty for no filter.</value>
+  </data>
+  <data name="FilterCardStatus_DisplayName" xml:space="preserve">
+    <value>Filter: Card Status</value>
+  </data>
+  <data name="FilterCardStatus_Description" xml:space="preserve">
+    <value>Filter cards by status (READY, LOW_CONFIDENCE, SUMMARY_ONLY). Empty for no filter.</value>
+  </data>
+  <data name="FilterTemporalHorizon_DisplayName" xml:space="preserve">
+    <value>Filter: Temporal Horizon</value>
+  </data>
+  <data name="FilterTemporalHorizon_Description" xml:space="preserve">
+    <value>Filter cards by temporal horizon (TODAY, THIS_WEEK, NEXT_WEEK, BEYOND). Empty for no filter.</value>
+  </data>
+  <!-- Output Properties -->
+  <data name="SelectedCardId_DisplayName" xml:space="preserve">
+    <value>Selected Card ID</value>
+  </data>
+  <data name="SelectedCardId_Description" xml:space="preserve">
+    <value>The Dataverse record ID of the currently selected card.</value>
+  </data>
+  <data name="EditDraftAction_DisplayName" xml:space="preserve">
+    <value>Edit Draft Action</value>
+  </data>
+  <data name="EditDraftAction_Description" xml:space="preserve">
+    <value>Fires when user clicks Edit Draft. Contains the card ID.</value>
+  </data>
+  <data name="DismissCardAction_DisplayName" xml:space="preserve">
+    <value>Dismiss Card Action</value>
+  </data>
+  <data name="DismissCardAction_Description" xml:space="preserve">
+    <value>Fires when user clicks Dismiss. Contains the card ID.</value>
+  </data>
+</root>
