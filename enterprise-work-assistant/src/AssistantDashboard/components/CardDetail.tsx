@@ -8,10 +8,10 @@ import {
     Spinner,
     MessageBar,
     MessageBarBody,
-    tokens,
 } from "@fluentui/react-components";
 import { ArrowLeftRegular } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
+import { PRIORITY_COLORS } from "./constants";
 
 interface CardDetailProps {
     card: AssistantCard;
@@ -19,13 +19,6 @@ interface CardDetailProps {
     onEditDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
 }
-
-const priorityColors: Record<string, string> = {
-    High: tokens.colorPaletteRedBorder2,
-    Medium: tokens.colorPaletteMarigoldBorder2,
-    Low: tokens.colorPaletteGreenBorder2,
-    "N/A": tokens.colorNeutralStroke1,
-};
 
 function isDraftPayloadObject(payload: unknown): payload is DraftPayload {
     return typeof payload === "object" && payload !== null && "raw_draft" in payload;
@@ -67,13 +60,15 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 
             {/* Badges row */}
             <div className="card-detail-badges">
-                <Badge
-                    appearance="filled"
-                    style={{ backgroundColor: priorityColors[card.priority] }}
-                    size="medium"
-                >
-                    {card.priority}
-                </Badge>
+                {card.priority && (
+                    <Badge
+                        appearance="filled"
+                        style={{ backgroundColor: PRIORITY_COLORS[card.priority] }}
+                        size="medium"
+                    >
+                        {card.priority}
+                    </Badge>
+                )}
                 {card.confidence_score !== null && (
                     <Badge appearance="outline" size="medium">
                         Confidence: {card.confidence_score}%
@@ -82,7 +77,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                 <Badge appearance="outline" size="medium">
                     {card.trigger_type}
                 </Badge>
-                {card.temporal_horizon !== "N/A" && (
+                {card.temporal_horizon && (
                     <Badge appearance="tint" size="medium">
                         {card.temporal_horizon}
                     </Badge>
@@ -147,7 +142,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
             )}
 
             {/* Draft section */}
-            {card.draft_payload && card.draft_payload !== "N/A" && (
+            {card.draft_payload && (
                 <section className="card-detail-section">
                     <Text as="h3" size={400} weight="semibold" block>
                         {card.humanized_draft ? "Humanized Draft" : "Draft"}
@@ -179,7 +174,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 
             {/* Action buttons */}
             <div className="card-detail-actions">
-                {card.draft_payload && card.draft_payload !== "N/A" && (
+                {card.draft_payload && (
                     <Button appearance="primary" onClick={() => onEditDraft(card.id)}>
                         Edit & Copy Draft
                     </Button>
