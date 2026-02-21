@@ -15,7 +15,7 @@ Requirements for production readiness. Each maps to roadmap phases.
 - [x] **SCHM-04**: key_findings and verified_sources nullability rules are consistent between main agent prompt, humanizer prompt, and output-schema.json
 - [x] **SCHM-05**: Humanizer handoff object includes draft_type discriminator field for format determination
 - [x] **SCHM-06**: draft_payload uses a single convention (null, not "N/A") for non-draft cases across all artifacts
-- [ ] **SCHM-07**: Table logical name uses consistent singular/plural convention (cr_assistantcard) across all files — schema, scripts, docs, and code
+- [x] **SCHM-07**: Table logical name uses consistent singular/plural convention (cr_assistantcard) across all files — schema, scripts, docs, and code
 
 ### PCF Component Code
 
@@ -81,7 +81,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCHM-04 | Phase 1 | Complete |
 | SCHM-05 | Phase 1 | Complete |
 | SCHM-06 | Phase 1 | Complete |
-| SCHM-07 | Phase 2 | Pending |
+| SCHM-07 | Phase 2 | Complete |
 | PCF-01 | Phase 3 | Pending |
 | PCF-02 | Phase 4 | Pending |
 | PCF-03 | Phase 4 | Pending |
