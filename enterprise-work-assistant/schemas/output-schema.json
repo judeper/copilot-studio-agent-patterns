@@ -29,9 +29,9 @@
       "description": "Classification tier assigned during triage."
     },
     "item_summary": {
-      "type": ["string", "null"],
+      "type": "string",
       "maxLength": 300,
-      "description": "1-2 sentence plain-text summary of the triggering item. Null for SKIP."
+      "description": "1-2 sentence plain-text summary of the triggering item. For SKIP items, a brief description of what was skipped and why (e.g., 'Marketing newsletter from Contoso Weekly — no action needed.')."
     },
     "priority": {
       "type": "string",
@@ -88,7 +88,7 @@
       "description": "Status of the output card. READY = full research + draft available, LOW_CONFIDENCE = insufficient evidence, SUMMARY_ONLY = LIGHT tier summary, NO_OUTPUT = SKIP tier."
     },
     "draft_payload": {
-      "description": "For EMAIL/TEAMS FULL with confidence >= 40: humanizer handoff object. For CALENDAR_SCAN FULL: plain-text meeting briefing. N/A for LIGHT. Null for SKIP or LOW_CONFIDENCE.",
+      "description": "For EMAIL/TEAMS_MESSAGE FULL-tier items with confidence >= 40: humanizer handoff object. For CALENDAR_SCAN FULL-tier items: plain-text meeting briefing. Null for SKIP, LIGHT, and LOW_CONFIDENCE.",
       "oneOf": [
         { "type": "null" },
         { "type": "string" },
