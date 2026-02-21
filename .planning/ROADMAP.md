@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Output Schema Contract** - Fix field types, nullability, and conventions in output-schema.json and align all downstream schema consumers
 - [x] **Phase 2: Table Naming Consistency** - Resolve singular/plural cr_assistantcard naming across every file in the solution
 - [x] **Phase 3: PCF Build Configuration** - Pin Fluent UI version, update manifest, and lock dependency versions for correct builds
-- [ ] **Phase 4: PCF API Correctness** - Fix Fluent UI v9 Badge size, color token names, and clean up contract drift from earlier phases
+- [x] **Phase 4: PCF API Correctness** - Fix Fluent UI v9 Badge size, color token names, and clean up contract drift from earlier phases (completed 2026-02-21)
 - [ ] **Phase 5: PCF Security Hardening** - Sanitize external URLs in CardDetail.tsx to prevent XSS
 - [ ] **Phase 6: PowerShell Script Fixes** - Fix deploy-solution.ps1 polling logic and parameterize create-security-roles.ps1
 - [ ] **Phase 7: Documentation Accuracy** - Correct deployment guide UI paths, add Power Automate expression examples, and document prerequisites
@@ -149,7 +149,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 1. Output Schema Contract | 2/2 | Complete | 2026-02-20 |
 | 2. Table Naming Consistency | 1/1 | Complete | 2026-02-20 |
 | 3. PCF Build Configuration | 1/1 | Complete | 2026-02-21 |
-| 4. PCF API Correctness | 0/TBD | Not started | - |
+| 4. PCF API Correctness | 0/TBD | Complete    | 2026-02-21 |
 | 5. PCF Security Hardening | 0/TBD | Not started | - |
 | 6. PowerShell Script Fixes | 0/TBD | Not started | - |
 | 7. Documentation Accuracy | 0/TBD | Not started | - |
