@@ -295,7 +295,7 @@ EXAMPLE 4 — EMAIL, SKIP tier (minimal output)
 {
   "trigger_type": "EMAIL",
   "triage_tier": "SKIP",
-  "item_summary": null,
+  "item_summary": "Marketing newsletter from Contoso Weekly — no action needed.",
   "priority": "N/A",
   "temporal_horizon": "N/A",
   "research_log": null,
