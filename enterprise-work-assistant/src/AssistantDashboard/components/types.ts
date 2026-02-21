@@ -27,7 +27,7 @@ export interface AssistantCard {
     id: string;
     trigger_type: TriggerType;
     triage_tier: TriageTier;
-    item_summary: string | null;
+    item_summary: string;
     priority: Priority;
     temporal_horizon: TemporalHorizon;
     research_log: string | null;
