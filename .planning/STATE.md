@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-02-20)
 
 **Core value:** Every artifact in the solution must be correct and consistent -- schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** Phase 5: PCF Security Hardening (COMPLETE)
+**Current focus:** Phase 6: PowerShell Script Fixes (COMPLETE)
 
 ## Current Position
 
-Phase: 5 of 8 (PCF Security Hardening)
+Phase: 6 of 8 (PowerShell Script Fixes)
 Plan: 1 of 1 in current phase (PHASE COMPLETE)
 Status: Phase Complete
-Last activity: 2026-02-21 -- Completed plan 05-01 (URL sanitization and XSS prevention)
+Last activity: 2026-02-21 -- Completed plan 06-01 (deploy-solution.ps1 overhaul, create-security-roles.ps1 hardening, deployment-guide.md bun update)
 
-Progress: [▓▓▓▓▓▓░░░░] 63%
+Progress: [▓▓▓▓▓▓▓░░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 4min
 - Total execution time: 0.4 hours
 
@@ -33,10 +33,11 @@ Progress: [▓▓▓▓▓▓░░░░] 63%
 | Phase 03 P01 | 14min | 2 tasks | 9 files |
 | Phase 04 P01 | 3min | 2 tasks | 5 files |
 | Phase 05 P01 | 3min | 2 tasks | 2 files |
+| Phase 06 P01 | 2min | 2 tasks | 3 files |
 
 **Recent Trend:**
-- Last 5 plans: 2min, 3min, 14min, 3min, 3min
-- Trend: stable (security hardening as fast as routine changes)
+- Last 5 plans: 3min, 14min, 3min, 3min, 2min
+- Trend: stable (script fixes fastest yet)
 
 *Updated after each plan completion*
 
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - [Phase 04]: N/A string checks in useCardData.ts are ingestion-boundary mapping, not display guards -- converts agent JSON "N/A" to null for UI type contract
 - [Phase 05]: SAFE_PROTOCOLS restricted to https: and mailto: only -- no http:, no enterprise schemes until explicitly needed
 - [Phase 05]: Unsafe URLs rendered as plain Text (visible but not clickable) rather than stripped or replaced with href=#
+- [Phase 06]: Existence-only prereq checks (no minimum version enforcement) -- build step itself will fail with clear error if wrong version
+- [Phase 06]: Removed pac solution list verification entirely -- trusts pac solution import synchronous exit code (DOC-05)
+- [Phase 06]: Privilege-not-found throws immediately (fail-fast) instead of warning and continuing with incomplete permissions
 
 ### Pending Todos
 
@@ -78,5 +82,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-21
-Stopped at: Completed 05-01-PLAN.md (Phase 05 complete)
+Stopped at: Completed 06-01-PLAN.md (Phase 06 complete)
 Resume file: None
