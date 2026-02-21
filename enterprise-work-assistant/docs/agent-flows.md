@@ -6,9 +6,12 @@ This guide walks through building the three Power Automate agent flows that feed
 
 - Enterprise Work Assistant agent **published** in Copilot Studio with JSON output mode enabled (see [deployment-guide.md](deployment-guide.md), Phase 2)
 - `Assistant Cards` Dataverse table provisioned (run `scripts/provision-environment.ps1`)
+- Research tool actions registered in Copilot Studio (see [deployment-guide.md](deployment-guide.md), Section 2.4)
 - Connections created for: Office 365 Outlook, Microsoft Teams, Office 365 Users, Microsoft Graph, SharePoint
 
 > **Note on connections vs. connection references**: For initial development, you only need standard *connections* (authenticated links to connectors). If you later package these flows into a solution for deployment across environments, you will need *connection references* (solution-aware pointers to connections). See [Microsoft Learn: Connection references](https://learn.microsoft.com/en-us/power-apps/maker/data-platform/create-connection-reference) for details.
+
+> **Connector Note**: These flows use the **Microsoft Copilot Studio** connector's **"Execute Agent and wait"** action to invoke agents. Do not confuse this with the AI Builder **"Run a prompt"** action, which runs standalone prompts (not full agents). *Last verified: Feb 2026*
 
 ---
 
@@ -36,7 +39,7 @@ The canonical schema in `schemas/output-schema.json` uses `oneOf` for the `draft
   "properties": {
     "trigger_type": { "type": "string" },
     "triage_tier": { "type": "string" },
-    "item_summary": { "type": ["string", "null"] },
+    "item_summary": { "type": "string" },
     "priority": { "type": "string" },
     "temporal_horizon": { "type": "string" },
     "research_log": { "type": ["string", "null"] },
@@ -51,6 +54,10 @@ The canonical schema in `schemas/output-schema.json` uses `oneOf` for the `draft
 ```
 
 > The `{}` (empty schema) for `draft_payload` and `verified_sources` accepts any value (null, string, object, or array) without validation failure. The canonical `output-schema.json` remains the authoritative contract for development and testing.
+
+> The `item_summary` field is always a non-nullable string. Even SKIP-tier items include a brief summary (e.g., "Marketing newsletter from Contoso Weekly -- no action needed."). See [`schemas/output-schema.json`](../../schemas/output-schema.json) for the canonical contract.
+
+*Last verified: Feb 2026*
 
 ---
 
@@ -142,9 +149,11 @@ Format as a comma-separated string to match the agent prompt's few-shot examples
 
 **4. Invoke the agent**
 
-Add the **Copilot Studio** connector (search for "Copilot" in the connector list). Select the **"Run a prompt"** action (in some environments this appears as **"Invoke a Copilot Agent"** — the exact label may vary by platform version). Choose the **Enterprise Work Assistant** agent.
+Add the **Microsoft Copilot Studio** connector (search for "Microsoft Copilot Studio" in the connector list — do NOT use the AI Builder connector). Select the **"Execute Agent and wait"** action. Choose the **Enterprise Work Assistant** agent.
 
-> **Important**: After adding the action, check the *dynamic content picker* to confirm the correct output field name for the agent's response. It is typically `text` or `responsemessage` depending on the connector version. Use this field name consistently in steps 5 and 7.
+> **Important**: "Run a prompt" is a different action (AI Builder) that runs a standalone prompt, not a full agent. You must use **"Execute Agent and wait"** from the **Microsoft Copilot Studio** connector to invoke an agent with its system prompt, tools, and orchestration.
+
+> After adding the action, check the *dynamic content picker* for the agent's response. The Execute Agent and wait action returns a `lastResponse` field (the agent's final text response). Use this field name consistently in steps 5 and 7. If the field name differs in your environment, verify via the dynamic content picker.
 
 | Input Variable | Value |
 |---------------|-------|
@@ -167,21 +176,53 @@ Use the **simplified schema** from the "Parse JSON Schema" section above (not th
 
 **7. Add a new row** — Dataverse connector → Assistant Cards table
 
-For Choice columns, you must map the agent's string output to the integer option value. Use a **Compose** action with an `if()` expression chain for each Choice column. Here is an example for Trigger Type:
+For Choice columns, you must map the agent's string output to the integer option value. Add a **Compose** action with an `if()` expression chain for each Choice column. All five expressions are shown below — copy-paste each into its own Compose action:
+
+**Compose -- Triage Tier Value:**
 
 ```
-if(
-  equals(body('Parse_JSON')?['trigger_type'], 'EMAIL'),
-  100000000,
-  if(
-    equals(body('Parse_JSON')?['trigger_type'], 'TEAMS_MESSAGE'),
-    100000001,
-    100000002
-  )
-)
+if(equals(body('Parse_JSON')?['triage_tier'],'SKIP'),100000000,if(equals(body('Parse_JSON')?['triage_tier'],'LIGHT'),100000001,100000002))
 ```
 
-Repeat this pattern for Priority, Card Status, Triage Tier, and Temporal Horizon using the values from the Choice Value Mapping table at the bottom of this document.
+**Compose -- Trigger Type Value:**
+
+```
+if(equals(body('Parse_JSON')?['trigger_type'],'EMAIL'),100000000,if(equals(body('Parse_JSON')?['trigger_type'],'TEAMS_MESSAGE'),100000001,100000002))
+```
+
+**Compose -- Priority Value:**
+
+```
+if(equals(body('Parse_JSON')?['priority'],'High'),100000000,if(equals(body('Parse_JSON')?['priority'],'Medium'),100000001,if(equals(body('Parse_JSON')?['priority'],'Low'),100000002,100000003)))
+```
+
+**Compose -- Card Status Value:**
+
+```
+if(equals(body('Parse_JSON')?['card_status'],'READY'),100000000,if(equals(body('Parse_JSON')?['card_status'],'LOW_CONFIDENCE'),100000001,if(equals(body('Parse_JSON')?['card_status'],'SUMMARY_ONLY'),100000002,100000003)))
+```
+
+**Compose -- Temporal Horizon Value:**
+
+```
+if(equals(body('Parse_JSON')?['temporal_horizon'],'TODAY'),100000000,if(equals(body('Parse_JSON')?['temporal_horizon'],'THIS_WEEK'),100000001,if(equals(body('Parse_JSON')?['temporal_horizon'],'NEXT_WEEK'),100000002,if(equals(body('Parse_JSON')?['temporal_horizon'],'BEYOND'),100000003,100000004))))
+```
+
+**Null handling for optional integer columns:**
+
+```
+@{if(equals(body('Parse_JSON')?['confidence_score'], null), 0, body('Parse_JSON')?['confidence_score'])}
+```
+
+Use when writing `confidence_score` to Dataverse -- coalesces null to 0 for SKIP/LIGHT tier items.
+
+**JSON serialization for draft_payload:**
+
+```
+@{string(body('Parse_JSON')?['draft_payload'])}
+```
+
+Serializes the `draft_payload` object back to a JSON string. Used when passing to the Humanizer Agent (step 9) and when storing the Full JSON Output.
 
 | Column | Value |
 |--------|-------|
@@ -192,7 +233,7 @@ Repeat this pattern for Priority, Card Status, Triage Tier, and Temporal Horizon
 | Card Status | Choice value from Compose (see mapping table) |
 | Temporal Horizon | Choice value from Compose (see mapping table) |
 | Confidence Score | `@{body('Parse_JSON')?['confidence_score']}` |
-| Full JSON Output | `@{body('Invoke_agent')?['text']}` (raw agent response — **verify field name** in dynamic content) |
+| Full JSON Output | `@{body('Execute_Agent_and_wait')?['lastResponse']}` (raw agent response — **verify field name** in dynamic content) |
 | **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` **(required for RLS — see Row Ownership section)** |
 
 **8. Condition — Humanizer handoff**
@@ -213,7 +254,7 @@ Repeat this pattern for Priority, Card Status, Triage Tier, and Temporal Horizon
 
 **9. Invoke the Humanizer Agent**
 
-Add another Copilot Studio "Run a prompt" action. Select the **Humanizer Agent**. The Humanizer expects a JSON string as input — serialize the `draft_payload` object:
+Add another **Microsoft Copilot Studio** **"Execute Agent and wait"** action. Select the **Humanizer Agent**. The Humanizer expects a JSON string as input — serialize the `draft_payload` object:
 
 ```
 @{string(body('Parse_JSON')?['draft_payload'])}
@@ -372,4 +413,6 @@ When writing Choice columns to Dataverse, map string values to integer option va
 | Card Status | READY → 100000000, LOW_CONFIDENCE → 100000001, SUMMARY_ONLY → 100000002, NO_OUTPUT → 100000003 |
 | Temporal Horizon | TODAY → 100000000, THIS_WEEK → 100000001, NEXT_WEEK → 100000002, BEYOND → 100000003, N/A → 100000004 |
 
-These values match the definitions in `schemas/dataverse-table.json` and the provisioning script.
+These values match the definitions in `schemas/dataverse-table.json` and the provisioning script. See step 7 above for copy-pasteable expressions.
+
+*Last verified: Feb 2026*
