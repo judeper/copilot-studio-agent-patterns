@@ -1,7 +1,7 @@
 export type TriggerType = "EMAIL" | "TEAMS_MESSAGE" | "CALENDAR_SCAN";
 export type TriageTier = "SKIP" | "LIGHT" | "FULL";
-export type Priority = "High" | "Medium" | "Low" | "N/A";
-export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND" | "N/A";
+export type Priority = "High" | "Medium" | "Low";
+export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND";
 export type CardStatus = "READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | "NO_OUTPUT";
 export type RecipientRelationship = "Internal colleague" | "External client" | "Leadership" | "Unknown";
 export type InferredTone = "formal" | "semi-formal" | "direct" | "collaborative";
@@ -28,8 +28,8 @@ export interface AssistantCard {
     trigger_type: TriggerType;
     triage_tier: TriageTier;
     item_summary: string;
-    priority: Priority;
-    temporal_horizon: TemporalHorizon;
+    priority: Priority | null;
+    temporal_horizon: TemporalHorizon | null;
     research_log: string | null;
     key_findings: string | null;
     verified_sources: VerifiedSource[] | null;
