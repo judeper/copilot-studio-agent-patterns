@@ -4,11 +4,28 @@ End-to-end deployment checklist for the Enterprise Work Assistant solution.
 
 ## Prerequisites
 
+### Development Tools
+
+- [ ] **Bun** >= 1.x (Tested with Bun 1.2.x)
+  - macOS: `brew install oven-sh/bun/bun`
+  - Windows: `powershell -c "irm bun.sh/install.ps1|iex"`
+- [ ] **Node.js** >= 20 (Tested with Node.js 20.x)
+  - macOS: `brew install node@20`
+  - Windows: `winget install OpenJS.NodeJS.LTS`
+- [ ] **.NET SDK** (required for PAC CLI)
+  - macOS: `brew install --cask dotnet-sdk`
+  - Windows: `winget install Microsoft.DotNet.SDK.8`
+
+### Power Platform Tools
+
 - [ ] **PAC CLI** installed (`dotnet tool install --global Microsoft.PowerApps.CLI.Tool`)
 - [ ] **Azure CLI** installed (`az` — required for Dataverse API authentication in provisioning scripts)
-- [ ] **Bun** installed (`curl -fsSL https://bun.sh/install | bash` or see https://bun.sh)
-- [ ] **Node.js 18+** installed
+  - macOS: `brew install azure-cli`
+  - Windows: `winget install Microsoft.AzureCLI`
 - [ ] **PowerShell 7+** installed
+
+### Environment Requirements
+
 - [ ] Power Platform environment with Copilot Studio capacity allocated
 - [ ] Admin access to the target tenant
 
@@ -87,13 +104,13 @@ Navigate to: Power Automate → Connections → New connection
 
 ### 2.2 Configure JSON Output Mode
 
-1. In the agent settings, navigate to the AI/model configuration section
-   - In newer Copilot Studio versions: **Settings** → **Generative AI** → **Structured outputs**
-   - In older versions: **Settings** → **AI capabilities** → **JSON output**
-   - The exact label varies by version — look for structured output or JSON mode settings, not the "Instructions" or "Topics" tab
-2. Enable **Structured outputs** (or **JSON output**)
-3. Select **Custom format**
-4. Paste the following as the JSON example (this locks the schema):
+Configure the agent's prompt to output JSON format. In Copilot Studio's **Prompt builder**, set the output format to JSON and provide a schema example so the agent returns structured data.
+
+1. Open the prompt in the **Prompt builder**
+2. In the top-right corner of the prompt response area, select **JSON** from the output format dropdown (next to "Output:")
+3. To customize the format, select the **settings icon** to the left of "Output: JSON"
+4. Switch from **Auto detected** to **Custom** by editing the JSON example
+5. Paste the following JSON schema example:
 
 ```json
 {
@@ -111,6 +128,14 @@ Navigate to: Power Automate → Connections → New connection
   "low_confidence_note": null
 }
 ```
+
+6. Select **Apply**, then **Test** to verify the agent returns valid JSON matching the schema, then **Save custom**
+
+> **Note:** The exact UI location may change with Copilot Studio updates. Look for output format or JSON settings in the prompt configuration area.
+
+> **Related**: For Power Automate flow configuration that consumes this JSON output, see [agent-flows.md](agent-flows.md).
+
+*Last verified: Feb 2026*
 
 ### 2.3 Set Up Input Variables
 
@@ -142,6 +167,8 @@ For connector-based actions, select the relevant connector and the specific oper
 > **Note on Teams search**: The Microsoft Graph endpoint for searching Teams messages requires the Microsoft Search API (`/search/query` with `entityTypes: ["chatMessage"]`), not a direct chat messages endpoint. Alternatively, use the Microsoft Teams connector's built-in search action or configure a Microsoft Search connector action.
 
 > **Tip**: The agent prompt references these actions by name. If you use different action names, update the corresponding tool references in `prompts/main-agent-system-prompt.md`.
+
+*Last verified: Feb 2026*
 
 ### 2.5 Publish the Agent
 
