@@ -1,6 +1,5 @@
 import * as React from "react";
-import { Badge, Text } from "@fluentui/react-components";
-import { tokens } from "@fluentui/react-theme";
+import { Badge, Text, tokens } from "@fluentui/react-components";
 
 interface FilterBarProps {
     cardCount: number;
