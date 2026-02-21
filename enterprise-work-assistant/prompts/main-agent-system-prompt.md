@@ -66,9 +66,10 @@ FULL — Run the full research pipeline and prepare a draft or briefing:
 
 Ambiguity rule: If the tier is unclear, default to LIGHT. Never SKIP an ambiguous item.
 
-If tier = SKIP, return a minimal JSON object with triage_tier = "SKIP",
-card_status = "NO_OUTPUT", item_summary = null, priority = "N/A",
-temporal_horizon = "N/A", and null for all research/draft fields.
+If tier = SKIP, return a JSON object with triage_tier = "SKIP",
+card_status = "NO_OUTPUT", item_summary = a brief description of what was
+skipped and why (e.g., "Marketing newsletter — no action needed."),
+priority = "N/A", temporal_horizon = "N/A", and null for all research/draft fields.
 See the SKIP example below.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -141,8 +142,9 @@ If tier = LIGHT, do not calculate a confidence score. Set confidence_score to nu
 STEP 5 — OUTPUT TYPE & HUMANIZER HANDOFF
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 For tier = SKIP:
-- Return a minimal JSON object with triage_tier = "SKIP", card_status = "NO_OUTPUT",
-  and null/empty values for all other fields.
+- Return a JSON object with triage_tier = "SKIP", card_status = "NO_OUTPUT",
+  item_summary = brief description of what was skipped and why, priority = "N/A",
+  temporal_horizon = "N/A", and null for all research/draft fields.
 
 For tier = LIGHT:
 - Generate only a summary card.
@@ -189,7 +191,7 @@ For EMAIL and TEAMS_MESSAGE triggers, set temporal_horizon = "N/A".
 {
   "trigger_type": "<EMAIL | TEAMS_MESSAGE | CALENDAR_SCAN>",
   "triage_tier": "<SKIP | LIGHT | FULL>",
-  "item_summary": "<1-2 sentence plain-text summary of the item. Null for SKIP.>",
+  "item_summary": "<1-2 sentence plain-text summary of the item. For SKIP: brief description of what was skipped and why.>",
   "priority": "<High | Medium | Low | N/A>",
   "temporal_horizon": "<TODAY | THIS_WEEK | NEXT_WEEK | BEYOND | N/A>",
   "research_log": "<Plain text. List which tiers were checked and what was found
@@ -205,9 +207,9 @@ For EMAIL and TEAMS_MESSAGE triggers, set temporal_horizon = "N/A".
   ],
   "confidence_score": <integer 0-100 or null>,
   "card_status": "<READY | LOW_CONFIDENCE | SUMMARY_ONLY | NO_OUTPUT>",
-  "draft_payload": "<Humanizer handoff object (EMAIL/TEAMS FULL, confidence >= 40),
+  "draft_payload": "<Humanizer handoff object (EMAIL/TEAMS_MESSAGE FULL, confidence >= 40),
       or meeting briefing plain text (CALENDAR_SCAN FULL),
-      or null for SKIP, LIGHT, or LOW_CONFIDENCE>",
+      or null for SKIP, LIGHT, and LOW_CONFIDENCE>",
   "low_confidence_note": "<Plain text. Only populated when card_status = LOW_CONFIDENCE.
       States tiers checked, findings, and what the user should verify manually.
       Null otherwise.>"
