@@ -9,12 +9,12 @@ Requirements for production readiness. Each maps to roadmap phases.
 
 ### Schema & Contract Consistency
 
-- [ ] **SCHM-01**: Dataverse primary column cr_itemsummary handles SKIP-tier items without null violation (use placeholder text)
-- [ ] **SCHM-02**: Dataverse table schema (dataverse-table.json) includes cr_triagetier Choice column with SKIP/LIGHT/FULL values
-- [ ] **SCHM-03**: confidence_score field template uses integer type consistently (no quoted strings) across prompts and schema
-- [ ] **SCHM-04**: key_findings and verified_sources nullability rules are consistent between main agent prompt, humanizer prompt, and output-schema.json
-- [ ] **SCHM-05**: Humanizer handoff object includes draft_type discriminator field for format determination
-- [ ] **SCHM-06**: draft_payload uses a single convention (null, not "N/A") for non-draft cases across all artifacts
+- [x] **SCHM-01**: Dataverse primary column cr_itemsummary handles SKIP-tier items without null violation (use placeholder text)
+- [x] **SCHM-02**: Dataverse table schema (dataverse-table.json) includes cr_triagetier Choice column with SKIP/LIGHT/FULL values
+- [x] **SCHM-03**: confidence_score field template uses integer type consistently (no quoted strings) across prompts and schema
+- [x] **SCHM-04**: key_findings and verified_sources nullability rules are consistent between main agent prompt, humanizer prompt, and output-schema.json
+- [x] **SCHM-05**: Humanizer handoff object includes draft_type discriminator field for format determination
+- [x] **SCHM-06**: draft_payload uses a single convention (null, not "N/A") for non-draft cases across all artifacts
 - [ ] **SCHM-07**: Table logical name uses consistent singular/plural convention (cr_assistantcard) across all files — schema, scripts, docs, and code
 
 ### PCF Component Code
@@ -75,12 +75,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHM-01 | Phase 1 | Pending |
-| SCHM-02 | Phase 1 | Pending |
-| SCHM-03 | Phase 1 | Pending |
-| SCHM-04 | Phase 1 | Pending |
-| SCHM-05 | Phase 1 | Pending |
-| SCHM-06 | Phase 1 | Pending |
+| SCHM-01 | Phase 1 | Complete |
+| SCHM-02 | Phase 1 | Complete |
+| SCHM-03 | Phase 1 | Complete |
+| SCHM-04 | Phase 1 | Complete |
+| SCHM-05 | Phase 1 | Complete |
+| SCHM-06 | Phase 1 | Complete |
 | SCHM-07 | Phase 2 | Pending |
 | PCF-01 | Phase 3 | Pending |
 | PCF-02 | Phase 4 | Pending |
