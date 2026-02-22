@@ -15,3 +15,12 @@ Object.defineProperty(window, 'matchMedia', {
         dispatchEvent: jest.fn(),
     })),
 });
+
+// jsdom does not implement ResizeObserver. Fluent UI v9 MessageBar uses
+// ResizeObserver internally for reflow detection.
+class ResizeObserverMock {
+    observe() { /* no-op */ }
+    unobserve() { /* no-op */ }
+    disconnect() { /* no-op */ }
+}
+window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
