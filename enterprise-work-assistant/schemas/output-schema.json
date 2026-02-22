@@ -34,14 +34,14 @@
       "description": "1-2 sentence plain-text summary of the triggering item. For SKIP items, a brief description of what was skipped and why (e.g., 'Marketing newsletter from Contoso Weekly — no action needed.')."
     },
     "priority": {
-      "type": "string",
-      "enum": ["High", "Medium", "Low", "N/A"],
-      "description": "Priority level. Title case. N/A for SKIP or items where priority is not applicable."
+      "type": ["string", "null"],
+      "enum": ["High", "Medium", "Low", null],
+      "description": "Priority level. Title case. Null for SKIP or items where priority is not applicable."
     },
     "temporal_horizon": {
-      "type": "string",
-      "enum": ["TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", "N/A"],
-      "description": "Temporal horizon for calendar items. N/A for non-calendar triggers or SKIP."
+      "type": ["string", "null"],
+      "enum": ["TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", null],
+      "description": "Temporal horizon for calendar items. Null for non-calendar triggers or SKIP."
     },
     "research_log": {
       "type": ["string", "null"],
