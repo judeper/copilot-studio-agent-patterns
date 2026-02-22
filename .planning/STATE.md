@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-20)
 
 **Core value:** Every artifact in the solution must be correct and consistent -- schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** Phase 7: Documentation Accuracy (COMPLETE)
+**Current focus:** Phase 8: Test Infrastructure
 
 ## Current Position
 
-Phase: 7 of 8 (Documentation Accuracy)
-Plan: 2 of 2 in current phase (PHASE COMPLETE)
-Status: Phase Complete
-Last activity: 2026-02-21 -- Completed plan 07-02 (agent-flows.md connector actions, Choice expressions, schema nullability)
+Phase: 8 of 9 (Test Infrastructure)
+Plan: 1 of 2 in current phase
+Status: Plan 08-01 complete
+Last activity: 2026-02-22 -- Completed plan 08-01 (Jest config, PCF mocks, fixtures, FluentProvider helper)
 
-Progress: [▓▓▓▓▓▓▓▓▓░] 90%
+Progress: [▓▓▓▓▓▓▓▓▓░] 91%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 4min
-- Total execution time: 0.5 hours
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
@@ -36,10 +36,11 @@ Progress: [▓▓▓▓▓▓▓▓▓░] 90%
 | Phase 06 P01 | 2min | 2 tasks | 3 files |
 | Phase 07 P01 | 2min | 1 task | 1 file |
 | Phase 07 P02 | 3min | 1 task | 1 file |
+| Phase 08 P01 | 5min | 2 tasks | 7 files |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 3min, 2min, 2min, 3min
-- Trend: stable (documentation fixes consistently fast)
+- Last 5 plans: 3min, 2min, 2min, 3min, 5min
+- Trend: slight increase (test infrastructure setup more complex than doc fixes)
 
 *Updated after each plan completion*
 
@@ -78,6 +79,9 @@ Recent decisions affecting current work:
 - [Phase 07]: Execute Agent and wait (Microsoft Copilot Studio connector) replaces Run a prompt (AI Builder) for all agent invocations
 - [Phase 07]: lastResponse field replaces text as the expected connector response field name
 - [Phase 07]: item_summary declared as non-nullable string in PA simplified schema, aligning with Phase 1 canonical contract
+- [Phase 08]: skipLibCheck enabled in tsconfig.test.json -- @types/node brought by Jest uses esnext.disposable incompatible with TS 4.9.5
+- [Phase 08]: Coverage collection off by default; enabled via --coverage flag to avoid threshold failure with no tests
+- [Phase 08]: Jest 30 accepted (bun resolved latest); ts-jest 29.4.6 peerDependencies allow ^29 or ^30
 
 ### Pending Todos
 
@@ -85,10 +89,10 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- [Phase 8]: Jest/PCF configuration has no official documentation; community patterns vary. Research recommended during Phase 8 planning.
+- [Phase 8]: Jest/PCF configuration resolved -- skipLibCheck + separate tsconfig.test.json + factory-based PCF mocks (RESOLVED in 08-01)
 
 ## Session Continuity
 
-Last session: 2026-02-21
-Stopped at: Completed 07-02-PLAN.md (Phase 07 complete)
+Last session: 2026-02-22
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
