@@ -16,10 +16,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Table Naming Consistency** - Resolve singular/plural cr_assistantcard naming across every file in the solution
 - [x] **Phase 3: PCF Build Configuration** - Pin Fluent UI version, update manifest, and lock dependency versions for correct builds
 - [x] **Phase 4: PCF API Correctness** - Fix Fluent UI v9 Badge size, color token names, and clean up contract drift from earlier phases (completed 2026-02-21)
-- [ ] **Phase 5: PCF Security Hardening** - Sanitize external URLs in CardDetail.tsx to prevent XSS
+- [x] **Phase 5: PCF Security Hardening** - Sanitize external URLs in CardDetail.tsx to prevent XSS (completed 2026-02-21)
 - [x] **Phase 6: PowerShell Script Fixes** - Fix deploy-solution.ps1 polling logic and parameterize create-security-roles.ps1 (completed 2026-02-21)
-- [ ] **Phase 7: Documentation Accuracy** - Correct deployment guide UI paths, add Power Automate expression examples, and document prerequisites
+- [x] **Phase 7: Documentation Accuracy** - Correct deployment guide UI paths, add Power Automate expression examples, and document prerequisites (completed 2026-02-21)
 - [ ] **Phase 8: Test Infrastructure and Unit Tests** - Configure Jest for PCF and write unit tests for hooks, filters, and components
+- [ ] **Phase 9: Tech Debt Cleanup** - Fix schema convention divergence, broken doc paths, version annotations, and stale requirement text from audit
 
 ## Phase Details
 
@@ -139,11 +140,26 @@ Plans:
 Plans:
 - [ ] 08-01: TBD
 
+### Phase 9: Tech Debt Cleanup
+**Goal**: Resolve non-blocking inconsistencies identified during the v1.0 milestone audit — schema convention divergence, broken documentation paths, inaccurate version annotations, and stale requirement text
+**Depends on**: Phase 7
+**Requirements**: None (tech debt — no formal requirement IDs)
+**Gap Closure:** Closes 4 tech debt items from v1.0-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. output-schema.json priority and temporal_horizon enums use null convention (not "N/A"), matching types.ts contract established in Phase 1
+  2. agent-flows.md relative path to output-schema.json resolves correctly (../schemas/output-schema.json)
+  3. Deployment guide "Tested with" annotation reflects actual tested Bun version (1.3.8)
+  4. DOC-03 requirement text in REQUIREMENTS.md says "Execute Agent and wait" (not "Run a prompt")
+**Plans**: 1 plan
+
+Plans:
+- [ ] 09-01-PLAN.md — Fix schema enum divergence, broken doc path, version annotation, and stale requirement text
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
-(Phases 2, 3 both depend on 1 but run sequentially. Phase 7 depends on 5 and 6.)
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
+(Phases 2, 3 both depend on 1 but run sequentially. Phase 7 depends on 5 and 6. Phase 9 depends on 7.)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -151,7 +167,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 2. Table Naming Consistency | 1/1 | Complete | 2026-02-20 |
 | 3. PCF Build Configuration | 1/1 | Complete | 2026-02-21 |
 | 4. PCF API Correctness | 0/TBD | Complete    | 2026-02-21 |
-| 5. PCF Security Hardening | 0/TBD | Not started | - |
+| 5. PCF Security Hardening | 1/1 | Complete | 2026-02-21 |
 | 6. PowerShell Script Fixes | 0/TBD | Complete    | 2026-02-21 |
 | 7. Documentation Accuracy | 2/2 | Complete | 2026-02-21 |
 | 8. Test Infrastructure and Unit Tests | 0/TBD | Not started | - |
+| 9. Tech Debt Cleanup | 0/TBD | Not started | - |
