@@ -19,7 +19,7 @@ Every artifact in the solution must be correct and consistent — schemas match 
 - [ ] Fix all schema/prompt inconsistencies (cr_itemsummary null constraint for SKIP, confidence_score type, nullability mismatches, draft_type field, draft_payload null vs N/A)
 - [ ] Fix remaining code bugs (invalid Badge size, incorrect color tokens, XSS in CardDetail URL rendering, deploy-solution.ps1 polling logic, create-security-roles.ps1 hardcoded prefix)
 - [ ] Resolve table naming inconsistency (cr_assistantcard singular vs cr_assistantcards plural) across all files
-- [ ] Add missing Power Automate implementation guidance (expression examples for Choice mapping, "Run a prompt" action location, research tool registration)
+- [ ] Add missing Power Automate implementation guidance (expression examples for Choice mapping, "Execute Agent and wait" action location, research tool registration)
 - [ ] Correct deployment guide UI paths (JSON output mode location)
 - [ ] Add unit tests for React PCF components and hooks
 - [ ] Re-audit entire solution after fixes to validate correctness

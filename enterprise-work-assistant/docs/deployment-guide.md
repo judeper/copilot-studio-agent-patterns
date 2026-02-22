@@ -6,7 +6,7 @@ End-to-end deployment checklist for the Enterprise Work Assistant solution.
 
 ### Development Tools
 
-- [ ] **Bun** >= 1.x (Tested with Bun 1.2.x)
+- [ ] **Bun** >= 1.x (Tested with Bun 1.3.8)
   - macOS: `brew install oven-sh/bun/bun`
   - Windows: `powershell -c "irm bun.sh/install.ps1|iex"`
 - [ ] **Node.js** >= 20 (Tested with Node.js 20.x)
