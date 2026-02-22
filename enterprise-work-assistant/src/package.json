@@ -9,20 +9,30 @@
     "lint": "eslint AssistantDashboard --ext .ts,.tsx",
     "rebuild": "pcf-scripts build rebuild",
     "start": "pcf-scripts start",
-    "refreshTypes": "pcf-scripts refreshTypes"
+    "refreshTypes": "pcf-scripts refreshTypes",
+    "test": "jest --config test/jest.config.ts",
+    "test:coverage": "jest --config test/jest.config.ts --coverage"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.46.0",
     "@fluentui/react-icons": "^2.0.245"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/powerapps-component-framework": "^1.3.18",
     "@types/react": "~16.14.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.50.0",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "pcf-scripts": "^1",
     "pcf-start": "^1",
+    "ts-jest": "^29.4.6",
     "typescript": "^4.9.5"
   }
 }

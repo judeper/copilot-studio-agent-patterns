@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "types": ["jest", "@testing-library/jest-dom"],
+    "jsx": "react",
+    "esModuleInterop": true
+  },
+  "include": [
+    "AssistantDashboard/**/*.ts",
+    "AssistantDashboard/**/*.tsx",
+    "test/**/*.ts",
+    "test/**/*.tsx"
+  ]
+}
