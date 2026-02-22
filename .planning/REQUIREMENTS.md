@@ -39,9 +39,9 @@ Requirements for production readiness. Each maps to roadmap phases.
 ### Testing
 
 - [x] **TEST-01**: Jest and React Testing Library configured with PCF-compatible setup (transforms, mocks)
-- [ ] **TEST-02**: Unit tests for useCardData hook cover JSON parsing, malformed data, empty datasets, and tier-specific behavior
-- [ ] **TEST-03**: Unit tests for App.tsx filter logic cover category, priority, and triage tier filtering
-- [ ] **TEST-04**: Component render tests for CardItem, CardDetail, CardGallery, and FilterBar verify rendering with valid data
+- [x] **TEST-02**: Unit tests for useCardData hook cover JSON parsing, malformed data, empty datasets, and tier-specific behavior
+- [x] **TEST-03**: Unit tests for App.tsx filter logic cover category, priority, and triage tier filtering
+- [x] **TEST-04**: Component render tests for CardItem, CardDetail, CardGallery, and FilterBar verify rendering with valid data
 
 ## v2 Requirements
 
@@ -96,9 +96,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOC-06 | Phase 6 | Complete |
 | DOC-07 | Phase 7 | Complete |
 | TEST-01 | Phase 8 | Complete |
-| TEST-02 | Phase 8 | Pending |
-| TEST-03 | Phase 8 | Pending |
-| TEST-04 | Phase 8 | Pending |
+| TEST-02 | Phase 8 | Complete |
+| TEST-03 | Phase 8 | Complete |
+| TEST-04 | Phase 8 | Complete |
 
 **Coverage:**
 - v1 requirements: 24 total
