@@ -19,8 +19,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: PCF Security Hardening** - Sanitize external URLs in CardDetail.tsx to prevent XSS (completed 2026-02-21)
 - [x] **Phase 6: PowerShell Script Fixes** - Fix deploy-solution.ps1 polling logic and parameterize create-security-roles.ps1 (completed 2026-02-21)
 - [x] **Phase 7: Documentation Accuracy** - Correct deployment guide UI paths, add Power Automate expression examples, and document prerequisites (completed 2026-02-21)
-- [ ] **Phase 8: Test Infrastructure and Unit Tests** - Configure Jest for PCF and write unit tests for hooks, filters, and components
-- [ ] **Phase 9: Tech Debt Cleanup** - Fix schema convention divergence, broken doc paths, version annotations, and stale requirement text from audit
+- [x] **Phase 8: Test Infrastructure and Unit Tests** - Configure Jest for PCF and write unit tests for hooks, filters, and components (completed 2026-02-22)
+- [x] **Phase 9: Tech Debt Cleanup** - Fix schema convention divergence, broken doc paths, version annotations, and stale requirement text from audit (completed 2026-02-22)
 
 ## Phase Details
 
@@ -171,5 +171,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 5. PCF Security Hardening | 1/1 | Complete | 2026-02-21 |
 | 6. PowerShell Script Fixes | 0/TBD | Complete    | 2026-02-21 |
 | 7. Documentation Accuracy | 2/2 | Complete | 2026-02-21 |
-| 8. Test Infrastructure and Unit Tests | 0/TBD | Not started | - |
-| 9. Tech Debt Cleanup | 0/TBD | Not started | - |
+| 8. Test Infrastructure and Unit Tests | 2/2 | Complete | 2026-02-22 |
+| 9. Tech Debt Cleanup | 1/1 | Complete | 2026-02-22 |
