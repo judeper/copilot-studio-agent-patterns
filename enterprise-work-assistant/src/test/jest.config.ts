@@ -33,8 +33,11 @@ const config: Config = {
         '!AssistantDashboard/index.ts',
     ],
 
-    // Per-file 80% coverage threshold via glob pattern
+    // Per-file 80% coverage threshold via glob pattern.
+    // The `global` key is required by Jest types; per-file enforcement uses the
+    // glob key which checks each matched file individually.
     coverageThreshold: {
+        global: {},
         './AssistantDashboard/**/*.{ts,tsx}': {
             branches: 80,
             functions: 80,
