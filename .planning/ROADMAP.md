@@ -135,10 +135,11 @@ Plans:
   2. useCardData hook tests cover JSON parsing of valid data, graceful handling of malformed JSON, empty datasets, and tier-specific field presence
   3. Filter logic tests in App.tsx verify correct filtering by category, priority, and triage tier independently and in combination
   4. CardItem, CardDetail, CardGallery, and FilterBar each have at least one render test that passes with valid mock data
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: TBD
+- [ ] 08-01-PLAN.md — Configure Jest, ts-jest, React Testing Library with PCF mocks, fixtures, and helpers
+- [ ] 08-02-PLAN.md — Write unit tests for useCardData, urlSanitizer, App filters, and component rendering
 
 ### Phase 9: Tech Debt Cleanup
 **Goal**: Resolve non-blocking inconsistencies identified during the v1.0 milestone audit — schema convention divergence, broken documentation paths, inaccurate version annotations, and stale requirement text
