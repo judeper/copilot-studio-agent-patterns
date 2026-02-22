@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-20)
 ## Current Position
 
 Phase: 8 of 9 (Test Infrastructure)
-Plan: 1 of 2 in current phase
-Status: Plan 08-01 complete
-Last activity: 2026-02-22 -- Completed plan 08-01 (Jest config, PCF mocks, fixtures, FluentProvider helper)
+Plan: 2 of 2 in current phase
+Status: Phase 08 complete
+Last activity: 2026-02-22 -- Completed plan 08-02 (68 unit tests, all source files covered, 80% per-file threshold met)
 
-Progress: [▓▓▓▓▓▓▓▓▓░] 91%
+Progress: [▓▓▓▓▓▓▓▓▓▓] 95%
 
 ## Performance Metrics
 
@@ -37,10 +37,11 @@ Progress: [▓▓▓▓▓▓▓▓▓░] 91%
 | Phase 07 P01 | 2min | 1 task | 1 file |
 | Phase 07 P02 | 3min | 1 task | 1 file |
 | Phase 08 P01 | 5min | 2 tasks | 7 files |
+| Phase 08 P02 | 6min | 2 tasks | 8 files |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 2min, 2min, 3min, 5min
-- Trend: slight increase (test infrastructure setup more complex than doc fixes)
+- Last 5 plans: 2min, 2min, 3min, 5min, 6min
+- Trend: slight increase (test writing more complex than doc fixes)
 
 *Updated after each plan completion*
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase 08]: skipLibCheck enabled in tsconfig.test.json -- @types/node brought by Jest uses esnext.disposable incompatible with TS 4.9.5
 - [Phase 08]: Coverage collection off by default; enabled via --coverage flag to avoid threshold failure with no tests
 - [Phase 08]: Jest 30 accepted (bun resolved latest); ts-jest 29.4.6 peerDependencies allow ^29 or ^30
+- [Phase 08]: ResizeObserver mock added to jest.setup.ts -- Fluent UI MessageBar uses ResizeObserver for reflow detection which jsdom lacks
+- [Phase 08]: App filter logic tested through rendered output, not by importing private applyFilters -- follows Testing Library behavior-testing philosophy
 
 ### Pending Todos
 
@@ -94,5 +97,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-22
-Stopped at: Completed 08-01-PLAN.md
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
