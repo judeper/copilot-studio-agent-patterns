@@ -47,6 +47,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 # ─────────────────────────────────────
+# 0. Prerequisite Validation
+# ─────────────────────────────────────
+if (-not (Get-Command "pac" -ErrorAction SilentlyContinue)) { throw "PAC CLI not found. Install with: dotnet tool install --global Microsoft.PowerApps.CLI.Tool" }
+if (-not (Get-Command "az" -ErrorAction SilentlyContinue)) { throw "Azure CLI not found. Install with: brew install azure-cli (macOS) or winget install Microsoft.AzureCLI (Windows)" }
+
+# ─────────────────────────────────────
 # 1. Authenticate with PAC CLI
 # ─────────────────────────────────────
 Write-Host "Authenticating with Power Platform..." -ForegroundColor Cyan
@@ -99,10 +105,14 @@ pac org select --environment $EnvironmentId
 # ─────────────────────────────────────
 Write-Host "Creating AssistantCards Dataverse table..." -ForegroundColor Cyan
 
+# Authenticate Azure CLI (required for Dataverse API token — separate from PAC CLI auth)
+Write-Host "Authenticating Azure CLI for Dataverse API access..." -ForegroundColor Cyan
+az login --tenant $TenantId
+if ($LASTEXITCODE -ne 0) { throw "Azure CLI login failed. Ensure Azure CLI is installed ('az --version') and try 'az login --tenant $TenantId' manually." }
+
 # Get access token for Dataverse via Azure CLI (pac auth token does not exist)
-# Requires: az login --tenant $TenantId (already authenticated via pac auth above)
 $token = az account get-access-token --resource $OrgUrl --query accessToken -o tsv
-if (-not $token) { throw "Failed to get access token. Ensure Azure CLI is installed and run 'az login --tenant $TenantId' first." }
+if (-not $token) { throw "Failed to get access token. Verify 'az login' succeeded and you have access to the Dataverse environment." }
 $headers = @{
     "Authorization" = "Bearer $token"
     "Content-Type"  = "application/json"

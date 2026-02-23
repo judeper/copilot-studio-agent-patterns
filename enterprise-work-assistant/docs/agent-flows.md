@@ -181,8 +181,10 @@ For Choice columns, you must map the agent's string output to the integer option
 **Compose -- Triage Tier Value:**
 
 ```
-if(equals(body('Parse_JSON')?['triage_tier'],'SKIP'),100000000,if(equals(body('Parse_JSON')?['triage_tier'],'LIGHT'),100000001,100000002))
+if(equals(body('Parse_JSON')?['triage_tier'],'LIGHT'),100000001,100000002)
 ```
+
+> **Note**: The SKIP branch is omitted because this Compose action is inside the "If Yes (not SKIP)" condition — SKIP items never reach this point.
 
 **Compose -- Trigger Type Value:**
 
@@ -208,14 +210,6 @@ if(equals(body('Parse_JSON')?['card_status'],'READY'),100000000,if(equals(body('
 if(equals(body('Parse_JSON')?['temporal_horizon'],'TODAY'),100000000,if(equals(body('Parse_JSON')?['temporal_horizon'],'THIS_WEEK'),100000001,if(equals(body('Parse_JSON')?['temporal_horizon'],'NEXT_WEEK'),100000002,if(equals(body('Parse_JSON')?['temporal_horizon'],'BEYOND'),100000003,100000004))))
 ```
 
-**Null handling for optional integer columns:**
-
-```
-@{if(equals(body('Parse_JSON')?['confidence_score'], null), 0, body('Parse_JSON')?['confidence_score'])}
-```
-
-Use when writing `confidence_score` to Dataverse -- coalesces null to 0 for SKIP/LIGHT tier items.
-
 **JSON serialization for draft_payload:**
 
 ```
@@ -232,8 +226,8 @@ Serializes the `draft_payload` object back to a JSON string. Used when passing t
 | Priority | Choice value from Compose (see mapping table) |
 | Card Status | Choice value from Compose (see mapping table) |
 | Temporal Horizon | Choice value from Compose (see mapping table) |
-| Confidence Score | `@{body('Parse_JSON')?['confidence_score']}` |
-| Full JSON Output | `@{body('Execute_Agent_and_wait')?['lastResponse']}` (raw agent response — **verify field name** in dynamic content) |
+| Confidence Score | `@{body('Parse_JSON')?['confidence_score']}` (null for SKIP/LIGHT tier — the Dataverse WholeNumber column accepts null) |
+| Full JSON Output | `@{body('Execute_Agent_and_wait')?['lastResponse']}` (the agent's text response — the field name in dynamic content may vary by connector version; look for the agent's text response output in the dynamic content picker) |
 | **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` **(required for RLS — see Row Ownership section)** |
 
 **8. Condition — Humanizer handoff**
@@ -283,6 +277,8 @@ Add another **Microsoft Copilot Studio** **"Execute Agent and wait"** action. Se
 | Channel | Select the specific channel to monitor |
 
 > **Important**: Avoid using `Channel = "Any"` as this captures every message in every channel across the entire team, generating excessive agent calls. Either select specific channels or use the **"When someone is mentioned"** trigger to process only messages where the user is @mentioned.
+
+> **Trigger scope note**: The "When someone is mentioned" trigger fires for ANY @mention in the configured channels, not just mentions of the flow owner. If multiple users share a team, consider adding a pre-filter condition to check that the mentioned user matches the authenticated user: `@equals(triggerOutputs()?['body/mentions']?[0]?['mentioned']?['user']?['id'], outputs('Get_my_profile_(V2)')?['body/id'])`.
 
 ### Actions
 

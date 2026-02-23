@@ -77,7 +77,15 @@ This must be done manually — there is no CLI command:
 .\create-security-roles.ps1 -OrgUrl "https://<your-org>.crm.dynamics.com"
 ```
 
-### 1.5 Create Connections
+### 1.5 Verify Table Naming Consistency
+
+```powershell
+.\audit-table-naming.ps1
+```
+
+This script verifies that column names, choice values, and references are consistent across all artifacts (schemas, scripts, documentation). Run it after provisioning to catch any drift.
+
+### 1.6 Create Connections
 
 Manually create connections in Power Automate for:
 
@@ -198,6 +206,8 @@ Build the three agent flows following `docs/agent-flows.md`:
 
 > **Important**: Review the [agent-flows.md](agent-flows.md) sections on **Row Ownership** (required for RLS), **Parse JSON Schema** (simplified schema without `oneOf`), and **Error Handling** before building flows.
 
+> **Phased rollout tip**: You can start with just the EMAIL flow for initial validation. Once it works end-to-end (email → agent → Dataverse → Canvas app), add the TEAMS_MESSAGE and CALENDAR_SCAN flows incrementally. Steps 3.2 and 3.3 are independent and can be deployed in any order after 3.1.
+
 ---
 
 ## Phase 4 — Humanizer Agent
@@ -296,3 +306,37 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Card detail view shows all sections
 - [ ] Edit Draft and Dismiss actions work
 - [ ] DLP policies allow all required connector combinations
+
+---
+
+## Smoke Test Procedure
+
+After completing all phases, run through this end-to-end test to verify the solution works:
+
+1. **Send yourself a test email** with a distinctive subject line (e.g., "Test: Project Alpha budget review needed by Friday")
+2. **Wait 1-2 minutes** for the EMAIL flow to trigger
+3. **Check Power Automate flow run history** — verify the flow run succeeded (green checkmark). If it failed, click into the run to see which step errored
+4. **Open Dataverse** → Tables → Assistant Cards → verify a new row exists with your test email's summary
+5. **Open the Canvas app** → verify the card appears in the gallery
+6. **Click the card** → verify the detail view renders correctly (summary, priority badge, key findings, sources)
+7. **Click Dismiss** → verify the card status updates to SUMMARY_ONLY in Dataverse
+8. **Test filters** → use the dropdown controls to filter by trigger type, priority, and status
+
+> If the CALENDAR_SCAN flow is configured, you can also test it by clicking "Run" manually in Power Automate (no need to wait for the daily schedule).
+
+---
+
+## Troubleshooting
+
+Common errors and their fixes:
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| "Parse JSON failed" in flow run | Using the canonical `output-schema.json` (which contains `oneOf`) instead of the simplified schema | Use the simplified Parse JSON schema from [agent-flows.md](agent-flows.md) — it uses `{}` for polymorphic fields |
+| No cards appearing in Canvas app | Flow isn't running, Owner field not set, or DLP blocking connectors | Check flow run history. Verify the Owner field is set in the "Add a new row" action. Check DLP policies |
+| PCF control not showing in Canvas app | PCF for Canvas apps not enabled in environment | Enable in Admin Center → Environments → Settings → Features → "Allow publishing of canvas apps with code components" |
+| "Access token failed" in provisioning script | Azure CLI not authenticated | Run `az login --tenant <tenant-id>` before running `provision-environment.ps1` |
+| Choice column mismatch (wrong values in Dataverse) | Integer mapping doesn't match schema | Verify the `if()` expression chains in your Compose actions match the values in `schemas/dataverse-table.json` |
+| "Invoke agent" action fails | Agent not published, or using wrong connector | Ensure the agent is published in Copilot Studio. Use the **Microsoft Copilot Studio** connector (not AI Builder) |
+| Flow runs but no Dataverse row created | Item was triaged as SKIP | SKIP-tier items are filtered out before the Dataverse write. Check the agent's JSON output in the flow run to see the `triage_tier` value |
+| Humanized draft not appearing | Confidence score below 40, or trigger type is CALENDAR_SCAN | The humanizer handoff condition requires `triage_tier = FULL`, `confidence_score >= 40`, and `trigger_type != CALENDAR_SCAN` |
