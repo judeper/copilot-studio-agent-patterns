@@ -168,6 +168,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                                 value={card.draft_payload.raw_draft}
                                 resize="vertical"
                                 readOnly
+                                onChange={() => { /* readOnly — no-op to satisfy React controlled component */ }}
                             />
                         </div>
                     ) : (

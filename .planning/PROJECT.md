@@ -30,13 +30,13 @@ Every artifact in the solution must be correct and consistent — schemas match 
 - Rewriting the architecture or changing design decisions
 - Building a working Power Platform environment — we're fixing the reference pattern files only
 - Mobile responsiveness — not relevant to Canvas App PCF dashboard
-- TypeScript 5.x upgrade — low risk but not a fix (improvement for a separate pass)
+- TypeScript 5.x upgrade — blocked by pcf-scripts pinning TS 4.9.5; skipLibCheck workaround resolves type-checking issues
 
 ## Context
 
 Shipped v1.0 with 2,218 LOC TypeScript/CSS across a 28-file reference pattern in 6 directories (docs, prompts, schemas, scripts, src). The PCF virtual control uses React 16.14.0 (platform-provided) with Fluent UI v9, built via Bun 1.3.8. Jest test suite has 68 tests covering all source files with 80%+ per-file coverage thresholds.
 
-**Known tech debt:** Prompt/Dataverse layers still output "N/A" strings while the schema uses null. Bridged at runtime by useCardData.ts ingestion boundary. Non-blocking — system works correctly end-to-end.
+**Known tech debt:** Prompt/Dataverse layers still output "N/A" strings while the schema uses null. Bridged at runtime by useCardData.ts ingestion boundary. Non-blocking — system works correctly end-to-end. Canvas app filter dropdowns no longer expose N/A as a filter option (post-v1.0 review fix).
 
 ## Constraints
 

@@ -38,7 +38,7 @@ Add four Dropdown controls at the top of Screen1 for filter state:
 - **Name**: `drpTriggerType`
 
 ### Priority Dropdown
-- **Items**: `["", "High", "Medium", "Low", "N/A"]`
+- **Items**: `["", "High", "Medium", "Low"]`
 - **Default**: `""`
 - **Name**: `drpPriority`
 
@@ -48,11 +48,11 @@ Add four Dropdown controls at the top of Screen1 for filter state:
 - **Name**: `drpCardStatus`
 
 ### Temporal Horizon Dropdown
-- **Items**: `["", "TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", "N/A"]`
+- **Items**: `["", "TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND"]`
 - **Default**: `""`
 - **Name**: `drpTemporalHorizon`
 
-> **Note**: The empty string `""` represents "no filter" (show all). `N/A` is included for Priority and Temporal Horizon because non-calendar items (EMAIL, TEAMS_MESSAGE) use these values.
+> **Note**: The empty string `""` represents "no filter" (show all). SKIP-tier items are not written to Dataverse, so only High/Medium/Low priorities appear. Temporal horizon values (TODAY, THIS_WEEK, etc.) apply to CALENDAR_SCAN items; EMAIL and TEAMS_MESSAGE items have null temporal horizon.
 
 ## 4. Import the PCF Component
 
