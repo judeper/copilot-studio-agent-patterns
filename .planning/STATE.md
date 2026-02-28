@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Pre-Deployment Audit
 status: in-progress
-last_updated: "2026-02-28T23:44:31Z"
+last_updated: "2026-02-28T23:57:54.274Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** Phase 13 (Remediation) in progress. Wave 1 schema/contract fixes and Wave 2 flow specs complete.
+**Current focus:** Phase 13 (Remediation) in progress. Waves 1-3 complete. Wave 4 (final verification) next.
 
 ## Current Position
 
 Phase: 13 of 13 (Remediation)
-Plan: 2 of 4 in current phase (13-01, 13-02 complete)
-Status: Wave 1 schema/contract fixes and Wave 2 flow spec fixes complete. Wave 3 frontend fixes next.
-Last activity: 2026-02-28 -- Completed 13-02 (flow spec fixes: DISMISSED branch, output envelope, NUDGE discrete column, F-02 format, dismiss_rate)
+Plan: 3 of 4 in current phase (13-01, 13-02, 13-03 complete)
+Status: Waves 1-3 complete (schema fixes, flow specs, frontend fixes + monitoring + tests). Wave 4 final verification next.
+Last activity: 2026-02-28 -- Completed 13-03 (NUDGE ingestion fix, CommandBar response channel, ErrorBoundary, monitoring, test coverage)
 
-Progress: [████████░░] 80% (8/10 plans across 4 phases)
+Progress: [█████████░] 90% (9/10 plans across 4 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8 (v2.1)
-- Average duration: 8min
-- Total execution time: 60min
+- Total plans completed: 9 (v2.1)
+- Average duration: 7min
+- Total execution time: 67min
 
 **By Phase:**
 
@@ -43,7 +43,7 @@ Progress: [████████░░] 80% (8/10 plans across 4 phases)
 | 10. Platform Architecture Review | 2/2 | 12min | 6min |
 | 11. Frontend/PCF Review | 2/2 | 16min | 8min |
 | 12. Integration/E2E Review | 2/2 | 18min | 9min |
-| 13. Remediation | 2/4 | 14min | 7min |
+| 13. Remediation | 3/4 | 21min | 7min |
 
 *Updated after each plan completion*
 
@@ -124,6 +124,15 @@ Progress: [████████░░] 80% (8/10 plans across 4 phases)
 - R-17 (SENDER_PROFILE not passed to agent) classified as WARN deferral -- sender analytics still provide value
 - Duplicate Flow 6 and Flow 7 sections removed, consolidated to single authoritative versions
 
+**v2.1 Phase 13 decisions (13-03):**
+- Discrete Dataverse column (getFormattedValue) takes priority over JSON blob for card_status, with fallback chain
+- orchestratorResponse parsed from JSON string in App.tsx, not in CommandBar (keeps CommandBar typed)
+- ErrorBoundary wraps content area only (not CommandBar) to preserve command capability during render crashes
+- Canvas App Timer is the platform-endorsed mechanism for periodic refresh (no setInterval in PCF virtual controls)
+- Test files placed in __tests__ directories matching jest config testMatch, not separate src/test location
+- Tech debt #13 reclassified as deferred (briefing schedule requires dedicated Dataverse table beyond v2.1 scope)
+- cr_errorlog monitoring table added to provisioning script with parameterized publisher prefix
+
 ### Pending Todos
 
 1. **Research Copilot Outlook catchup feature for OOO agent** — Evaluate Copilot in Outlook's "Catch Up" OOO summary feature as a potential new agent pattern
@@ -135,5 +144,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 13-02-PLAN.md (Wave 2 flow spec fixes -- DISMISSED branch, output envelope, NUDGE discrete column, F-02 format, dismiss_rate)
+Stopped at: Completed 13-03-PLAN.md (Wave 3 frontend fixes, monitoring, test coverage -- NUDGE ingestion, CommandBar response, ErrorBoundary, cr_errorlog, 28 new tests)
 Resume file: None
