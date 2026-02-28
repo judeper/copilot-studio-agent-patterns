@@ -68,7 +68,11 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
                     key_findings: parsed.key_findings ?? null,
                     verified_sources: Array.isArray(parsed.verified_sources) ? parsed.verified_sources : null,
                     confidence_score: typeof parsed.confidence_score === "number" ? parsed.confidence_score : null,
-                    card_status: (parsed.card_status as CardStatus) ?? "SUMMARY_ONLY",
+                    // Read card_status from discrete Dataverse column first (set by Staleness Monitor Flow 8
+                    // for NUDGE), fall back to JSON blob for agent-set values (READY, PROCESSING, etc.)
+                    card_status: (record.getFormattedValue("cr_cardstatus") as CardStatus)
+                        || (parsed.card_status as CardStatus)
+                        || "SUMMARY_ONLY",
                     draft_payload: parsed.draft_payload ?? null,
                     low_confidence_note: parsed.low_confidence_note ?? null,
                     humanized_draft: record.getValue("cr_humanizeddraft") as string | null,
