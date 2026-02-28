@@ -6,6 +6,7 @@ import { CardDetail } from "./CardDetail";
 import { BriefingCard } from "./BriefingCard";
 import { CommandBar } from "./CommandBar";
 import { ConfidenceCalibration } from "./ConfidenceCalibration";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { FilterBar } from "./FilterBar";
 
 type ViewState =
@@ -75,6 +76,8 @@ export const App: React.FC<AppProps> = ({
     filterPriority,
     filterCardStatus,
     filterTemporalHorizon,
+    orchestratorResponse,
+    isProcessing,
     width,
     height,
     onSelectCard,
@@ -146,9 +149,20 @@ export const App: React.FC<AppProps> = ({
         setViewState({ mode: "calibration" });
     }, []);
 
+    // F-02: Parse orchestrator response from Canvas app input property
+    const parsedOrchestratorResponse = React.useMemo(() => {
+        if (!orchestratorResponse) return null;
+        try {
+            return JSON.parse(orchestratorResponse) as import("./types").OrchestratorResponse;
+        } catch {
+            return null;
+        }
+    }, [orchestratorResponse]);
+
     return (
         <FluentProvider theme={prefersDark ? webDarkTheme : webLightTheme}>
             <div className="assistant-dashboard" style={{ width, height, display: "flex", flexDirection: "column" }}>
+                <ErrorBoundary>
                 <div style={{ flex: 1, overflow: "auto" }}>
                     {viewState.mode === "calibration" ? (
                         /* Sprint 4: Confidence calibration analytics */
@@ -202,13 +216,14 @@ export const App: React.FC<AppProps> = ({
                         />
                     )}
                 </div>
+                </ErrorBoundary>
                 {/* Sprint 3: Command bar — persistent bottom panel */}
                 <CommandBar
                     currentCardId={currentCardId}
                     onExecuteCommand={onExecuteCommand}
                     onJumpToCard={handleJumpToCard}
-                    lastResponse={null}
-                    isProcessing={false}
+                    lastResponse={parsedOrchestratorResponse}
+                    isProcessing={isProcessing}
                 />
             </div>
         </FluentProvider>

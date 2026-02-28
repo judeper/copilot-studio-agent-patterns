@@ -108,6 +108,8 @@ export interface AppProps {
     filterPriority: string;
     filterCardStatus: string;
     filterTemporalHorizon: string;
+    orchestratorResponse: string | null; // F-02: JSON response from command execution flow
+    isProcessing: boolean; // F-02: Whether a command is currently being processed
     width: number;
     height: number;
     onSelectCard: (cardId: string) => void;

@@ -84,8 +84,8 @@
     },
     "card_status": {
       "type": "string",
-      "enum": ["READY", "LOW_CONFIDENCE", "SUMMARY_ONLY", "NO_OUTPUT"],
-      "description": "Status of the output card. READY = full research + draft available, LOW_CONFIDENCE = insufficient evidence, SUMMARY_ONLY = LIGHT tier summary, NO_OUTPUT = SKIP tier."
+      "enum": ["READY", "LOW_CONFIDENCE", "SUMMARY_ONLY", "NO_OUTPUT", "NUDGE"],
+      "description": "Status of the output card. READY = full research + draft available, LOW_CONFIDENCE = insufficient evidence, SUMMARY_ONLY = LIGHT tier summary, NO_OUTPUT = SKIP tier, NUDGE = staleness reminder set by Flow 8."
     },
     "draft_payload": {
       "description": "For EMAIL/TEAMS_MESSAGE FULL-tier items with confidence >= 40: humanizer handoff object. For CALENDAR_SCAN FULL-tier items: plain-text meeting briefing. Null for SKIP, LIGHT, and LOW_CONFIDENCE.",
