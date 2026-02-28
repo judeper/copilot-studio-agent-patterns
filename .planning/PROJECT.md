@@ -62,7 +62,7 @@ Every artifact in the solution must be correct and consistent — schemas match 
 Shipped v2.0 with ~59k LOC TypeScript/CSS (handwritten) across the reference pattern. The PCF virtual control uses React 16.14.0 (platform-provided) with Fluent UI v9, built via Bun 1.3.8. Test suite has 387 test cases across 58 test files covering PCF components, hooks, agents, and utilities.
 
 **Known tech debt (v2.0, medium/low):**
-- #7: Staleness polling (setInterval) lacks cleanup on unmount
+- #7: ~~Staleness polling (setInterval) lacks cleanup on unmount~~ **Resolved/Not Applicable** -- No setInterval exists in PCF source code. Staleness monitoring is handled server-side by the Staleness Monitor flow, not client-side polling. Reclassified during v2.1 Phase 11 review.
 - #8: BriefingView test coverage thin on schedule logic
 - #9: Command bar error states show raw error strings
 - #10: No E2E flow coverage for send-email or set-reminder paths

@@ -92,5 +92,5 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
         }
 
         return cards;
-    }, [version]);
+    }, [dataset, version]);
 }
