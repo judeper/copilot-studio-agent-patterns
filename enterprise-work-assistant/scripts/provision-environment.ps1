@@ -1119,6 +1119,300 @@ try {
 }
 
 # ─────────────────────────────────────
+# 5. Create Error Log Table for Monitoring (I-18)
+# ─────────────────────────────────────
+Write-Host "Creating Error Log Dataverse table for flow monitoring..." -ForegroundColor Cyan
+
+$errorLogEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_ErrorLog"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Error Log"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Error Logs"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Flow error monitoring log for the Enterprise Work Assistant."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_flowname"
+    Attributes = @(
+        # Primary Name — Flow Name
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_FlowName"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 100
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Flow Name"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Which flow failed."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $errorLogEntityDef
+    Write-Host "  Error Log table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Error Log table creation failed (may already exist): $($_.Exception.Message)"
+}
+
+# Get entity metadata ID for error log
+$errorLogMetadata = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_errorlog')" -Headers $headers
+$errorLogEntityId = $errorLogMetadata.MetadataId
+
+# Error Message (Multiline Text)
+$errorMsgCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ErrorMessage"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 10000
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Error Message"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Error details from the failed flow step."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($errorLogEntityId)/Attributes" -Method Post -Headers $headers -Body $errorMsgCol
+    Write-Host "  Column 'Error Message' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Error Message' failed: $($_.Exception.Message)"
+}
+
+# Error Step (Text)
+$errorStepCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ErrorStep"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 200
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Error Step"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Which step in the flow failed."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($errorLogEntityId)/Attributes" -Method Post -Headers $headers -Body $errorStepCol
+    Write-Host "  Column 'Error Step' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Error Step' failed: $($_.Exception.Message)"
+}
+
+# Occurred On (DateTime)
+$occurredOnCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_OccurredOn"
+    RequiredLevel = @{ Value = "None" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Occurred On"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "When the error occurred."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($errorLogEntityId)/Attributes" -Method Post -Headers $headers -Body $occurredOnCol
+    Write-Host "  Column 'Occurred On' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Occurred On' failed: $($_.Exception.Message)"
+}
+
+# Severity (Choice: Info/Warning/Error)
+$severityCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_Severity"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Severity"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Error severity level."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "Info"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "Warning"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "Error"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($errorLogEntityId)/Attributes" -Method Post -Headers $headers -Body $severityCol
+    Write-Host "  Column 'Severity' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Severity' failed: $($_.Exception.Message)"
+}
+
+# Is Resolved (Boolean, default false)
+$isResolvedCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_IsResolved"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Is Resolved"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Whether the error has been investigated and resolved."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($errorLogEntityId)/Attributes" -Method Post -Headers $headers -Body $isResolvedCol
+    Write-Host "  Column 'Is Resolved' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Is Resolved' failed: $($_.Exception.Message)"
+}
+
+Write-Host "Error Log table provisioning complete." -ForegroundColor Green
+
+# ─────────────────────────────────────
 # 6. Enable PCF Components for Canvas Apps
 # ─────────────────────────────────────
 Write-Host "Enabling PCF components for Canvas apps..." -ForegroundColor Cyan
