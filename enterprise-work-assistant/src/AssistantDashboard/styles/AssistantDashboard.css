@@ -170,3 +170,34 @@
     border-top: 1px solid var(--colorNeutralStroke2);
     flex-shrink: 0;
 }
+
+/* ── Sprint 1A — Send Confirmation Panel ── */
+.card-detail-confirm-panel {
+    padding: 12px;
+    background: var(--colorNeutralBackground3);
+    border: 1px solid var(--colorBrandStroke1);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-detail-confirm-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.card-detail-confirm-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.card-detail-sending {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+}

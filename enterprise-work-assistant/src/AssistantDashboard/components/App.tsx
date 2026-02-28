@@ -54,7 +54,8 @@ export const App: React.FC<AppProps> = ({
     width,
     height,
     onSelectCard,
-    onEditDraft,
+    onSendDraft,
+    onCopyDraft,
     onDismissCard,
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery" });
@@ -114,7 +115,8 @@ export const App: React.FC<AppProps> = ({
                     <CardDetail
                         card={selectedCard}
                         onBack={handleBack}
-                        onEditDraft={onEditDraft}
+                        onSendDraft={onSendDraft}
+                        onCopyDraft={onCopyDraft}
                         onDismissCard={onDismissCard}
                     />
                 )}

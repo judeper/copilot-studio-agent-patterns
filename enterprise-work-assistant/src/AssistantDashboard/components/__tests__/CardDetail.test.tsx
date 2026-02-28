@@ -6,6 +6,7 @@ import { renderWithProviders } from '../../../test/helpers/renderWithProviders';
 import {
     tier3FullItem,
     tier1SkipItem,
+    tier2LightItem,
     lowConfidenceItem,
     calendarBriefingItem,
 } from '../../../test/fixtures/cardFixtures';
@@ -15,14 +16,16 @@ function renderCardDetail(
     card: AssistantCard,
     overrides: Partial<{
         onBack: () => void;
-        onEditDraft: (id: string) => void;
+        onSendDraft: (id: string, text: string) => void;
+        onCopyDraft: (id: string) => void;
         onDismissCard: (id: string) => void;
     }> = {},
 ) {
     const defaultProps = {
         card,
         onBack: jest.fn(),
-        onEditDraft: jest.fn(),
+        onSendDraft: jest.fn(),
+        onCopyDraft: jest.fn(),
         onDismissCard: jest.fn(),
     };
     return renderWithProviders(
@@ -115,21 +118,132 @@ describe('CardDetail', () => {
         expect(onBack).toHaveBeenCalled();
     });
 
-    it('calls onEditDraft when Edit & Copy Draft button is clicked', async () => {
-        const onEditDraft = jest.fn();
-        renderCardDetail(tier3FullItem, { onEditDraft });
+    // ── Sprint 1A: Send flow tests ──
 
-        await userEvent.click(screen.getByText('Edit & Copy Draft'));
-        expect(onEditDraft).toHaveBeenCalledWith(tier3FullItem.id);
+    it('renders Send button for EMAIL FULL READY cards with humanized draft', () => {
+        renderCardDetail(tier3FullItem);
+
+        expect(screen.getByText('Send')).toBeInTheDocument();
     });
 
-    it('calls onDismissCard when Dismiss Card button is clicked', async () => {
+    it('does NOT render Send button for TEAMS_MESSAGE cards', () => {
+        renderCardDetail(tier2LightItem);
+
+        expect(screen.queryByText('Send')).not.toBeInTheDocument();
+    });
+
+    it('does NOT render Send button for CALENDAR_SCAN cards', () => {
+        renderCardDetail(calendarBriefingItem);
+
+        expect(screen.queryByText('Send')).not.toBeInTheDocument();
+    });
+
+    it('does NOT render Send button for LOW_CONFIDENCE cards (no humanized draft)', () => {
+        renderCardDetail(lowConfidenceItem);
+
+        expect(screen.queryByText('Send')).not.toBeInTheDocument();
+    });
+
+    it('shows inline confirmation panel on Send click', async () => {
+        renderCardDetail(tier3FullItem);
+
+        await userEvent.click(screen.getByText('Send'));
+
+        expect(screen.getByText('Confirm send')).toBeInTheDocument();
+        expect(screen.getByText(/Fabrikam Legal/)).toBeInTheDocument();
+        expect(screen.getByText(/Contract Renewal/)).toBeInTheDocument();
+        expect(screen.getByText('Confirm & Send')).toBeInTheDocument();
+        expect(screen.getByText('Cancel')).toBeInTheDocument();
+    });
+
+    it('calls onSendDraft with card ID and draft text on Confirm & Send', async () => {
+        const onSendDraft = jest.fn();
+        renderCardDetail(tier3FullItem, { onSendDraft });
+
+        await userEvent.click(screen.getByText('Send'));
+        await userEvent.click(screen.getByText('Confirm & Send'));
+
+        expect(onSendDraft).toHaveBeenCalledWith(
+            tier3FullItem.id,
+            tier3FullItem.humanized_draft,
+        );
+    });
+
+    it('hides confirmation panel on Cancel', async () => {
+        renderCardDetail(tier3FullItem);
+
+        await userEvent.click(screen.getByText('Send'));
+        expect(screen.getByText('Confirm send')).toBeInTheDocument();
+
+        await userEvent.click(screen.getByText('Cancel'));
+        expect(screen.queryByText('Confirm send')).not.toBeInTheDocument();
+    });
+
+    it('shows "Sent" badge for cards with SENT_AS_IS outcome', () => {
+        const sentCard: AssistantCard = {
+            ...tier3FullItem,
+            id: 'sent-001',
+            card_outcome: 'SENT_AS_IS',
+        };
+
+        renderCardDetail(sentCard);
+
+        expect(screen.getByText('Sent')).toBeInTheDocument();
+        // Send button should be replaced with disabled "Sent" button
+        expect(screen.queryByText('Send')).not.toBeInTheDocument();
+    });
+
+    it('shows "Dismissed" badge for dismissed cards', () => {
+        const dismissedCard: AssistantCard = {
+            ...tier3FullItem,
+            id: 'dismissed-001',
+            card_outcome: 'DISMISSED',
+        };
+
+        renderCardDetail(dismissedCard);
+
+        expect(screen.getByText('Dismissed')).toBeInTheDocument();
+    });
+
+    it('hides Dismiss button for already-sent cards', () => {
+        const sentCard: AssistantCard = {
+            ...tier3FullItem,
+            id: 'sent-002',
+            card_outcome: 'SENT_AS_IS',
+        };
+
+        renderCardDetail(sentCard);
+
+        expect(screen.queryByText('Dismiss')).not.toBeInTheDocument();
+    });
+
+    // ── Copy to Clipboard ──
+
+    it('renders Copy to Clipboard for cards with draft_payload', () => {
+        renderCardDetail(tier3FullItem);
+
+        expect(screen.getByText('Copy to Clipboard')).toBeInTheDocument();
+    });
+
+    it('calls onCopyDraft when Copy to Clipboard is clicked', async () => {
+        const onCopyDraft = jest.fn();
+        renderCardDetail(tier3FullItem, { onCopyDraft });
+
+        await userEvent.click(screen.getByText('Copy to Clipboard'));
+        expect(onCopyDraft).toHaveBeenCalledWith(tier3FullItem.id);
+    });
+
+    // ── Dismiss ──
+
+    it('calls onDismissCard when Dismiss button is clicked', async () => {
         const onDismissCard = jest.fn();
         renderCardDetail(tier3FullItem, { onDismissCard });
 
-        await userEvent.click(screen.getByText('Dismiss Card'));
+        await userEvent.click(screen.getByText('Dismiss'));
         expect(onDismissCard).toHaveBeenCalledWith(tier3FullItem.id);
     });
+
+    // ── Existing rendering tests ──
 
     it('renders raw draft with Spinner when humanized_draft is null', () => {
         const pendingDraftCard: AssistantCard = {
@@ -153,7 +267,6 @@ describe('CardDetail', () => {
     it('hides priority badge when priority is null', () => {
         renderCardDetail(tier1SkipItem);
 
-        // tier1SkipItem has priority: null — no priority badge should appear
         expect(screen.queryByText('High')).not.toBeInTheDocument();
         expect(screen.queryByText('Medium')).not.toBeInTheDocument();
         expect(screen.queryByText('Low')).not.toBeInTheDocument();

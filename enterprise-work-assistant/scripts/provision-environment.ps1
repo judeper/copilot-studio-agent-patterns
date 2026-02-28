@@ -303,6 +303,21 @@ New-ChoiceColumn -SchemaName "${PublisherPrefix}_temporalhorizon" -DisplayName "
     )
 
 # ─────────────────────────────────────
+# 3a-2. Sprint 1A — Card Outcome Choice Column
+# ─────────────────────────────────────
+
+New-ChoiceColumn -SchemaName "${PublisherPrefix}_cardoutcome" -DisplayName "Card Outcome" `
+    -Description "What the user did with this card." `
+    -Required $false `
+    -Options @(
+        @{ Label = "PENDING"; Value = 100000000 },
+        @{ Label = "SENT_AS_IS"; Value = 100000001 },
+        @{ Label = "SENT_EDITED"; Value = 100000002 },
+        @{ Label = "DISMISSED"; Value = 100000003 },
+        @{ Label = "EXPIRED"; Value = 100000004 }
+    )
+
+# ─────────────────────────────────────
 # 3b. Add Numeric and Text Columns
 # ─────────────────────────────────────
 
@@ -401,7 +416,549 @@ try {
 }
 
 # ─────────────────────────────────────
-# 4. Enable PCF Components for Canvas Apps
+# 3c. Sprint 1A — Outcome Tracking & Send Audit Columns
+# ─────────────────────────────────────
+
+# Helper function for creating simple text columns (DRY pattern for Sprint 1A+ columns)
+function New-TextColumn {
+    param(
+        [string]$SchemaName,
+        [string]$DisplayName,
+        [string]$Description,
+        [int]$MaxLength = 200
+    )
+
+    $colDef = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+        SchemaName = $SchemaName
+        RequiredLevel = @{ Value = "None" }
+        MaxLength = $MaxLength
+        DisplayName = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $DisplayName
+                LanguageCode = 1033
+            })
+        }
+        Description = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $Description
+                LanguageCode = 1033
+            })
+        }
+    } | ConvertTo-Json -Depth 20
+
+    try {
+        Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($entityId)/Attributes" -Method Post -Headers $headers -Body $colDef
+        Write-Host "  Column '$DisplayName' created." -ForegroundColor Green
+    } catch {
+        Write-Warning "  Column '$DisplayName' failed: $($_.Exception.Message)"
+    }
+}
+
+# Helper function for creating DateTime columns
+function New-DateTimeColumn {
+    param(
+        [string]$SchemaName,
+        [string]$DisplayName,
+        [string]$Description
+    )
+
+    $colDef = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+        SchemaName = $SchemaName
+        RequiredLevel = @{ Value = "None" }
+        Format = "DateAndTime"
+        DisplayName = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $DisplayName
+                LanguageCode = 1033
+            })
+        }
+        Description = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $Description
+                LanguageCode = 1033
+            })
+        }
+    } | ConvertTo-Json -Depth 20
+
+    try {
+        Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($entityId)/Attributes" -Method Post -Headers $headers -Body $colDef
+        Write-Host "  Column '$DisplayName' created." -ForegroundColor Green
+    } catch {
+        Write-Warning "  Column '$DisplayName' failed: $($_.Exception.Message)"
+    }
+}
+
+# Outcome Timestamp
+New-DateTimeColumn -SchemaName "${PublisherPrefix}_outcometimestamp" `
+    -DisplayName "Outcome Timestamp" `
+    -Description "When the user acted on this card."
+
+# Sent Timestamp (audit)
+New-DateTimeColumn -SchemaName "${PublisherPrefix}_senttimestamp" `
+    -DisplayName "Sent Timestamp" `
+    -Description "When the email was sent via the Send flow (audit trail)."
+
+# Sent Recipient (audit)
+New-TextColumn -SchemaName "${PublisherPrefix}_sentrecipient" `
+    -DisplayName "Sent Recipient" -MaxLength 320 `
+    -Description "Email address the draft was sent to (audit trail)."
+
+# Original Sender Email
+New-TextColumn -SchemaName "${PublisherPrefix}_originalsenderemail" `
+    -DisplayName "Original Sender Email" -MaxLength 320 `
+    -Description "Parsed email address of the original signal sender."
+
+# Original Sender Display Name
+New-TextColumn -SchemaName "${PublisherPrefix}_originalsenderdisplay" `
+    -DisplayName "Original Sender Display" -MaxLength 200 `
+    -Description "Display name of the original signal sender."
+
+# Original Subject
+New-TextColumn -SchemaName "${PublisherPrefix}_originalsubject" `
+    -DisplayName "Original Subject" -MaxLength 400 `
+    -Description "Subject line of the original signal."
+
+# ─────────────────────────────────────
+# 3d. Sprint 1B — Clustering & Source Signal Columns
+# ─────────────────────────────────────
+
+# Conversation Cluster ID
+New-TextColumn -SchemaName "${PublisherPrefix}_conversationclusterid" `
+    -DisplayName "Conversation Cluster ID" -MaxLength 200 `
+    -Description "Groups related signals. EMAIL: conversationId. TEAMS: threadId. CALENDAR: seriesMasterId or normalized subject|organizer."
+
+# Source Signal ID
+New-TextColumn -SchemaName "${PublisherPrefix}_sourcesignalid" `
+    -DisplayName "Source Signal ID" -MaxLength 500 `
+    -Description "Unique ID of the original signal. EMAIL: internetMessageId. TEAMS: messageId. CALENDAR: eventId."
+
+# ─────────────────────────────────────
+# 4. Sprint 1B — Create Sender Profile Table
+# ─────────────────────────────────────
+Write-Host "Creating SenderProfile Dataverse table..." -ForegroundColor Cyan
+
+$senderEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_senderprofile"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Sender Profile"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Sender Profiles"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Aggregated sender intelligence built from signal history."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_senderemail"
+    Attributes = @(
+        # Primary Name — Sender Email (unique per user)
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_senderemail"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 320
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Sender Email"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Primary column — email address of the sender."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $senderEntityDef
+    Write-Host "  SenderProfile table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  SenderProfile table creation failed (may already exist): $($_.Exception.Message)"
+}
+
+# Get entity metadata ID for sender profile
+$senderMetadata = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_senderprofile')" -Headers $headers
+$senderEntityId = $senderMetadata.MetadataId
+
+# Add columns to SenderProfile table (reuse helper functions from section 3)
+
+# Sender Display Name
+$senderDisplayCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_senderdisplayname"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 200
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Sender Display Name"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Last known display name of the sender."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $senderDisplayCol
+    Write-Host "  Column 'Sender Display Name' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Sender Display Name' failed: $($_.Exception.Message)"
+}
+
+# Signal Count (WholeNumber)
+$signalCountCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_signalcount"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 2147483647
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Signal Count"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Total signals received from this sender."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $signalCountCol
+    Write-Host "  Column 'Signal Count' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Signal Count' failed: $($_.Exception.Message)"
+}
+
+# Response Count (WholeNumber)
+$responseCountCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_responsecount"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 2147483647
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Response Count"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Times user responded to this sender (SENT_AS_IS + SENT_EDITED)."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $responseCountCol
+    Write-Host "  Column 'Response Count' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Response Count' failed: $($_.Exception.Message)"
+}
+
+# Average Response Hours (Decimal)
+$avgResponseCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_avgresponsehours"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 99999
+    Precision = 2
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Average Response Hours"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Mean hours between signal arrival and user action."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $avgResponseCol
+    Write-Host "  Column 'Average Response Hours' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Average Response Hours' failed: $($_.Exception.Message)"
+}
+
+# Last Signal Date (DateTime)
+$lastSignalCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_lastsignaldate"
+    RequiredLevel = @{ Value = "None" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Last Signal Date"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Most recent signal from this sender."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $lastSignalCol
+    Write-Host "  Column 'Last Signal Date' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Last Signal Date' failed: $($_.Exception.Message)"
+}
+
+# Sender Category (Choice)
+$senderCategoryCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_sendercategory"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Sender Category"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Importance classification — auto-calculated or user-overridden."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "AUTO_HIGH"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "AUTO_MEDIUM"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "AUTO_LOW"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000003
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "USER_OVERRIDE"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $senderCategoryCol
+    Write-Host "  Column 'Sender Category' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Sender Category' failed: $($_.Exception.Message)"
+}
+
+# Is Internal (Boolean)
+$isInternalCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_isinternal"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Is Internal"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Whether the sender is within the tenant."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $isInternalCol
+    Write-Host "  Column 'Is Internal' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Is Internal' failed: $($_.Exception.Message)"
+}
+
+# ─────────────────────────────────────
+# 4a. Create Alternate Key on SenderProfile (for upsert support)
+# ─────────────────────────────────────
+Write-Host "Creating alternate key on SenderProfile (cr_senderemail)..." -ForegroundColor Cyan
+
+$altKeyDef = @{
+    SchemaName = "${PublisherPrefix}_senderemail_key"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Sender Email Key"
+            LanguageCode = 1033
+        })
+    }
+    KeyAttributes = @("${PublisherPrefix}_senderemail")
+} | ConvertTo-Json -Depth 20
+
+try {
+    $keyResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Keys" -Method Post -Headers $headers -Body $altKeyDef
+    Write-Host "  Alternate key creation initiated." -ForegroundColor Yellow
+
+    # Poll for key activation (async operation)
+    $keyId = $keyResult.MetadataId
+    $keyAttempts = 0
+    $keyMaxAttempts = 12  # 30s timeout (12 x 2.5s)
+    do {
+        Start-Sleep -Seconds 2.5
+        $keyAttempts++
+        $keyStatus = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Keys($keyId)" -Headers $headers
+        if ($keyStatus.EntityKeyIndexStatus -eq "Active") {
+            Write-Host "  Alternate key active." -ForegroundColor Green
+            break
+        }
+        Write-Host "  Key indexing... attempt $keyAttempts/$keyMaxAttempts (status: $($keyStatus.EntityKeyIndexStatus))"
+    } while ($keyAttempts -lt $keyMaxAttempts)
+
+    if ($keyAttempts -ge $keyMaxAttempts) {
+        Write-Warning "  Alternate key not yet active after 30s. Check manually in Admin Center."
+    }
+} catch {
+    Write-Warning "  Alternate key creation failed (may already exist): $($_.Exception.Message)"
+}
+
+# ─────────────────────────────────────
+# 6. Enable PCF Components for Canvas Apps
 # ─────────────────────────────────────
 Write-Host "Enabling PCF components for Canvas apps..." -ForegroundColor Cyan
 Write-Host "  Note: This requires Power Platform Admin API access." -ForegroundColor Yellow
