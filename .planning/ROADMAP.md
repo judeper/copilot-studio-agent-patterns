@@ -76,11 +76,11 @@ Plans:
   3. Test coverage is assessed against all user-facing components and critical hooks, with gaps identified and prioritized
   4. Data flow from Dataverse response through useCardData hook to component render is traced and verified as correct at every transformation step
   5. Error states, loading states, and edge cases are handled in every user-facing component with no raw error strings or unhandled rejections visible to users
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 11-01: AI Council — 3 parallel agents (Correctness, Implementability, Gaps) review frontend/PCF files
-- [ ] 11-02: Reconciliation — resolve disagreements, produce unified findings
+- [ ] 11-01-PLAN.md — AI Council: 3 agents (Correctness, Implementability, Gaps) review all PCF source files, tests, and configs independently
+- [ ] 11-02-PLAN.md — Reconciliation: merge, deduplicate, resolve disagreements, classify tech debt, produce unified verdict
 
 ### Phase 12: Integration / E2E Review
 **Goal**: Cross-layer contracts are consistent, every user workflow completes end-to-end without gaps, and the security model is complete
