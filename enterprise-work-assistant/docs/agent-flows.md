@@ -1607,3 +1607,201 @@ Trigger (Instant — from Canvas app)
 - [ ] Test: With card expanded, "Make this shorter" → Draft refinement works
 - [ ] Test: "How often do I respond to [sender]?" → Returns sender stats
 - [ ] Test: Invalid command → Graceful error response
+
+---
+
+## Flow 9 — Sender Profile Analyzer *(Sprint 4)*
+
+### Overview
+
+Runs weekly (Sunday evening). Analyzes card outcome data from the past 30 days to compute sender-level statistics and auto-categorize senders by engagement level. Respects user overrides — senders with `cr_sendercategory = USER_OVERRIDE` are never recategorized.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| Days | Sunday |
+| At These Hours | 20 |
+| At These Minutes | 0 |
+
+### Actions
+
+**1. Get my profile (V2)** — Office 365 Users connector
+
+**2. List all sender profiles** — Dataverse
+
+| Setting | Value |
+|---------|-------|
+| Table name | Sender Profiles |
+| Filter rows | `_ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Row count | `500` |
+| Select columns | `cr_senderprofileid,cr_senderemail,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_sendercategory,cr_dismisscount` |
+
+**3. Apply to each** — Loop over sender profiles
+
+**3a. Condition — Skip user overrides**
+
+```
+@not(equals(items('Apply_to_each')?['cr_sendercategory'], 100000003))
+```
+
+> Senders with `USER_OVERRIDE` (100000003) are never recategorized.
+
+**If Yes (not an override):**
+
+**3b. Condition — Minimum signal threshold**
+
+```
+@greaterOrEquals(items('Apply_to_each')?['cr_signalcount'], 3)
+```
+
+> Senders with fewer than 3 signals don't have enough data for meaningful statistics.
+
+**If Yes (≥ 3 signals):**
+
+**3c. Query card outcomes for this sender (past 30 days)** — Dataverse
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_originalsenderemail eq '@{items('Apply_to_each')?['cr_senderemail']}' and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon ge @{addDays(utcNow(), -30)} and cr_cardoutcome ne 100000000` |
+| Row count | `100` |
+| Select columns | `cr_cardoutcome,cr_outcometimestamp,cr_drafteditdistance,createdon` |
+
+**3d. Compose — Calculate stats**
+
+```json
+{
+    "total_resolved": @{length(outputs('Query_card_outcomes')?['body/value'])},
+    "sent_count": @{length(
+        filter(
+            outputs('Query_card_outcomes')?['body/value'],
+            or(
+                equals(item()?['cr_cardoutcome'], 100000001),
+                equals(item()?['cr_cardoutcome'], 100000002)
+            )
+        )
+    )},
+    "dismiss_count": @{length(
+        filter(
+            outputs('Query_card_outcomes')?['body/value'],
+            equals(item()?['cr_cardoutcome'], 100000003)
+        )
+    )}
+}
+```
+
+> Choice values: SENT_AS_IS = 100000001, SENT_EDITED = 100000002, DISMISSED = 100000003
+
+**3e. Compose — Response rate and dismiss rate**
+
+```
+response_rate = @{if(greater(outputs('Compose_stats')?['total_resolved'], 0), div(float(outputs('Compose_stats')?['sent_count']), float(outputs('Compose_stats')?['total_resolved'])), 0)}
+
+dismiss_rate = @{if(greater(outputs('Compose_stats')?['total_resolved'], 0), div(float(outputs('Compose_stats')?['dismiss_count']), float(outputs('Compose_stats')?['total_resolved'])), 0)}
+```
+
+**3f. Compose — Determine category**
+
+Apply the categorization rules:
+
+```
+@{if(
+    and(
+        greaterOrEquals(outputs('Compose_rates')?['response_rate'], 0.8),
+        less(items('Apply_to_each')?['cr_avgresponsehours'], 8)
+    ),
+    100000000,
+    if(
+        or(
+            less(outputs('Compose_rates')?['response_rate'], 0.4),
+            greaterOrEquals(outputs('Compose_rates')?['dismiss_rate'], 0.6)
+        ),
+        100000002,
+        100000001
+    )
+)}
+```
+
+> AUTO_HIGH = 100000000, AUTO_MEDIUM = 100000001, AUTO_LOW = 100000002
+
+**3g. Update a row** — Dataverse → Sender Profiles
+
+| Column | Value |
+|--------|-------|
+| Row ID | `@{items('Apply_to_each')?['cr_senderprofileid']}` |
+| Sender Category | `@{outputs('Compose_category')}` |
+| Response Rate | `@{outputs('Compose_rates')?['response_rate']}` |
+| Dismiss Rate | `@{outputs('Compose_rates')?['dismiss_rate']}` |
+| Dismiss Count | `@{outputs('Compose_stats')?['dismiss_count']}` |
+
+### Updating Card Outcome Tracker for Dismiss Tracking
+
+The Card Outcome Tracker flow (Flow 5) currently only updates sender profiles for SENT outcomes. To support Sprint 4, add a parallel branch for DISMISSED outcomes:
+
+**After the existing ownership filter (step 2):**
+
+Add condition: `cr_cardoutcome eq 100000003` (DISMISSED)
+
+**If Yes (dismissed):**
+1. Look up sender by `cr_originalsenderemail` (same pattern as steps 3-4)
+2. If found, increment `cr_dismisscount` by 1:
+   ```
+   @add(outputs('Get_sender_profile')?['body/cr_dismisscount'], 1)
+   ```
+3. Do NOT update response hours or response count for dismissals.
+
+### Updating Existing Trigger Flows for Sender Profile Passthrough
+
+All 3 trigger flows (EMAIL, TEAMS, CALENDAR) need an additional step to look up the sender profile and pass it to the agent:
+
+**Insert between the pre-filter and the agent invocation:**
+
+1. **List sender profile** — Dataverse → Sender Profiles
+   - Filter: `cr_senderemail eq '@{...sender_email...}'`
+   - Top: 1
+
+2. **Compose SENDER_PROFILE** — Conditional:
+   ```
+   @{if(
+       greater(length(outputs('List_sender_profile')?['body/value']), 0),
+       string(first(outputs('List_sender_profile')?['body/value'])),
+       'null'
+   )}
+   ```
+
+3. Pass the serialized JSON (or the string `null`) as the `{{SENDER_PROFILE}}` input variable to the agent.
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — Sunday 8 PM)
+  │
+  ├── 1. Get user profile
+  ├── 2. List all sender profiles
+  └── 3. For each sender profile:
+      ├── Skip if USER_OVERRIDE
+      ├── Skip if signal_count < 3
+      ├── 3c. Query card outcomes (past 30 days)
+      ├── 3d. Calculate sent_count, dismiss_count
+      ├── 3e. Compute response_rate, dismiss_rate
+      ├── 3f. Determine category (AUTO_HIGH/MEDIUM/LOW)
+      └── 3g. Update sender profile row
+```
+
+### Deployment Checklist
+
+- [ ] Flow trigger set to Sunday 8 PM (or appropriate off-hours time)
+- [ ] Card Outcome Tracker updated with dismiss count tracking
+- [ ] All 3 trigger flows updated with sender profile lookup + passthrough
+- [ ] Main agent prompt updated with SENDER_PROFILE input and adaptive rules
+- [ ] Test: Sender with >80% response rate and <8h avg → AUTO_HIGH
+- [ ] Test: Sender with <40% response rate → AUTO_LOW
+- [ ] Test: Sender with USER_OVERRIDE → Not recategorized
+- [ ] Test: Sender with <3 signals → Skipped
+- [ ] Test: Trigger flow passes sender profile JSON to agent
+- [ ] Test: Agent adjusts triage tier based on sender category

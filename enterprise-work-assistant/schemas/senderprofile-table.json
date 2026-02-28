@@ -78,6 +78,36 @@
       "type": "Boolean",
       "required": false,
       "description": "Whether the sender is within the tenant. Set by comparing sender email domain to the user's domain."
+    },
+    {
+      "logicalName": "cr_dismisscount",
+      "displayName": "Dismiss Count",
+      "type": "WholeNumber",
+      "required": false,
+      "description": "Sprint 4: Times the user dismissed cards from this sender. Updated by the Card Outcome Tracker flow."
+    },
+    {
+      "logicalName": "cr_avgeditdistance",
+      "displayName": "Average Edit Distance",
+      "type": "WholeNumber",
+      "required": false,
+      "description": "Sprint 4: Average draft edit distance (0-100) for this sender. 0 = sent as-is, 100 = complete rewrite. Updated by the Sender Profile Analyzer."
+    },
+    {
+      "logicalName": "cr_responserate",
+      "displayName": "Response Rate",
+      "type": "Decimal",
+      "precision": 4,
+      "required": false,
+      "description": "Sprint 4: (SENT_AS_IS + SENT_EDITED) / total signals. Computed by the Sender Profile Analyzer."
+    },
+    {
+      "logicalName": "cr_dismissrate",
+      "displayName": "Dismiss Rate",
+      "type": "Decimal",
+      "precision": 4,
+      "required": false,
+      "description": "Sprint 4: DISMISSED / total signals. Computed by the Sender Profile Analyzer."
     }
   ]
 }
