@@ -5,15 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** The Enterprise Work Assistant is a comprehensive reference pattern demonstrating how an AI-powered "second brain" can proactively manage a knowledge worker's communications, deadlines, and daily workflow.
-**Current focus:** Milestone v2.0 complete — planning next milestone
+**Current focus:** v2.1 Pre-Deployment Audit — validate blueprint before Power Platform deployment
 
 ## Current Position
 
-Milestone: v2.0 Second Brain Evolution — SHIPPED 2026-02-28
-Status: Complete
-Last activity: 2026-02-28 — Merged via PR #1, documentation updated
-
-Progress: [▓▓▓▓▓▓▓▓▓▓] 100%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-28 — Milestone v2.1 started
 
 ## Accumulated Context
 
@@ -29,17 +28,22 @@ Progress: [▓▓▓▓▓▓▓▓▓▓] 100%
 - 30-day rolling window for sender profile recalibration — balances recency against statistical stability
 - Confidence score modifiers: +10 urgency (neglected fast-response sender), -10 edit distance (high rewrite rate), +5 high-engagement bonus
 
+**v2.1 approach:**
+- AI Council: 3 rounds (Platform, Frontend, Integration) × 3 agents (Correctness, Implementability, Gaps)
+- After each round, reconcile disagreements via targeted research
+- Remediate issues found before declaring deployment-ready
+
 ### Pending Todos
 
 1. **Research Copilot Outlook catchup feature for OOO agent** — Evaluate Copilot in Outlook's "Catch Up" OOO summary feature as a potential new agent pattern for the Enterprise Work Assistant canvas
 
 ### Blockers/Concerns
 
-(None — all v2.0 blockers resolved)
+(None)
 
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Milestone v2.0 documentation update
+Stopped at: Defining v2.1 milestone
 Resume file: None
-Next step: /gsd:new-milestone
+Next step: Define requirements and roadmap
