@@ -30,7 +30,6 @@ const config: Config = {
     collectCoverageFrom: [
         'AssistantDashboard/**/*.{ts,tsx}',
         '!AssistantDashboard/generated/**',
-        '!AssistantDashboard/index.ts',
     ],
 
     // Per-file 80% coverage threshold via glob pattern.

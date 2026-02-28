@@ -1836,3 +1836,120 @@ Trigger (Recurrence — Sunday 8 PM)
 - [ ] Test: Sender with < 5 total interactions → Skipped (stays NEUTRAL)
 - [ ] Test: Sender profile passthrough (R-17) — deferred, verify agent works without it
 - [ ] Note: R-17 (SENDER_PROFILE not passed to agent) is a known gap — sender-adaptive triage is inactive
+
+---
+
+## Canvas App: Staleness Refresh Mechanism (I-17)
+
+The PCF virtual control cannot implement a polling timer (no `setInterval` in PCF virtual controls -- the platform does not provide a persistent JavaScript execution context between renders). Instead, automatic refresh is configured at the Canvas App level.
+
+### Recommended Approach: Canvas App Timer Control
+
+Add a hidden Timer control in the Canvas App that periodically refreshes the `AssistantCards` DataSet:
+
+1. **Add Timer control** to the Canvas App screen containing the PCF component
+   - Name: `tmrCardRefresh`
+   - Duration: `30000` (30 seconds)
+   - Repeat: `true`
+   - AutoStart: `true`
+   - Visible: `false`
+
+2. **Set `OnTimerEnd` property**:
+   ```
+   Refresh(AssistantCards)
+   ```
+   This triggers the PCF's `updateView` method with fresh DataSet data from Dataverse, including any `cr_cardstatus` changes made by the Staleness Monitor (Flow 8).
+
+3. **Result**: When Flow 8 sets a card's `cr_cardstatus` to NUDGE, the next timer cycle (within 30 seconds) refreshes the DataSet. The PCF's `useCardData` hook reads the discrete column via `getFormattedValue("cr_cardstatus")` and the NUDGE status renders in the card gallery.
+
+### Alternative: Manual Refresh Button
+
+For environments where automatic polling is undesirable (e.g., low-bandwidth connections):
+
+1. **Add a Button control** to the Canvas App toolbar
+   - Text: `"Refresh Cards"`
+   - OnSelect: `Refresh(AssistantCards)`
+
+2. Users click the button to pull the latest card data on demand.
+
+### Why Not PCF-Level Polling?
+
+PCF virtual controls render via `updateView()` calls from the platform. They cannot schedule their own re-renders. The `setInterval` approach would require a standard (non-virtual) control with a persistent DOM container, which contradicts the project's virtual control architecture. The Canvas App Timer control is the platform-endorsed mechanism for periodic data refresh.
+
+---
+
+## Error Monitoring Strategy (I-18)
+
+All nine flows use error Scopes (Try/Catch pattern) to handle failures gracefully. This section defines the centralized monitoring infrastructure that error Scopes write to.
+
+### 1. Error Log Table: `cr_errorlog`
+
+A dedicated Dataverse table for flow error monitoring:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `cr_errorlogid` | Primary Key (GUID) | Auto-generated unique identifier |
+| `cr_flowname` | Text (100) | Which flow failed (e.g., "Flow 1: Email Signal Ingestion") |
+| `cr_errormessage` | Multiline Text (10000) | Error details from `result('StepName')?['error']?['message']` |
+| `cr_errorstep` | Text (200) | Which step in the flow failed |
+| `cr_occurredon` | DateTime | When the error occurred (`utcNow()`) |
+| `cr_severity` | Choice | Info (100000000), Warning (100000001), Error (100000002) |
+| `cr_isresolved` | Boolean (default: false) | Whether the error has been investigated and resolved |
+
+The `cr_errorlog` table is provisioned by `scripts/provision-environment.ps1` (see Section 5 in that script).
+
+### 2. Error Scope Pattern
+
+Every flow's error Scope should include these two actions after any existing error-handling logic:
+
+**Action 1: Log to Error Table**
+```
+Dataverse → Add a new row
+Table: Error Logs (cr_errorlog)
+Fields:
+  cr_flowname: "Flow N: <Flow Name>"
+  cr_errormessage: result('<FailedStepName>')?['error']?['message']
+  cr_errorstep: "<Step Name>"
+  cr_occurredon: utcNow()
+  cr_severity: 100000002  (Error)
+  cr_isresolved: false
+```
+
+**Action 2: Send Admin Notification**
+```
+Office 365 Outlook → Send an email (V2)
+To: @{parameters('AdminNotificationEmail')}
+Subject: "Flow Error: <Flow Name> - @{utcNow()}"
+Body: "Flow '<Flow Name>' failed at step '<Step Name>'.
+
+Error: @{result('<FailedStepName>')?['error']?['message']}
+
+Occurred: @{utcNow()}
+
+Review in Dataverse: Error Logs table"
+```
+
+The `AdminNotificationEmail` should be configured as a Power Automate environment variable so it can be updated per-environment without modifying flow definitions.
+
+### 3. Per-Flow Error Scope Updates
+
+Each flow's existing error Scope should be updated to include the two actions above. The `cr_flowname` values:
+
+| Flow | cr_flowname Value |
+|------|-------------------|
+| Flow 1 | "Flow 1: Email Signal Ingestion" |
+| Flow 2 | "Flow 2: Teams Message Ingestion" |
+| Flow 3 | "Flow 3: Calendar Scan Ingestion" |
+| Flow 4 | "Flow 4: Email Send" |
+| Flow 5 | "Flow 5: Card Outcome Tracker" |
+| Flow 6 | "Flow 6: Daily Briefing" |
+| Flow 7 | "Flow 7: Command Execution" |
+| Flow 8 | "Flow 8: Staleness Monitor" |
+| Flow 9 | "Flow 9: Sender Profile Analyzer" |
+
+### 4. Monitoring Dashboard (Optional)
+
+For operational visibility, create a model-driven app view on the `cr_errorlog` table:
+- **Active Errors view**: Filter `cr_isresolved = false`, sort by `cr_occurredon` descending
+- **Error Frequency chart**: Group by `cr_flowname`, count by day
+- This is optional for initial deployment but recommended for production environments
