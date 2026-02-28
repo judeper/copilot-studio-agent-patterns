@@ -917,6 +917,139 @@ try {
     Write-Warning "  Column 'Is Internal' failed: $($_.Exception.Message)"
 }
 
+# Sprint 4: Dismiss Count (WholeNumber)
+$dismissCountCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_dismisscount"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 100000
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Dismiss Count"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Times the user dismissed cards from this sender."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $dismissCountCol
+    Write-Host "  Column 'Dismiss Count' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Dismiss Count' failed: $($_.Exception.Message)"
+}
+
+# Sprint 4: Average Edit Distance (WholeNumber 0-100)
+$avgEditDistCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_avgeditdistance"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 100
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Average Edit Distance"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Average draft edit distance (0-100). Computed by Sender Profile Analyzer."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $avgEditDistCol
+    Write-Host "  Column 'Average Edit Distance' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Average Edit Distance' failed: $($_.Exception.Message)"
+}
+
+# Sprint 4: Response Rate (Decimal 0.0000 - 1.0000)
+$responseRateCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_responserate"
+    RequiredLevel = @{ Value = "None" }
+    Precision = 4
+    MinValue = 0
+    MaxValue = 1
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Response Rate"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Ratio of responded-to vs total signals. Computed by Sender Profile Analyzer."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $responseRateCol
+    Write-Host "  Column 'Response Rate' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Response Rate' failed: $($_.Exception.Message)"
+}
+
+# Sprint 4: Dismiss Rate (Decimal 0.0000 - 1.0000)
+$dismissRateCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_dismissrate"
+    RequiredLevel = @{ Value = "None" }
+    Precision = 4
+    MinValue = 0
+    MaxValue = 1
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = "Dismiss Rate"
+                LanguageCode = 1033
+            })
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Ratio of dismissed vs total signals. Computed by Sender Profile Analyzer."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($senderEntityId)/Attributes" -Method Post -Headers $headers -Body $dismissRateCol
+    Write-Host "  Column 'Dismiss Rate' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Dismiss Rate' failed: $($_.Exception.Message)"
+}
+
 # ─────────────────────────────────────
 # 4a. Create Alternate Key on SenderProfile (for upsert support)
 # ─────────────────────────────────────

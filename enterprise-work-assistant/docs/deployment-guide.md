@@ -359,6 +359,22 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Error handling: invalid commands return graceful fallback response
 - [ ] SELF_REMINDER and COMMAND_RESULT trigger types provisioned in Dataverse
 
+### Sprint 4 Verification
+- [ ] Sprint 4 SenderProfile columns provisioned (dismiss_count, avg_edit_distance, response_rate, dismiss_rate)
+- [ ] Sender Profile Analyzer flow runs weekly and categorizes senders correctly
+- [ ] AUTO_HIGH: response_rate ≥ 0.8 AND avg_response_hours < 8
+- [ ] AUTO_LOW: response_rate < 0.4 OR dismiss_rate ≥ 0.6
+- [ ] USER_OVERRIDE senders are never recategorized by the analyzer
+- [ ] Senders with < 3 signals are skipped
+- [ ] Card Outcome Tracker increments cr_dismisscount on DISMISSED outcomes
+- [ ] Trigger flows pass SENDER_PROFILE JSON to the main agent
+- [ ] Agent upgrades LIGHT → FULL for AUTO_HIGH senders with actionable content
+- [ ] Agent does NOT downgrade FULL → LIGHT for executives/clients regardless of category
+- [ ] Confidence scoring applies sender-adaptive modifiers (staleness urgency, edit distance penalty)
+- [ ] Confidence Calibration dashboard accessible and shows 4 tabs
+- [ ] Confidence accuracy buckets display correct action rates
+- [ ] Top Senders tab shows ranked engagement data
+
 ### Sprint 2 Verification
 - [ ] Daily Briefing Agent published in Copilot Studio with correct input contract
 - [ ] Daily Briefing Flow runs on weekday mornings (test with manual run)

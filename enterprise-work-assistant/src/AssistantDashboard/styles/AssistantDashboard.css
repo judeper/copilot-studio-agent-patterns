@@ -622,3 +622,134 @@
     border-color: #6366f1;
     color: #6366f1;
 }
+
+/* ─── Sprint 4: Confidence Calibration Dashboard ─── */
+
+.calibration-dashboard {
+    padding: 16px;
+}
+
+.calibration-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.calibration-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.calibration-back {
+    background: none;
+    border: none;
+    color: #6366f1;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+}
+
+.calibration-back:hover {
+    text-decoration: underline;
+}
+
+.calibration-sample {
+    font-size: 12px;
+    color: #888;
+}
+
+.calibration-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 16px;
+}
+
+.calibration-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+}
+
+.calibration-tab:hover {
+    color: #333;
+}
+
+.calibration-tab-active {
+    color: #6366f1;
+    border-bottom-color: #6366f1;
+    font-weight: 500;
+}
+
+.calibration-description {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+
+.calibration-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.calibration-table th {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 2px solid #e0e0e0;
+    color: #444;
+    font-weight: 600;
+}
+
+.calibration-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.calibration-table tr:hover {
+    background: #fafafa;
+}
+
+.calibration-good { color: #16a34a; font-weight: 600; }
+.calibration-ok { color: #ca8a04; font-weight: 600; }
+.calibration-poor { color: #dc2626; font-weight: 600; }
+
+.calibration-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.calibration-stat-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.calibration-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #6366f1;
+}
+
+.calibration-stat-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-top: 4px;
+}
+
+.calibration-stat-detail {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+}
