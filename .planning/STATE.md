@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Pre-Deployment Audit
 status: in-progress
-last_updated: "2026-02-28T23:30:14Z"
+last_updated: "2026-02-28T23:44:31Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** Phase 13 (Remediation) in progress. Wave 1 schema/contract fixes complete.
+**Current focus:** Phase 13 (Remediation) in progress. Wave 1 schema/contract fixes and Wave 2 flow specs complete.
 
 ## Current Position
 
 Phase: 13 of 13 (Remediation)
-Plan: 1 of 4 in current phase (13-01 complete)
-Status: Wave 1 schema/contract fixes complete. Wave 2 flow specs next.
-Last activity: 2026-02-28 -- Completed 13-01 (schema enums, prompt fixes, injection defense, script fixes, useCardData)
+Plan: 2 of 4 in current phase (13-01, 13-02 complete)
+Status: Wave 1 schema/contract fixes and Wave 2 flow spec fixes complete. Wave 3 frontend fixes next.
+Last activity: 2026-02-28 -- Completed 13-02 (flow spec fixes: DISMISSED branch, output envelope, NUDGE discrete column, F-02 format, dismiss_rate)
 
-Progress: [███████░░░] 70% (7/10 plans across 4 phases)
+Progress: [████████░░] 80% (8/10 plans across 4 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (v2.1)
-- Average duration: 7min
-- Total execution time: 50min
+- Total plans completed: 8 (v2.1)
+- Average duration: 8min
+- Total execution time: 60min
 
 **By Phase:**
 
@@ -43,7 +43,7 @@ Progress: [███████░░░] 70% (7/10 plans across 4 phases)
 | 10. Platform Architecture Review | 2/2 | 12min | 6min |
 | 11. Frontend/PCF Review | 2/2 | 16min | 8min |
 | 12. Integration/E2E Review | 2/2 | 18min | 9min |
-| 13. Remediation | 1/4 | 4min | 4min |
+| 13. Remediation | 2/4 | 14min | 7min |
 
 *Updated after each plan completion*
 
@@ -116,6 +116,14 @@ Progress: [███████░░░] 70% (7/10 plans across 4 phases)
 - Prompt injection defense uses field-specific references (PAYLOAD, COMMAND_TEXT, OPEN_CARDS) per agent prompt
 - Tech debt #7 reclassified as Resolved/Not Applicable -- no setInterval exists in PCF source
 
+**v2.1 Phase 13 decisions (13-02):**
+- NUDGE status set via discrete cr_cardstatus column on both nudge card AND original overdue card (not through cr_fulljson)
+- Output envelope wrapping in Flow 6 stores briefing JSON in draft_payload for BriefingCard.tsx parseBriefing()
+- Sender categorization uses profile-level counters with 5-interaction minimum (not per-query card outcome aggregation)
+- SENT_EDITED edit distance uses 0/1 boolean for MVP (full Levenshtein deferred to custom connector)
+- R-17 (SENDER_PROFILE not passed to agent) classified as WARN deferral -- sender analytics still provide value
+- Duplicate Flow 6 and Flow 7 sections removed, consolidated to single authoritative versions
+
 ### Pending Todos
 
 1. **Research Copilot Outlook catchup feature for OOO agent** — Evaluate Copilot in Outlook's "Catch Up" OOO summary feature as a potential new agent pattern
@@ -127,5 +135,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 13-01-PLAN.md (Wave 1 schema/contract fixes -- 8 files fixed across schema, prompts, scripts, frontend)
+Stopped at: Completed 13-02-PLAN.md (Wave 2 flow spec fixes -- DISMISSED branch, output envelope, NUDGE discrete column, F-02 format, dismiss_rate)
 Resume file: None
