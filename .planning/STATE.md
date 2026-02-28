@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Pre-Deployment Audit
-status: in-progress
-last_updated: "2026-02-28T22:34:46Z"
+status: complete
+last_updated: "2026-02-28T22:47:36.373Z"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** Phase 12 — Integration/E2E Review
+**Current focus:** Phase 12 complete. Phase 13 (Remediation) next.
 
 ## Current Position
 
-Phase: 12 of 13 (Integration/E2E Review) -- IN PROGRESS
-Plan: 1 of 2 in current phase
-Status: Plan 12-01 complete (3 AI Council agent findings), Plan 12-02 pending (reconciliation and verdict)
-Last activity: 2026-02-28 — Completed 12-01 AI Council integration findings (62 raw findings)
+Phase: 12 of 13 (Integration/E2E Review) -- COMPLETE
+Plan: 2 of 2 in current phase (all plans complete)
+Status: All 3 review phases (10, 11, 12) complete. Unified remediation backlog ready for Phase 13.
+Last activity: 2026-02-28 — Completed 12-02 reconciliation and verdict (20 unique BLOCK issues for Phase 13)
 
-Progress: [██████░░░░] 63% (5/8 plans across 4 phases)
+Progress: [██████████] 100% (6/6 plans across 3 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5 (v2.1)
+- Total plans completed: 6 (v2.1)
 - Average duration: 8min
-- Total execution time: 39min
+- Total execution time: 46min
 
 **By Phase:**
 
@@ -42,7 +42,7 @@ Progress: [██████░░░░] 63% (5/8 plans across 4 phases)
 |-------|-------|-------|----------|
 | 10. Platform Architecture Review | 2/2 | 12min | 6min |
 | 11. Frontend/PCF Review | 2/2 | 16min | 8min |
-| 12. Integration/E2E Review | 1/2 | 11min | 11min |
+| 12. Integration/E2E Review | 2/2 | 18min | 9min |
 
 *Updated after each plan completion*
 
@@ -87,6 +87,17 @@ Progress: [██████░░░░] 63% (5/8 plans across 4 phases)
 - Card Outcome Tracker DISMISSED omission breaks dismiss_count/dismiss_rate chain
 - 3 NEW deploy-blocking issues not in Phases 10-11: prompt injection, staleness refresh, monitoring
 
+**v2.1 Phase 12 decisions (12-02):**
+- Reconciliation: 62 raw findings -> 33 unique issues (10 BLOCK, 13 WARN, 5 INFO, 5 FALSE)
+- Overall integration verdict: FAIL -- INTG-01 FAIL, INTG-02 FAIL, INTG-03 CONDITIONAL, INTG-04 FAIL, INTG-05 CONDITIONAL
+- 3 genuinely new BLOCK issues: prompt injection (I-16), staleness refresh (I-17), monitoring strategy (I-18)
+- BriefingCard data path escalated to BLOCK (I-15): parseBriefing expects draft_payload but briefing schema has none
+- Concurrent outcome tracker race downgraded to WARN (I-23): low probability, minor statistical drift
+- Total unique BLOCK issues across all 3 phases: 20 (9 Phase 10 + 8 Phase 11 + 3 new Phase 12)
+- Unified remediation backlog in 4 dependency-ordered waves for Phase 13
+- Sprint 4 sender intelligence non-functional through 3 independent failure points (I-14, I-04, I-05)
+- 36 deferral candidates prioritized across all review phases
+
 **v2.1 Phase 10 decisions:**
 - N/A vs null mismatch classified as deploy-blocking (canonical schema contract violation)
 - 4 missing flow specs classified as deploy-blocking (Daily Briefing, Command Execution, Staleness Monitor, Sender Profile Analyzer)
@@ -109,5 +120,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 12-01-PLAN.md (Integration AI Council findings -- 62 raw findings from 3 agents)
+Stopped at: Completed 12-02-PLAN.md (Integration reconciliation and verdict -- 20 unique BLOCK issues for Phase 13)
 Resume file: None
