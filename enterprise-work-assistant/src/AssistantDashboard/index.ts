@@ -18,8 +18,11 @@ const AppWrapper: React.FC<{
     width: number;
     height: number;
     onSelectCard: (cardId: string) => void;
-    onEditDraft: (cardId: string) => void;
+    onSendDraft: (cardId: string, finalText: string) => void;
+    onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
+    onJumpToCard: (cardId: string) => void;
+    onExecuteCommand: (command: string, currentCardId: string | null) => void;
 }> = (props) => {
     // Cast PCF DataSet to the hook's expected interface shape
     const cards: AssistantCard[] = useCardData(
@@ -36,22 +39,31 @@ const AppWrapper: React.FC<{
         width: props.width,
         height: props.height,
         onSelectCard: props.onSelectCard,
-        onEditDraft: props.onEditDraft,
+        onSendDraft: props.onSendDraft,
+        onCopyDraft: props.onCopyDraft,
         onDismissCard: props.onDismissCard,
+        onJumpToCard: props.onJumpToCard,
+        onExecuteCommand: props.onExecuteCommand,
     });
 };
 
 export class AssistantDashboard implements ComponentFramework.ReactControl<IInputs, IOutputs> {
     private notifyOutputChanged: () => void;
     private selectedCardId: string = "";
-    private editDraftAction: string = "";
+    private sendDraftAction: string = "";
+    private copyDraftAction: string = "";
     private dismissCardAction: string = "";
+    private jumpToCardAction: string = "";
+    private commandAction: string = "";
     private datasetVersion: number = 0;
 
     // Stable callback references — created once in init, never recreated
     private handleSelectCard: (cardId: string) => void;
-    private handleEditDraft: (cardId: string) => void;
+    private handleSendDraft: (cardId: string, finalText: string) => void;
+    private handleCopyDraft: (cardId: string) => void;
     private handleDismissCard: (cardId: string) => void;
+    private handleJumpToCard: (cardId: string) => void;
+    private handleExecuteCommand: (command: string, currentCardId: string | null) => void;
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -64,12 +76,28 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             this.selectedCardId = cardId;
             this.notifyOutputChanged();
         };
-        this.handleEditDraft = (cardId: string) => {
-            this.editDraftAction = cardId;
+        this.handleSendDraft = (cardId: string, finalText: string) => {
+            // JSON-encode for Canvas app parsing via ParseJSON()
+            // Canvas app uses isEdited to set SENT_AS_IS vs SENT_EDITED outcome
+            this.sendDraftAction = JSON.stringify({ cardId, finalText });
+            this.notifyOutputChanged();
+        };
+        this.handleCopyDraft = (cardId: string) => {
+            this.copyDraftAction = cardId;
             this.notifyOutputChanged();
         };
         this.handleDismissCard = (cardId: string) => {
             this.dismissCardAction = cardId;
+            this.notifyOutputChanged();
+        };
+        this.handleJumpToCard = (cardId: string) => {
+            // Sprint 2: Navigate from briefing card to a specific regular card
+            this.jumpToCardAction = cardId;
+            this.notifyOutputChanged();
+        };
+        this.handleExecuteCommand = (command: string, currentCardId: string | null) => {
+            // Sprint 3: Command bar — JSON-encode for Canvas app PowerAutomate.Run()
+            this.commandAction = JSON.stringify({ command, currentCardId });
             this.notifyOutputChanged();
         };
     }
@@ -94,21 +122,30 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             width: width > 0 ? width : 800,
             height: height > 0 ? height : 600,
             onSelectCard: this.handleSelectCard,
-            onEditDraft: this.handleEditDraft,
+            onSendDraft: this.handleSendDraft,
+            onCopyDraft: this.handleCopyDraft,
             onDismissCard: this.handleDismissCard,
+            onJumpToCard: this.handleJumpToCard,
+            onExecuteCommand: this.handleExecuteCommand,
         });
     }
 
     public getOutputs(): IOutputs {
         const outputs: IOutputs = {
             selectedCardId: this.selectedCardId,
-            editDraftAction: this.editDraftAction,
+            sendDraftAction: this.sendDraftAction,
+            copyDraftAction: this.copyDraftAction,
             dismissCardAction: this.dismissCardAction,
+            jumpToCardAction: this.jumpToCardAction,
+            commandAction: this.commandAction,
         };
 
         // Reset action outputs after reading to prevent stale re-fires
-        this.editDraftAction = "";
+        this.sendDraftAction = "";
+        this.copyDraftAction = "";
         this.dismissCardAction = "";
+        this.jumpToCardAction = "";
+        this.commandAction = "";
 
         return outputs;
     }

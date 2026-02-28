@@ -25,8 +25,11 @@ function renderApp(overrides: Partial<React.ComponentProps<typeof App>> = {}) {
         width: 800,
         height: 600,
         onSelectCard: jest.fn(),
-        onEditDraft: jest.fn(),
+        onSendDraft: jest.fn(),
+        onCopyDraft: jest.fn(),
         onDismissCard: jest.fn(),
+        onJumpToCard: jest.fn(),
+        onExecuteCommand: jest.fn(),
     };
 
     return render(<App {...defaultProps} {...overrides} />);
@@ -138,8 +141,11 @@ describe('App view state navigation', () => {
                 width={800}
                 height={600}
                 onSelectCard={onSelectCard}
-                onEditDraft={jest.fn()}
+                onSendDraft={jest.fn()}
+                onCopyDraft={jest.fn()}
                 onDismissCard={jest.fn()}
+                onJumpToCard={jest.fn()}
+                onExecuteCommand={jest.fn()}
             />
         );
 
@@ -157,8 +163,11 @@ describe('App view state navigation', () => {
                 width={800}
                 height={600}
                 onSelectCard={onSelectCard}
-                onEditDraft={jest.fn()}
+                onSendDraft={jest.fn()}
+                onCopyDraft={jest.fn()}
                 onDismissCard={jest.fn()}
+                onJumpToCard={jest.fn()}
+                onExecuteCommand={jest.fn()}
             />
         );
 

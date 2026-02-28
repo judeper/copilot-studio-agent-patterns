@@ -28,7 +28,10 @@
       "options": [
         { "label": "EMAIL", "value": 100000000 },
         { "label": "TEAMS_MESSAGE", "value": 100000001 },
-        { "label": "CALENDAR_SCAN", "value": 100000002 }
+        { "label": "CALENDAR_SCAN", "value": 100000002 },
+        { "label": "DAILY_BRIEFING", "value": 100000003 },
+        { "label": "SELF_REMINDER", "value": 100000004 },
+        { "label": "COMMAND_RESULT", "value": 100000005 }
       ]
     },
     {
@@ -62,7 +65,8 @@
         { "label": "READY", "value": 100000000 },
         { "label": "LOW_CONFIDENCE", "value": 100000001 },
         { "label": "SUMMARY_ONLY", "value": 100000002 },
-        { "label": "NO_OUTPUT", "value": 100000003 }
+        { "label": "NO_OUTPUT", "value": 100000003 },
+        { "label": "NUDGE", "value": 100000004 }
       ]
     },
     {
@@ -103,6 +107,82 @@
       "maxLength": 100000,
       "required": false,
       "description": "Polished draft produced by the Humanizer Agent. Populated asynchronously after initial card creation."
+    },
+    {
+      "logicalName": "cr_cardoutcome",
+      "displayName": "Card Outcome",
+      "type": "Choice",
+      "required": false,
+      "description": "What the user did with this card. Set to PENDING by default on card creation.",
+      "options": [
+        { "label": "PENDING", "value": 100000000 },
+        { "label": "SENT_AS_IS", "value": 100000001 },
+        { "label": "SENT_EDITED", "value": 100000002 },
+        { "label": "DISMISSED", "value": 100000003 },
+        { "label": "EXPIRED", "value": 100000004 }
+      ]
+    },
+    {
+      "logicalName": "cr_outcometimestamp",
+      "displayName": "Outcome Timestamp",
+      "type": "DateTime",
+      "required": false,
+      "description": "When the user acted on this card."
+    },
+    {
+      "logicalName": "cr_senttimestamp",
+      "displayName": "Sent Timestamp",
+      "type": "DateTime",
+      "required": false,
+      "description": "When the email was sent via the Send flow (audit trail)."
+    },
+    {
+      "logicalName": "cr_sentrecipient",
+      "displayName": "Sent Recipient",
+      "type": "Text",
+      "maxLength": 320,
+      "required": false,
+      "description": "Email address the draft was sent to (audit trail)."
+    },
+    {
+      "logicalName": "cr_originalsenderemail",
+      "displayName": "Original Sender Email",
+      "type": "Text",
+      "maxLength": 320,
+      "required": false,
+      "description": "Parsed email address of the original signal sender."
+    },
+    {
+      "logicalName": "cr_originalsenderdisplay",
+      "displayName": "Original Sender Display",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Display name of the original signal sender."
+    },
+    {
+      "logicalName": "cr_originalsubject",
+      "displayName": "Original Subject",
+      "type": "Text",
+      "maxLength": 400,
+      "required": false,
+      "description": "Subject line of the original signal."
+    },
+    {
+      "logicalName": "cr_conversationclusterid",
+      "displayName": "Conversation Cluster ID",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Groups related signals. EMAIL: conversationId. TEAMS: threadId. CALENDAR: seriesMasterId or normalized subject|organizer."
+    },
+    {
+      "logicalName": "cr_sourcesignalid",
+      "displayName": "Source Signal ID",
+      "type": "Text",
+      "maxLength": 500,
+      "required": false,
+      "description": "Unique ID of the original signal. EMAIL: internetMessageId. TEAMS: messageId. CALENDAR: eventId."
     }
   ],
   "notes": {

@@ -82,16 +82,34 @@
   <data name="SelectedCardId_Description" xml:space="preserve">
     <value>The Dataverse record ID of the currently selected card.</value>
   </data>
-  <data name="EditDraftAction_DisplayName" xml:space="preserve">
-    <value>Edit Draft Action</value>
+  <data name="SendDraftAction_DisplayName" xml:space="preserve">
+    <value>Send Draft Action</value>
   </data>
-  <data name="EditDraftAction_Description" xml:space="preserve">
-    <value>Fires when user clicks Edit Draft. Contains the card ID.</value>
+  <data name="SendDraftAction_Description" xml:space="preserve">
+    <value>Fires when user confirms send. Contains JSON: {"cardId":"...","finalText":"..."}.</value>
+  </data>
+  <data name="CopyDraftAction_DisplayName" xml:space="preserve">
+    <value>Copy Draft Action</value>
+  </data>
+  <data name="CopyDraftAction_Description" xml:space="preserve">
+    <value>Fires when user clicks Copy to Clipboard. Contains the card ID.</value>
   </data>
   <data name="DismissCardAction_DisplayName" xml:space="preserve">
     <value>Dismiss Card Action</value>
   </data>
   <data name="DismissCardAction_Description" xml:space="preserve">
     <value>Fires when user clicks Dismiss. Contains the card ID.</value>
+  </data>
+  <data name="JumpToCardAction_DisplayName" xml:space="preserve">
+    <value>Jump To Card Action</value>
+  </data>
+  <data name="JumpToCardAction_Description" xml:space="preserve">
+    <value>Fires when user clicks a card link in the daily briefing. Contains the target card ID.</value>
+  </data>
+  <data name="CommandAction_DisplayName" xml:space="preserve">
+    <value>Command Action</value>
+  </data>
+  <data name="CommandAction_Description" xml:space="preserve">
+    <value>Fires when user submits a command. Contains JSON: {"command":"...","currentCardId":"..."}.</value>
   </data>
 </root>

@@ -141,7 +141,54 @@ foreach ($privName in $privilegeNames) {
 }
 
 # ─────────────────────────────────────
-# 5. Summary
+# 5. Add Privileges for SenderProfile (Sprint 1B)
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on SenderProfile table..." -ForegroundColor Cyan
+
+$senderEntityName = "${PublisherPrefix}_senderprofile"
+
+# Check if table exists before configuring privileges
+try {
+    $senderEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$senderEntityName')?`$select=ObjectTypeCode" -Headers $headers
+    $senderObjectTypeCode = $senderEntityMeta.ObjectTypeCode
+
+    $senderPrivilegeNames = @(
+        "prvCreate${senderEntityName}",
+        "prvRead${senderEntityName}",
+        "prvWrite${senderEntityName}",
+        "prvDelete${senderEntityName}",
+        "prvAppend${senderEntityName}",
+        "prvAppendTo${senderEntityName}"
+    )
+
+    foreach ($privName in $senderPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{
+                        Depth = "Basic"
+                        PrivilegeId = $privId
+                        BusinessUnitId = $rootBuId
+                    })
+                } | ConvertTo-Json -Depth 5)
+
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  SenderProfile table not found — skipping. Run provision-environment.ps1 with Sprint 1B to create it."
+}
+
+# ─────────────────────────────────────
+# 6. Summary
 # ─────────────────────────────────────
 Write-Host ""
 Write-Host "═══════════════════════════════════════════" -ForegroundColor Cyan
@@ -149,7 +196,9 @@ Write-Host " SECURITY ROLES CONFIGURED" -ForegroundColor Green
 Write-Host "═══════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Role: Enterprise Work Assistant User" -ForegroundColor White
-Write-Host "Table: ${PublisherPrefix}_assistantcard (Assistant Cards)" -ForegroundColor White
+Write-Host "Tables:" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_assistantcard (Assistant Cards)" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_senderprofile (Sender Profiles) — if provisioned" -ForegroundColor White
 Write-Host "Depth: Basic (User-level) — each user sees only their own rows" -ForegroundColor White
 Write-Host ""
 Write-Host "NEXT STEP:" -ForegroundColor Yellow
