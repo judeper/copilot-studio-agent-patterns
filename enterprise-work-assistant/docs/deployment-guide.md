@@ -329,6 +329,22 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Running average for `cr_avgresponsehours` calculates correctly
 
 ### Sprint 2 Verification
+- [ ] Daily Briefing Agent published in Copilot Studio
+- [ ] Daily Briefing Flow runs on schedule (weekday 7 AM) and produces briefing card
+- [ ] Briefing card renders at top of dashboard with BriefingCard component
+- [ ] Action items show rank, summary, recommended action, and calendar correlation
+- [ ] "Open card →" links navigate to the referenced card
+- [ ] FYI section is collapsible
+- [ ] Stale alerts render with amber/red severity indicators
+- [ ] Staleness Monitor creates nudge cards for High-priority items >24h PENDING
+- [ ] No duplicate nudge cards created for the same source
+- [ ] Cards expire to EXPIRED after 7 days PENDING
+- [ ] Inline editing: "Edit draft" button appears on sendable cards
+- [ ] Inline editing: Modified draft shows "(edited)" in confirmation panel
+- [ ] Inline editing: "Revert to original" restores the humanized draft
+- [ ] Send Email flow sets SENT_EDITED when final text differs from humanized draft
+
+### Sprint 2 Verification
 - [ ] Daily Briefing Agent published in Copilot Studio with correct input contract
 - [ ] Daily Briefing Flow runs on weekday mornings (test with manual run)
 - [ ] Briefing card appears at top of dashboard with day shape narrative

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BriefingCard } from '../BriefingCard';
-import { dailyBriefingItem } from '../../test/fixtures/cardFixtures';
+import { dailyBriefingItem } from '../../../test/fixtures/cardFixtures';
 import type { AssistantCard } from '../types';
 
 // Mock Fluent UI
