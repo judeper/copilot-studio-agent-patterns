@@ -60,11 +60,11 @@ Full details: milestones/v2.0-ROADMAP.md
   3. Copilot Studio agent configurations reference valid topics, actions, and entity definitions with no orphaned references
   4. Deployment scripts execute a valid sequence of operations against real PAC CLI / Power Platform Admin APIs
   5. Any platform limitation that contradicts the design is identified with a specific remediation path or documented as a known constraint
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: AI Council — 3 parallel agents (Correctness, Implementability, Gaps) review platform architecture files
-- [ ] 10-02: Reconciliation — resolve disagreements, produce unified findings
+- [ ] 10-01-PLAN.md — AI Council: 3 agents (Correctness, Implementability, Gaps) review all platform architecture files independently
+- [ ] 10-02-PLAN.md — Reconciliation: merge, deduplicate, resolve disagreements, produce unified verdict
 
 ### Phase 11: Frontend / PCF Review
 **Goal**: The entire PCF layer (component architecture, state management, hooks, data flow, error handling, test coverage) is validated as sound, complete, and ready for deployment
