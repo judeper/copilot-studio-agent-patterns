@@ -123,6 +123,10 @@ function StaleAlert({
     );
 }
 
+// TODO: Schedule configuration deferred to post-v2.1 milestone
+// The Daily Briefing flow (Flow 6) uses a fixed Power Automate recurrence trigger.
+// User-configurable scheduling requires a dedicated Dataverse table and UI.
+
 export const BriefingCard: React.FC<BriefingCardProps> = ({
     card,
     onJumpToCard,

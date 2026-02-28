@@ -40,6 +40,21 @@
               usage="input"
               required="false" />
 
+    <!-- Input properties: orchestrator response channel from Canvas app -->
+    <property name="orchestratorResponse"
+              display-name-key="OrchestratorResponse_DisplayName"
+              description-key="JSON response from command execution flow"
+              of-type="SingleLine.Text"
+              usage="input"
+              required="false" />
+
+    <property name="isProcessing"
+              display-name-key="IsProcessing_DisplayName"
+              description-key="Whether a command is currently being processed"
+              of-type="TwoOptions"
+              usage="input"
+              required="false" />
+
     <!-- Output properties: events fired back to Canvas app -->
     <property name="selectedCardId"
               display-name-key="SelectedCardId_DisplayName"

@@ -68,7 +68,7 @@ Shipped v2.0 with ~59k LOC TypeScript/CSS (handwritten) across the reference pat
 - #10: No E2E flow coverage for send-email or set-reminder paths
 - #11: Confidence calibration thresholds are hardcoded
 - #12: Sender profile 30-day window not configurable
-- #13: Daily briefing schedule stored in component state (lost on refresh)
+- #13: ~~Daily briefing schedule stored in component state (lost on refresh)~~ **Deferred** -- Briefing schedule configuration requires a dedicated Dataverse table (BriefingSchedule) and UI flow that is beyond the v2.1 audit scope. The Daily Briefing flow (Flow 6) uses a fixed schedule configured in Power Automate recurrence trigger. User-configurable scheduling is deferred to a future milestone.
 
 **Legacy tech debt (v1.0, non-blocking):**
 - Prompt/Dataverse layers still output "N/A" strings while schema uses null. Bridged at runtime by useCardData.ts ingestion boundary.

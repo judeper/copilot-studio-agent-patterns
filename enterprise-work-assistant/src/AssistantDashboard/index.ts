@@ -15,6 +15,8 @@ const AppWrapper: React.FC<{
     filterPriority: string;
     filterCardStatus: string;
     filterTemporalHorizon: string;
+    orchestratorResponse: string | null;
+    isProcessing: boolean;
     width: number;
     height: number;
     onSelectCard: (cardId: string) => void;
@@ -36,6 +38,8 @@ const AppWrapper: React.FC<{
         filterPriority: props.filterPriority,
         filterCardStatus: props.filterCardStatus,
         filterTemporalHorizon: props.filterTemporalHorizon,
+        orchestratorResponse: props.orchestratorResponse,
+        isProcessing: props.isProcessing,
         width: props.width,
         height: props.height,
         onSelectCard: props.onSelectCard,
@@ -112,6 +116,10 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         // Increment version so useMemo in useCardData re-computes
         this.datasetVersion++;
 
+        // Read orchestrator response channel properties (F-02)
+        const orchestratorResponse = (context.parameters as Record<string, { raw?: string | boolean | null }>).orchestratorResponse?.raw as string | null ?? null;
+        const isProcessing = (context.parameters as Record<string, { raw?: string | boolean | null }>).isProcessing?.raw as boolean ?? false;
+
         return React.createElement(AppWrapper, {
             dataset: dataset,
             datasetVersion: this.datasetVersion,
@@ -119,6 +127,8 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             filterPriority: context.parameters.filterPriority?.raw ?? "",
             filterCardStatus: context.parameters.filterCardStatus?.raw ?? "",
             filterTemporalHorizon: context.parameters.filterTemporalHorizon?.raw ?? "",
+            orchestratorResponse,
+            isProcessing,
             width: width > 0 ? width : 800,
             height: height > 0 ? height : 600,
             onSelectCard: this.handleSelectCard,
