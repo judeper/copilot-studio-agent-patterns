@@ -97,14 +97,16 @@ To add server-side filtering (reduces data loaded):
 SortByColumns(
     Filter(
         'Assistant Cards',
-        Owner.'Primary Email' = User().Email
+        Owner.'Primary Email' = User().Email,
+        'Card Outcome' <> 'Card Outcome'.DISMISSED,
+        'Card Outcome' <> 'Card Outcome'.EXPIRED
     ),
     "createdon",
     SortOrder.Descending
 )
 ```
 
-> **Delegation warning**: Choice column comparisons (e.g., `'Card Status' <> 'Card Status'.NO_OUTPUT`) are **not delegable** to Dataverse. If omitted, all non-NO_OUTPUT cards are already returned since SKIP items are never written to Dataverse. The filter above is sufficient.
+> **Delegation warning**: Choice column comparisons (e.g., `'Card Outcome' <> ...`) are **not delegable** to Dataverse. This means the filter is applied client-side to the first 500 rows returned. For most users this is sufficient. If a user accumulates 500+ active cards, the staleness monitor (Sprint 2) will keep the count manageable by expiring old cards.
 
 ## 7. Configure Input Properties
 
@@ -122,24 +124,60 @@ Set the filter input properties on the AssistantDashboard control:
 ### OnChange Handler (on the AssistantDashboard control)
 
 ```
-// Handle Edit Draft action
+// Handle Send action — Sprint 1A: sends email via Power Automate flow
 If(
-    !IsBlank(AssistantDashboard1.editDraftAction),
-    Set(varEditCardId, AssistantDashboard1.editDraftAction);
-    Navigate(scrEditDraft)
+    !IsBlank(AssistantDashboard1.sendDraftAction),
+    With(
+        { sendData: ParseJSON(AssistantDashboard1.sendDraftAction) },
+        Set(
+            varSendResult,
+            SendEmailFlow.Run(
+                Text(sendData.cardId),
+                Text(sendData.finalText)
+            )
+        );
+        Refresh('Assistant Cards');
+        If(
+            varSendResult.success,
+            Notify(
+                "Email sent to " & varSendResult.recipientDisplay,
+                NotificationType.Success
+            ),
+            Notify(
+                "Failed to send: " & varSendResult.errorMessage,
+                NotificationType.Error
+            )
+        )
+    )
 );
 
-// Handle Dismiss Card action — mark as dismissed
+// Handle Copy to Clipboard action
+If(
+    !IsBlank(AssistantDashboard1.copyDraftAction),
+    Set(varCopyCardId, AssistantDashboard1.copyDraftAction);
+    Navigate(scrCopyDraft)
+);
+
+// Handle Dismiss Card action — set outcome to DISMISSED
 // Uses the primary key column (cr_assistantcardid) for GUID matching
 If(
     !IsBlank(AssistantDashboard1.dismissCardAction),
     Patch(
         'Assistant Cards',
         LookUp('Assistant Cards', cr_assistantcardid = GUID(AssistantDashboard1.dismissCardAction)),
-        { 'Card Status': 'Card Status'.SUMMARY_ONLY }
+        {
+            'Card Outcome': 'Card Outcome'.DISMISSED,
+            'Outcome Timestamp': Now()
+        }
     )
 );
 ```
+
+> **Sprint 1A Notes:**
+> - The Send flow writes audit columns (`cr_cardoutcome`, `cr_senttimestamp`, `cr_sentrecipient`) server-side. The Canvas app does NOT Patch these for send actions.
+> - The `Refresh('Assistant Cards')` call forces the PCF to re-read the dataset, updating the card's outcome badge from "PENDING" to "Sent ✓".
+> - The `SendEmailFlow` must be created as an instant flow with "Run only users" configured so each user provides their own Outlook connection. See [agent-flows.md](agent-flows.md) for the flow specification.
+> - For Dismiss, the Canvas app writes the outcome directly (no flow needed). The `Card Status` column is NOT changed on dismiss — Card Status and Card Outcome are orthogonal dimensions.
 
 ### Selected Card tracking
 
@@ -147,9 +185,9 @@ If(
 Set(varSelectedCardId, AssistantDashboard1.selectedCardId)
 ```
 
-## 9. (Optional) Edit Draft Screen
+## 9. (Optional) Copy Draft Screen
 
-Create a second screen `scrEditDraft` for editing and copying drafts:
+Create a second screen `scrCopyDraft` for reviewing and copying drafts to clipboard (fallback for users who prefer to send via Outlook manually):
 
 1. Add a **TextInput** control bound to the humanized draft
 2. Add a **Copy** button that copies the draft to clipboard
@@ -160,9 +198,11 @@ Create a second screen `scrEditDraft` for editing and copying drafts:
 // Uses the primary key column (cr_assistantcardid) for GUID matching
 LookUp(
     'Assistant Cards',
-    cr_assistantcardid = GUID(varEditCardId)
+    cr_assistantcardid = GUID(varCopyCardId)
 ).'Humanized Draft'
 ```
+
+> **Note**: This screen is a fallback for users who want to paste drafts into Outlook, Teams, or other apps manually. For EMAIL cards, the primary action is the inline Send button in the PCF dashboard. Copy to Clipboard does NOT change the card's outcome — the card stays PENDING until manually dismissed.
 
 ## 10. (Optional) Embed Copilot Agent
 
@@ -178,13 +218,25 @@ This lets users ask follow-up questions about any card directly from the app.
 
 ## Testing Checklist
 
+### v1.0 Core Functionality
 - [ ] App loads and connects to Dataverse
 - [ ] Filter dropdowns filter the card gallery
 - [ ] Clicking a card shows the detail view
 - [ ] Back button returns to gallery
-- [ ] Edit Draft navigates to edit screen
-- [ ] Dismiss Card updates the Dataverse row
+- [ ] Copy to Clipboard navigates to edit screen
 - [ ] Cards display correct priority colors (red/amber/green)
 - [ ] Low confidence cards show warning message bar
 - [ ] Sources render as clickable links
 - [ ] Meeting briefings display as formatted text
+
+### Sprint 1A — Outcome Tracking & Send
+- [ ] **T1** Send email happy path: Open EMAIL FULL card → Send → Confirm → Email arrives, card shows "Sent ✓", Dataverse has SENT_AS_IS
+- [ ] **T2** Send failure: Misconfigure Outlook connection → Send → Confirm → Error notification, card returns to Send-ready state
+- [ ] **T3** Dismiss card: Open any card → Dismiss → Card hidden from gallery, Dataverse has DISMISSED + timestamp
+- [ ] **T4** Send button hidden for TEAMS_MESSAGE cards
+- [ ] **T5** Send button hidden for EMAIL LIGHT cards (no humanized draft)
+- [ ] **T6** Double-send prevention: After successful send, Send button replaced with disabled "Sent ✓"
+- [ ] **T7** New columns populated: Send test email to trigger EMAIL flow → New card has cr_cardoutcome = PENDING, cr_originalsenderemail populated
+- [ ] **T8** Ownership validation: Call Send flow with CardId belonging to different user → Flow returns error, no email sent
+- [ ] **T9** Connection first-run: New user opens app, clicks Send → Prompted for Outlook connection
+- [ ] **T10** Subject dedup: Reply to "Re: Q3 Budget" → Sent email subject is "Re: Q3 Budget" not "Re: Re: Q3 Budget"

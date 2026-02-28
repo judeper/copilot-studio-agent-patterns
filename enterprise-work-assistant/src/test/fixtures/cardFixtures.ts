@@ -28,6 +28,12 @@ export const tier1SkipItem: AssistantCard = {
     low_confidence_note: null,
     humanized_draft: null,
     created_on: '2/21/2026 10:30 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'newsletter@contoso.com',
+    original_sender_display: 'Contoso Weekly',
+    original_subject: 'Contoso Weekly Newsletter — February 2026',
+    conversation_cluster_id: 'conv-newsletter-001',
+    source_signal_id: 'msgid-skip-001@contoso.com',
 };
 
 // ---------------------------------------------------------------------------
@@ -49,6 +55,12 @@ export const tier2LightItem: AssistantCard = {
     low_confidence_note: null,
     humanized_draft: null,
     created_on: '2/21/2026 9:45 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'alee@contoso.com',
+    original_sender_display: 'Alex Lee',
+    original_subject: null,
+    conversation_cluster_id: 'thread-teams-001',
+    source_signal_id: 'msg-light-001',
 };
 
 // ---------------------------------------------------------------------------
@@ -80,6 +92,12 @@ export const tier3FullItem: AssistantCard = {
     low_confidence_note: null,
     humanized_draft: 'Dear Fabrikam team, regarding the upcoming contract renewal, we have reviewed the terms and would like to discuss a few amendments before the March 1 deadline.',
     created_on: '2/21/2026 9:15 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'legal@fabrikam.com',
+    original_sender_display: 'Fabrikam Legal',
+    original_subject: 'Contract Renewal — Contoso Agreement #2024-1847',
+    conversation_cluster_id: 'conv-fabrikam-renewal',
+    source_signal_id: 'msgid-full-001@fabrikam.com',
 };
 
 // ---------------------------------------------------------------------------
@@ -101,6 +119,12 @@ export const lowConfidenceItem: AssistantCard = {
     low_confidence_note: 'Unable to determine sender identity or project context. Manual review recommended before responding.',
     humanized_draft: null,
     created_on: '2/21/2026 8:00 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'unknown@external.com',
+    original_sender_display: null,
+    original_subject: 'Re: Project Timeline Inquiry',
+    conversation_cluster_id: 'conv-woodgrove-timeline',
+    source_signal_id: 'msgid-lowconf-001@woodgrove.com',
 };
 
 // ---------------------------------------------------------------------------
@@ -122,6 +146,12 @@ export const calendarBriefingItem: AssistantCard = {
     low_confidence_note: null,
     humanized_draft: null,
     created_on: '2/21/2026 7:30 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'jsmith@northwindtraders.com',
+    original_sender_display: 'Janet Smith',
+    original_subject: 'Quarterly Business Review',
+    conversation_cluster_id: 'series-qbr-master-001',
+    source_signal_id: 'event-cal-001',
 };
 
 // ---------------------------------------------------------------------------
@@ -133,9 +163,15 @@ export const malformedJsonRecord: MockRecordData = {
         cr_fulljson: 'not valid json{',
         cr_humanizeddraft: null,
         createdon: null,
+        cr_originalsenderemail: null,
+        cr_originalsenderdisplay: null,
+        cr_originalsubject: null,
+        cr_conversationclusterid: null,
+        cr_sourcesignalid: null,
     },
     formattedValues: {
         createdon: '2/21/2026 11:00 AM',
+        cr_cardoutcome: 'PENDING',
     },
 };
 
@@ -171,9 +207,15 @@ export const validJsonRecord: MockRecordData = {
         }),
         cr_humanizeddraft: 'Dear Fabrikam team, regarding the upcoming contract renewal...',
         createdon: null,
+        cr_originalsenderemail: 'legal@fabrikam.com',
+        cr_originalsenderdisplay: 'Fabrikam Legal',
+        cr_originalsubject: 'Contract Renewal — Contoso Agreement #2024-1847',
+        cr_conversationclusterid: 'conv-fabrikam-renewal',
+        cr_sourcesignalid: 'msgid-full-001@fabrikam.com',
     },
     formattedValues: {
         createdon: '2/21/2026 9:15 AM',
+        cr_cardoutcome: 'PENDING',
     },
 };
 

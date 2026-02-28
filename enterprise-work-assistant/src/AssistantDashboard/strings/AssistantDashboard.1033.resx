@@ -82,11 +82,17 @@
   <data name="SelectedCardId_Description" xml:space="preserve">
     <value>The Dataverse record ID of the currently selected card.</value>
   </data>
-  <data name="EditDraftAction_DisplayName" xml:space="preserve">
-    <value>Edit Draft Action</value>
+  <data name="SendDraftAction_DisplayName" xml:space="preserve">
+    <value>Send Draft Action</value>
   </data>
-  <data name="EditDraftAction_Description" xml:space="preserve">
-    <value>Fires when user clicks Edit Draft. Contains the card ID.</value>
+  <data name="SendDraftAction_Description" xml:space="preserve">
+    <value>Fires when user confirms send. Contains JSON: {"cardId":"...","finalText":"..."}.</value>
+  </data>
+  <data name="CopyDraftAction_DisplayName" xml:space="preserve">
+    <value>Copy Draft Action</value>
+  </data>
+  <data name="CopyDraftAction_Description" xml:space="preserve">
+    <value>Fires when user clicks Copy to Clipboard. Contains the card ID.</value>
   </data>
   <data name="DismissCardAction_DisplayName" xml:space="preserve">
     <value>Dismiss Card Action</value>

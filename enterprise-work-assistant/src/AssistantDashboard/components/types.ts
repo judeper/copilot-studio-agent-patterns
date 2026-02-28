@@ -3,6 +3,7 @@ export type TriageTier = "SKIP" | "LIGHT" | "FULL";
 export type Priority = "High" | "Medium" | "Low";
 export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND";
 export type CardStatus = "READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | "NO_OUTPUT";
+export type CardOutcome = "PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISMISSED" | "EXPIRED";
 export type RecipientRelationship = "Internal colleague" | "External client" | "Leadership" | "Unknown";
 export type InferredTone = "formal" | "semi-formal" | "direct" | "collaborative";
 export type DraftType = "EMAIL" | "TEAMS_MESSAGE";
@@ -39,6 +40,14 @@ export interface AssistantCard {
     low_confidence_note: string | null;
     humanized_draft: string | null;
     created_on: string;
+    // Sprint 1A — Outcome tracking & send context
+    card_outcome: CardOutcome;
+    original_sender_email: string | null;
+    original_sender_display: string | null;
+    original_subject: string | null;
+    // Sprint 1B — Clustering & source identity
+    conversation_cluster_id: string | null;
+    source_signal_id: string | null;
 }
 
 export interface AppProps {
@@ -50,6 +59,7 @@ export interface AppProps {
     width: number;
     height: number;
     onSelectCard: (cardId: string) => void;
-    onEditDraft: (cardId: string) => void;
+    onSendDraft: (cardId: string, finalText: string) => void;
+    onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
 }
