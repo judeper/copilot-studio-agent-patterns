@@ -47,15 +47,33 @@
               of-type="SingleLine.Text"
               usage="output" />
 
-    <property name="editDraftAction"
-              display-name-key="EditDraftAction_DisplayName"
-              description-key="EditDraftAction_Description"
+    <property name="sendDraftAction"
+              display-name-key="SendDraftAction_DisplayName"
+              description-key="SendDraftAction_Description"
+              of-type="SingleLine.Text"
+              usage="output" />
+
+    <property name="copyDraftAction"
+              display-name-key="CopyDraftAction_DisplayName"
+              description-key="CopyDraftAction_Description"
               of-type="SingleLine.Text"
               usage="output" />
 
     <property name="dismissCardAction"
               display-name-key="DismissCardAction_DisplayName"
               description-key="DismissCardAction_Description"
+              of-type="SingleLine.Text"
+              usage="output" />
+
+    <property name="jumpToCardAction"
+              display-name-key="JumpToCardAction_DisplayName"
+              description-key="JumpToCardAction_Description"
+              of-type="SingleLine.Text"
+              usage="output" />
+
+    <property name="commandAction"
+              display-name-key="CommandAction_DisplayName"
+              description-key="CommandAction_Description"
               of-type="SingleLine.Text"
               usage="output" />
 

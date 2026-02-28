@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { AssistantCard, TriggerType, TriageTier, Priority, CardStatus, TemporalHorizon } from "../components/types";
+import type { AssistantCard, TriggerType, TriageTier, Priority, CardStatus, TemporalHorizon, CardOutcome } from "../components/types";
 
 interface DataSet {
     sortedRecordIds: string[];
@@ -10,6 +10,20 @@ interface DataSetRecord {
     getRecordId(): string;
     getValue(columnName: string): string | number | null;
     getFormattedValue(columnName: string): string;
+}
+
+/**
+ * Maps Dataverse Choice column formatted values to CardOutcome type.
+ * Dataverse returns the label text (e.g., "PENDING") from getFormattedValue().
+ */
+function parseCardOutcome(formatted: string | undefined): CardOutcome {
+    switch (formatted) {
+        case "SENT_AS_IS": return "SENT_AS_IS";
+        case "SENT_EDITED": return "SENT_EDITED";
+        case "DISMISSED": return "DISMISSED";
+        case "EXPIRED": return "EXPIRED";
+        default: return "PENDING";
+    }
 }
 
 /**
@@ -59,6 +73,14 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
                     low_confidence_note: parsed.low_confidence_note ?? null,
                     humanized_draft: record.getValue("cr_humanizeddraft") as string | null,
                     created_on: record.getFormattedValue("createdon") ?? "",
+                    // Sprint 1A — read from discrete Dataverse columns
+                    card_outcome: parseCardOutcome(record.getFormattedValue("cr_cardoutcome")),
+                    original_sender_email: record.getValue("cr_originalsenderemail") as string | null,
+                    original_sender_display: record.getValue("cr_originalsenderdisplay") as string | null,
+                    original_subject: record.getValue("cr_originalsubject") as string | null,
+                    // Sprint 1B — clustering & source identity
+                    conversation_cluster_id: record.getValue("cr_conversationclusterid") as string | null,
+                    source_signal_id: record.getValue("cr_sourcesignalid") as string | null,
                 };
 
                 cards.push(card);
