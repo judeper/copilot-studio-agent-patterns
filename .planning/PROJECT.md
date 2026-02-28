@@ -40,7 +40,16 @@ Every artifact in the solution must be correct and consistent — schemas match 
 
 ### Active
 
-(None — next milestone requirements defined via `/gsd:new-milestone`)
+## Current Milestone: v2.1 Pre-Deployment Audit
+
+**Goal:** Validate the entire reference pattern is correct, implementable, and complete before deploying to a real Power Platform environment.
+
+**Target features:**
+- AI Council review of platform architecture (Dataverse, Power Automate, Copilot Studio)
+- AI Council review of frontend/PCF layer (React components, hooks, state, tests)
+- AI Council review of integration/end-to-end data flows across all layers
+- Reconciliation of disagreements via targeted research
+- Remediation of any issues found
 
 ### Out of Scope
 
@@ -94,4 +103,4 @@ Shipped v2.0 with ~59k LOC TypeScript/CSS (handwritten) across the reference pat
 | Confidence score modifiers (+10/-10/+5) | Temporal urgency, edit distance penalty, engagement bonus add relational context | ✓ Good — meaningful signal adjustments |
 
 ---
-*Last updated: 2026-02-28 after v2.0 milestone*
+*Last updated: 2026-02-28 after v2.1 milestone start*
