@@ -9,11 +9,11 @@ Requirements for pre-deployment audit. Each maps to roadmap phases.
 
 ### Platform Architecture Review
 
-- [ ] **PLAT-01**: All Dataverse table/column definitions are valid and creatable
-- [ ] **PLAT-02**: All Power Automate flow specs translate to buildable flows
-- [ ] **PLAT-03**: Copilot Studio agent configs are complete and valid
-- [ ] **PLAT-04**: Deployment scripts work for a fresh environment
-- [ ] **PLAT-05**: No platform limitations contradict the design
+- [x] **PLAT-01**: All Dataverse table/column definitions are valid and creatable
+- [x] **PLAT-02**: All Power Automate flow specs translate to buildable flows
+- [x] **PLAT-03**: Copilot Studio agent configs are complete and valid
+- [x] **PLAT-04**: Deployment scripts work for a fresh environment
+- [x] **PLAT-05**: No platform limitations contradict the design
 
 ### Frontend / PCF Review
 
@@ -63,11 +63,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAT-01 | Phase 10 | Pending |
-| PLAT-02 | Phase 10 | Pending |
-| PLAT-03 | Phase 10 | Pending |
-| PLAT-04 | Phase 10 | Pending |
-| PLAT-05 | Phase 10 | Pending |
+| PLAT-01 | Phase 10 | Complete |
+| PLAT-02 | Phase 10 | Complete |
+| PLAT-03 | Phase 10 | Complete |
+| PLAT-04 | Phase 10 | Complete |
+| PLAT-05 | Phase 10 | Complete |
 | PCF-01 | Phase 11 | Pending |
 | PCF-02 | Phase 11 | Pending |
 | PCF-03 | Phase 11 | Pending |
