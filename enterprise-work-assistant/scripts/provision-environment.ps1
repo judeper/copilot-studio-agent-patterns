@@ -122,6 +122,33 @@ $headers = @{
 
 $apiBase = "$OrgUrl/api/data/v9.2"
 
+# ─────────────────────────────────────
+# 2a. Validate/Create Publisher Prefix
+# ─────────────────────────────────────
+Write-Host "Validating publisher prefix '$PublisherPrefix'..." -ForegroundColor Cyan
+
+try {
+    $publisherResult = Invoke-RestMethod -Uri "$apiBase/publishers?`$filter=customizationprefix eq '$PublisherPrefix'&`$select=publisherid,uniquename,friendlyname,customizationprefix" -Headers $headers
+    if ($publisherResult.value.Count -gt 0) {
+        $existingPublisher = $publisherResult.value[0]
+        Write-Host "  Publisher '$PublisherPrefix' already exists: $($existingPublisher.friendlyname) ($($existingPublisher.uniquename))" -ForegroundColor Green
+    } else {
+        Write-Host "  Publisher '$PublisherPrefix' not found. Creating..." -ForegroundColor Yellow
+        $publisherDef = @{
+            uniquename = "${PublisherPrefix}publisher"
+            friendlyname = "Enterprise Work Assistant Publisher"
+            customizationprefix = $PublisherPrefix
+            customizationoptionvalueprefix = 10000
+            description = "Publisher for the Enterprise Work Assistant solution."
+        } | ConvertTo-Json
+
+        Invoke-RestMethod -Uri "$apiBase/publishers" -Method Post -Headers $headers -Body $publisherDef
+        Write-Host "  Publisher '$PublisherPrefix' created successfully." -ForegroundColor Green
+    }
+} catch {
+    throw "Failed to validate/create publisher prefix '$PublisherPrefix': $($_.Exception.Message). Ensure the authenticated user has System Administrator or System Customizer role."
+}
+
 # Create the entity (table)
 $entityDef = @{
     "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
