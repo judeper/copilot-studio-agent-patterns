@@ -1,6 +1,6 @@
 # Agent Flows — Step-by-Step Build Guide
 
-This guide walks through building the three Power Automate agent flows that feed the Enterprise Work Assistant. Each flow intercepts a specific signal type, invokes the Copilot Studio agent, and writes results to the Dataverse `Assistant Cards` table.
+This guide walks through building the nine Power Automate flows that drive the Enterprise Work Assistant. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-9 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, and sender analytics.
 
 ## Prerequisites
 
@@ -805,11 +805,13 @@ Automated flow that fires when a card's outcome changes in Dataverse and perform
 |---------|-------|
 | Table name | Assistant Cards |
 | Row ID | `@{triggerOutputs()?['body/cr_assistantcardid']}` |
-| Select columns | `cr_cardoutcome,cr_outcometimestamp,cr_originalsenderemail,cr_originalsenderdisplay,createdon,_ownerid_value` |
+| Select columns | `cr_cardoutcome,cr_outcometimestamp,cr_originalsenderemail,cr_originalsenderdisplay,cr_humanizeddraft,createdon,_ownerid_value` |
 
-**2. Condition — Is this a response action?**
+**2. Switch — Route by outcome type**
 
-Only update sender profile for SENT_AS_IS or SENT_EDITED outcomes (not DISMISSED or EXPIRED):
+Route to the appropriate branch based on the outcome value. Three branches handle different sender profile update logic:
+
+**Branch A: SENT_AS_IS or SENT_EDITED** (response tracking)
 
 ```
 @or(
@@ -818,11 +820,102 @@ Only update sender profile for SENT_AS_IS or SENT_EDITED outcomes (not DISMISSED
 )
 ```
 
-**If No (DISMISSED or EXPIRED):** Terminate — no sender profile update needed.
+**Branch B: DISMISSED** (dismiss tracking — Sprint 4)
 
-> **Design note**: Dismissals are intentionally excluded from sender profile updates. A dismissal could mean "low-value sender" OR "low-value topic from a high-value sender." The signal is ambiguous. Sprint 4 analytics can analyze dismissal patterns across senders to infer sender quality.
+```
+@equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000003)
+```
 
-**If Yes (SENT_AS_IS or SENT_EDITED):**
+**Branch C: EXPIRED** — Terminate. No sender profile update needed for expired cards.
+
+---
+
+#### Branch B: DISMISSED — Increment dismiss count
+
+When a user dismisses a card, the sender's dismiss count must be incremented. This data feeds the Sender Profile Analyzer (Flow 9), which computes `dismiss_rate` to auto-categorize senders. Without this branch, `cr_dismisscount` never increments and `dismiss_rate` is always 0, meaning AUTO_LOW categorization never triggers.
+
+**2b-1. List rows — Find sender profile by email + owner**
+
+| Setting | Value |
+|---------|-------|
+| Table name | Sender Profiles |
+| Filter rows | `cr_senderemail eq '@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}' and _ownerid_value eq '@{outputs('Get_the_modified_card_row')?['body/_ownerid_value']}'` |
+| Row count | `1` |
+| Select columns | `cr_senderprofileid,cr_dismisscount` |
+
+**2b-2. Condition — Sender profile exists**
+
+```
+@greater(length(outputs('List_rows_dismissed')?['body/value']), 0)
+```
+
+**If No:** Log a warning and terminate. The sender profile should exist from the trigger flow's upsert (Flow 1/2/3 step 11).
+
+**If Yes:**
+
+**2b-3. Update a row — Increment dismiss count** — Dataverse → Sender Profiles
+
+| Column | Value |
+|--------|-------|
+| Row ID | `@{first(outputs('List_rows_dismissed')?['body/value'])?['cr_senderprofileid']}` |
+| Dismiss Count | `@{add(first(outputs('List_rows_dismissed')?['body/value'])?['cr_dismisscount'], 1)}` |
+
+> Do NOT update response hours or response count for dismissals. Only `cr_dismisscount` is incremented.
+
+---
+
+#### Branch A: SENT_AS_IS or SENT_EDITED — Response tracking + edit distance
+
+**2a-1. Condition — Is this SENT_EDITED?**
+
+```
+@equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000002)
+```
+
+**If Yes (SENT_EDITED):**
+
+**2a-1a. Compose — EDIT_DISTANCE**
+
+Compute whether the user edited the draft before sending. A full Levenshtein distance is complex in Power Automate expressions, so for MVP we use a simplified boolean comparison: if the final sent text differs from the humanized draft, mark as edited with a normalized distance of 1.0; if identical, distance is 0.0:
+
+```
+@{if(
+    equals(
+        outputs('Get_the_modified_card_row')?['body/cr_humanizeddraft'],
+        triggerOutputs()?['body/cr_humanizeddraft']
+    ),
+    0,
+    1
+)}
+```
+
+> **Note**: For a more granular edit distance, a custom connector or Azure Function could compute the actual Levenshtein distance. The simplified 0/1 approach is acceptable for MVP — it still provides signal for "how often does this user edit drafts" analysis.
+
+**2a-1b. Compose — NEW_AVG_EDIT_DISTANCE**
+
+Uses the running average formula: `new_avg = ((old_avg * old_count) + new_distance) / (old_count + 1)`
+
+```
+@{if(
+    empty(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_avgeditdistance']),
+    outputs('Compose_EDIT_DISTANCE'),
+    div(
+        add(
+            mul(
+                float(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_avgeditdistance']),
+                float(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_responsecount'])
+            ),
+            float(outputs('Compose_EDIT_DISTANCE'))
+        ),
+        add(
+            float(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_responsecount']),
+            1
+        )
+    )
+)}
+```
+
+> The edit distance average is stored in `cr_avgeditdistance` on the SenderProfile table. For the simplified 0/1 approach, this effectively tracks the percentage of responses that were edited.
 
 **3. Calculate response time**
 
@@ -850,9 +943,9 @@ Only update sender profile for SENT_AS_IS or SENT_EDITED outcomes (not DISMISSED
 | Table name | Sender Profiles |
 | Filter rows | `cr_senderemail eq '@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}' and _ownerid_value eq '@{outputs('Get_the_modified_card_row')?['body/_ownerid_value']}'` |
 | Row count | `1` |
-| Select columns | `cr_senderprofileid,cr_responsecount,cr_avgresponsehours` |
+| Select columns | `cr_senderprofileid,cr_responsecount,cr_avgresponsehours,cr_dismisscount,cr_avgeditdistance` |
 
-> **Note**: The filter includes the owner ID to ensure we update the correct user's sender profile (since Sender Profiles are UserOwned, the same sender email can appear once per user).
+> **Note**: The filter includes the owner ID to ensure we update the correct user's sender profile (since Sender Profiles are UserOwned, the same sender email can appear once per user). The select includes `cr_dismisscount` and `cr_avgeditdistance` for the DISMISSED and SENT_EDITED branches respectively.
 
 **5. Condition — Sender profile exists**
 
@@ -871,6 +964,7 @@ Only update sender profile for SENT_AS_IS or SENT_EDITED outcomes (not DISMISSED
 | Row ID | `@{first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_senderprofileid']}` |
 | Response Count | `@{add(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_responsecount'], 1)}` |
 | Average Response Hours | See running average expression below |
+| Average Edit Distance | `@{outputs('Compose_NEW_AVG_EDIT_DISTANCE')}` *(only for SENT_EDITED outcomes; omit for SENT_AS_IS)* |
 
 **Compose — NEW_AVG_RESPONSE_HOURS:**
 
@@ -899,25 +993,37 @@ Uses the running average formula: `new_avg = ((old_avg × old_count) + new_value
 ```
 Trigger (cr_cardoutcome changed, non-PENDING)
   │
-  ├── 1. Get modified card row
-  ├── 2. Is outcome SENT_AS_IS or SENT_EDITED?
-  │   └── No → Terminate (no profile update)
-  │
-  ├── 3. Calculate response hours
-  ├── 4. Find sender profile by email + owner
-  ├── 5. Sender profile exists?
-  │   └── No → Log warning → Terminate
-  │
-  └── 6. Update sender profile
-      ├── Increment response count
-      └── Recalculate average response hours
+  ├── 1. Get modified card row (incl. cr_humanizeddraft)
+  ├── 2. Switch on outcome type:
+  │   │
+  │   ├── Branch A: SENT_AS_IS or SENT_EDITED
+  │   │   ├── 2a-1. Is SENT_EDITED?
+  │   │   │   └── Yes → Compute edit distance + running avg
+  │   │   ├── 3. Calculate response hours
+  │   │   ├── 4. Find sender profile by email + owner
+  │   │   ├── 5. Sender profile exists?
+  │   │   │   └── No → Log warning → Terminate
+  │   │   └── 6. Update sender profile
+  │   │       ├── Increment response count
+  │   │       ├── Recalculate avg response hours
+  │   │       └── Update avg edit distance (SENT_EDITED only)
+  │   │
+  │   ├── Branch B: DISMISSED
+  │   │   ├── 2b-1. Find sender profile by email + owner
+  │   │   ├── 2b-2. Sender profile exists?
+  │   │   │   └── No → Log warning → Terminate
+  │   │   └── 2b-3. Increment cr_dismisscount
+  │   │
+  │   └── Branch C: EXPIRED → Terminate (no profile update)
 ```
 
 ### Deployment Checklist
 
 - [ ] Flow trigger uses `filteringattributes = cr_cardoutcome` (verified in flow definition JSON)
-- [ ] Test: Send a card → Verify sender profile `cr_responsecount` incremented by 1
-- [ ] Test: Dismiss a card → Verify sender profile NOT updated
+- [ ] Test: Send a card as-is → Verify `cr_responsecount` incremented by 1
+- [ ] Test: Send a card with edits → Verify `cr_responsecount` incremented AND `cr_avgeditdistance` updated
+- [ ] Test: Dismiss a card → Verify `cr_dismisscount` incremented by 1 (not response count)
+- [ ] Test: Expire a card → Verify NO sender profile update occurs
 - [ ] Test: Send two cards from same sender → Verify running average calculation
 - [ ] Test: Sender profile missing → Flow logs warning, does not error
 - [ ] Verify flow does not re-trigger itself (no infinite loop)
@@ -1056,6 +1162,32 @@ Use a flattened schema (no `oneOf`) matching the briefing output contract in `sc
 
 **If Yes:**
 
+**10a. Compose — OUTPUT_ENVELOPE** *(I-15 fix: wrap briefing in standard output-schema.json envelope)*
+
+The Daily Briefing Agent returns a briefing-specific JSON structure (`briefing_type`, `day_shape`, `action_items`, etc.) that does NOT conform to the standard `output-schema.json` envelope. The PCF component's `BriefingCard.tsx` calls `parseBriefing()`, which reads from `card.draft_payload` to extract the briefing data. Without envelope wrapping, `draft_payload` would be `null` and `parseBriefing()` would fail.
+
+Wrap the raw briefing response in the standard output envelope:
+
+```json
+{
+    "trigger_type": "DAILY_BRIEFING",
+    "triage_tier": "FULL",
+    "item_summary": "@{body('Parse_JSON')?['day_shape']}",
+    "card_status": "READY",
+    "priority": "N/A",
+    "temporal_horizon": "N/A",
+    "confidence_score": 100,
+    "draft_payload": "@{string(body('Parse_JSON'))}",
+    "triage_reasoning": "Daily briefing generated automatically",
+    "research_log": null,
+    "key_findings": null,
+    "verified_sources": [],
+    "low_confidence_note": null
+}
+```
+
+> **CRITICAL**: The `draft_payload` field contains the stringified briefing JSON. This is what `BriefingCard.tsx` parses via `JSON.parse(card.draft_payload)` to access `briefing_type`, `day_shape`, `action_items`, `fyi_items`, and `stale_alerts`. Without this envelope wrapping, the briefing card will fail to render because it cannot find `draft_payload` on the card record.
+
 **11. Add a new row** — Dataverse → Assistant Cards
 
 | Column | Value |
@@ -1063,14 +1195,15 @@ Use a flattened schema (no `oneOf`) matching the briefing output contract in `sc
 | Trigger Type | `100000003` *(DAILY_BRIEFING)* |
 | Triage Tier | `100000002` *(FULL)* |
 | Item Summary | `@{body('Parse_JSON')?['day_shape']}` |
-| Priority | *(leave null)* |
+| Priority | `100000003` *(N/A)* |
+| Temporal Horizon | `100000004` *(N/A)* |
 | Card Status | `100000000` *(READY)* |
 | Confidence Score | `100` |
-| Full JSON | `@{string(body('Parse_JSON'))}` |
+| Full JSON | `@{string(outputs('Compose_OUTPUT_ENVELOPE'))}` |
 | Card Outcome | `100000000` *(PENDING)* |
 | **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
 
-> The `item_summary` gets the `day_shape` narrative, which appears in the gallery card. The full briefing structure (action_items, fyi_items, stale_alerts) is stored in `cr_fulljson` and parsed by the PCF component's BriefingCard renderer.
+> **Key change from earlier version**: `cr_fulljson` now stores the **envelope-wrapped** output, not the raw briefing JSON. This ensures `cr_fulljson` conforms to `output-schema.json` like all other card types. The `draft_payload` field inside the envelope contains the raw briefing JSON that `BriefingCard.tsx` parses. Priority and Temporal Horizon are set to N/A (matching the envelope values) instead of being left null.
 
 **If No:** Terminate — agent failed to produce valid output. Check Copilot Studio error logs.
 
@@ -1115,7 +1248,8 @@ Trigger (Recurrence — weekday 7 AM)
   ├── 9. Parse JSON response
   ├── 10. Valid briefing?
   │   └── No → Terminate
-  └── 11. Write briefing card to Dataverse
+  ├── 10a. Wrap in output envelope (draft_payload = briefing JSON)
+  └── 11. Write envelope-wrapped card to Dataverse
 ```
 
 ### Deployment Checklist
@@ -1127,6 +1261,8 @@ Trigger (Recurrence — weekday 7 AM)
 - [ ] Test: Run twice on same day → second run terminates (deduplication)
 - [ ] Test: Empty inbox → briefing card shows "Your inbox is clear" message
 - [ ] Test: Cards with stale_alerts → amber/red indicators render correctly
+- [ ] Test: Verify `cr_fulljson` contains output envelope with `draft_payload` field (I-15)
+- [ ] Test: BriefingCard.tsx `parseBriefing()` successfully parses `card.draft_payload`
 
 ---
 
@@ -1209,6 +1345,19 @@ Runs every 4 hours on weekdays. Performs two tasks:
 | Original Sender Display | `@{items('Apply_to_each')?['cr_originalsenderdisplay']}` |
 | **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
 
+> **IMPORTANT — NUDGE via discrete column (I-02 fix)**: The `cr_cardstatus` column is set to `100000004` (NUDGE) directly on the **new nudge card row** as a discrete Dataverse Choice column. This is NOT stored inside `cr_fulljson` — the agent never produces NUDGE status because nudges are system-managed, not agent-generated. The PCF component's `useCardData.ts` must read `card_status` from the discrete `cr_cardstatus` column (not from parsed JSON) to correctly detect NUDGE cards. This is the key integration contract between this flow and the frontend (F-01 fix in Wave 3).
+
+**3e. Update original card status** — Dataverse → Assistant Cards
+
+Additionally, update the **original card's** discrete `cr_cardstatus` column to NUDGE so the frontend can show a visual indicator on the original card:
+
+| Column | Value |
+|--------|-------|
+| Row ID | `@{items('Apply_to_each')?['cr_assistantcardid']}` |
+| Card Status | `100000004` *(NUDGE)* |
+
+> This discrete column update on the original card is what makes NUDGE status reachable in the UI for the original card. The `useCardData.ts` hook reads `cr_cardstatus` directly from the Dataverse record, not from the JSON blob. Without this step, only the nudge card itself would have NUDGE status, but the original overdue card would still show READY.
+
 **Scope: Expire Abandoned Cards**
 
 **4. List abandoned cards** — Dataverse
@@ -1230,9 +1379,10 @@ Runs every 4 hours on weekdays. Performs two tasks:
 |--------|-------|
 | Row ID | `@{items('Apply_to_each_expired')?['cr_assistantcardid']}` |
 | Card Outcome | `100000004` *(EXPIRED)* |
+| Card Status | `100000004` *(EXPIRED)* |
 | Outcome Timestamp | `@{utcNow()}` |
 
-> **Note**: This update triggers the Card Outcome Tracker flow (Flow 5), which will see EXPIRED and terminate without updating sender profiles — by design.
+> **Note**: Both `cr_cardoutcome` and `cr_cardstatus` are set to EXPIRED (100000004). Setting `cr_cardstatus` via the discrete column ensures the frontend reads the correct status without parsing `cr_fulljson`. The `cr_cardoutcome` update triggers the Card Outcome Tracker flow (Flow 5), which will see EXPIRED and terminate without updating sender profiles (Branch C) — by design. This resolves I-03 (EXPIRED writer) by documenting who sets the EXPIRED status and through which columns.
 
 ### Error Handling
 
@@ -1251,209 +1401,26 @@ Trigger (Recurrence — weekday every 4h)
   │       ├── 3a. Check for existing nudge
   │       ├── 3b. Nudge exists? → Skip
   │       ├── 3c. Calculate hours pending
-  │       └── 3d. Create nudge card (NUDGE status)
+  │       ├── 3d. Create nudge card (cr_cardstatus = NUDGE via discrete column)
+  │       └── 3e. Update original card cr_cardstatus = NUDGE
   │
   └── Scope: Expire Abandoned Cards
       ├── 4. List abandoned cards (>7 days PENDING)
-      └── 5. For each: set cr_cardoutcome = EXPIRED
+      └── 5. For each: set cr_cardoutcome + cr_cardstatus = EXPIRED
 ```
 
 ### Deployment Checklist
 
 - [ ] Flow trigger set to correct timezone
-- [ ] Test: Create a High-priority card, wait 24+ hours → nudge card appears
+- [ ] Test: Create a High-priority card, wait 24+ hours → nudge card appears with cr_cardstatus = NUDGE
+- [ ] Test: Original overdue card also has cr_cardstatus = NUDGE (discrete column, not JSON)
 - [ ] Test: Run again → no duplicate nudge created (dedup by source_signal_id)
-- [ ] Test: Create a card, wait 7+ days → card expires to EXPIRED outcome
+- [ ] Test: Create a card, wait 7+ days → card expires with BOTH cr_cardoutcome AND cr_cardstatus = EXPIRED
 - [ ] Test: Expired card disappears from dashboard (Canvas app filter excludes EXPIRED)
 - [ ] Test: Nudge card for dismissed original → nudge still appears (dismissing the original does not auto-dismiss the nudge; user must dismiss separately)
+- [ ] Test: useCardData.ts reads cr_cardstatus directly (not from cr_fulljson) for NUDGE detection
 
 
-
----
-
-## Flow 6 — Daily Briefing *(Sprint 2)*
-
-### Overview
-
-Runs every weekday morning. Queries the user's open cards, stale items, today's calendar, and sender profiles, then invokes the Daily Briefing Agent to produce a prioritized action plan. Writes the briefing as a special DAILY_BRIEFING card to Dataverse.
-
-### Trigger
-
-**Recurrence** — Schedule connector
-
-| Setting | Value |
-|---------|-------|
-| Frequency | Week |
-| Interval | 1 |
-| On these days | Monday, Tuesday, Wednesday, Thursday, Friday |
-| At these hours | 7 |
-| At these minutes | 0 |
-| Time Zone | Select user's timezone |
-
-### Actions
-
-**1. Get my profile (V2)** — Office 365 Users connector
-
-**2. Get open cards** — Dataverse → List rows
-
-| Setting | Value |
-|---------|-------|
-| Table name | Assistant Cards |
-| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
-| Select columns | `cr_assistantcardid,cr_itemsummary,cr_priority,cr_triggertype,cr_cardstatus,cr_triagetier,cr_confidencescore,cr_temporalhorizon,cr_conversationclusterid,cr_originalsenderemail,cr_originalsenderdisplay,cr_originalsubject,createdon` |
-| Sort by | `createdon desc` |
-| Row count | `50` |
-
-**3. Get stale cards** — Dataverse → List rows
-
-| Setting | Value |
-|---------|-------|
-| Table name | Assistant Cards |
-| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon lt @{addHours(utcNow(), -24)} and cr_priority ne 100000003` |
-| Select columns | Same as step 2 |
-| Sort by | `createdon asc` |
-| Row count | `20` |
-
-> The `cr_priority ne 100000003` filter excludes N/A priority cards from stale alerts.
-
-**4. Get today's calendar** — Office 365 Outlook → Get events (V4)
-
-| Setting | Value |
-|---------|-------|
-| Calendar ID | Default calendar |
-| Start DateTime | `@{startOfDay(utcNow())}` |
-| End DateTime | `@{addDays(startOfDay(utcNow()), 1)}` |
-| Order By | start/dateTime asc |
-
-**5. Get sender profiles** — Dataverse → List rows
-
-| Setting | Value |
-|---------|-------|
-| Table name | Sender Profiles |
-| Filter rows | `_ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
-| Select columns | `cr_senderemail,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_sendercategory` |
-| Row count | `100` |
-
-**6. Compose — BRIEFING_INPUT**
-
-Assemble the input contract for the Daily Briefing Agent:
-
-```
-@{json(createArray(
-    json(concat('{"open_cards":', string(outputs('Get_open_cards')?['body/value']),
-    ',"stale_cards":', string(outputs('Get_stale_cards')?['body/value']),
-    ',"today_calendar":', string(outputs('Get_today_calendar')?['body/value']),
-    ',"sender_profiles":', string(outputs('Get_sender_profiles')?['body/value']),
-    ',"user_context":"', outputs('Get_my_profile_(V2)')?['body/displayName'], ', ',
-        outputs('Get_my_profile_(V2)')?['body/jobTitle'], ', ',
-        outputs('Get_my_profile_(V2)')?['body/department'], '"',
-    ',"current_datetime":"', utcNow(), '"}'
-    ))
-))}
-```
-
-**6a. Condition — Token budget check** *(Council Session 2, Issue 12)*
-
-```
-@lessOrEquals(length(outputs('Compose_BRIEFING_INPUT')), 40000)
-```
-
-If exceeds budget: truncate to first 30 cards and re-compose.
-
-**7. Invoke Daily Briefing Agent** — Microsoft Copilot Studio → Execute Agent and wait
-
-Pass BRIEFING_INPUT as text input.
-
-**8. Parse JSON** — Simplified schema (no `oneOf`):
-
-```json
-{
-    "type": "object",
-    "properties": {
-        "briefing_type": { "type": "string" },
-        "briefing_date": { "type": "string" },
-        "total_open_items": { "type": "integer" },
-        "day_shape": { "type": "string" },
-        "action_items": { "type": "array" },
-        "fyi_items": { "type": "array" },
-        "stale_alerts": { "type": "array" }
-    }
-}
-```
-
-**9. Add a new row** — Dataverse → Assistant Cards
-
-| Column | Value |
-|--------|-------|
-| Trigger Type | `100000003` (DAILY_BRIEFING) |
-| Triage Tier | `100000002` (FULL) |
-| Item Summary | `@{body('Parse_JSON')?['day_shape']}` |
-| Priority | `100000000` (High) |
-| Card Status | `100000000` (READY) |
-| Card Outcome | `100000000` (PENDING) |
-| Full JSON | `@{string(body('Parse_JSON'))}` |
-| Draft Payload | `@{string(body('Parse_JSON'))}` |
-| Confidence Score | `100` |
-| **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
-
-> `Draft Payload` stores the briefing JSON for the PCF BriefingCard component to parse.
-
-**10. Delete previous briefing** — Query for existing DAILY_BRIEFING card from today. If found, delete to avoid duplicates.
-
-### Deployment Checklist
-
-- [ ] Daily Briefing Agent published in Copilot Studio
-- [ ] Flow recurrence set to weekday mornings
-- [ ] Test: Manual run → Briefing card appears in dashboard
-- [ ] Test: 0 open cards → "Inbox clear" briefing
-- [ ] Test: Token budget truncation with >50 cards
-- [ ] Test: No duplicate briefings on re-run
-
----
-
-## Flow 7 — Staleness Monitor *(Sprint 2)*
-
-### Overview
-
-Expires abandoned cards (7+ days) and creates nudge cards for overdue high-priority items (24+ hours).
-
-### Trigger
-
-**Recurrence** — Every 4 hours, weekdays only (add weekday condition after trigger).
-
-### Actions
-
-**1. Get my profile (V2)**
-
-**2. Expire abandoned cards** — List rows: `cr_cardoutcome eq 100000000 and createdon lt @{addDays(utcNow(), -7)}`
-
-**3. Apply to each — Expire:** Update each row → `cr_cardoutcome = 100000004` (EXPIRED), `cr_outcometimestamp = utcNow()`
-
-**4. Get overdue High cards** — List rows: `cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and createdon lt @{addHours(utcNow(), -24)} and createdon ge @{addDays(utcNow(), -7)}`
-
-**5. Apply to each — Nudge:**
-- **5a.** Check if nudge already exists (same `cr_sourcesignalid`, `cr_cardstatus = NUDGE`, PENDING)
-- **5b.** If no existing nudge → Create NUDGE card inheriting original's sender/cluster/subject fields
-
-| Column | Value |
-|--------|-------|
-| Trigger Type | Same as original card |
-| Triage Tier | `100000001` (LIGHT) |
-| Item Summary | `Reminder: [original summary] — [X]h without action` |
-| Priority | `100000000` (High) |
-| Card Status | `100000004` (NUDGE) |
-| Card Outcome | `100000000` (PENDING) |
-| Source Signal ID | Same as original |
-| Conversation Cluster ID | Same as original |
-| **Owner** | Current user |
-
-### Deployment Checklist
-
-- [ ] Weekday filter active
-- [ ] Test: 7+ day old card → Gets EXPIRED
-- [ ] Test: 24h+ High priority card → Nudge created
-- [ ] Test: Re-run → No duplicate nudges
-- [ ] Test: Medium/Low priority → No nudge
 
 ---
 
@@ -1739,21 +1706,9 @@ Apply the categorization rules:
 | Dismiss Rate | `@{outputs('Compose_rates')?['dismiss_rate']}` |
 | Dismiss Count | `@{outputs('Compose_stats')?['dismiss_count']}` |
 
-### Updating Card Outcome Tracker for Dismiss Tracking
+### Dependency: Card Outcome Tracker Dismiss Tracking
 
-The Card Outcome Tracker flow (Flow 5) currently only updates sender profiles for SENT outcomes. To support Sprint 4, add a parallel branch for DISMISSED outcomes:
-
-**After the existing ownership filter (step 2):**
-
-Add condition: `cr_cardoutcome eq 100000003` (DISMISSED)
-
-**If Yes (dismissed):**
-1. Look up sender by `cr_originalsenderemail` (same pattern as steps 3-4)
-2. If found, increment `cr_dismisscount` by 1:
-   ```
-   @add(outputs('Get_sender_profile')?['body/cr_dismisscount'], 1)
-   ```
-3. Do NOT update response hours or response count for dismissals.
+This flow depends on Flow 5 (Card Outcome Tracker) Branch B (DISMISSED) incrementing `cr_dismisscount` on each sender's profile whenever a card is dismissed. Without this, `dismiss_rate` computed in step 3e is always 0 and AUTO_LOW categorization never triggers. See Flow 5 Branch B for the implementation.
 
 ### Updating Existing Trigger Flows for Sender Profile Passthrough
 
@@ -1796,7 +1751,7 @@ Trigger (Recurrence — Sunday 8 PM)
 ### Deployment Checklist
 
 - [ ] Flow trigger set to Sunday 8 PM (or appropriate off-hours time)
-- [ ] Card Outcome Tracker updated with dismiss count tracking
+- [ ] Card Outcome Tracker (Flow 5) Branch B verified: DISMISSED increments cr_dismisscount
 - [ ] All 3 trigger flows updated with sender profile lookup + passthrough
 - [ ] Main agent prompt updated with SENDER_PROFILE input and adaptive rules
 - [ ] Test: Sender with >80% response rate and <8h avg → AUTO_HIGH
