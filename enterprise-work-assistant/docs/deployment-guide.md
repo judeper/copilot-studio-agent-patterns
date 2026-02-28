@@ -304,8 +304,29 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Canvas app shows cards from Dataverse (only current user's cards visible)
 - [ ] Filters work correctly
 - [ ] Card detail view shows all sections
-- [ ] Edit Draft and Dismiss actions work
+- [ ] Send, Copy to Clipboard, and Dismiss actions work
 - [ ] DLP policies allow all required connector combinations
+
+### Sprint 1A Verification
+- [ ] AssistantCards table has `cr_cardoutcome`, `cr_outcometimestamp`, `cr_senttimestamp`, `cr_sentrecipient`, `cr_originalsenderemail`, `cr_originalsenderdisplay`, `cr_originalsubject`
+- [ ] New cards created with `cr_cardoutcome = PENDING` and sender fields populated
+- [ ] Send Email flow: configured with "Run only users" for Outlook connection
+- [ ] Send Email flow: ownership validation prevents cross-user sends
+- [ ] Send button visible only on EMAIL FULL READY cards with humanized draft
+- [ ] PCF Send → Confirm → Flow → Email delivered → Card shows "Sent ✓"
+- [ ] Dismiss updates `cr_cardoutcome = DISMISSED` with timestamp
+
+### Sprint 1B Verification
+- [ ] AssistantCards table has `cr_conversationclusterid`, `cr_sourcesignalid`
+- [ ] SenderProfile table created with all 8 columns
+- [ ] Alternate key on `cr_senderemail` is Active
+- [ ] Security role includes SenderProfile table Basic privileges
+- [ ] EMAIL flow: sender profile upserted (signal count increments on repeat senders)
+- [ ] TEAMS flow: cluster ID uses threadId; sender profile upserted
+- [ ] CALENDAR flow: cluster ID uses `seriesMasterId` for recurring events
+- [ ] Card Outcome Tracker flow: response count increments on SENT outcomes
+- [ ] Card Outcome Tracker flow: does NOT fire on DISMISSED outcomes
+- [ ] Running average for `cr_avgresponsehours` calculates correctly
 
 ---
 
