@@ -20,7 +20,7 @@
   "properties": {
     "trigger_type": {
       "type": "string",
-      "enum": ["EMAIL", "TEAMS_MESSAGE", "CALENDAR_SCAN", "DAILY_BRIEFING"],
+      "enum": ["EMAIL", "TEAMS_MESSAGE", "CALENDAR_SCAN", "DAILY_BRIEFING", "SELF_REMINDER", "COMMAND_RESULT"],
       "description": "The type of incoming signal that triggered this agent invocation."
     },
     "triage_tier": {

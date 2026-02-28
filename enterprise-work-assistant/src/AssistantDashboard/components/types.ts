@@ -1,4 +1,22 @@
-export type TriggerType = "EMAIL" | "TEAMS_MESSAGE" | "CALENDAR_SCAN" | "DAILY_BRIEFING";
+export type TriggerType = "EMAIL" | "TEAMS_MESSAGE" | "CALENDAR_SCAN" | "DAILY_BRIEFING" | "SELF_REMINDER" | "COMMAND_RESULT";
+
+// Sprint 3 — Command Bar / Orchestrator types
+
+export interface CommandCardLink {
+    card_id: string;
+    label: string;
+}
+
+export interface CommandSideEffect {
+    action: "UPDATE_CARD" | "CREATE_CARD" | "REFINE_DRAFT";
+    description: string;
+}
+
+export interface OrchestratorResponse {
+    response_text: string;
+    card_links: CommandCardLink[];
+    side_effects: CommandSideEffect[];
+}
 export type TriageTier = "SKIP" | "LIGHT" | "FULL";
 export type Priority = "High" | "Medium" | "Low";
 export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND";
@@ -97,4 +115,5 @@ export interface AppProps {
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
     onJumpToCard: (cardId: string) => void; // Sprint 2: navigate to a specific card from briefing
+    onExecuteCommand: (command: string, currentCardId: string | null) => void; // Sprint 3: command bar
 }
