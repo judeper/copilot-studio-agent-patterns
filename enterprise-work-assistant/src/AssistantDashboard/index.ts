@@ -52,6 +52,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private copyDraftAction: string = "";
     private dismissCardAction: string = "";
     private jumpToCardAction: string = "";
+    private commandAction: string = "";
     private datasetVersion: number = 0;
 
     // Stable callback references — created once in init, never recreated
@@ -60,6 +61,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private handleCopyDraft: (cardId: string) => void;
     private handleDismissCard: (cardId: string) => void;
     private handleJumpToCard: (cardId: string) => void;
+    private handleExecuteCommand: (command: string, currentCardId: string | null) => void;
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -91,6 +93,11 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             this.jumpToCardAction = cardId;
             this.notifyOutputChanged();
         };
+        this.handleExecuteCommand = (command: string, currentCardId: string | null) => {
+            // Sprint 3: Command bar — JSON-encode for Canvas app PowerAutomate.Run()
+            this.commandAction = JSON.stringify({ command, currentCardId });
+            this.notifyOutputChanged();
+        };
     }
 
     public updateView(
@@ -117,6 +124,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             onCopyDraft: this.handleCopyDraft,
             onDismissCard: this.handleDismissCard,
             onJumpToCard: this.handleJumpToCard,
+            onExecuteCommand: this.handleExecuteCommand,
         });
     }
 
@@ -127,6 +135,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             copyDraftAction: this.copyDraftAction,
             dismissCardAction: this.dismissCardAction,
             jumpToCardAction: this.jumpToCardAction,
+            commandAction: this.commandAction,
         };
 
         // Reset action outputs after reading to prevent stale re-fires
@@ -134,6 +143,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         this.copyDraftAction = "";
         this.dismissCardAction = "";
         this.jumpToCardAction = "";
+        this.commandAction = "";
 
         return outputs;
     }

@@ -344,6 +344,21 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Inline editing: "Revert to original" restores the humanized draft
 - [ ] Send Email flow sets SENT_EDITED when final text differs from humanized draft
 
+### Sprint 3 Verification
+- [ ] Orchestrator Agent published in Copilot Studio with 6 tool actions registered
+- [ ] Humanizer Agent connected as sub-agent for draft refinement
+- [ ] Command Execution Flow created (instant trigger, 120s timeout)
+- [ ] Command bar renders at bottom of dashboard (persistent in gallery + detail views)
+- [ ] Quick action chips visible when command bar not expanded
+- [ ] "What's urgent?" returns ranked open items with card links
+- [ ] "Remind me to [action] on [date]" creates SELF_REMINDER card
+- [ ] Context-aware commands work (e.g., "Make this shorter" with card expanded)
+- [ ] "How often do I respond to [sender]?" returns sender profile stats
+- [ ] Card links in responses navigate to the referenced card
+- [ ] Conversation history maintained within session (cleared on clear button)
+- [ ] Error handling: invalid commands return graceful fallback response
+- [ ] SELF_REMINDER and COMMAND_RESULT trigger types provisioned in Dataverse
+
 ### Sprint 2 Verification
 - [ ] Daily Briefing Agent published in Copilot Studio with correct input contract
 - [ ] Daily Briefing Flow runs on weekday mornings (test with manual run)

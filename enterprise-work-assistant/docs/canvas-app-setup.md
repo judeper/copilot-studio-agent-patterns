@@ -193,6 +193,43 @@ If(
 > - **SENT_EDITED tracking**: To distinguish AS_IS from EDITED sends, the Send Email flow should be updated to compare the final text against the stored `cr_humanizeddraft` column value. If they differ, set `cr_cardoutcome = SENT_EDITED` (100000002) instead of `SENT_AS_IS`. This comparison happens server-side in the flow.
 > - **Briefing cards**: DAILY_BRIEFING cards render at the top of the gallery via the BriefingCard component. The Jump to Card handler fires when users click action item links in the briefing.
 
+> **Sprint 3 Notes:**
+> - **Command bar**: The PCF CommandBar component fires `commandAction` output with JSON `{"command":"...","currentCardId":"..."}`. The Canvas app OnChange handler calls the Command Execution Flow via PowerAutomate.Run() and passes the response back.
+> - **Response handling**: The flow returns `responseJson` which contains `response_text`, `card_links`, and `side_effects`. If `side_effects` is non-empty, the Canvas app should call `Refresh('Assistant Cards')` to reflect any data changes.
+> - **SELF_REMINDER cards**: Created by the Orchestrator Agent via the CreateCard tool action. They appear in the dashboard like regular cards with trigger type SELF_REMINDER.
+
+Add this handler to the OnChange block:
+
+```
+// Sprint 3: Handle Command action — invoke Orchestrator via Power Automate
+If(
+    !IsBlank(AssistantDashboard1.commandAction),
+    With(
+        { cmdData: ParseJSON(AssistantDashboard1.commandAction) },
+        Set(
+            varCommandResult,
+            CommandExecutionFlow.Run(
+                Text(cmdData.command),
+                User().EntraObjectId,
+                Text(cmdData.currentCardId)
+            )
+        );
+        // Parse the response and check for side effects
+        With(
+            { resp: ParseJSON(varCommandResult.responsejson) },
+            // If side effects occurred, refresh the dataset
+            If(
+                CountRows(Table(resp.side_effects)) > 0,
+                Refresh('Assistant Cards')
+            )
+            // Note: The PCF CommandBar component manages its own response display.
+            // The Canvas app stores the response for the PCF to read via an input property,
+            // or the PCF can parse the commandAction output directly.
+        )
+    )
+);
+```
+
 ### Selected Card tracking
 
 ```

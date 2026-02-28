@@ -106,4 +106,10 @@
   <data name="JumpToCardAction_Description" xml:space="preserve">
     <value>Fires when user clicks a card link in the daily briefing. Contains the target card ID.</value>
   </data>
+  <data name="CommandAction_DisplayName" xml:space="preserve">
+    <value>Command Action</value>
+  </data>
+  <data name="CommandAction_Description" xml:space="preserve">
+    <value>Fires when user submits a command. Contains JSON: {"command":"...","currentCardId":"..."}.</value>
+  </data>
 </root>

@@ -4,6 +4,7 @@ import type { AssistantCard, AppProps } from "./types";
 import { CardGallery } from "./CardGallery";
 import { CardDetail } from "./CardDetail";
 import { BriefingCard } from "./BriefingCard";
+import { CommandBar } from "./CommandBar";
 import { FilterBar } from "./FilterBar";
 
 type ViewState =
@@ -79,6 +80,7 @@ export const App: React.FC<AppProps> = ({
     onCopyDraft,
     onDismissCard,
     onJumpToCard,
+    onExecuteCommand,
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery" });
     const prefersDark = usePrefersDarkMode();
@@ -134,48 +136,60 @@ export const App: React.FC<AppProps> = ({
         setViewState({ mode: "gallery" });
     }, []);
 
+    // Sprint 3: Derive current card ID for context-aware commands
+    const currentCardId = viewState.mode === "detail" ? viewState.cardId : null;
+
     return (
         <FluentProvider theme={prefersDark ? webDarkTheme : webLightTheme}>
-            <div className="assistant-dashboard" style={{ width, height }}>
-                {viewState.mode === "gallery" || !selectedCard ? (
-                    <>
-                        <FilterBar
-                            cardCount={filteredCards.length}
-                            filterTriggerType={filterTriggerType}
-                            filterPriority={filterPriority}
-                            filterCardStatus={filterCardStatus}
-                            filterTemporalHorizon={filterTemporalHorizon}
-                        />
-                        {/* Sprint 2: Briefing cards render above the gallery */}
-                        {briefingCards.map((bc) => (
-                            <BriefingCard
-                                key={bc.id}
-                                card={bc}
-                                onJumpToCard={handleJumpToCard}
-                                onDismissCard={onDismissCard}
+            <div className="assistant-dashboard" style={{ width, height, display: "flex", flexDirection: "column" }}>
+                <div style={{ flex: 1, overflow: "auto" }}>
+                    {viewState.mode === "gallery" || !selectedCard ? (
+                        <>
+                            <FilterBar
+                                cardCount={filteredCards.length}
+                                filterTriggerType={filterTriggerType}
+                                filterPriority={filterPriority}
+                                filterCardStatus={filterCardStatus}
+                                filterTemporalHorizon={filterTemporalHorizon}
                             />
-                        ))}
-                        <CardGallery
-                            cards={regularCards}
-                            onSelectCard={handleSelectCard}
+                            {/* Sprint 2: Briefing cards render above the gallery */}
+                            {briefingCards.map((bc) => (
+                                <BriefingCard
+                                    key={bc.id}
+                                    card={bc}
+                                    onJumpToCard={handleJumpToCard}
+                                    onDismissCard={onDismissCard}
+                                />
+                            ))}
+                            <CardGallery
+                                cards={regularCards}
+                                onSelectCard={handleSelectCard}
+                            />
+                        </>
+                    ) : selectedCard.trigger_type === "DAILY_BRIEFING" ? (
+                        <BriefingCard
+                            card={selectedCard}
+                            onJumpToCard={handleJumpToCard}
+                            onDismissCard={onDismissCard}
                         />
-                    </>
-                ) : selectedCard.trigger_type === "DAILY_BRIEFING" ? (
-                    /* Briefing cards expand inline, no detail view needed */
-                    <BriefingCard
-                        card={selectedCard}
-                        onJumpToCard={handleJumpToCard}
-                        onDismissCard={onDismissCard}
-                    />
-                ) : (
-                    <CardDetail
-                        card={selectedCard}
-                        onBack={handleBack}
-                        onSendDraft={onSendDraft}
-                        onCopyDraft={onCopyDraft}
-                        onDismissCard={onDismissCard}
-                    />
-                )}
+                    ) : (
+                        <CardDetail
+                            card={selectedCard}
+                            onBack={handleBack}
+                            onSendDraft={onSendDraft}
+                            onCopyDraft={onCopyDraft}
+                            onDismissCard={onDismissCard}
+                        />
+                    )}
+                </div>
+                {/* Sprint 3: Command bar — persistent bottom panel */}
+                <CommandBar
+                    currentCardId={currentCardId}
+                    onExecuteCommand={onExecuteCommand}
+                    onJumpToCard={handleJumpToCard}
+                    lastResponse={null}
+                    isProcessing={false}
+                />
             </div>
         </FluentProvider>
     );

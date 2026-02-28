@@ -29,7 +29,9 @@
         { "label": "EMAIL", "value": 100000000 },
         { "label": "TEAMS_MESSAGE", "value": 100000001 },
         { "label": "CALENDAR_SCAN", "value": 100000002 },
-        { "label": "DAILY_BRIEFING", "value": 100000003 }
+        { "label": "DAILY_BRIEFING", "value": 100000003 },
+        { "label": "SELF_REMINDER", "value": 100000004 },
+        { "label": "COMMAND_RESULT", "value": 100000005 }
       ]
     },
     {

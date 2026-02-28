@@ -569,7 +569,7 @@ When writing Choice columns to Dataverse, map string values to integer option va
 | Column | String → Value |
 |--------|---------------|
 | Triage Tier | SKIP → 100000000, LIGHT → 100000001, FULL → 100000002 |
-| Trigger Type | EMAIL → 100000000, TEAMS_MESSAGE → 100000001, CALENDAR_SCAN → 100000002, DAILY_BRIEFING → 100000003 |
+| Trigger Type | EMAIL → 100000000, TEAMS_MESSAGE → 100000001, CALENDAR_SCAN → 100000002, DAILY_BRIEFING → 100000003, SELF_REMINDER → 100000004, COMMAND_RESULT → 100000005 |
 | Priority | High → 100000000, Medium → 100000001, Low → 100000002, N/A → 100000003 |
 | Card Status | READY → 100000000, LOW_CONFIDENCE → 100000001, SUMMARY_ONLY → 100000002, NO_OUTPUT → 100000003, NUDGE → 100000004 |
 | Temporal Horizon | TODAY → 100000000, THIS_WEEK → 100000001, NEXT_WEEK → 100000002, BEYOND → 100000003, N/A → 100000004 |
@@ -1454,3 +1454,156 @@ Expires abandoned cards (7+ days) and creates nudge cards for overdue high-prior
 - [ ] Test: 24h+ High priority card → Nudge created
 - [ ] Test: Re-run → No duplicate nudges
 - [ ] Test: Medium/Low priority → No nudge
+
+---
+
+## Flow 8 — Command Execution *(Sprint 3)*
+
+### Overview
+
+Instant flow triggered from the Canvas app when the user submits a command in the command bar. Passes the command to the Orchestrator Agent and returns the response synchronously.
+
+### Trigger
+
+**Instant — manually triggered** (PowerAutomate.Run() from Canvas app)
+
+**Input parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| commandText | Text | The user's natural language command |
+| userId | Text | AAD user ID (from Canvas app User().EntraObjectId) |
+| currentCardId | Text | ID of the currently expanded card, or empty string |
+
+### Actions
+
+**1. Get user profile** — Office 365 Users → Get user profile (V2)
+
+Use the `userId` input to look up the user's display name, job title, department.
+
+**2. Condition — Has current card context**
+
+```
+@not(empty(triggerBody()?['currentCardId']))
+```
+
+**If Yes:**
+
+**2a. Get current card** — Dataverse → Get a row by ID
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Row ID | `@{triggerBody()?['currentCardId']}` |
+| Select columns | `cr_fulljson,cr_humanizeddraft,cr_itemsummary,cr_originalsenderemail,cr_originalsenderdisplay,cr_conversationclusterid` |
+
+**3. Get recent briefing** — Dataverse → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_triggertype eq 100000003 and _ownerid_value eq '@{triggerBody()?['userId']}' and createdon ge @{startOfDay(utcNow())}` |
+| Sort by | `createdon desc` |
+| Row count | `1` |
+| Select columns | `cr_itemsummary` |
+
+**4. Compose — ORCHESTRATOR_INPUT**
+
+```json
+{
+    "COMMAND_TEXT": "@{triggerBody()?['commandText']}",
+    "USER_CONTEXT": "@{outputs('Get_user_profile')?['body/displayName']}, @{outputs('Get_user_profile')?['body/jobTitle']}, @{outputs('Get_user_profile')?['body/department']}",
+    "CURRENT_CARD_JSON": @{if(empty(triggerBody()?['currentCardId']), 'null', outputs('Get_current_card')?['body/cr_fulljson'])},
+    "RECENT_BRIEFING": @{if(empty(outputs('Get_recent_briefing')?['body/value']), 'null', concat('"', first(outputs('Get_recent_briefing')?['body/value'])?['cr_itemsummary'], '"'))},
+    "CURRENT_DATETIME": "@{utcNow()}"
+}
+```
+
+**5. Invoke Orchestrator Agent** — Microsoft Copilot Studio → "Execute Agent and wait"
+
+Select the **Orchestrator Agent**. Pass the serialized input:
+
+```
+@{string(outputs('Compose_ORCHESTRATOR_INPUT'))}
+```
+
+> **Timeout:** Set the action timeout to 120 seconds. Multi-tool agent reasoning may take 30-60 seconds for complex queries.
+
+**6. Parse JSON** — Parse the Orchestrator response
+
+Schema:
+
+```json
+{
+    "type": "object",
+    "properties": {
+        "response_text": { "type": "string" },
+        "card_links": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "card_id": { "type": "string" },
+                    "label": { "type": "string" }
+                }
+            }
+        },
+        "side_effects": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "action": { "type": "string" },
+                    "description": { "type": "string" }
+                }
+            }
+        }
+    }
+}
+```
+
+**7. Respond to a PowerApp or flow** — Return the parsed response as JSON
+
+| Output | Value |
+|--------|-------|
+| responseJson | `@{string(body('Parse_JSON'))}` |
+
+### Error Handling
+
+Wrap steps 4-6 in a **Scope** with "Run after: has failed" parallel branch:
+
+```json
+{
+    "response_text": "I wasn't able to process that command. Please try again or rephrase your request.",
+    "card_links": [],
+    "side_effects": []
+}
+```
+
+### Flow Diagram
+
+```
+Trigger (Instant — from Canvas app)
+  │
+  ├── 1. Get user profile
+  ├── 2. Has current card context?
+  │   └── Yes → 2a. Get current card from Dataverse
+  ├── 3. Get today's briefing (if exists)
+  ├── 4. Compose orchestrator input
+  ├── 5. Invoke Orchestrator Agent (120s timeout)
+  ├── 6. Parse JSON response
+  └── 7. Return response to Canvas app
+```
+
+### Deployment Checklist
+
+- [ ] Orchestrator Agent created and published in Copilot Studio
+- [ ] All 6 tool actions registered (QueryCards, QuerySenderProfile, UpdateCard, CreateCard, RefineDraft, QueryCalendar)
+- [ ] Humanizer Agent connected as sub-agent for RefineDraft
+- [ ] Flow timeout set to 120 seconds
+- [ ] Error handling scope configured with fallback response
+- [ ] Test: "What needs my attention?" → Returns ranked cards with links
+- [ ] Test: "Remind me to follow up Friday" → Creates SELF_REMINDER card
+- [ ] Test: With card expanded, "Make this shorter" → Draft refinement works
+- [ ] Test: "How often do I respond to [sender]?" → Returns sender stats
+- [ ] Test: Invalid command → Graceful error response

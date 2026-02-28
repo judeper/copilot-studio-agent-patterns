@@ -268,7 +268,9 @@ New-ChoiceColumn -SchemaName "${PublisherPrefix}_triggertype" -DisplayName "Trig
         @{ Label = "EMAIL"; Value = 100000000 },
         @{ Label = "TEAMS_MESSAGE"; Value = 100000001 },
         @{ Label = "CALENDAR_SCAN"; Value = 100000002 },
-        @{ Label = "DAILY_BRIEFING"; Value = 100000003 }
+        @{ Label = "DAILY_BRIEFING"; Value = 100000003 },
+        @{ Label = "SELF_REMINDER"; Value = 100000004 },
+        @{ Label = "COMMAND_RESULT"; Value = 100000005 }
     )
 
 # Priority
