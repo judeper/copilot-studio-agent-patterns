@@ -107,11 +107,13 @@ Plans:
   2. All issues classified as deploy-blocking are fixed in the actual source files (code, docs, configs, scripts) with the fix verified
   3. All issues classified as non-blocking are documented in a deferral log with severity, rationale for deferral, and suggested resolution timeline
   4. Final validation pass confirms no regressions from fixes and the solution is clean for deployment (type-check passes, tests pass, no known deploy-blockers remain)
-**Plans**: TBD
+**Plans**: 4 plans (wave-aligned)
 
 Plans:
-- [ ] 13-01: Fix deploy-blocking issues from council findings
-- [ ] 13-02: Document deferrals and validate final state
+- [ ] 13-01-PLAN.md — Wave 1: Schema/contract fixes + audit wiring gap resolution (R-01, R-02, R-03, R-09, I-16, F-06, F-08 + promote R-10, decide R-18, propagate I-15, resolve I-11)
+- [ ] 13-02-PLAN.md — Wave 2: Missing flow specifications (R-04, R-05+I-15, R-06+R-18, R-07, R-08) — unblocks 3 broken E2E flows
+- [ ] 13-03-PLAN.md — Wave 3: Frontend fixes + Wave 4 test coverage (F-01, F-02, F-03, F-07, I-17, I-18, F-04, F-05)
+- [ ] 13-04-PLAN.md — Deferral log + final validation (FIX-03, FIX-04) + quick-fix selected deferral candidates
 
 ## Progress
 
@@ -138,4 +140,4 @@ Phases execute in numeric order: 10 → 11 → 12 → 13
 | 10. Platform Architecture Review | v2.1 | Complete    | 2026-02-28 | 2026-02-28 |
 | 11. Frontend / PCF Review | 2/2 | Complete    | 2026-02-28 | - |
 | 12. Integration / E2E Review | 2/2 | Complete    | 2026-02-28 | - |
-| 13. Remediation | v2.1 | 0/2 | Not started | - |
+| 13. Remediation | v2.1 | 0/4 | Not started | - |
