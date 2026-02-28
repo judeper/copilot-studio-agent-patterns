@@ -569,9 +569,9 @@ When writing Choice columns to Dataverse, map string values to integer option va
 | Column | String → Value |
 |--------|---------------|
 | Triage Tier | SKIP → 100000000, LIGHT → 100000001, FULL → 100000002 |
-| Trigger Type | EMAIL → 100000000, TEAMS_MESSAGE → 100000001, CALENDAR_SCAN → 100000002 |
+| Trigger Type | EMAIL → 100000000, TEAMS_MESSAGE → 100000001, CALENDAR_SCAN → 100000002, DAILY_BRIEFING → 100000003 |
 | Priority | High → 100000000, Medium → 100000001, Low → 100000002, N/A → 100000003 |
-| Card Status | READY → 100000000, LOW_CONFIDENCE → 100000001, SUMMARY_ONLY → 100000002, NO_OUTPUT → 100000003 |
+| Card Status | READY → 100000000, LOW_CONFIDENCE → 100000001, SUMMARY_ONLY → 100000002, NO_OUTPUT → 100000003, NUDGE → 100000004 |
 | Temporal Horizon | TODAY → 100000000, THIS_WEEK → 100000001, NEXT_WEEK → 100000002, BEYOND → 100000003, N/A → 100000004 |
 | Card Outcome *(Sprint 1A)* | PENDING → 100000000, SENT_AS_IS → 100000001, SENT_EDITED → 100000002, DISMISSED → 100000003, EXPIRED → 100000004 |
 | Sender Category *(Sprint 1B)* | AUTO_HIGH → 100000000, AUTO_MEDIUM → 100000001, AUTO_LOW → 100000002, USER_OVERRIDE → 100000003 |
@@ -922,3 +922,535 @@ Trigger (cr_cardoutcome changed, non-PENDING)
 - [ ] Test: Sender profile missing → Flow logs warning, does not error
 - [ ] Verify flow does not re-trigger itself (no infinite loop)
 
+---
+
+## Flow 6 — Daily Briefing *(Sprint 2)*
+
+### Overview
+
+Runs every weekday morning. Gathers open cards, stale items, today's calendar, and sender profiles, then invokes the Daily Briefing Agent to produce a prioritized action plan. Writes the briefing as a special DAILY_BRIEFING card to Dataverse.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| Days | Monday, Tuesday, Wednesday, Thursday, Friday |
+| At These Hours | 7 |
+| At These Minutes | 0 |
+| Time Zone | Select appropriate timezone for the user |
+
+### Actions
+
+**1. Get my profile (V2)** — Office 365 Users connector
+
+Get the current user's AAD profile for ownership and identity.
+
+**2. List open cards** — Dataverse connector
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Sort by | `createdon desc` |
+| Row count | `50` |
+| Select columns | `cr_assistantcardid,cr_fulljson,cr_humanizeddraft,cr_cardoutcome,cr_originalsenderemail,cr_originalsenderdisplay,cr_originalsubject,cr_conversationclusterid,cr_sourcesignalid,createdon,cr_triggertype,cr_priority,cr_cardstatus,cr_triagetier,cr_confidencescore` |
+
+**3. Condition — Token budget guard** *(Council Issue 12)*
+
+Serialize the open cards array and check length. If the serialized string exceeds ~40,000 characters (~10K tokens), truncate to the first N cards that fit:
+
+```
+@if(
+    greater(length(string(outputs('List_open_cards')?['body/value'])), 40000),
+    take(outputs('List_open_cards')?['body/value'], 30),
+    outputs('List_open_cards')?['body/value']
+)
+```
+
+> **Design note**: The 40,000 character threshold is conservative — it leaves room for the calendar events, sender profiles, and the agent's own reasoning within the context window. Monitor actual token usage in Copilot Studio analytics and adjust.
+
+**4. List stale cards** — Dataverse connector
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon lt @{addHours(utcNow(), -24)} and cr_priority ne 100000003` |
+| Sort by | `createdon asc` |
+| Row count | `20` |
+| Select columns | `cr_assistantcardid,cr_itemsummary,cr_originalsenderdisplay,cr_priority,createdon` |
+
+> The `cr_priority ne 100000003` filter excludes N/A priority items (Choice value 100000003), which are typically informational and don't become "stale."
+
+**5. Get today's calendar** — Office 365 Outlook connector → Get events (V4)
+
+| Setting | Value |
+|---------|-------|
+| Calendar ID | Default calendar |
+| Start DateTime | `@{startOfDay(utcNow())}` |
+| End DateTime | `@{addDays(startOfDay(utcNow()), 1)}` |
+| Order By | start/dateTime asc |
+| Top | 20 |
+
+**6. List sender profiles** — Dataverse connector
+
+| Setting | Value |
+|---------|-------|
+| Table name | Sender Profiles |
+| Filter rows | `_ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Row count | `100` |
+| Select columns | `cr_senderemail,cr_senderdisplayname,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_sendercategory` |
+
+> This loads all sender profiles for the user. The briefing agent uses these to assess sender importance when ranking items. For users with >100 senders, consider filtering to senders appearing in the open_cards list.
+
+**7. Compose — BRIEFING_INPUT**
+
+Assemble the input JSON for the Daily Briefing Agent:
+
+```json
+{
+    "open_cards": @{outputs('Condition_Token_budget_guard')},
+    "stale_cards": @{outputs('List_stale_cards')?['body/value']},
+    "today_calendar": @{outputs('Get_todays_calendar')?['body/value']},
+    "sender_profiles": @{outputs('List_sender_profiles')?['body/value']},
+    "user_context": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}, @{outputs('Get_my_profile_(V2)')?['body/jobTitle']}, @{outputs('Get_my_profile_(V2)')?['body/department']}",
+    "current_datetime": "@{utcNow()}"
+}
+```
+
+**8. Invoke Daily Briefing Agent** — Microsoft Copilot Studio → "Execute Agent and wait"
+
+Select the **Daily Briefing Agent**. Pass the serialized input:
+
+```
+@{string(outputs('Compose_BRIEFING_INPUT'))}
+```
+
+**9. Parse JSON** — Simplified briefing output schema
+
+Use a flattened schema (no `oneOf`) matching the briefing output contract in `schemas/briefing-output-schema.json`. For the Parse JSON action, use:
+
+```json
+{
+    "type": "object",
+    "properties": {
+        "briefing_type": { "type": "string" },
+        "briefing_date": { "type": "string" },
+        "total_open_items": { "type": "integer" },
+        "day_shape": { "type": "string" },
+        "action_items": { "type": "array" },
+        "fyi_items": { "type": "array" },
+        "stale_alerts": { "type": "array" }
+    }
+}
+```
+
+**10. Condition — Briefing generated successfully**
+
+```
+@not(empty(body('Parse_JSON')?['day_shape']))
+```
+
+**If Yes:**
+
+**11. Add a new row** — Dataverse → Assistant Cards
+
+| Column | Value |
+|--------|-------|
+| Trigger Type | `100000003` *(DAILY_BRIEFING)* |
+| Triage Tier | `100000002` *(FULL)* |
+| Item Summary | `@{body('Parse_JSON')?['day_shape']}` |
+| Priority | *(leave null)* |
+| Card Status | `100000000` *(READY)* |
+| Confidence Score | `100` |
+| Full JSON | `@{string(body('Parse_JSON'))}` |
+| Card Outcome | `100000000` *(PENDING)* |
+| **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
+
+> The `item_summary` gets the `day_shape` narrative, which appears in the gallery card. The full briefing structure (action_items, fyi_items, stale_alerts) is stored in `cr_fulljson` and parsed by the PCF component's BriefingCard renderer.
+
+**If No:** Terminate — agent failed to produce valid output. Check Copilot Studio error logs.
+
+### Deduplication
+
+The briefing flow runs daily. To prevent duplicate briefings:
+
+Add a pre-check at the start of the flow (between steps 1 and 2):
+
+**1a. List existing briefings today** — Dataverse
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_triggertype eq 100000003 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon ge @{startOfDay(utcNow())}` |
+| Row count | `1` |
+
+**1b. Condition — Briefing already exists today**
+
+```
+@greater(length(outputs('List_existing_briefings_today')?['body/value']), 0)
+```
+
+**If Yes:** Terminate — a briefing was already generated today (idempotent).
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — weekday 7 AM)
+  │
+  ├── 1. Get user profile
+  ├── 1a. Check for existing briefing today
+  │   └── Already exists? → Terminate
+  │
+  ├── 2. List open cards (top 50 PENDING)
+  ├── 3. Token budget guard (truncate if >40K chars)
+  ├── 4. List stale cards (>24h, non-N/A priority)
+  ├── 5. Get today's calendar events
+  ├── 6. List sender profiles
+  ├── 7. Compose BRIEFING_INPUT
+  ├── 8. Invoke Daily Briefing Agent
+  ├── 9. Parse JSON response
+  ├── 10. Valid briefing?
+  │   └── No → Terminate
+  └── 11. Write briefing card to Dataverse
+```
+
+### Deployment Checklist
+
+- [ ] Daily Briefing Agent created and published in Copilot Studio
+- [ ] Flow trigger set to correct timezone for the user
+- [ ] Token budget threshold set (default 40,000 characters)
+- [ ] Test: Run manually → briefing card appears in dashboard with BriefingCard renderer
+- [ ] Test: Run twice on same day → second run terminates (deduplication)
+- [ ] Test: Empty inbox → briefing card shows "Your inbox is clear" message
+- [ ] Test: Cards with stale_alerts → amber/red indicators render correctly
+
+---
+
+## Flow 7 — Staleness Monitor *(Sprint 2)*
+
+### Overview
+
+Runs every 4 hours on weekdays. Performs two tasks:
+1. Creates "nudge" cards for high-priority items that have gone >24 hours without action
+2. Expires cards that have been PENDING for >7 days
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| Days | Monday, Tuesday, Wednesday, Thursday, Friday |
+| At These Hours | 8, 12, 16, 20 |
+| At These Minutes | 0 |
+| Time Zone | Select appropriate timezone for the user |
+
+### Actions
+
+**1. Get my profile (V2)** — Office 365 Users connector
+
+**Scope: Create Nudge Cards**
+
+**2. List overdue high-priority cards** — Dataverse
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon lt @{addHours(utcNow(), -24)} and cr_triggertype ne 100000003` |
+| Row count | `10` |
+| Select columns | `cr_assistantcardid,cr_itemsummary,cr_sourcesignalid,cr_originalsenderdisplay,createdon` |
+
+> Filters: PENDING + High priority + older than 24 hours + not a briefing card itself.
+
+**3. Apply to each** — Loop over overdue cards
+
+**3a. List existing nudges for this card** — Dataverse
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_sourcesignalid eq 'NUDGE:@{items('Apply_to_each')?['cr_assistantcardid']}' and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Row count | `1` |
+
+> Uses a synthetic `cr_sourcesignalid` prefixed with `NUDGE:` + the original card's ID. This prevents duplicate nudge cards for the same overdue item.
+
+**3b. Condition — Nudge already exists**
+
+```
+@equals(length(outputs('List_existing_nudges')?['body/value']), 0)
+```
+
+**If Yes (no existing nudge):**
+
+**3c. Calculate hours pending**
+
+```
+@{div(div(sub(ticks(utcNow()), ticks(items('Apply_to_each')?['createdon'])), 10000000), 3600)}
+```
+
+**3d. Add a new row** — Dataverse → Assistant Cards (create nudge card)
+
+| Column | Value |
+|--------|-------|
+| Trigger Type | `@{items('Apply_to_each')?['cr_triggertype']}` *(same as original)* |
+| Triage Tier | `100000001` *(LIGHT)* |
+| Item Summary | `Reminder: @{items('Apply_to_each')?['cr_itemsummary']} — @{int(outputs('Compose_HOURS_PENDING'))} hours without action` |
+| Priority | `100000000` *(High)* |
+| Card Status | `100000004` *(NUDGE)* |
+| Confidence Score | `100` |
+| Card Outcome | `100000000` *(PENDING)* |
+| Source Signal ID | `NUDGE:@{items('Apply_to_each')?['cr_assistantcardid']}` |
+| Original Sender Display | `@{items('Apply_to_each')?['cr_originalsenderdisplay']}` |
+| **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
+
+**Scope: Expire Abandoned Cards**
+
+**4. List abandoned cards** — Dataverse
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon lt @{addDays(utcNow(), -7)} and cr_triggertype ne 100000003` |
+| Row count | `50` |
+| Select columns | `cr_assistantcardid` |
+
+> Cards that have been PENDING for >7 days with no user action.
+
+**5. Apply to each** — Loop over abandoned cards
+
+**5a. Update a row** — Dataverse → Assistant Cards
+
+| Column | Value |
+|--------|-------|
+| Row ID | `@{items('Apply_to_each_expired')?['cr_assistantcardid']}` |
+| Card Outcome | `100000004` *(EXPIRED)* |
+| Outcome Timestamp | `@{utcNow()}` |
+
+> **Note**: This update triggers the Card Outcome Tracker flow (Flow 5), which will see EXPIRED and terminate without updating sender profiles — by design.
+
+### Error Handling
+
+Both scopes (nudge and expire) should be configured with "Run after: has failed" parallel branches that log errors but do NOT halt the flow. A failure to create one nudge should not prevent other nudges or the expiration process.
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — weekday every 4h)
+  │
+  ├── 1. Get user profile
+  │
+  ├── Scope: Create Nudge Cards
+  │   ├── 2. List overdue High-priority cards (>24h PENDING)
+  │   └── 3. For each overdue card:
+  │       ├── 3a. Check for existing nudge
+  │       ├── 3b. Nudge exists? → Skip
+  │       ├── 3c. Calculate hours pending
+  │       └── 3d. Create nudge card (NUDGE status)
+  │
+  └── Scope: Expire Abandoned Cards
+      ├── 4. List abandoned cards (>7 days PENDING)
+      └── 5. For each: set cr_cardoutcome = EXPIRED
+```
+
+### Deployment Checklist
+
+- [ ] Flow trigger set to correct timezone
+- [ ] Test: Create a High-priority card, wait 24+ hours → nudge card appears
+- [ ] Test: Run again → no duplicate nudge created (dedup by source_signal_id)
+- [ ] Test: Create a card, wait 7+ days → card expires to EXPIRED outcome
+- [ ] Test: Expired card disappears from dashboard (Canvas app filter excludes EXPIRED)
+- [ ] Test: Nudge card for dismissed original → nudge still appears (dismissing the original does not auto-dismiss the nudge; user must dismiss separately)
+
+
+
+---
+
+## Flow 6 — Daily Briefing *(Sprint 2)*
+
+### Overview
+
+Runs every weekday morning. Queries the user's open cards, stale items, today's calendar, and sender profiles, then invokes the Daily Briefing Agent to produce a prioritized action plan. Writes the briefing as a special DAILY_BRIEFING card to Dataverse.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| On these days | Monday, Tuesday, Wednesday, Thursday, Friday |
+| At these hours | 7 |
+| At these minutes | 0 |
+| Time Zone | Select user's timezone |
+
+### Actions
+
+**1. Get my profile (V2)** — Office 365 Users connector
+
+**2. Get open cards** — Dataverse → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Select columns | `cr_assistantcardid,cr_itemsummary,cr_priority,cr_triggertype,cr_cardstatus,cr_triagetier,cr_confidencescore,cr_temporalhorizon,cr_conversationclusterid,cr_originalsenderemail,cr_originalsenderdisplay,cr_originalsubject,createdon` |
+| Sort by | `createdon desc` |
+| Row count | `50` |
+
+**3. Get stale cards** — Dataverse → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon lt @{addHours(utcNow(), -24)} and cr_priority ne 100000003` |
+| Select columns | Same as step 2 |
+| Sort by | `createdon asc` |
+| Row count | `20` |
+
+> The `cr_priority ne 100000003` filter excludes N/A priority cards from stale alerts.
+
+**4. Get today's calendar** — Office 365 Outlook → Get events (V4)
+
+| Setting | Value |
+|---------|-------|
+| Calendar ID | Default calendar |
+| Start DateTime | `@{startOfDay(utcNow())}` |
+| End DateTime | `@{addDays(startOfDay(utcNow()), 1)}` |
+| Order By | start/dateTime asc |
+
+**5. Get sender profiles** — Dataverse → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Sender Profiles |
+| Filter rows | `_ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Select columns | `cr_senderemail,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_sendercategory` |
+| Row count | `100` |
+
+**6. Compose — BRIEFING_INPUT**
+
+Assemble the input contract for the Daily Briefing Agent:
+
+```
+@{json(createArray(
+    json(concat('{"open_cards":', string(outputs('Get_open_cards')?['body/value']),
+    ',"stale_cards":', string(outputs('Get_stale_cards')?['body/value']),
+    ',"today_calendar":', string(outputs('Get_today_calendar')?['body/value']),
+    ',"sender_profiles":', string(outputs('Get_sender_profiles')?['body/value']),
+    ',"user_context":"', outputs('Get_my_profile_(V2)')?['body/displayName'], ', ',
+        outputs('Get_my_profile_(V2)')?['body/jobTitle'], ', ',
+        outputs('Get_my_profile_(V2)')?['body/department'], '"',
+    ',"current_datetime":"', utcNow(), '"}'
+    ))
+))}
+```
+
+**6a. Condition — Token budget check** *(Council Session 2, Issue 12)*
+
+```
+@lessOrEquals(length(outputs('Compose_BRIEFING_INPUT')), 40000)
+```
+
+If exceeds budget: truncate to first 30 cards and re-compose.
+
+**7. Invoke Daily Briefing Agent** — Microsoft Copilot Studio → Execute Agent and wait
+
+Pass BRIEFING_INPUT as text input.
+
+**8. Parse JSON** — Simplified schema (no `oneOf`):
+
+```json
+{
+    "type": "object",
+    "properties": {
+        "briefing_type": { "type": "string" },
+        "briefing_date": { "type": "string" },
+        "total_open_items": { "type": "integer" },
+        "day_shape": { "type": "string" },
+        "action_items": { "type": "array" },
+        "fyi_items": { "type": "array" },
+        "stale_alerts": { "type": "array" }
+    }
+}
+```
+
+**9. Add a new row** — Dataverse → Assistant Cards
+
+| Column | Value |
+|--------|-------|
+| Trigger Type | `100000003` (DAILY_BRIEFING) |
+| Triage Tier | `100000002` (FULL) |
+| Item Summary | `@{body('Parse_JSON')?['day_shape']}` |
+| Priority | `100000000` (High) |
+| Card Status | `100000000` (READY) |
+| Card Outcome | `100000000` (PENDING) |
+| Full JSON | `@{string(body('Parse_JSON'))}` |
+| Draft Payload | `@{string(body('Parse_JSON'))}` |
+| Confidence Score | `100` |
+| **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
+
+> `Draft Payload` stores the briefing JSON for the PCF BriefingCard component to parse.
+
+**10. Delete previous briefing** — Query for existing DAILY_BRIEFING card from today. If found, delete to avoid duplicates.
+
+### Deployment Checklist
+
+- [ ] Daily Briefing Agent published in Copilot Studio
+- [ ] Flow recurrence set to weekday mornings
+- [ ] Test: Manual run → Briefing card appears in dashboard
+- [ ] Test: 0 open cards → "Inbox clear" briefing
+- [ ] Test: Token budget truncation with >50 cards
+- [ ] Test: No duplicate briefings on re-run
+
+---
+
+## Flow 7 — Staleness Monitor *(Sprint 2)*
+
+### Overview
+
+Expires abandoned cards (7+ days) and creates nudge cards for overdue high-priority items (24+ hours).
+
+### Trigger
+
+**Recurrence** — Every 4 hours, weekdays only (add weekday condition after trigger).
+
+### Actions
+
+**1. Get my profile (V2)**
+
+**2. Expire abandoned cards** — List rows: `cr_cardoutcome eq 100000000 and createdon lt @{addDays(utcNow(), -7)}`
+
+**3. Apply to each — Expire:** Update each row → `cr_cardoutcome = 100000004` (EXPIRED), `cr_outcometimestamp = utcNow()`
+
+**4. Get overdue High cards** — List rows: `cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and createdon lt @{addHours(utcNow(), -24)} and createdon ge @{addDays(utcNow(), -7)}`
+
+**5. Apply to each — Nudge:**
+- **5a.** Check if nudge already exists (same `cr_sourcesignalid`, `cr_cardstatus = NUDGE`, PENDING)
+- **5b.** If no existing nudge → Create NUDGE card inheriting original's sender/cluster/subject fields
+
+| Column | Value |
+|--------|-------|
+| Trigger Type | Same as original card |
+| Triage Tier | `100000001` (LIGHT) |
+| Item Summary | `Reminder: [original summary] — [X]h without action` |
+| Priority | `100000000` (High) |
+| Card Status | `100000004` (NUDGE) |
+| Card Outcome | `100000000` (PENDING) |
+| Source Signal ID | Same as original |
+| Conversation Cluster ID | Same as original |
+| **Owner** | Current user |
+
+### Deployment Checklist
+
+- [ ] Weekday filter active
+- [ ] Test: 7+ day old card → Gets EXPIRED
+- [ ] Test: 24h+ High priority card → Nudge created
+- [ ] Test: Re-run → No duplicate nudges
+- [ ] Test: Medium/Low priority → No nudge

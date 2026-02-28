@@ -226,3 +226,152 @@ export const emptyDataset = {
     sortedRecordIds: [] as string[],
     records: {} as Record<string, never>,
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 2: DAILY_BRIEFING card with full briefing JSON in draft_payload
+// ---------------------------------------------------------------------------
+export const dailyBriefingItem: AssistantCard = {
+    id: 'briefing-001',
+    trigger_type: 'DAILY_BRIEFING',
+    triage_tier: 'FULL',
+    item_summary: 'You have 8 open items with 3 needing action today. The most urgent is Sarah Chen\'s budget revision — 36 hours pending with your 2 PM call approaching.',
+    priority: 'High',
+    temporal_horizon: null,
+    research_log: null,
+    key_findings: null,
+    verified_sources: null,
+    confidence_score: 100,
+    card_status: 'READY',
+    draft_payload: JSON.stringify({
+        briefing_type: 'DAILY',
+        briefing_date: '2026-02-28',
+        total_open_items: 8,
+        day_shape: 'You have 8 open items with 3 needing action today. The most urgent is Sarah Chen\'s budget revision — 36 hours pending with your 2 PM call approaching.',
+        action_items: [
+            {
+                rank: 1,
+                card_ids: ['full-001'],
+                thread_summary: 'Contract renewal from Fabrikam legal — deadline March 1',
+                recommended_action: 'Review proposed terms and confirm before deadline',
+                urgency_reason: '28 hours pending, High priority, March 1 deadline',
+                related_calendar: null,
+            },
+            {
+                rank: 2,
+                card_ids: ['full-002', 'full-003'],
+                thread_summary: 'Budget revision from Sarah Chen — 2 emails in thread',
+                recommended_action: 'Reply with updated figures before 2 PM call',
+                urgency_reason: '36 hours pending, typically respond to Sarah within 2 hours',
+                related_calendar: 'Q3 Budget Review — 2:00 PM today',
+            },
+        ],
+        fyi_items: [
+            {
+                card_ids: ['cal-001'],
+                summary: 'QBR with Northwind Traders at 2 PM — prep notes ready',
+                category: 'MEETING_PREP',
+            },
+        ],
+        stale_alerts: [
+            {
+                card_id: 'stale-001',
+                summary: 'US Bank compliance review — 5 days without action',
+                hours_pending: 120,
+                recommended_action: 'DELEGATE',
+            },
+        ],
+    }),
+    low_confidence_note: null,
+    humanized_draft: null,
+    created_on: '2/28/2026 7:00 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: null,
+    original_sender_display: null,
+    original_subject: null,
+    conversation_cluster_id: null,
+    source_signal_id: null,
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 2: NUDGE card — staleness reminder for an overdue item
+// ---------------------------------------------------------------------------
+export const nudgeItem: AssistantCard = {
+    id: 'nudge-001',
+    trigger_type: 'EMAIL',
+    triage_tier: 'LIGHT',
+    item_summary: 'Reminder: Contract renewal request from Fabrikam legal team — 48h without action',
+    priority: 'High',
+    temporal_horizon: null,
+    research_log: null,
+    key_findings: null,
+    verified_sources: null,
+    confidence_score: null,
+    card_status: 'NUDGE',
+    draft_payload: null,
+    low_confidence_note: null,
+    humanized_draft: null,
+    created_on: '2/23/2026 12:00 PM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'legal@fabrikam.com',
+    original_sender_display: 'Fabrikam Legal',
+    original_subject: 'Contract Renewal — Contoso Agreement #2024-1847',
+    conversation_cluster_id: 'conv-fabrikam-renewal',
+    source_signal_id: 'msgid-full-001@fabrikam.com',
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 2: DAILY_BRIEFING card — synthesized daily action plan
+// ---------------------------------------------------------------------------
+export const briefingCardItem: AssistantCard = {
+    id: 'briefing-001',
+    trigger_type: 'DAILY_BRIEFING',
+    triage_tier: 'FULL',
+    item_summary: 'You have 8 open items with 3 needing action today.',
+    priority: null,
+    temporal_horizon: null,
+    research_log: null,
+    key_findings: null,
+    verified_sources: null,
+    confidence_score: 100,
+    card_status: 'READY',
+    draft_payload: JSON.stringify({
+        briefing_type: 'DAILY',
+        briefing_date: '2026-02-28',
+        total_open_items: 8,
+        day_shape: 'You have 8 open items with 3 needing action today. The most urgent is Sarah Chen\'s budget revision request.',
+        action_items: [
+            {
+                rank: 1,
+                card_ids: ['full-001'],
+                thread_summary: 'Q3 budget revision request from Sarah Chen',
+                recommended_action: 'Reply to Sarah with updated figures before your 2 PM call',
+                urgency_reason: '36 hours pending',
+                related_calendar: 'Q3 Budget Review — 2:00 PM today',
+            },
+        ],
+        fyi_items: [
+            {
+                card_ids: ['light-001'],
+                summary: 'IT maintenance window this Saturday',
+                category: 'INFO_UPDATE',
+            },
+        ],
+        stale_alerts: [
+            {
+                card_id: 'full-003',
+                summary: 'US Bank compliance doc — 5 days with no action',
+                hours_pending: 120,
+                recommended_action: 'DELEGATE',
+            },
+        ],
+    }),
+    low_confidence_note: null,
+    humanized_draft: null,
+    created_on: '2/28/2026 7:00 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: null,
+    original_sender_display: null,
+    original_subject: null,
+    conversation_cluster_id: null,
+    source_signal_id: null,
+};

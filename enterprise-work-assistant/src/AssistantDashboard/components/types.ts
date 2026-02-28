@@ -1,9 +1,43 @@
-export type TriggerType = "EMAIL" | "TEAMS_MESSAGE" | "CALENDAR_SCAN";
+export type TriggerType = "EMAIL" | "TEAMS_MESSAGE" | "CALENDAR_SCAN" | "DAILY_BRIEFING";
 export type TriageTier = "SKIP" | "LIGHT" | "FULL";
 export type Priority = "High" | "Medium" | "Low";
 export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND";
-export type CardStatus = "READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | "NO_OUTPUT";
+export type CardStatus = "READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | "NO_OUTPUT" | "NUDGE";
 export type CardOutcome = "PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISMISSED" | "EXPIRED";
+
+// Sprint 2 — Daily Briefing types
+
+export interface BriefingActionItem {
+    rank: number;
+    card_ids: string[];
+    thread_summary: string;
+    recommended_action: string;
+    urgency_reason: string;
+    related_calendar: string | null;
+}
+
+export interface BriefingFyiItem {
+    card_ids: string[];
+    summary: string;
+    category: "MEETING_PREP" | "INFO_UPDATE" | "LOW_PRIORITY";
+}
+
+export interface BriefingStaleAlert {
+    card_id: string;
+    summary: string;
+    hours_pending: number;
+    recommended_action: "RESPOND" | "DELEGATE" | "DISMISS";
+}
+
+export interface DailyBriefing {
+    briefing_type: "DAILY";
+    briefing_date: string;
+    total_open_items: number;
+    day_shape: string;
+    action_items: BriefingActionItem[];
+    fyi_items?: BriefingFyiItem[];
+    stale_alerts?: BriefingStaleAlert[];
+}
 export type RecipientRelationship = "Internal colleague" | "External client" | "Leadership" | "Unknown";
 export type InferredTone = "formal" | "semi-formal" | "direct" | "collaborative";
 export type DraftType = "EMAIL" | "TEAMS_MESSAGE";
@@ -62,4 +96,5 @@ export interface AppProps {
     onSendDraft: (cardId: string, finalText: string) => void;
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
+    onJumpToCard: (cardId: string) => void; // Sprint 2: navigate to a specific card from briefing
 }

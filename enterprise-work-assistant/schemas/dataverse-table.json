@@ -28,7 +28,8 @@
       "options": [
         { "label": "EMAIL", "value": 100000000 },
         { "label": "TEAMS_MESSAGE", "value": 100000001 },
-        { "label": "CALENDAR_SCAN", "value": 100000002 }
+        { "label": "CALENDAR_SCAN", "value": 100000002 },
+        { "label": "DAILY_BRIEFING", "value": 100000003 }
       ]
     },
     {
@@ -62,7 +63,8 @@
         { "label": "READY", "value": 100000000 },
         { "label": "LOW_CONFIDENCE", "value": 100000001 },
         { "label": "SUMMARY_ONLY", "value": 100000002 },
-        { "label": "NO_OUTPUT", "value": 100000003 }
+        { "label": "NO_OUTPUT", "value": 100000003 },
+        { "label": "NUDGE", "value": 100000004 }
       ]
     },
     {

@@ -171,6 +171,15 @@ If(
         }
     )
 );
+
+// Sprint 2: Handle Jump to Card from briefing — select the target card
+If(
+    !IsBlank(AssistantDashboard1.jumpToCardAction),
+    // The PCF already navigates to the card's detail view internally.
+    // This handler fires the output for any Canvas-level side effects
+    // (e.g., scrolling the gallery, updating a context variable).
+    Set(varJumpTargetCardId, AssistantDashboard1.jumpToCardAction)
+);
 ```
 
 > **Sprint 1A Notes:**
@@ -178,6 +187,11 @@ If(
 > - The `Refresh('Assistant Cards')` call forces the PCF to re-read the dataset, updating the card's outcome badge from "PENDING" to "Sent ✓".
 > - The `SendEmailFlow` must be created as an instant flow with "Run only users" configured so each user provides their own Outlook connection. See [agent-flows.md](agent-flows.md) for the flow specification.
 > - For Dismiss, the Canvas app writes the outcome directly (no flow needed). The `Card Status` column is NOT changed on dismiss — Card Status and Card Outcome are orthogonal dimensions.
+
+> **Sprint 2 Notes:**
+> - **Inline editing**: The PCF CardDetail component now allows users to edit the humanized draft before sending. The `sendDraftAction` JSON includes the final (possibly edited) text. The Send Email flow receives whatever text the user confirmed — no distinction needed at the flow level.
+> - **SENT_EDITED tracking**: To distinguish AS_IS from EDITED sends, the Send Email flow should be updated to compare the final text against the stored `cr_humanizeddraft` column value. If they differ, set `cr_cardoutcome = SENT_EDITED` (100000002) instead of `SENT_AS_IS`. This comparison happens server-side in the flow.
+> - **Briefing cards**: DAILY_BRIEFING cards render at the top of the gallery via the BriefingCard component. The Jump to Card handler fires when users click action item links in the briefing.
 
 ### Selected Card tracking
 
