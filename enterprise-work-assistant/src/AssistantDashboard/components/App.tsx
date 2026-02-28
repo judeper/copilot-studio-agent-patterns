@@ -5,11 +5,13 @@ import { CardGallery } from "./CardGallery";
 import { CardDetail } from "./CardDetail";
 import { BriefingCard } from "./BriefingCard";
 import { CommandBar } from "./CommandBar";
+import { ConfidenceCalibration } from "./ConfidenceCalibration";
 import { FilterBar } from "./FilterBar";
 
 type ViewState =
     | { mode: "gallery" }
-    | { mode: "detail"; cardId: string };
+    | { mode: "detail"; cardId: string }
+    | { mode: "calibration" };
 
 function applyFilters(
     cards: AssistantCard[],
@@ -139,11 +141,22 @@ export const App: React.FC<AppProps> = ({
     // Sprint 3: Derive current card ID for context-aware commands
     const currentCardId = viewState.mode === "detail" ? viewState.cardId : null;
 
+    // Sprint 4: Navigate to calibration dashboard
+    const handleShowCalibration = React.useCallback(() => {
+        setViewState({ mode: "calibration" });
+    }, []);
+
     return (
         <FluentProvider theme={prefersDark ? webDarkTheme : webLightTheme}>
             <div className="assistant-dashboard" style={{ width, height, display: "flex", flexDirection: "column" }}>
                 <div style={{ flex: 1, overflow: "auto" }}>
-                    {viewState.mode === "gallery" || !selectedCard ? (
+                    {viewState.mode === "calibration" ? (
+                        /* Sprint 4: Confidence calibration analytics */
+                        <ConfidenceCalibration
+                            cards={cards}
+                            onBack={handleBack}
+                        />
+                    ) : viewState.mode === "gallery" || !selectedCard ? (
                         <>
                             <FilterBar
                                 cardCount={filteredCards.length}
@@ -152,6 +165,13 @@ export const App: React.FC<AppProps> = ({
                                 filterCardStatus={filterCardStatus}
                                 filterTemporalHorizon={filterTemporalHorizon}
                             />
+                            {/* Sprint 4: Agent Performance link */}
+                            <button
+                                className="calibration-link"
+                                onClick={handleShowCalibration}
+                            >
+                                ⚙ Agent Performance
+                            </button>
                             {/* Sprint 2: Briefing cards render above the gallery */}
                             {briefingCards.map((bc) => (
                                 <BriefingCard

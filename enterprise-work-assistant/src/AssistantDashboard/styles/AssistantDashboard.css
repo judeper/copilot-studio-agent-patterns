@@ -753,3 +753,18 @@
     color: #888;
     margin-top: 4px;
 }
+
+.calibration-link {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 12px;
+    display: block;
+    text-align: right;
+}
+
+.calibration-link:hover {
+    color: #6366f1;
+}
