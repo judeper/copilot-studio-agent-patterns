@@ -1428,9 +1428,21 @@ Trigger (Recurrence — weekday every 4h)
 
 ### Overview
 
-Instant flow triggered from the Canvas app when the user submits a command in the command bar. Passes the command to the Orchestrator Agent and returns the response synchronously.
+Instant flow triggered from the Canvas app when the user submits a command in the command bar. Passes the command text (`COMMAND_TEXT`) to the Orchestrator Agent, which has registered tool actions (QueryCards, UpdateCard, CreateCard, etc.), and returns the structured response synchronously to the Canvas app.
 
-### Trigger
+### Trigger Options
+
+**Option A (recommended): Instant — PowerAutomate.Run() from Canvas app**
+
+Lower setup complexity. The Canvas app calls the flow directly via `PowerAutomate.Run()`. The response is returned synchronously to the app.
+
+**Option B: HTTP request trigger**
+
+Lower latency for the Canvas app. The Canvas app sends an HTTP POST to the flow's URL. This avoids the Power Apps connector overhead but requires managing the HTTP endpoint URL and authentication.
+
+> **Recommendation**: Use Option A (Instant trigger) for initial deployment. It integrates natively with the Canvas app and requires no additional URL management. Switch to Option B if response latency becomes an issue (HTTP trigger avoids one connector hop).
+
+### Trigger (Option A — Instant)
 
 **Instant — manually triggered** (PowerAutomate.Run() from Canvas app)
 
@@ -1547,6 +1559,61 @@ Wrap steps 4-6 in a **Scope** with "Run after: has failed" parallel branch:
 }
 ```
 
+### Response Format (F-02 Integration Contract)
+
+The Orchestrator Agent returns a JSON response with this structure. The Canvas app's PCF component must define an input property type that accepts this shape (F-02 Wave 3 fix):
+
+```json
+{
+    "status": "success",
+    "summary": "Created reminder for tomorrow to follow up on compliance review.",
+    "actions_taken": ["CreateCard"],
+    "error_message": null,
+    "response_text": "Done. I've created a reminder for tomorrow...",
+    "card_links": [
+        { "card_id": "abc-123", "label": "Friday follow-up" }
+    ],
+    "side_effects": [
+        { "action": "CREATE_CARD", "description": "Created SELF_REMINDER card" }
+    ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| status | string | `"success"` or `"error"` |
+| summary | string | Brief description of what was done |
+| actions_taken | string[] | List of tool action names invoked (e.g., `["QueryCards", "UpdateCard"]`) |
+| error_message | string/null | Error details if status is `"error"`, null otherwise |
+| response_text | string | Full natural language response to display to user |
+| card_links | array | Card IDs referenced in the response (PCF renders as clickable links) |
+| side_effects | array | Data modifications made (Canvas app triggers `Refresh('Assistant Cards')`) |
+
+> The `status`, `summary`, `actions_taken`, and `error_message` fields extend the base Orchestrator response format defined in `orchestrator-agent-prompt.md`. The flow composes these additional fields from the parsed agent response before returning to the Canvas app. The PCF component uses `side_effects` to determine whether to refresh the Dataverse gallery after the command completes.
+
+### Orchestrator Tool Action Registration (R-18)
+
+The Orchestrator Agent requires 6 tool actions registered in Copilot Studio. These map the agent's tool calls to actual Power Automate flows or Dataverse connector operations.
+
+**Registration steps:**
+
+1. Open the **Orchestrator Agent** in Copilot Studio
+2. Navigate to **Actions** (left panel)
+3. For each tool action below, click **Add an action** and select the corresponding Power Automate flow or connector operation:
+
+| Tool Action | Implementation | Description |
+|------------|----------------|-------------|
+| **QueryCards** | Dataverse connector → List rows (cr_assistantcards) | Search user's cards with OData filter, select, top, orderby |
+| **QuerySenderProfile** | Dataverse connector → List rows (cr_senderprofiles) | Look up sender intelligence by email or name |
+| **UpdateCard** | Dataverse connector → Update a row (cr_assistantcards) | Modify card columns (outcome, priority, draft) |
+| **CreateCard** | Dataverse connector → Add a new row (cr_assistantcards) | Create reminders, notes (SELF_REMINDER trigger type) |
+| **RefineDraft** | Power Automate flow → Invoke Humanizer Agent | Pass current draft + instructions, return refined text |
+| **QueryCalendar** | Office 365 Outlook connector → Get events (V4) | Search user's calendar by date range and keyword |
+
+> **Important**: Each action must be configured with appropriate input/output schemas in Copilot Studio. The agent prompt (`orchestrator-agent-prompt.md`) documents the expected parameters and return types for each tool action. Ensure the parameter names match exactly.
+
+> **RefineDraft special case**: This action invokes the Humanizer Agent as a sub-agent. Create a dedicated Power Automate flow that accepts `current_draft`, `instruction`, and `card_context` as inputs, invokes the Humanizer Agent, and returns the refined draft text. Register this flow as the RefineDraft action.
+
 ### Flow Diagram
 
 ```
@@ -1556,24 +1623,28 @@ Trigger (Instant — from Canvas app)
   ├── 2. Has current card context?
   │   └── Yes → 2a. Get current card from Dataverse
   ├── 3. Get today's briefing (if exists)
-  ├── 4. Compose orchestrator input
-  ├── 5. Invoke Orchestrator Agent (120s timeout)
+  ├── 4. Compose orchestrator input (COMMAND_TEXT, USER_CONTEXT, etc.)
+  ├── 5. Invoke Orchestrator Agent (120s timeout, 6 tool actions available)
   ├── 6. Parse JSON response
-  └── 7. Return response to Canvas app
+  └── 7. Return structured response to Canvas app
 ```
 
 ### Deployment Checklist
 
 - [ ] Orchestrator Agent created and published in Copilot Studio
 - [ ] All 6 tool actions registered (QueryCards, QuerySenderProfile, UpdateCard, CreateCard, RefineDraft, QueryCalendar)
+- [ ] Each tool action input/output schema matches orchestrator-agent-prompt.md parameter definitions
+- [ ] RefineDraft flow created with Humanizer Agent sub-invocation
 - [ ] Humanizer Agent connected as sub-agent for RefineDraft
 - [ ] Flow timeout set to 120 seconds
 - [ ] Error handling scope configured with fallback response
+- [ ] Response format includes status/summary/actions_taken fields for F-02 integration
 - [ ] Test: "What needs my attention?" → Returns ranked cards with links
 - [ ] Test: "Remind me to follow up Friday" → Creates SELF_REMINDER card
 - [ ] Test: With card expanded, "Make this shorter" → Draft refinement works
 - [ ] Test: "How often do I respond to [sender]?" → Returns sender stats
 - [ ] Test: Invalid command → Graceful error response
+- [ ] Test: Canvas app receives structured response and triggers gallery refresh on side_effects
 
 ---
 
@@ -1620,91 +1691,89 @@ Runs weekly (Sunday evening). Analyzes card outcome data from the past 30 days t
 
 **If Yes (not an override):**
 
-**3b. Condition — Minimum signal threshold**
+**3b. Compose — TOTAL_INTERACTIONS**
+
+Compute total interactions (responses + dismissals) to guard against premature categorization:
 
 ```
-@greaterOrEquals(items('Apply_to_each')?['cr_signalcount'], 3)
+@{add(
+    if(empty(items('Apply_to_each')?['cr_responsecount']), 0, items('Apply_to_each')?['cr_responsecount']),
+    if(empty(items('Apply_to_each')?['cr_dismisscount']), 0, items('Apply_to_each')?['cr_dismisscount'])
+)}
 ```
 
-> Senders with fewer than 3 signals don't have enough data for meaningful statistics.
-
-**If Yes (≥ 3 signals):**
-
-**3c. Query card outcomes for this sender (past 30 days)** — Dataverse
-
-| Setting | Value |
-|---------|-------|
-| Table name | Assistant Cards |
-| Filter rows | `cr_originalsenderemail eq '@{items('Apply_to_each')?['cr_senderemail']}' and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon ge @{addDays(utcNow(), -30)} and cr_cardoutcome ne 100000000` |
-| Row count | `100` |
-| Select columns | `cr_cardoutcome,cr_outcometimestamp,cr_drafteditdistance,createdon` |
-
-**3d. Compose — Calculate stats**
-
-```json
-{
-    "total_resolved": @{length(outputs('Query_card_outcomes')?['body/value'])},
-    "sent_count": @{length(
-        filter(
-            outputs('Query_card_outcomes')?['body/value'],
-            or(
-                equals(item()?['cr_cardoutcome'], 100000001),
-                equals(item()?['cr_cardoutcome'], 100000002)
-            )
-        )
-    )},
-    "dismiss_count": @{length(
-        filter(
-            outputs('Query_card_outcomes')?['body/value'],
-            equals(item()?['cr_cardoutcome'], 100000003)
-        )
-    )}
-}
-```
-
-> Choice values: SENT_AS_IS = 100000001, SENT_EDITED = 100000002, DISMISSED = 100000003
-
-**3e. Compose — Response rate and dismiss rate**
+**3b-1. Condition — Minimum interaction threshold**
 
 ```
-response_rate = @{if(greater(outputs('Compose_stats')?['total_resolved'], 0), div(float(outputs('Compose_stats')?['sent_count']), float(outputs('Compose_stats')?['total_resolved'])), 0)}
-
-dismiss_rate = @{if(greater(outputs('Compose_stats')?['total_resolved'], 0), div(float(outputs('Compose_stats')?['dismiss_count']), float(outputs('Compose_stats')?['total_resolved'])), 0)}
+@greaterOrEquals(outputs('Compose_TOTAL_INTERACTIONS'), 5)
 ```
 
-**3f. Compose — Determine category**
+> Senders with fewer than 5 total interactions (responses + dismissals) don't have enough data for meaningful categorization. This threshold of 5 prevents premature AUTO_LOW or AUTO_HIGH assignment from a small number of interactions (e.g., 2 dismissals out of 2 total would give 100% dismiss_rate but is statistically meaningless).
 
-Apply the categorization rules:
+**If Yes (>= 5 interactions):**
+
+**3c. Compose — Response rate and dismiss rate**
+
+Compute rates using `total_interactions` (responses + dismissals) from the sender profile row:
+
+```
+response_rate = @{if(
+    greater(outputs('Compose_TOTAL_INTERACTIONS'), 0),
+    div(
+        float(if(empty(items('Apply_to_each')?['cr_responsecount']), 0, items('Apply_to_each')?['cr_responsecount'])),
+        float(outputs('Compose_TOTAL_INTERACTIONS'))
+    ),
+    0
+)}
+
+dismiss_rate = @{if(
+    greater(outputs('Compose_TOTAL_INTERACTIONS'), 0),
+    div(
+        float(if(empty(items('Apply_to_each')?['cr_dismisscount']), 0, items('Apply_to_each')?['cr_dismisscount'])),
+        float(outputs('Compose_TOTAL_INTERACTIONS'))
+    ),
+    0
+)}
+```
+
+> Uses `total_interactions` (cr_responsecount + cr_dismisscount) as the denominator. These counters are maintained by Flow 5 (Card Outcome Tracker) — Branch A increments cr_responsecount on SENT outcomes, Branch B increments cr_dismisscount on DISMISSED outcomes.
+
+**3d. Compose — Determine category**
+
+Apply the categorization rules from Sprint 4:
 
 ```
 @{if(
     and(
-        greaterOrEquals(outputs('Compose_rates')?['response_rate'], 0.8),
-        less(items('Apply_to_each')?['cr_avgresponsehours'], 8)
+        greaterOrEquals(outputs('Compose_rates')?['dismiss_rate'], 0.6),
+        greaterOrEquals(outputs('Compose_TOTAL_INTERACTIONS'), 5)
     ),
-    100000000,
+    100000002,
     if(
-        or(
-            less(outputs('Compose_rates')?['response_rate'], 0.4),
-            greaterOrEquals(outputs('Compose_rates')?['dismiss_rate'], 0.6)
+        and(
+            greaterOrEquals(outputs('Compose_rates')?['response_rate'], 0.8),
+            greaterOrEquals(outputs('Compose_TOTAL_INTERACTIONS'), 5)
         ),
-        100000002,
+        100000000,
         100000001
     )
 )}
 ```
 
-> AUTO_HIGH = 100000000, AUTO_MEDIUM = 100000001, AUTO_LOW = 100000002
+> **Categorization rules:**
+> - **AUTO_LOW** (100000002): dismiss_rate >= 0.6 AND total_interactions >= 5. Checked FIRST — a high dismiss rate takes priority over response rate.
+> - **AUTO_HIGH** (100000000): response_rate >= 0.8 AND total_interactions >= 5. High engagement senders.
+> - **NEUTRAL** (100000001): Default for all other senders. Falls through when neither threshold is met.
+> - **USER_OVERRIDE** (100000003): Skipped entirely (step 3a). User-managed, never recategorized.
+>
+> The threshold of 5 minimum interactions prevents premature categorization (e.g., 1 dismiss out of 1 total = 100% dismiss_rate but meaningless).
 
-**3g. Update a row** — Dataverse → Sender Profiles
+**3e. Update a row** — Dataverse → Sender Profiles
 
 | Column | Value |
 |--------|-------|
 | Row ID | `@{items('Apply_to_each')?['cr_senderprofileid']}` |
 | Sender Category | `@{outputs('Compose_category')}` |
-| Response Rate | `@{outputs('Compose_rates')?['response_rate']}` |
-| Dismiss Rate | `@{outputs('Compose_rates')?['dismiss_rate']}` |
-| Dismiss Count | `@{outputs('Compose_stats')?['dismiss_count']}` |
 
 ### Dependency: Card Outcome Tracker Dismiss Tracking
 
@@ -1731,32 +1800,39 @@ All 3 trigger flows (EMAIL, TEAMS, CALENDAR) need an additional step to look up 
 
 3. Pass the serialized JSON (or the string `null`) as the `{{SENDER_PROFILE}}` input variable to the agent.
 
+### Known Gap: R-17 — SENDER_PROFILE Not Passed to Agent
+
+The sender profile passthrough (section "Updating Existing Trigger Flows" above) is a WARN-level deferral candidate. The analyzer flow still provides value by categorizing senders — even if the main agent does not yet consume the `{{SENDER_PROFILE}}` input variable. The categorization data is stored in Dataverse and can be queried by the Orchestrator Agent's `QuerySenderProfile` tool action.
+
+**Current state**: The trigger flows (Flow 1/2/3) do NOT yet pass SENDER_PROFILE to the main agent. The main agent prompt defines `{{SENDER_PROFILE}}` as an input variable, but the flows do not populate it.
+
+**Impact**: Sender-adaptive triage (adjusting triage thresholds based on sender category) is silently disabled. All senders are treated equally regardless of their AUTO_HIGH/AUTO_LOW categorization. This does not break any functionality — it only means the sender intelligence feature does not influence triage decisions.
+
+**Resolution path**: When implementing the sender profile passthrough, update each trigger flow (Flow 1/2/3) per the instructions above. This is a future fix, not a deploy blocker.
+
 ### Flow Diagram
 
 ```
 Trigger (Recurrence — Sunday 8 PM)
   │
   ├── 1. Get user profile
-  ├── 2. List all sender profiles
+  ├── 2. List all sender profiles (incl. cr_responsecount, cr_dismisscount)
   └── 3. For each sender profile:
-      ├── Skip if USER_OVERRIDE
-      ├── Skip if signal_count < 3
-      ├── 3c. Query card outcomes (past 30 days)
-      ├── 3d. Calculate sent_count, dismiss_count
-      ├── 3e. Compute response_rate, dismiss_rate
-      ├── 3f. Determine category (AUTO_HIGH/MEDIUM/LOW)
-      └── 3g. Update sender profile row
+      ├── 3a. Skip if USER_OVERRIDE
+      ├── 3b. Compute total_interactions = responsecount + dismisscount
+      ├── 3b-1. Skip if total_interactions < 5
+      ├── 3c. Compute response_rate, dismiss_rate
+      ├── 3d. Determine category (AUTO_HIGH/NEUTRAL/AUTO_LOW)
+      └── 3e. Update sender profile row (cr_sendercategory)
 ```
 
 ### Deployment Checklist
 
 - [ ] Flow trigger set to Sunday 8 PM (or appropriate off-hours time)
 - [ ] Card Outcome Tracker (Flow 5) Branch B verified: DISMISSED increments cr_dismisscount
-- [ ] All 3 trigger flows updated with sender profile lookup + passthrough
-- [ ] Main agent prompt updated with SENDER_PROFILE input and adaptive rules
-- [ ] Test: Sender with >80% response rate and <8h avg → AUTO_HIGH
-- [ ] Test: Sender with <40% response rate → AUTO_LOW
+- [ ] Test: Sender with response_rate >= 0.8 AND total >= 5 → AUTO_HIGH
+- [ ] Test: Sender with dismiss_rate >= 0.6 AND total >= 5 → AUTO_LOW
 - [ ] Test: Sender with USER_OVERRIDE → Not recategorized
-- [ ] Test: Sender with <3 signals → Skipped
-- [ ] Test: Trigger flow passes sender profile JSON to agent
-- [ ] Test: Agent adjusts triage tier based on sender category
+- [ ] Test: Sender with < 5 total interactions → Skipped (stays NEUTRAL)
+- [ ] Test: Sender profile passthrough (R-17) — deferred, verify agent works without it
+- [ ] Note: R-17 (SENDER_PROFILE not passed to agent) is a known gap — sender-adaptive triage is inactive
