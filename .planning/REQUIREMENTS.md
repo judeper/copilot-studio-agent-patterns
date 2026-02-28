@@ -17,11 +17,11 @@ Requirements for pre-deployment audit. Each maps to roadmap phases.
 
 ### Frontend / PCF Review
 
-- [ ] **PCF-01**: Component architecture is sound (state, props, hooks)
-- [ ] **PCF-02**: All v2.0 tech debt items categorized as deploy-blocking or deferrable
-- [ ] **PCF-03**: Test coverage is adequate for deployment confidence
-- [ ] **PCF-04**: Data flow from Dataverse through hooks to render is correct
-- [ ] **PCF-05**: No missing error handling or UX gaps
+- [x] **PCF-01**: Component architecture is sound (state, props, hooks)
+- [x] **PCF-02**: All v2.0 tech debt items categorized as deploy-blocking or deferrable
+- [x] **PCF-03**: Test coverage is adequate for deployment confidence
+- [x] **PCF-04**: Data flow from Dataverse through hooks to render is correct
+- [x] **PCF-05**: No missing error handling or UX gaps
 
 ### Integration / E2E Review
 
@@ -68,11 +68,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAT-03 | Phase 10 | Complete |
 | PLAT-04 | Phase 10 | Complete |
 | PLAT-05 | Phase 10 | Complete |
-| PCF-01 | Phase 11 | Pending |
-| PCF-02 | Phase 11 | Pending |
-| PCF-03 | Phase 11 | Pending |
-| PCF-04 | Phase 11 | Pending |
-| PCF-05 | Phase 11 | Pending |
+| PCF-01 | Phase 11 | Complete |
+| PCF-02 | Phase 11 | Complete |
+| PCF-03 | Phase 11 | Complete |
+| PCF-04 | Phase 11 | Complete |
+| PCF-05 | Phase 11 | Complete |
 | INTG-01 | Phase 12 | Pending |
 | INTG-02 | Phase 12 | Pending |
 | INTG-03 | Phase 12 | Pending |
