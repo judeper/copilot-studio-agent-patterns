@@ -172,4 +172,124 @@ describe('useCardData', () => {
 
         expect(result.current[0].created_on).toBe('2/21/2026 9:15 AM');
     });
+
+    // ── Sprint 1A: Outcome tracking and sender context ──
+
+    it('reads card_outcome from cr_cardoutcome formatted value', () => {
+        const dataset = createMockDataset([validJsonRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].card_outcome).toBe('PENDING');
+    });
+
+    it('reads original_sender_email from cr_originalsenderemail', () => {
+        const dataset = createMockDataset([validJsonRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].original_sender_email).toBe('legal@fabrikam.com');
+    });
+
+    it('reads original_sender_display from cr_originalsenderdisplay', () => {
+        const dataset = createMockDataset([validJsonRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].original_sender_display).toBe('Fabrikam Legal');
+    });
+
+    it('reads original_subject from cr_originalsubject', () => {
+        const dataset = createMockDataset([validJsonRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].original_subject).toBe(
+            'Contract Renewal — Contoso Agreement #2024-1847'
+        );
+    });
+
+    it('defaults card_outcome to PENDING when column is empty', () => {
+        const noOutcomeRecord: MockRecordData = {
+            id: 'no-outcome',
+            values: {
+                cr_fulljson: JSON.stringify({
+                    trigger_type: 'EMAIL',
+                    triage_tier: 'LIGHT',
+                    item_summary: 'Test',
+                    card_status: 'SUMMARY_ONLY',
+                }),
+                cr_humanizeddraft: null,
+                cr_originalsenderemail: null,
+                cr_originalsenderdisplay: null,
+                cr_originalsubject: null,
+            },
+            formattedValues: {
+                createdon: '2/21/2026 10:00 AM',
+                // cr_cardoutcome intentionally omitted
+            },
+        };
+
+        const dataset = createMockDataset([noOutcomeRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].card_outcome).toBe('PENDING');
+    });
+
+    it('parses SENT_AS_IS outcome correctly', () => {
+        const sentRecord: MockRecordData = {
+            ...validJsonRecord,
+            id: 'sent-test',
+            formattedValues: {
+                ...validJsonRecord.formattedValues,
+                cr_cardoutcome: 'SENT_AS_IS',
+            },
+        };
+
+        const dataset = createMockDataset([sentRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].card_outcome).toBe('SENT_AS_IS');
+    });
+
+    it('parses DISMISSED outcome correctly', () => {
+        const dismissedRecord: MockRecordData = {
+            ...validJsonRecord,
+            id: 'dismissed-test',
+            formattedValues: {
+                ...validJsonRecord.formattedValues,
+                cr_cardoutcome: 'DISMISSED',
+            },
+        };
+
+        const dataset = createMockDataset([dismissedRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].card_outcome).toBe('DISMISSED');
+    });
+
+    it('returns null for sender fields when not populated', () => {
+        const noSenderRecord: MockRecordData = {
+            id: 'no-sender',
+            values: {
+                cr_fulljson: JSON.stringify({
+                    trigger_type: 'TEAMS_MESSAGE',
+                    triage_tier: 'LIGHT',
+                    item_summary: 'Teams message',
+                    card_status: 'SUMMARY_ONLY',
+                }),
+                cr_humanizeddraft: null,
+                cr_originalsenderemail: null,
+                cr_originalsenderdisplay: null,
+                cr_originalsubject: null,
+            },
+            formattedValues: {
+                createdon: '2/21/2026 10:00 AM',
+                cr_cardoutcome: 'PENDING',
+            },
+        };
+
+        const dataset = createMockDataset([noSenderRecord]);
+        const { result } = renderHook(() => useCardData(dataset, 1));
+
+        expect(result.current[0].original_sender_email).toBeNull();
+        expect(result.current[0].original_sender_display).toBeNull();
+        expect(result.current[0].original_subject).toBeNull();
+    });
 });

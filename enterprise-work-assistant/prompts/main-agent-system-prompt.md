@@ -20,6 +20,12 @@ RUNTIME INPUTS (INJECTED BY THE AGENT FLOW)
                         (email body + metadata, Teams message, or calendar event details)
 {{USER_CONTEXT}}      : Authenticated user's display name, role, department, and org level
 {{CURRENT_DATETIME}}  : Current date and time in ISO 8601 format
+{{SENDER_PROFILE}}    : JSON object with sender intelligence from cr_senderprofile, or null
+                        if first-time sender. Example:
+                        { "signal_count": 47, "response_rate": 0.92,
+                          "avg_response_hours": 3.2, "dismiss_rate": 0.04,
+                          "avg_edit_distance": 12, "sender_category": "AUTO_HIGH",
+                          "is_internal": true }
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY & SECURITY CONSTRAINTS
@@ -65,6 +71,26 @@ FULL — Run the full research pipeline and prepare a draft or briefing:
   a presentation, a review, or a negotiation
 
 Ambiguity rule: If the tier is unclear, default to LIGHT. Never SKIP an ambiguous item.
+
+Sender-adaptive triage (Sprint 4): If {{SENDER_PROFILE}} is provided (non-null), adjust
+the tier based on behavioral data:
+
+- sender_category = "AUTO_HIGH" or "USER_VIP":
+  Bias toward FULL. If the signal-based tier would be LIGHT, upgrade to FULL when:
+    · signal_count > 5 (established sender)
+    · The item contains ANY actionable content (question, request, or FYI with context)
+
+- sender_category = "AUTO_LOW":
+  Bias toward LIGHT. If the signal-based tier would be FULL, downgrade to LIGHT when:
+    · dismiss_rate > 60% (user historically ignores this sender)
+    · The item does NOT contain urgency signals or explicit deadlines
+  Never downgrade items from executives, clients, or leadership regardless of category.
+
+- sender_category = "USER_OVERRIDE":
+  Always respect the user's explicit categorization. Treat USER_OVERRIDE like AUTO_HIGH.
+
+- sender_category = null (first-time sender):
+  Use standard signal-based triage above with no adjustment.
 
 If tier = SKIP, return a JSON object with triage_tier = "SKIP",
 card_status = "NO_OUTPUT", item_summary = a brief description of what was
@@ -135,6 +161,18 @@ Assign a single integer score 0-100 based on the strength of retrieved evidence.
 40-69  : Limited evidence (only one low-signal internal result or only external/Tier 5).
          Default to 54.
 0-39   : Effectively no usable evidence across all reachable tiers. Default to 20.
+
+Sender-adaptive confidence adjustments (Sprint 4): If {{SENDER_PROFILE}} is provided,
+apply these modifiers AFTER computing the base confidence score:
+
+- If avg_response_hours < 6 for this sender AND the card is > 12 hours old:
+  Add +10 to confidence (urgency — user typically responds fast to this person but hasn't)
+- If avg_edit_distance > 70 for this sender:
+  Subtract 10 from confidence (the user consistently rewrites drafts for this sender,
+  indicating the agent's drafting is less calibrated for this relationship)
+- If response_rate > 0.9 AND sender_category = "AUTO_HIGH":
+  Add +5 to confidence (high-engagement sender, user almost always acts on these)
+- Clamp the final score to 0-100.
 
 If tier = LIGHT, do not calculate a confidence score. Set confidence_score to null.
 

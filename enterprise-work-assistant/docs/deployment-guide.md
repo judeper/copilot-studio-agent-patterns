@@ -304,8 +304,76 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Canvas app shows cards from Dataverse (only current user's cards visible)
 - [ ] Filters work correctly
 - [ ] Card detail view shows all sections
-- [ ] Edit Draft and Dismiss actions work
+- [ ] Send, Copy to Clipboard, and Dismiss actions work
 - [ ] DLP policies allow all required connector combinations
+
+### Sprint 1A Verification
+- [ ] AssistantCards table has `cr_cardoutcome`, `cr_outcometimestamp`, `cr_senttimestamp`, `cr_sentrecipient`, `cr_originalsenderemail`, `cr_originalsenderdisplay`, `cr_originalsubject`
+- [ ] New cards created with `cr_cardoutcome = PENDING` and sender fields populated
+- [ ] Send Email flow: configured with "Run only users" for Outlook connection
+- [ ] Send Email flow: ownership validation prevents cross-user sends
+- [ ] Send button visible only on EMAIL FULL READY cards with humanized draft
+- [ ] PCF Send → Confirm → Flow → Email delivered → Card shows "Sent ✓"
+- [ ] Dismiss updates `cr_cardoutcome = DISMISSED` with timestamp
+
+### Sprint 1B Verification
+- [ ] AssistantCards table has `cr_conversationclusterid`, `cr_sourcesignalid`
+- [ ] SenderProfile table created with all 8 columns
+- [ ] Alternate key on `cr_senderemail` is Active
+- [ ] Security role includes SenderProfile table Basic privileges
+- [ ] EMAIL flow: sender profile upserted (signal count increments on repeat senders)
+- [ ] TEAMS flow: cluster ID uses threadId; sender profile upserted
+- [ ] CALENDAR flow: cluster ID uses `seriesMasterId` for recurring events
+- [ ] Card Outcome Tracker flow: response count increments on SENT outcomes
+- [ ] Card Outcome Tracker flow: does NOT fire on DISMISSED outcomes
+- [ ] Running average for `cr_avgresponsehours` calculates correctly
+
+### Sprint 2 Verification
+- [ ] Daily Briefing Agent published in Copilot Studio
+- [ ] Daily Briefing Flow runs on schedule (weekday 7 AM) and produces briefing card
+- [ ] Briefing card renders at top of dashboard with BriefingCard component
+- [ ] Action items show rank, summary, recommended action, and calendar correlation
+- [ ] "Open card →" links navigate to the referenced card
+- [ ] FYI section is collapsible
+- [ ] Stale alerts render with amber/red severity indicators
+- [ ] Staleness Monitor creates nudge cards for High-priority items >24h PENDING
+- [ ] No duplicate nudge cards created for the same source
+- [ ] Cards expire to EXPIRED after 7 days PENDING
+- [ ] Inline editing: "Edit draft" button appears on sendable cards
+- [ ] Inline editing: Modified draft shows "(edited)" in confirmation panel
+- [ ] Inline editing: "Revert to original" restores the humanized draft
+- [ ] Send Email flow sets SENT_EDITED when final text differs from humanized draft
+
+### Sprint 3 Verification
+- [ ] Orchestrator Agent published in Copilot Studio with 6 tool actions registered
+- [ ] Humanizer Agent connected as sub-agent for draft refinement
+- [ ] Command Execution Flow created (instant trigger, 120s timeout)
+- [ ] Command bar renders at bottom of dashboard (persistent in gallery + detail views)
+- [ ] Quick action chips visible when command bar not expanded
+- [ ] "What's urgent?" returns ranked open items with card links
+- [ ] "Remind me to [action] on [date]" creates SELF_REMINDER card
+- [ ] Context-aware commands work (e.g., "Make this shorter" with card expanded)
+- [ ] "How often do I respond to [sender]?" returns sender profile stats
+- [ ] Card links in responses navigate to the referenced card
+- [ ] Conversation history maintained within session (cleared on clear button)
+- [ ] Error handling: invalid commands return graceful fallback response
+- [ ] SELF_REMINDER and COMMAND_RESULT trigger types provisioned in Dataverse
+
+### Sprint 4 Verification
+- [ ] Sprint 4 SenderProfile columns provisioned (dismiss_count, avg_edit_distance, response_rate, dismiss_rate)
+- [ ] Sender Profile Analyzer flow runs weekly and categorizes senders correctly
+- [ ] AUTO_HIGH: response_rate ≥ 0.8 AND avg_response_hours < 8
+- [ ] AUTO_LOW: response_rate < 0.4 OR dismiss_rate ≥ 0.6
+- [ ] USER_OVERRIDE senders are never recategorized by the analyzer
+- [ ] Senders with < 3 signals are skipped
+- [ ] Card Outcome Tracker increments cr_dismisscount on DISMISSED outcomes
+- [ ] Trigger flows pass SENDER_PROFILE JSON to the main agent
+- [ ] Agent upgrades LIGHT → FULL for AUTO_HIGH senders with actionable content
+- [ ] Agent does NOT downgrade FULL → LIGHT for executives/clients regardless of category
+- [ ] Confidence scoring applies sender-adaptive modifiers (staleness urgency, edit distance penalty)
+- [ ] Confidence Calibration dashboard accessible and shows 4 tabs
+- [ ] Confidence accuracy buckets display correct action rates
+- [ ] Top Senders tab shows ranked engagement data
 
 ---
 
