@@ -29,3 +29,38 @@
 
 ---
 
+## v2.0 Second Brain Evolution (Shipped: 2026-02-28)
+
+**Sprints completed:** 5 sprints (1A, 1B, 2, 3, 4) + review fix
+**Timeline:** Designed via AI Council sessions, implemented and merged 2026-02-28
+**Git range:** a481c4c → 37d0756 (10 commits, merged via PR #1)
+**Files modified:** 33 (8,207 insertions, 98 deletions)
+**Source LOC after v2.0:** ~59k TypeScript/CSS (handwritten), 387 test cases across 58 test files
+
+**Delivered:** Evolved the Enterprise Work Assistant from a reactive signal processor into a proactive "second brain" with behavioral learning, conversational interaction, sender intelligence, and performance analytics.
+
+**Key accomplishments:**
+1. Outcome tracking with send-as-is email flow — fire-and-forget PCF output binding triggers Power Automate for guaranteed audit trail (Sprint 1A)
+2. Conversation clustering and sender profile infrastructure — groups related cards by thread, tracks per-sender behavioral metrics (Sprint 1B)
+3. Daily Briefing Agent with composite scoring and staleness monitor — proactive morning digest with configurable schedule, inline editing, and overdue item detection (Sprint 2)
+4. Command Bar with Orchestrator Agent — conversational interface for workflow control via natural language commands with SELF_REMINDER and COMMAND_RESULT trigger types (Sprint 3)
+5. Sender Intelligence with adaptive triage and confidence calibration dashboard — per-sender response/dismiss rate tracking drives automatic priority adjustment, four-tab analytics dashboard surfaces scoring accuracy (Sprint 4)
+6. End-to-end review fixes — 3 bugs, 6 doc errors, 6 gaps, plus skipLibCheck configuration (review commit)
+
+**Known tech debt (from end-to-end review, medium/low priority):**
+- #7: Staleness polling (setInterval) lacks cleanup on unmount
+- #8: BriefingView test coverage thin on schedule logic
+- #9: Command bar error states show raw error strings
+- #10: No E2E flow coverage for send-email or set-reminder paths
+- #11: Confidence calibration thresholds are hardcoded
+- #12: Sender profile 30-day window not configurable
+- #13: Daily briefing schedule stored in component state (lost on refresh)
+
+**Archives:**
+- milestones/v2.0-ROADMAP.md (Second Brain Evolution Roadmap)
+- milestones/v2.0-AI-COUNCIL-SESSION-1.md
+- milestones/v2.0-AI-COUNCIL-SESSION-2.md
+- milestones/v2.0-AI-COUNCIL-SESSION-3.md
+
+---
+

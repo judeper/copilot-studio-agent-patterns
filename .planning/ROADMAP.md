@@ -3,6 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Production Readiness** — Phases 1-9 (shipped 2026-02-22)
+- ✅ **v2.0 Second Brain Evolution** — Sprints 1A-4 (shipped 2026-02-28)
 
 ## Phases
 
@@ -23,6 +24,20 @@ Full details: milestones/v1.0-ROADMAP.md
 
 </details>
 
+<details>
+<summary>✅ v2.0 Second Brain Evolution (Sprints 1A-4) — SHIPPED 2026-02-28</summary>
+
+- [x] Sprint 1A: Outcome Tracking + Send-As-Is Email Flow — completed 2026-02-28
+- [x] Sprint 1B: Conversation Clustering + Sender Profiles — completed 2026-02-28
+- [x] Sprint 2: Daily Briefing Agent + Inline Editing + Staleness Monitor — completed 2026-02-28
+- [x] Sprint 3: Command Bar + Orchestrator Agent — completed 2026-02-28
+- [x] Sprint 4: Sender Intelligence + Adaptive Triage + Confidence Calibration — completed 2026-02-28
+- [x] Review: End-to-End Bug Fixes + Documentation Corrections — completed 2026-02-28
+
+Full details: milestones/v2.0-ROADMAP.md
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -36,3 +51,9 @@ Full details: milestones/v1.0-ROADMAP.md
 | 7. Documentation Accuracy | v1.0 | 2/2 | Complete | 2026-02-21 |
 | 8. Test Infrastructure and Unit Tests | v1.0 | 2/2 | Complete | 2026-02-22 |
 | 9. Tech Debt Cleanup | v1.0 | 1/1 | Complete | 2026-02-22 |
+| Sprint 1A: Outcome Tracking + Send Flow | v2.0 | 1/1 | Complete | 2026-02-28 |
+| Sprint 1B: Conversation Clustering + Sender Profiles | v2.0 | 1/1 | Complete | 2026-02-28 |
+| Sprint 2: Daily Briefing + Staleness Monitor | v2.0 | 1/1 | Complete | 2026-02-28 |
+| Sprint 3: Command Bar + Orchestrator Agent | v2.0 | 1/1 | Complete | 2026-02-28 |
+| Sprint 4: Sender Intelligence + Adaptive Triage | v2.0 | 1/1 | Complete | 2026-02-28 |
+| Review: End-to-End Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
