@@ -201,3 +201,270 @@
     justify-content: center;
     padding: 12px;
 }
+
+/* ─── Sprint 2: BriefingCard ─── */
+
+.briefing-card {
+    padding: 16px;
+    background: linear-gradient(135deg, #f0f4ff 0%, #faf0ff 100%);
+    border-radius: 8px;
+    border: 1px solid #d0d0e8;
+}
+
+.briefing-card-error {
+    background: #fff8f0;
+    border-color: #e0c0a0;
+}
+
+.briefing-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.briefing-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.briefing-date {
+    font-size: 13px;
+    color: #666;
+}
+
+.briefing-count {
+    font-size: 13px;
+    color: #444;
+    background: #e0e0f0;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.briefing-day-shape {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #2a2a3e;
+    padding: 12px;
+    background: white;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border-left: 3px solid #6366f1;
+}
+
+.briefing-section {
+    margin-bottom: 14px;
+}
+
+.briefing-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.briefing-action-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.briefing-action-rank {
+    font-size: 16px;
+    font-weight: 700;
+    color: #6366f1;
+    min-width: 28px;
+    text-align: center;
+    padding-top: 2px;
+}
+
+.briefing-action-content {
+    flex: 1;
+}
+
+.briefing-action-summary {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+}
+
+.briefing-action-recommendation {
+    font-size: 13px;
+    color: #2a6e2a;
+    margin-bottom: 2px;
+}
+
+.briefing-action-reason {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
+.briefing-action-calendar {
+    font-size: 12px;
+    color: #6366f1;
+    margin-top: 4px;
+}
+
+.briefing-action-links {
+    margin-top: 6px;
+}
+
+.briefing-jump-link {
+    background: none;
+    border: none;
+    color: #6366f1;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: underline;
+    padding: 0;
+    margin-right: 8px;
+}
+
+.briefing-jump-link:hover {
+    color: #4f46e5;
+}
+
+.briefing-stale-section {
+    background: #fff8f0;
+    border-radius: 6px;
+    padding: 10px;
+    border: 1px solid #f0d0a0;
+}
+
+.briefing-stale-item {
+    padding: 8px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+}
+
+.briefing-stale-warning {
+    background: #fffbe6;
+    border-left: 3px solid #f59e0b;
+}
+
+.briefing-stale-critical {
+    background: #fef2f2;
+    border-left: 3px solid #ef4444;
+}
+
+.briefing-stale-summary {
+    font-size: 13px;
+    color: #333;
+}
+
+.briefing-stale-hours {
+    font-size: 12px;
+    color: #888;
+    margin-left: 8px;
+}
+
+.briefing-stale-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.briefing-stale-recommendation {
+    font-size: 12px;
+    color: #666;
+}
+
+.briefing-fyi-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+}
+
+.briefing-fyi-chevron {
+    font-size: 12px;
+    margin-left: 6px;
+    color: #888;
+}
+
+.briefing-fyi-item {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+.briefing-fyi-category {
+    font-size: 11px;
+    background: #e8e8f0;
+    color: #555;
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.briefing-fyi-summary {
+    color: #444;
+}
+
+.briefing-empty {
+    text-align: center;
+    padding: 20px;
+    color: #888;
+    font-size: 14px;
+}
+
+.briefing-error-message {
+    color: #c44;
+    font-size: 13px;
+}
+
+.briefing-footer {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #d0d0e0;
+}
+
+.briefing-dismiss-button {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+}
+
+.briefing-dismiss-button:hover {
+    background: #f0f0f0;
+    border-color: #999;
+}
+
+/* ─── Sprint 2: Inline Editing ─── */
+
+.card-detail-draft-editable {
+    border: 2px solid #6366f1;
+    background: #fafaff;
+}
+
+.card-detail-edit-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #666;
+}
+
+.card-detail-edit-indicator {
+    color: #6366f1;
+    font-weight: 500;
+}
+

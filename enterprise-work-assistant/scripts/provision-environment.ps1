@@ -267,7 +267,8 @@ New-ChoiceColumn -SchemaName "${PublisherPrefix}_triggertype" -DisplayName "Trig
     -Options @(
         @{ Label = "EMAIL"; Value = 100000000 },
         @{ Label = "TEAMS_MESSAGE"; Value = 100000001 },
-        @{ Label = "CALENDAR_SCAN"; Value = 100000002 }
+        @{ Label = "CALENDAR_SCAN"; Value = 100000002 },
+        @{ Label = "DAILY_BRIEFING"; Value = 100000003 }
     )
 
 # Priority
@@ -287,7 +288,8 @@ New-ChoiceColumn -SchemaName "${PublisherPrefix}_cardstatus" -DisplayName "Card 
         @{ Label = "READY"; Value = 100000000 },
         @{ Label = "LOW_CONFIDENCE"; Value = 100000001 },
         @{ Label = "SUMMARY_ONLY"; Value = 100000002 },
-        @{ Label = "NO_OUTPUT"; Value = 100000003 }
+        @{ Label = "NO_OUTPUT"; Value = 100000003 },
+        @{ Label = "NUDGE"; Value = 100000004 }
     )
 
 # Temporal Horizon

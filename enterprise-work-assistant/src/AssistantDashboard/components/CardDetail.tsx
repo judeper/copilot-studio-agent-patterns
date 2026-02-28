@@ -74,6 +74,9 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     onDismissCard,
 }) => {
     const [localSendState, setLocalSendState] = React.useState<SendDisplayState>("idle");
+    // Sprint 2: Inline editing state
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [editedDraft, setEditedDraft] = React.useState(card.humanized_draft ?? "");
 
     // Derive effective send state: Dataverse outcome is authoritative over local state
     const effectiveSendState: SendDisplayState = React.useMemo(() => {
@@ -89,7 +92,9 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     // Reset local state when switching to a different card
     React.useEffect(() => {
         setLocalSendState("idle");
-    }, [card.id]);
+        setIsEditing(false);
+        setEditedDraft(card.humanized_draft ?? "");
+    }, [card.id, card.humanized_draft]);
 
     // Timeout: if stuck in "sending" for 60s, reset to idle
     React.useEffect(() => {
@@ -116,14 +121,30 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     }, []);
 
     const handleConfirmSend = React.useCallback(() => {
-        if (!card.humanized_draft) return;
+        const finalText = isEditing ? editedDraft : card.humanized_draft;
+        if (!finalText) return;
         setLocalSendState("sending");
-        onSendDraft(card.id, card.humanized_draft);
-    }, [card.id, card.humanized_draft, onSendDraft]);
+        onSendDraft(card.id, finalText);
+    }, [card.id, card.humanized_draft, editedDraft, isEditing, onSendDraft]);
 
     const handleCancelSend = React.useCallback(() => {
         setLocalSendState("idle");
     }, []);
+
+    // Sprint 2: Enter edit mode
+    const handleEditClick = React.useCallback(() => {
+        setIsEditing(true);
+        setEditedDraft(card.humanized_draft ?? "");
+    }, [card.humanized_draft]);
+
+    // Sprint 2: Cancel editing, revert to original
+    const handleCancelEdit = React.useCallback(() => {
+        setIsEditing(false);
+        setEditedDraft(card.humanized_draft ?? "");
+    }, [card.humanized_draft]);
+
+    // Sprint 2: Track whether draft has been modified
+    const draftIsModified = isEditing && editedDraft !== (card.humanized_draft ?? "");
 
     const handleCopy = React.useCallback(() => {
         onCopyDraft(card.id);
@@ -254,13 +275,44 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         {card.humanized_draft ? "Humanized Draft" : "Draft"}
                     </Text>
                     {card.humanized_draft ? (
-                        <Textarea
-                            className="card-detail-draft"
-                            value={card.humanized_draft}
-                            resize="vertical"
-                            readOnly
-                            onChange={() => { /* readOnly — no-op */ }}
-                        />
+                        <>
+                            {/* Sprint 2: Edit bar above draft */}
+                            {sendable && !isSent && !isDismissed && (
+                                <div className="card-detail-edit-bar">
+                                    {isEditing ? (
+                                        <>
+                                            <span className="card-detail-edit-indicator">
+                                                Editing {draftIsModified ? "(modified)" : ""}
+                                            </span>
+                                            <Button
+                                                appearance="subtle"
+                                                size="small"
+                                                onClick={handleCancelEdit}
+                                            >
+                                                Revert to original
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button
+                                            appearance="subtle"
+                                            size="small"
+                                            onClick={handleEditClick}
+                                        >
+                                            Edit draft
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                            <Textarea
+                                className={`card-detail-draft ${isEditing ? "card-detail-draft-editable" : ""}`}
+                                value={isEditing ? editedDraft : card.humanized_draft}
+                                resize="vertical"
+                                readOnly={!isEditing}
+                                onChange={(_e, data) => {
+                                    if (isEditing) setEditedDraft(data.value);
+                                }}
+                            />
+                        </>
                     ) : isDraftPayloadObject(card.draft_payload) ? (
                         <div className="card-detail-draft-pending">
                             <Spinner size="small" label="Humanizing..." />
@@ -283,7 +335,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
             {effectiveSendState === "confirming" && sendable && (
                 <section className="card-detail-confirm-panel">
                     <Text as="p" size={300} weight="semibold" block>
-                        Confirm send
+                        Confirm send {draftIsModified ? "(edited)" : "(as-is)"}
                     </Text>
                     <div className="card-detail-confirm-details">
                         <Text size={200} block>
@@ -295,6 +347,11 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         <Text size={200} block>
                             <strong>Subject:</strong> Re: {card.original_subject ?? "(no subject)"}
                         </Text>
+                        {draftIsModified && (
+                            <Text size={200} block style={{ color: "#6366f1" }}>
+                                Draft has been modified from the original.
+                            </Text>
+                        )}
                     </div>
                     <div className="card-detail-confirm-actions">
                         <Button

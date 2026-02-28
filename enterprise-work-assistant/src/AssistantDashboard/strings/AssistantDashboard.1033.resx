@@ -100,4 +100,10 @@
   <data name="DismissCardAction_Description" xml:space="preserve">
     <value>Fires when user clicks Dismiss. Contains the card ID.</value>
   </data>
+  <data name="JumpToCardAction_DisplayName" xml:space="preserve">
+    <value>Jump To Card Action</value>
+  </data>
+  <data name="JumpToCardAction_Description" xml:space="preserve">
+    <value>Fires when user clicks a card link in the daily briefing. Contains the target card ID.</value>
+  </data>
 </root>
