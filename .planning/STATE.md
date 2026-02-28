@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Pre-Deployment Audit
-status: unknown
-last_updated: "2026-02-28T22:51:23.132Z"
+status: in-progress
+last_updated: "2026-02-28T23:30:14Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 10
+  completed_plans: 7
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** Phase 12 complete. Phase 13 (Remediation) next.
+**Current focus:** Phase 13 (Remediation) in progress. Wave 1 schema/contract fixes complete.
 
 ## Current Position
 
-Phase: 12 of 13 (Integration/E2E Review) -- COMPLETE
-Plan: 2 of 2 in current phase (all plans complete)
-Status: All 3 review phases (10, 11, 12) complete. Unified remediation backlog ready for Phase 13.
-Last activity: 2026-02-28 — Completed 12-02 reconciliation and verdict (20 unique BLOCK issues for Phase 13)
+Phase: 13 of 13 (Remediation)
+Plan: 1 of 4 in current phase (13-01 complete)
+Status: Wave 1 schema/contract fixes complete. Wave 2 flow specs next.
+Last activity: 2026-02-28 -- Completed 13-01 (schema enums, prompt fixes, injection defense, script fixes, useCardData)
 
-Progress: [██████████] 100% (6/6 plans across 3 phases)
+Progress: [███████░░░] 70% (7/10 plans across 4 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6 (v2.1)
-- Average duration: 8min
-- Total execution time: 46min
+- Total plans completed: 7 (v2.1)
+- Average duration: 7min
+- Total execution time: 50min
 
 **By Phase:**
 
@@ -43,6 +43,7 @@ Progress: [██████████] 100% (6/6 plans across 3 phases)
 | 10. Platform Architecture Review | 2/2 | 12min | 6min |
 | 11. Frontend/PCF Review | 2/2 | 16min | 8min |
 | 12. Integration/E2E Review | 2/2 | 18min | 9min |
+| 13. Remediation | 1/4 | 4min | 4min |
 
 *Updated after each plan completion*
 
@@ -109,6 +110,12 @@ Progress: [██████████] 100% (6/6 plans across 3 phases)
 - Overall verdict: FAIL -- 9 BLOCK issues, primarily 4 missing flow specs and 5 artifact issues
 - PLAT-05 passes cleanly: all 6 platform constraints have workarounds or accepted risks
 
+**v2.1 Phase 13 decisions (13-01):**
+- Sprint 4 SenderProfile columns already present in provisioning script -- confirmed, no additions needed
+- PascalCase SchemaName separated from lowercase LogicalName in security roles script for correct Dataverse privilege resolution
+- Prompt injection defense uses field-specific references (PAYLOAD, COMMAND_TEXT, OPEN_CARDS) per agent prompt
+- Tech debt #7 reclassified as Resolved/Not Applicable -- no setInterval exists in PCF source
+
 ### Pending Todos
 
 1. **Research Copilot Outlook catchup feature for OOO agent** — Evaluate Copilot in Outlook's "Catch Up" OOO summary feature as a potential new agent pattern
@@ -120,5 +127,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 12-02-PLAN.md (Integration reconciliation and verdict -- 20 unique BLOCK issues for Phase 13)
+Stopped at: Completed 13-01-PLAN.md (Wave 1 schema/contract fixes -- 8 files fixed across schema, prompts, scripts, frontend)
 Resume file: None
