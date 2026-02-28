@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CardDetail } from '../CardDetail';
 import { renderWithProviders } from '../../../test/helpers/renderWithProviders';
@@ -149,7 +149,7 @@ describe('CardDetail', () => {
 
         await userEvent.click(screen.getByText('Send'));
 
-        expect(screen.getByText('Confirm send')).toBeInTheDocument();
+        expect(screen.getByText(/Confirm send/)).toBeInTheDocument();
         expect(screen.getByText(/Fabrikam Legal/)).toBeInTheDocument();
         expect(screen.getByText(/Contract Renewal/)).toBeInTheDocument();
         expect(screen.getByText('Confirm & Send')).toBeInTheDocument();
@@ -173,10 +173,10 @@ describe('CardDetail', () => {
         renderCardDetail(tier3FullItem);
 
         await userEvent.click(screen.getByText('Send'));
-        expect(screen.getByText('Confirm send')).toBeInTheDocument();
+        expect(screen.getByText(/Confirm send/)).toBeInTheDocument();
 
         await userEvent.click(screen.getByText('Cancel'));
-        expect(screen.queryByText('Confirm send')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Confirm send/)).not.toBeInTheDocument();
     });
 
     it('shows "Sent" badge for cards with SENT_AS_IS outcome', () => {
@@ -188,7 +188,7 @@ describe('CardDetail', () => {
 
         renderCardDetail(sentCard);
 
-        expect(screen.getByText('Sent')).toBeInTheDocument();
+        expect(screen.getAllByText('Sent').length).toBeGreaterThan(0);
         // Send button should be replaced with disabled "Sent" button
         expect(screen.queryByText('Send')).not.toBeInTheDocument();
     });

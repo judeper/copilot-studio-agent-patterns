@@ -1025,12 +1025,9 @@ $dismissRateCol = @{
     DisplayName = @{
         "@odata.type" = "Microsoft.Dynamics.CRM.Label"
         LocalizedLabels = @(@{
-            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
-            LocalizedLabels = @(@{
-                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
-                Label = "Dismiss Rate"
-                LanguageCode = 1033
-            })
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Dismiss Rate"
+            LanguageCode = 1033
         })
     }
     Description = @{

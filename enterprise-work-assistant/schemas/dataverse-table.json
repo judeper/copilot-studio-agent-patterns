@@ -32,8 +32,6 @@
         { "label": "DAILY_BRIEFING", "value": 100000003 },
         { "label": "SELF_REMINDER", "value": 100000004 },
         { "label": "COMMAND_RESULT", "value": 100000005 }
-        { "label": "SELF_REMINDER", "value": 100000004 },
-        { "label": "COMMAND_RESULT", "value": 100000005 }
       ]
     },
     {

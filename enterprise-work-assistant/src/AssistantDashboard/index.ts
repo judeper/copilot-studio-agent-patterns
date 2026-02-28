@@ -22,6 +22,7 @@ const AppWrapper: React.FC<{
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
     onJumpToCard: (cardId: string) => void;
+    onExecuteCommand: (command: string, currentCardId: string | null) => void;
 }> = (props) => {
     // Cast PCF DataSet to the hook's expected interface shape
     const cards: AssistantCard[] = useCardData(
@@ -42,6 +43,7 @@ const AppWrapper: React.FC<{
         onCopyDraft: props.onCopyDraft,
         onDismissCard: props.onDismissCard,
         onJumpToCard: props.onJumpToCard,
+        onExecuteCommand: props.onExecuteCommand,
     });
 };
 

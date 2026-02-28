@@ -375,20 +375,6 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Confidence accuracy buckets display correct action rates
 - [ ] Top Senders tab shows ranked engagement data
 
-### Sprint 2 Verification
-- [ ] Daily Briefing Agent published in Copilot Studio with correct input contract
-- [ ] Daily Briefing Flow runs on weekday mornings (test with manual run)
-- [ ] Briefing card appears at top of dashboard with day shape narrative
-- [ ] Action items in briefing have working "Open card →" links
-- [ ] FYI section is collapsible
-- [ ] Staleness Monitor: cards >7 days PENDING are marked EXPIRED
-- [ ] Staleness Monitor: High priority cards >24h get NUDGE cards
-- [ ] No duplicate nudge cards on repeated monitor runs
-- [ ] PCF inline editing: "Edit draft" button appears on EMAIL FULL cards
-- [ ] Edited drafts can be sent; confirmation panel shows "(edited)" label
-- [ ] NUDGE cards render correctly in gallery (distinct from regular cards)
-- [ ] Trigger Type filter shows DAILY_BRIEFING option
-
 ---
 
 ## Smoke Test Procedure
