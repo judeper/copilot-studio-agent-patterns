@@ -102,14 +102,15 @@ $entityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${
 $objectTypeCode = $entityMeta.ObjectTypeCode
 
 # Privilege names follow the pattern: prv{Action}{EntitySchemaName}
-$entityName = "${PublisherPrefix}_assistantcard"
+# IMPORTANT: Dataverse privileges use the entity SchemaName (PascalCase), not LogicalName (lowercase)
+$entitySchemaName = "${PublisherPrefix}_AssistantCard"
 $privilegeNames = @(
-    "prvCreate${entityName}",
-    "prvRead${entityName}",
-    "prvWrite${entityName}",
-    "prvDelete${entityName}",
-    "prvAppend${entityName}",
-    "prvAppendTo${entityName}"
+    "prvCreate${entitySchemaName}",
+    "prvRead${entitySchemaName}",
+    "prvWrite${entitySchemaName}",
+    "prvDelete${entitySchemaName}",
+    "prvAppend${entitySchemaName}",
+    "prvAppendTo${entitySchemaName}"
 )
 
 # Basic depth = 1 (User level - sees only own records)
@@ -133,7 +134,7 @@ foreach ($privName in $privilegeNames) {
 
             Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
         } else {
-            throw "Privilege '$privName' not found. The ${PublisherPrefix}_assistantcard table may not be published yet. Import the solution first, then re-run this script."
+            throw "Privilege '$privName' not found. The ${PublisherPrefix}_AssistantCard table may not be published yet. Import the solution first, then re-run this script."
         }
     } catch {
         throw "Failed to assign privilege '$privName': $($_.Exception.Message)"
@@ -145,20 +146,22 @@ foreach ($privName in $privilegeNames) {
 # ─────────────────────────────────────
 Write-Host "Configuring privileges on SenderProfile table..." -ForegroundColor Cyan
 
-$senderEntityName = "${PublisherPrefix}_senderprofile"
+$senderLogicalName = "${PublisherPrefix}_senderprofile"
+# IMPORTANT: Dataverse privileges use the entity SchemaName (PascalCase), not LogicalName (lowercase)
+$senderSchemaName = "${PublisherPrefix}_SenderProfile"
 
 # Check if table exists before configuring privileges
 try {
-    $senderEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$senderEntityName')?`$select=ObjectTypeCode" -Headers $headers
+    $senderEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$senderLogicalName')?`$select=ObjectTypeCode" -Headers $headers
     $senderObjectTypeCode = $senderEntityMeta.ObjectTypeCode
 
     $senderPrivilegeNames = @(
-        "prvCreate${senderEntityName}",
-        "prvRead${senderEntityName}",
-        "prvWrite${senderEntityName}",
-        "prvDelete${senderEntityName}",
-        "prvAppend${senderEntityName}",
-        "prvAppendTo${senderEntityName}"
+        "prvCreate${senderSchemaName}",
+        "prvRead${senderSchemaName}",
+        "prvWrite${senderSchemaName}",
+        "prvDelete${senderSchemaName}",
+        "prvAppend${senderSchemaName}",
+        "prvAppendTo${senderSchemaName}"
     )
 
     foreach ($privName in $senderPrivilegeNames) {
