@@ -302,4 +302,51 @@ describe('CardDetail', () => {
         expect(screen.queryByText('Draft')).not.toBeInTheDocument();
         expect(screen.queryByText('Humanized Draft')).not.toBeInTheDocument();
     });
+
+    // Sprint 2: Inline editing tests
+
+    it('shows "Edit draft" button for sendable cards', () => {
+        renderCardDetail(tier3FullItem);
+        expect(screen.getByText('Edit draft')).toBeInTheDocument();
+    });
+
+    it('hides "Edit draft" button for non-sendable cards', () => {
+        renderCardDetail(calendarBriefingItem);
+        expect(screen.queryByText('Edit draft')).not.toBeInTheDocument();
+    });
+
+    it('enters editing mode when "Edit draft" is clicked', () => {
+        renderCardDetail(tier3FullItem);
+        fireEvent.click(screen.getByText('Edit draft'));
+        expect(screen.getByText(/Editing/)).toBeInTheDocument();
+        expect(screen.getByText('Revert to original')).toBeInTheDocument();
+    });
+
+    it('reverts to original when "Revert to original" is clicked', () => {
+        renderCardDetail(tier3FullItem);
+        fireEvent.click(screen.getByText('Edit draft'));
+        expect(screen.getByText(/Editing/)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Revert to original'));
+        expect(screen.queryByText(/Editing/)).not.toBeInTheDocument();
+    });
+
+    it('confirmation panel shows "(edited)" when draft is modified', () => {
+        renderCardDetail(tier3FullItem);
+        // Enter edit mode
+        fireEvent.click(screen.getByText('Edit draft'));
+        // Modify the draft text
+        const textarea = screen.getByDisplayValue(tier3FullItem.humanized_draft!);
+        fireEvent.change(textarea, { target: { value: 'Modified draft text' } });
+        // Click Send
+        fireEvent.click(screen.getByText('Send'));
+        // Confirmation panel should indicate it was edited
+        expect(screen.getByText(/edited/)).toBeInTheDocument();
+    });
+
+    it('confirmation panel shows "(as-is)" when draft is NOT modified', () => {
+        renderCardDetail(tier3FullItem);
+        // Click Send without editing
+        fireEvent.click(screen.getByText('Send'));
+        expect(screen.getByText(/as-is/)).toBeInTheDocument();
+    });
 });
