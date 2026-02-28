@@ -33,8 +33,8 @@ Requirements for pre-deployment audit. Each maps to roadmap phases.
 
 ### Reconciliation & Remediation
 
-- [ ] **FIX-01**: All council disagreements researched and resolved
-- [ ] **FIX-02**: Deploy-blocking issues fixed in code/docs
+- [x] **FIX-01**: All council disagreements researched and resolved
+- [x] **FIX-02**: Deploy-blocking issues fixed in code/docs
 - [ ] **FIX-03**: Non-blocking issues documented with rationale for deferral
 - [ ] **FIX-04**: Final state validated — clean for deployment
 
@@ -78,8 +78,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INTG-03 | Phase 12 | Complete |
 | INTG-04 | Phase 12 | Complete |
 | INTG-05 | Phase 12 | Complete |
-| FIX-01 | Phase 13 | Pending |
-| FIX-02 | Phase 13 | Pending |
+| FIX-01 | Phase 13 | Complete |
+| FIX-02 | Phase 13 | Complete |
 | FIX-03 | Phase 13 | Pending |
 | FIX-04 | Phase 13 | Pending |
 
