@@ -1,24 +1,42 @@
-# Enterprise Work Assistant — Production Readiness
+# Enterprise Work Assistant — Second Brain
 
 ## What This Is
 
-A comprehensive reference pattern for an AI-powered Copilot Studio agent with a PCF React dashboard, Power Automate flows, and Dataverse integration. After v1.0, every file in the solution is internally consistent, correct, and deployable — schemas match prompts, code compiles cleanly, docs accurately describe the implementation, scripts work when run, and 68 unit tests validate correctness.
+A comprehensive reference pattern for an AI-powered "second brain" built on Copilot Studio, Power Automate, Dataverse, and a PCF React dashboard. The system proactively manages a knowledge worker's communications by triaging emails, drafting responses, tracking outcomes, learning sender behavior, generating daily briefings, and accepting natural language commands — all within a Canvas App dashboard.
+
+**v1.0** established production readiness: consistent schemas, correct code, accurate docs, deployment scripts, and test infrastructure.
+
+**v2.0** evolved the assistant into a behavioral learning system: outcome tracking with email send flow, conversation clustering, sender profiles, daily briefing agent with staleness monitoring, command bar with orchestrator agent, and sender intelligence with adaptive triage and confidence calibration analytics.
 
 ## Core Value
 
-Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
+Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run. The system should learn from user behavior to improve its assistance over time.
 
 ## Requirements
 
 ### Validated
 
-- ✓ Fix all schema/prompt inconsistencies (null convention, field types, nullability) — v1.0
-- ✓ Fix remaining code bugs (Badge size, color tokens, XSS, deploy polling, security roles) — v1.0
-- ✓ Resolve table naming inconsistency (cr_assistantcard singular/plural) across all files — v1.0
-- ✓ Add missing Power Automate implementation guidance (Choice expressions, connector actions, research tool) — v1.0
-- ✓ Correct deployment guide UI paths (JSON output mode location) — v1.0
-- ✓ Add unit tests for React PCF components and hooks — v1.0
-- ✓ Re-audit entire solution after fixes to validate correctness — v1.0
+**v1.0 Production Readiness:**
+- ✓ Fix all schema/prompt inconsistencies (null convention, field types, nullability)
+- ✓ Fix remaining code bugs (Badge size, color tokens, XSS, deploy polling, security roles)
+- ✓ Resolve table naming inconsistency (cr_assistantcard singular/plural) across all files
+- ✓ Add missing Power Automate implementation guidance (Choice expressions, connector actions, research tool)
+- ✓ Correct deployment guide UI paths (JSON output mode location)
+- ✓ Add unit tests for React PCF components and hooks
+- ✓ Re-audit entire solution after fixes to validate correctness
+
+**v2.0 Second Brain Evolution:**
+- ✓ Implement outcome tracking with action persistence via Power Automate flows
+- ✓ Add send-as-is email flow with fire-and-forget PCF output binding
+- ✓ Build conversation clustering to group related cards by thread
+- ✓ Create sender profile infrastructure with per-sender behavioral metrics
+- ✓ Implement Daily Briefing Agent with composite scoring and configurable schedule
+- ✓ Add staleness monitor for overdue item detection
+- ✓ Build Command Bar with Orchestrator Agent for natural language workflow control
+- ✓ Add SELF_REMINDER and COMMAND_RESULT trigger types to Dataverse schema
+- ✓ Implement sender-adaptive triage with automatic priority adjustment
+- ✓ Build confidence calibration dashboard with four-tab analytics (Accuracy/Triage/Drafts/Senders)
+- ✓ End-to-end review pass fixing 3 bugs, 6 doc errors, 6 gaps
 
 ### Active
 
@@ -26,24 +44,32 @@ Every artifact in the solution must be correct and consistent — schemas match 
 
 ### Out of Scope
 
-- Adding new features or capabilities to the solution — this is a fix-only pass
-- Rewriting the architecture or changing design decisions
-- Building a working Power Platform environment — we're fixing the reference pattern files only
+- Building a working Power Platform environment — we're developing the reference pattern files only
 - Mobile responsiveness — not relevant to Canvas App PCF dashboard
 - TypeScript 5.x upgrade — blocked by pcf-scripts pinning TS 4.9.5; skipLibCheck workaround resolves type-checking issues
 
 ## Context
 
-Shipped v1.0 with 2,218 LOC TypeScript/CSS across a 28-file reference pattern in 6 directories (docs, prompts, schemas, scripts, src). The PCF virtual control uses React 16.14.0 (platform-provided) with Fluent UI v9, built via Bun 1.3.8. Jest test suite has 68 tests covering all source files with 80%+ per-file coverage thresholds.
+Shipped v2.0 with ~59k LOC TypeScript/CSS (handwritten) across the reference pattern. The PCF virtual control uses React 16.14.0 (platform-provided) with Fluent UI v9, built via Bun 1.3.8. Test suite has 387 test cases across 58 test files covering PCF components, hooks, agents, and utilities.
 
-**Known tech debt:** Prompt/Dataverse layers still output "N/A" strings while the schema uses null. Bridged at runtime by useCardData.ts ingestion boundary. Non-blocking — system works correctly end-to-end. Canvas app filter dropdowns no longer expose N/A as a filter option (post-v1.0 review fix).
+**Known tech debt (v2.0, medium/low):**
+- #7: Staleness polling (setInterval) lacks cleanup on unmount
+- #8: BriefingView test coverage thin on schedule logic
+- #9: Command bar error states show raw error strings
+- #10: No E2E flow coverage for send-email or set-reminder paths
+- #11: Confidence calibration thresholds are hardcoded
+- #12: Sender profile 30-day window not configurable
+- #13: Daily briefing schedule stored in component state (lost on refresh)
+
+**Legacy tech debt (v1.0, non-blocking):**
+- Prompt/Dataverse layers still output "N/A" strings while schema uses null. Bridged at runtime by useCardData.ts ingestion boundary.
 
 ## Constraints
 
 - **Tech stack**: PCF virtual control using React 16.14.0 (platform-provided), Fluent UI v9, TypeScript 4.9.5
 - **Platform**: Power Apps Canvas Apps, Copilot Studio, Power Automate, Dataverse
 - **Compatibility**: Must work with PAC CLI tooling and standard PCF build pipeline
-- **Package manager**: Bun 1.3.8 (migrated from npm in Phase 3)
+- **Package manager**: Bun 1.3.8 (migrated from npm in v1.0 Phase 3)
 - **No runtime testing**: We cannot run the solution locally — validation is through code review, type checking, and unit tests
 
 ## Key Decisions
@@ -60,6 +86,12 @@ Shipped v1.0 with 2,218 LOC TypeScript/CSS across a 28-file reference pattern in
 | Skip tests for PowerShell scripts | No local Power Platform environment to test against | ⚠️ Revisit — could add Pester unit tests with mocked cmdlets |
 | Function-first language for UI paths in docs | Copilot Studio UI is unstable; describe what to do, hint at where | ✓ Good — docs remain accurate despite UI changes |
 | Jest 30 with ts-jest 29.4.6 | Bun resolved latest Jest; ts-jest peerDependencies allow ^29 or ^30 | ✓ Good — working configuration with skipLibCheck workaround |
+| Fire-and-forget PCF output binding for email | PCF triggers output property change; Power Automate handles send with audit trail | ✓ Good — UI never blocks, guaranteed persistence |
+| Flow-guaranteed audit trail | Outcome tracking persists via Power Automate, not client-side storage | ✓ Good — reliable even if user closes browser |
+| Inline panel over dialog for draft editing | Preserves card context during editing, less disruptive UX | ✓ Good — natural workflow, no context switching |
+| Sender-adaptive triage thresholds | 80% response + <8h turnaround = AUTO_HIGH; 40% response or 60% dismiss = AUTO_LOW | ✓ Good — empirically defensible boundaries |
+| 30-day rolling window for sender profiles | Balances recency (captures relationship changes) against statistical stability | ✓ Good — sufficient sample size without stale data |
+| Confidence score modifiers (+10/-10/+5) | Temporal urgency, edit distance penalty, engagement bonus add relational context | ✓ Good — meaningful signal adjustments |
 
 ---
-*Last updated: 2026-02-22 after v1.0 milestone*
+*Last updated: 2026-02-28 after v2.0 milestone*
