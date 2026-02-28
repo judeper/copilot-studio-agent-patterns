@@ -23,12 +23,6 @@ interface SenderEngagement {
     responseRate: number;
 }
 
-interface EditDistanceTrend {
-    week: string;
-    avgEditDistance: number;
-    sampleSize: number;
-}
-
 /**
  * Sprint 4: Confidence Calibration Dashboard
  *

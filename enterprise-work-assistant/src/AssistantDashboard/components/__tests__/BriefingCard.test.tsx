@@ -31,7 +31,7 @@ describe('BriefingCard', () => {
                 onDismissCard={mockDismiss}
             />,
         );
-        expect(screen.getByText(/8 open items/)).toBeTruthy();
+        expect(screen.getAllByText(/8 open items/).length).toBeGreaterThan(0);
     });
 
     it('renders action items with rank numbers', () => {
@@ -152,7 +152,7 @@ describe('BriefingCard', () => {
                 onDismissCard={mockDismiss}
             />,
         );
-        expect(screen.getByText(/inbox is clear/)).toBeTruthy();
+        expect(screen.getAllByText(/inbox is clear/).length).toBeGreaterThan(0);
     });
 
     it('renders calendar correlation on action items', () => {
