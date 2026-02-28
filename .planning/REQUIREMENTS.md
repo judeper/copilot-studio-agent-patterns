@@ -25,11 +25,11 @@ Requirements for pre-deployment audit. Each maps to roadmap phases.
 
 ### Integration / E2E Review
 
-- [ ] **INTG-01**: Cross-layer contracts are consistent (schema ↔ prompts ↔ flows ↔ code)
-- [ ] **INTG-02**: All user workflows complete end-to-end without gaps
-- [ ] **INTG-03**: Error handling exists at every layer boundary
-- [ ] **INTG-04**: Security model is complete (auth, data access, XSS, injection)
-- [ ] **INTG-05**: No race conditions or timing issues in async flows
+- [x] **INTG-01**: Cross-layer contracts are consistent (schema ↔ prompts ↔ flows ↔ code)
+- [x] **INTG-02**: All user workflows complete end-to-end without gaps
+- [x] **INTG-03**: Error handling exists at every layer boundary
+- [x] **INTG-04**: Security model is complete (auth, data access, XSS, injection)
+- [x] **INTG-05**: No race conditions or timing issues in async flows
 
 ### Reconciliation & Remediation
 
@@ -73,11 +73,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PCF-03 | Phase 11 | Complete |
 | PCF-04 | Phase 11 | Complete |
 | PCF-05 | Phase 11 | Complete |
-| INTG-01 | Phase 12 | Pending |
-| INTG-02 | Phase 12 | Pending |
-| INTG-03 | Phase 12 | Pending |
-| INTG-04 | Phase 12 | Pending |
-| INTG-05 | Phase 12 | Pending |
+| INTG-01 | Phase 12 | Complete |
+| INTG-02 | Phase 12 | Complete |
+| INTG-03 | Phase 12 | Complete |
+| INTG-04 | Phase 12 | Complete |
+| INTG-05 | Phase 12 | Complete |
 | FIX-01 | Phase 13 | Pending |
 | FIX-02 | Phase 13 | Pending |
 | FIX-03 | Phase 13 | Pending |
