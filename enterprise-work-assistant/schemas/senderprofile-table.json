@@ -1,0 +1,83 @@
+{
+  "entityName": "cr_senderprofile",
+  "displayName": "Sender Profile",
+  "displayCollectionName": "Sender Profiles",
+  "description": "Aggregated sender intelligence built from signal history. Each row represents a unique sender per user (UserOwned). Populated incrementally by trigger flows and the Card Outcome Tracker flow.",
+  "ownershipType": "UserOwned",
+  "primaryNameAttribute": "cr_senderemail",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_senderemail_key",
+      "displayName": "Sender Email Key",
+      "keyAttributes": ["cr_senderemail"],
+      "purpose": "Enables safe upsert pattern — prevents duplicate rows for the same sender during concurrent flow runs."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_senderemail",
+      "displayName": "Sender Email",
+      "type": "Text",
+      "maxLength": 320,
+      "required": true,
+      "description": "Primary column — email address of the sender. Unique per user (enforced via alternate key)."
+    },
+    {
+      "logicalName": "cr_senderdisplayname",
+      "displayName": "Sender Display Name",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Last known display name of the sender. Updated on each signal."
+    },
+    {
+      "logicalName": "cr_signalcount",
+      "displayName": "Signal Count",
+      "type": "WholeNumber",
+      "required": false,
+      "description": "Total signals received from this sender. Incremented by trigger flows."
+    },
+    {
+      "logicalName": "cr_responsecount",
+      "displayName": "Response Count",
+      "type": "WholeNumber",
+      "required": false,
+      "description": "Times the user responded to this sender (SENT_AS_IS + SENT_EDITED). Updated by the Card Outcome Tracker flow."
+    },
+    {
+      "logicalName": "cr_avgresponsehours",
+      "displayName": "Average Response Hours",
+      "type": "Decimal",
+      "precision": 2,
+      "required": false,
+      "description": "Mean hours between signal arrival and user action. Recalculated by the Card Outcome Tracker flow using running average."
+    },
+    {
+      "logicalName": "cr_lastsignaldate",
+      "displayName": "Last Signal Date",
+      "type": "DateTime",
+      "required": false,
+      "description": "Most recent signal timestamp from this sender."
+    },
+    {
+      "logicalName": "cr_sendercategory",
+      "displayName": "Sender Category",
+      "type": "Choice",
+      "required": false,
+      "description": "Importance classification. AUTO_* values are system-calculated; USER_OVERRIDE is set by user via command bar (Sprint 3).",
+      "options": [
+        { "label": "AUTO_HIGH", "value": 100000000 },
+        { "label": "AUTO_MEDIUM", "value": 100000001 },
+        { "label": "AUTO_LOW", "value": 100000002 },
+        { "label": "USER_OVERRIDE", "value": 100000003 }
+      ]
+    },
+    {
+      "logicalName": "cr_isinternal",
+      "displayName": "Is Internal",
+      "type": "Boolean",
+      "required": false,
+      "description": "Whether the sender is within the tenant. Set by comparing sender email domain to the user's domain."
+    }
+  ]
+}
