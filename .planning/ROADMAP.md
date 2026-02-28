@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 Production Readiness** — Phases 1-9 (shipped 2026-02-22)
 - ✅ **v2.0 Second Brain Evolution** — Sprints 1A-4 (shipped 2026-02-28)
+- 🚧 **v2.1 Pre-Deployment Audit** — Phases 10-13 (in progress)
 
 ## Phases
 
@@ -38,7 +39,84 @@ Full details: milestones/v2.0-ROADMAP.md
 
 </details>
 
+### 🚧 v2.1 Pre-Deployment Audit (In Progress)
+
+**Milestone Goal:** Validate the entire reference pattern is correct, implementable, and complete before deploying to a real Power Platform environment. Three-round AI Council review followed by remediation.
+
+- [ ] **Phase 10: Platform Architecture Review** - AI Council reviews Dataverse, Power Automate, and Copilot Studio layers for correctness, implementability, and gaps
+- [ ] **Phase 11: Frontend / PCF Review** - AI Council reviews React components, hooks, state management, and test coverage for deployment readiness
+- [ ] **Phase 12: Integration / E2E Review** - AI Council reviews cross-layer contracts, user workflows, error handling, and security model end-to-end
+- [ ] **Phase 13: Remediation** - Fix deploy-blocking issues, document deferrals, and validate final state
+
+## Phase Details
+
+### Phase 10: Platform Architecture Review
+**Goal**: Every platform-layer artifact (Dataverse definitions, Power Automate flow specs, Copilot Studio configs, deployment scripts) is validated as correct, buildable, and complete by three independent AI Council agents
+**Depends on**: Nothing (first phase of v2.1)
+**Requirements**: PLAT-01, PLAT-02, PLAT-03, PLAT-04, PLAT-05
+**Success Criteria** (what must be TRUE):
+  1. Every Dataverse table and column definition has been verified as valid and creatable in a real Power Platform environment (correct types, relationships, constraints)
+  2. Every Power Automate flow spec maps to concrete connector actions and expressions that exist in the current platform
+  3. Copilot Studio agent configurations reference valid topics, actions, and entity definitions with no orphaned references
+  4. Deployment scripts execute a valid sequence of operations against real PAC CLI / Power Platform Admin APIs
+  5. Any platform limitation that contradicts the design is identified with a specific remediation path or documented as a known constraint
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01: AI Council — 3 parallel agents (Correctness, Implementability, Gaps) review platform architecture files
+- [ ] 10-02: Reconciliation — resolve disagreements, produce unified findings
+
+### Phase 11: Frontend / PCF Review
+**Goal**: The entire PCF layer (component architecture, state management, hooks, data flow, error handling, test coverage) is validated as sound, complete, and ready for deployment
+**Depends on**: Phase 10
+**Requirements**: PCF-01, PCF-02, PCF-03, PCF-04, PCF-05
+**Success Criteria** (what must be TRUE):
+  1. Component architecture follows consistent patterns for state, props, and hooks with no structural anti-patterns
+  2. Every v2.0 tech debt item is categorized as either deploy-blocking (must fix before deployment) or deferrable (with documented rationale)
+  3. Test coverage is assessed against all user-facing components and critical hooks, with gaps identified and prioritized
+  4. Data flow from Dataverse response through useCardData hook to component render is traced and verified as correct at every transformation step
+  5. Error states, loading states, and edge cases are handled in every user-facing component with no raw error strings or unhandled rejections visible to users
+**Plans**: TBD
+
+Plans:
+- [ ] 11-01: AI Council — 3 parallel agents (Correctness, Implementability, Gaps) review frontend/PCF files
+- [ ] 11-02: Reconciliation — resolve disagreements, produce unified findings
+
+### Phase 12: Integration / E2E Review
+**Goal**: Cross-layer contracts are consistent, every user workflow completes end-to-end without gaps, and the security model is complete
+**Depends on**: Phase 11
+**Requirements**: INTG-01, INTG-02, INTG-03, INTG-04, INTG-05
+**Success Criteria** (what must be TRUE):
+  1. Schema field names, types, and nullability are consistent across output-schema.json, agent prompts, Dataverse column definitions, Power Automate expressions, and TypeScript interfaces
+  2. Every user workflow (triage, draft editing, email send, outcome tracking, briefing, command execution, reminder creation) has been traced from trigger to completion with no missing steps
+  3. Error handling exists at every layer boundary (agent-to-Dataverse, Dataverse-to-PCF, PCF-to-Power Automate) with defined fallback behavior
+  4. Security model covers authentication, row-level data access, XSS prevention, and prompt injection defense with no unprotected surfaces
+  5. Async flows (polling, fire-and-forget output bindings, concurrent agent calls) have no race conditions, resource leaks, or timing assumptions that break under load
+**Plans**: TBD
+
+Plans:
+- [ ] 12-01: AI Council — 3 parallel agents (Correctness, Implementability, Gaps) review integration/E2E concerns
+- [ ] 12-02: Reconciliation — resolve disagreements, produce unified findings
+
+### Phase 13: Remediation
+**Goal**: All deploy-blocking issues from Phases 10-12 are fixed, non-blocking issues are documented with deferral rationale, and the final state passes validation
+**Depends on**: Phase 12
+**Requirements**: FIX-01, FIX-02, FIX-03, FIX-04
+**Success Criteria** (what must be TRUE):
+  1. Every disagreement between council agents across all three review phases has been researched and resolved with a documented decision (not left ambiguous)
+  2. All issues classified as deploy-blocking are fixed in the actual source files (code, docs, configs, scripts) with the fix verified
+  3. All issues classified as non-blocking are documented in a deferral log with severity, rationale for deferral, and suggested resolution timeline
+  4. Final validation pass confirms no regressions from fixes and the solution is clean for deployment (type-check passes, tests pass, no known deploy-blockers remain)
+**Plans**: TBD
+
+Plans:
+- [ ] 13-01: Fix deploy-blocking issues from council findings
+- [ ] 13-02: Document deferrals and validate final state
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 10 → 11 → 12 → 13
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -57,3 +135,7 @@ Full details: milestones/v2.0-ROADMAP.md
 | Sprint 3: Command Bar + Orchestrator Agent | v2.0 | 1/1 | Complete | 2026-02-28 |
 | Sprint 4: Sender Intelligence + Adaptive Triage | v2.0 | 1/1 | Complete | 2026-02-28 |
 | Review: End-to-End Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
+| 10. Platform Architecture Review | v2.1 | 0/2 | Not started | - |
+| 11. Frontend / PCF Review | v2.1 | 0/2 | Not started | - |
+| 12. Integration / E2E Review | v2.1 | 0/2 | Not started | - |
+| 13. Remediation | v2.1 | 0/2 | Not started | - |

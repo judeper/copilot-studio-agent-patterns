@@ -63,31 +63,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAT-01 | — | Pending |
-| PLAT-02 | — | Pending |
-| PLAT-03 | — | Pending |
-| PLAT-04 | — | Pending |
-| PLAT-05 | — | Pending |
-| PCF-01 | — | Pending |
-| PCF-02 | — | Pending |
-| PCF-03 | — | Pending |
-| PCF-04 | — | Pending |
-| PCF-05 | — | Pending |
-| INTG-01 | — | Pending |
-| INTG-02 | — | Pending |
-| INTG-03 | — | Pending |
-| INTG-04 | — | Pending |
-| INTG-05 | — | Pending |
-| FIX-01 | — | Pending |
-| FIX-02 | — | Pending |
-| FIX-03 | — | Pending |
-| FIX-04 | — | Pending |
+| PLAT-01 | Phase 10 | Pending |
+| PLAT-02 | Phase 10 | Pending |
+| PLAT-03 | Phase 10 | Pending |
+| PLAT-04 | Phase 10 | Pending |
+| PLAT-05 | Phase 10 | Pending |
+| PCF-01 | Phase 11 | Pending |
+| PCF-02 | Phase 11 | Pending |
+| PCF-03 | Phase 11 | Pending |
+| PCF-04 | Phase 11 | Pending |
+| PCF-05 | Phase 11 | Pending |
+| INTG-01 | Phase 12 | Pending |
+| INTG-02 | Phase 12 | Pending |
+| INTG-03 | Phase 12 | Pending |
+| INTG-04 | Phase 12 | Pending |
+| INTG-05 | Phase 12 | Pending |
+| FIX-01 | Phase 13 | Pending |
+| FIX-02 | Phase 13 | Pending |
+| FIX-03 | Phase 13 | Pending |
+| FIX-04 | Phase 13 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after initial definition*
+*Last updated: 2026-02-28 after roadmap creation*
