@@ -35,12 +35,12 @@
     },
     "priority": {
       "type": ["string", "null"],
-      "enum": ["High", "Medium", "Low", null],
+      "enum": ["High", "Medium", "Low", "N/A", null],
       "description": "Priority level. Title case. Null for SKIP or items where priority is not applicable."
     },
     "temporal_horizon": {
       "type": ["string", "null"],
-      "enum": ["TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", null],
+      "enum": ["TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", "N/A", null],
       "description": "Temporal horizon for calendar items. Null for non-calendar triggers or SKIP."
     },
     "research_log": {
