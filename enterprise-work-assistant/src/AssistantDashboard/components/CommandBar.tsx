@@ -1,5 +1,7 @@
 import * as React from "react";
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Button, Input, Spinner, Text } from "@fluentui/react-components";
+import { SendRegular, DismissCircleRegular } from "@fluentui/react-icons";
 import type { OrchestratorResponse, CommandCardLink } from "./types";
 
 interface CommandBarProps {
@@ -121,21 +123,22 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                             className={`command-entry command-entry-${entry.role}`}
                         >
                             <div className="command-entry-text">
-                                {entry.text}
+                                <Text block>{entry.text}</Text>
                             </div>
                             {entry.cardLinks &&
                                 entry.cardLinks.length > 0 && (
                                     <div className="command-card-links">
                                         {entry.cardLinks.map((link) => (
-                                            <button
+                                            <Button
                                                 key={link.card_id}
-                                                className="command-card-link"
+                                                appearance="transparent"
+                                                size="small"
                                                 onClick={() =>
                                                     onJumpToCard(link.card_id)
                                                 }
                                             >
                                                 {link.label} →
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 )}
@@ -143,7 +146,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                     ))}
                     {isProcessing && (
                         <div className="command-entry command-entry-assistant command-thinking">
-                            Thinking...
+                            <Spinner size="tiny" label="Thinking..." labelPosition="after" />
                         </div>
                     )}
                 </div>
@@ -151,9 +154,8 @@ export const CommandBar: React.FC<CommandBarProps> = ({
 
             {/* Input row */}
             <div className="command-input-row">
-                <input
+                <Input
                     ref={inputRef}
-                    type="text"
                     className="command-input"
                     placeholder={
                         currentCardId
@@ -161,25 +163,27 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                             : "Type a command..."
                     }
                     value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
+                    onChange={(_e, data) => setInputText(data.value)}
                     onKeyDown={handleKeyDown}
                     disabled={isProcessing}
                 />
-                <button
-                    className="command-send-button"
+                <Button
+                    appearance="primary"
+                    icon={<SendRegular />}
                     onClick={handleSubmit}
                     disabled={!inputText.trim() || isProcessing}
+                    size="small"
                 >
                     {isProcessing ? "..." : "Send"}
-                </button>
+                </Button>
                 {conversation.length > 0 && (
-                    <button
-                        className="command-clear-button"
+                    <Button
+                        appearance="subtle"
+                        icon={<DismissCircleRegular />}
                         onClick={handleClear}
                         title="Clear conversation"
-                    >
-                        ✕
-                    </button>
+                        size="small"
+                    />
                 )}
             </div>
 
@@ -187,13 +191,14 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             {!isExpanded && !isProcessing && (
                 <div className="command-quick-actions">
                     {QUICK_ACTIONS.map((qa) => (
-                        <button
+                        <Button
                             key={qa.label}
-                            className="command-quick-chip"
+                            appearance="outline"
+                            size="small"
                             onClick={() => handleQuickAction(qa.command)}
                         >
                             {qa.label}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             )}
