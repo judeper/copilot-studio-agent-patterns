@@ -1,5 +1,6 @@
 import * as React from "react";
-import { FluentProvider, webLightTheme, webDarkTheme } from "@fluentui/react-components";
+import { FluentProvider, webLightTheme, webDarkTheme, Button, Spinner } from "@fluentui/react-components";
+import { SettingsRegular } from "@fluentui/react-icons";
 import type { AssistantCard, AppProps } from "./types";
 import { CardGallery } from "./CardGallery";
 import { CardDetail } from "./CardDetail";
@@ -172,39 +173,51 @@ export const App: React.FC<AppProps> = ({
                         />
                     ) : viewState.mode === "gallery" || !selectedCard ? (
                         <>
-                            <FilterBar
-                                cardCount={filteredCards.length}
-                                filterTriggerType={filterTriggerType}
-                                filterPriority={filterPriority}
-                                filterCardStatus={filterCardStatus}
-                                filterTemporalHorizon={filterTemporalHorizon}
-                            />
-                            {/* Sprint 4: Agent Performance link */}
-                            <button
-                                className="calibration-link"
-                                onClick={handleShowCalibration}
-                            >
-                                ⚙ Agent Performance
-                            </button>
-                            {/* Sprint 2: Briefing cards render above the gallery */}
-                            {briefingCards.map((bc) => (
-                                <BriefingCard
-                                    key={bc.id}
-                                    card={bc}
-                                    onJumpToCard={handleJumpToCard}
-                                    onDismissCard={onDismissCard}
-                                />
-                            ))}
-                            <CardGallery
-                                cards={regularCards}
-                                onSelectCard={handleSelectCard}
-                            />
+                            {/* UIUX-04: Loading state when cards haven't arrived yet */}
+                            {cards.length === 0 && !filterTriggerType && !filterPriority && !filterCardStatus && !filterTemporalHorizon ? (
+                                <div className="dashboard-loading" style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+                                    <Spinner size="large" label="Loading cards..." />
+                                </div>
+                            ) : (
+                                <>
+                                    <FilterBar
+                                        cardCount={filteredCards.length}
+                                        filterTriggerType={filterTriggerType}
+                                        filterPriority={filterPriority}
+                                        filterCardStatus={filterCardStatus}
+                                        filterTemporalHorizon={filterTemporalHorizon}
+                                    />
+                                    {/* Sprint 4: Agent Performance link — UIUX-01 Fluent UI Button */}
+                                    <Button
+                                        appearance="transparent"
+                                        icon={<SettingsRegular />}
+                                        onClick={handleShowCalibration}
+                                        size="small"
+                                    >
+                                        Agent Performance
+                                    </Button>
+                                    {/* Sprint 2: Briefing cards render above the gallery */}
+                                    {briefingCards.map((bc) => (
+                                        <BriefingCard
+                                            key={bc.id}
+                                            card={bc}
+                                            onJumpToCard={handleJumpToCard}
+                                            onDismissCard={onDismissCard}
+                                        />
+                                    ))}
+                                    <CardGallery
+                                        cards={regularCards}
+                                        onSelectCard={handleSelectCard}
+                                    />
+                                </>
+                            )}
                         </>
                     ) : selectedCard.trigger_type === "DAILY_BRIEFING" ? (
                         <BriefingCard
                             card={selectedCard}
                             onJumpToCard={handleJumpToCard}
                             onDismissCard={onDismissCard}
+                            onBack={handleBack}
                         />
                     ) : (
                         <CardDetail
