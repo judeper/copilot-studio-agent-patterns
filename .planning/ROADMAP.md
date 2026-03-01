@@ -169,7 +169,11 @@ Plans:
   2. Data loading states display a Fluent UI Spinner or Shimmer placeholder instead of blank content or layout shift
   3. BriefingCard detail view includes a visible Back button that returns the user to the briefing summary list
   4. Analytics views (ConfidenceCalibration tabs) display "No data available" text for empty buckets instead of misleading 0% values
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — BriefingCard + ConfidenceCalibration Fluent UI migration, Back button, empty analytics fix
+- [ ] 16-02-PLAN.md — CommandBar Fluent UI migration, App loading Spinner, Agent Performance button, onBack wiring
 
 ### Phase 17: Accessibility and Internationalization
 **Goal**: The dashboard is usable via keyboard-only navigation and screen readers, and a documented i18n strategy enables future non-English deployments
