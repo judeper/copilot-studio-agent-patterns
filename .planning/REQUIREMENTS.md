@@ -9,8 +9,8 @@ Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pr
 
 ### Sender Intelligence
 
-- [ ] **SNDR-01**: SENDER_PROFILE JSON is passed to main agent as input variable so triage uses sender behavior data (R-17/I-14)
-- [ ] **SNDR-02**: Sender profile upsert uses Upsert with alternate key to prevent race conditions under concurrent signals (R-19/I-22)
+- [x] **SNDR-01**: SENDER_PROFILE JSON is passed to main agent as input variable so triage uses sender behavior data (R-17/I-14)
+- [x] **SNDR-02**: Sender profile upsert uses Upsert with alternate key to prevent race conditions under concurrent signals (R-19/I-22)
 - [x] **SNDR-03**: SENT_EDITED outcome uses full edit distance comparison instead of 0/1 boolean (I-21)
 
 ### Workflow Completeness
@@ -83,8 +83,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SNDR-01 | Phase 14 | Pending |
-| SNDR-02 | Phase 14 | Pending |
+| SNDR-01 | Phase 14 | Complete |
+| SNDR-02 | Phase 14 | Complete |
 | SNDR-03 | Phase 14 | Complete |
 | WKFL-01 | Phase 15 | Pending |
 | WKFL-02 | Phase 15 | Pending |
