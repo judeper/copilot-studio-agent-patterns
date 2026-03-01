@@ -154,7 +154,11 @@ Plans:
   1. A scheduled Power Automate flow queries SELF_REMINDER cards with due dates in the past and surfaces them to the user as active cards
   2. Users can configure the Daily Briefing schedule via Canvas App UI, the schedule persists in a Dataverse BriefingSchedule table, and the briefing flow reads it at execution time
   3. The Trigger Type Compose action in the main triage flow correctly maps all 6 trigger types (EMAIL, TEAMS_CHAT, CALENDAR, DAILY_BRIEFING, SELF_REMINDER, COMMAND_RESULT) to their downstream processing branches
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Reminder firing flow (Flow 10) + fix Trigger Type Compose expression to map all 6 types
+- [ ] 15-02-PLAN.md — BriefingSchedule Dataverse table + Flow 6 schedule-aware trigger + Canvas App schedule UI
 
 ### Phase 16: Fluent UI Migration and UX Polish
 **Goal**: All four identified components use Fluent UI v9 components instead of plain HTML, with consistent theming, loading states, and navigation patterns
