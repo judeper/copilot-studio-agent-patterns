@@ -149,12 +149,13 @@ Configure the agent's prompt to output JSON format. In Copilot Studio's **Prompt
 
 Create four input variables in the agent:
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| TRIGGER_TYPE | Choice (EMAIL, TEAMS_MESSAGE, CALENDAR_SCAN) | Signal type |
-| PAYLOAD | Multi-line text | Raw content JSON |
-| USER_CONTEXT | Text | Comma-separated string: "DisplayName, JobTitle, Department" |
-| CURRENT_DATETIME | Text | ISO 8601 timestamp |
+| Variable | Type | Description | Required | Default |
+|----------|------|-------------|----------|---------|
+| TRIGGER_TYPE | Choice (EMAIL, TEAMS_MESSAGE, CALENDAR_SCAN) | Signal type | Yes | N/A |
+| PAYLOAD | Multi-line text | Raw content JSON | Yes | N/A |
+| USER_CONTEXT | Text | Comma-separated string: "DisplayName, JobTitle, Department" | Yes | N/A |
+| CURRENT_DATETIME | Text | ISO 8601 timestamp | Yes | N/A |
+| SENDER_PROFILE | Multi-line text | Serialized sender profile JSON from SenderProfile table. Contains sender_category, signal_count, response_rate, dismiss_rate, avg_response_hours, avg_edit_distance. Used for sender-adaptive triage threshold adjustments. | Optional (Sprint 4) | null if no profile exists |
 
 ### 2.4 Register Research Tools (Actions)
 
@@ -185,6 +186,20 @@ For connector-based actions, select the relevant connector and the specific oper
 3. Verify the agent is listed as "Published" in the agent overview
 
 > **Critical**: The agent must be published before Power Automate flows can invoke it. An unpublished agent will cause the "Invoke agent" action to fail.
+
+### 2.6 Verify Agent Publication
+
+After publishing each agent (Main, Humanizer, Daily Briefing, Orchestrator), verify the publication by testing in the Copilot Studio Test pane:
+
+1. Open the agent in Copilot Studio
+2. Click **Test** in the top-right corner to open the Test pane
+3. Send a sample input matching the agent's expected format:
+   - **Main Agent:** Send a sample email signal payload JSON with trigger_type, payload, user_context, and current_datetime fields
+   - **Humanizer Agent:** Send a sample draft text for humanization
+   - **Daily Briefing Agent:** Send a sample set of open cards JSON
+   - **Orchestrator Agent:** Send a natural language command (e.g., "What's urgent?")
+4. Confirm the agent returns a valid JSON response matching `output-schema.json` (for the Main Agent) or the expected output format (for other agents)
+5. If the agent fails to respond or returns an error, check the system prompt, input variables, and action configurations before proceeding to flow creation
 
 ---
 
@@ -228,6 +243,8 @@ The Power Automate flows invoke the Humanizer Agent directly in steps 8-10 (see 
 **Option B — Connected Agent:**
 Configure the Humanizer as a Connected Agent available to the main agent within Copilot Studio. In this approach, the main agent orchestrates the humanization call internally. This simplifies the flows but makes the humanization step less visible and harder to debug.
 
+To configure the Humanizer as a Connected Agent: In Copilot Studio, open the main Enterprise Work Assistant agent. Navigate to **Actions** -> **Add an action** -> select **Invoke a Copilot agent** -> select the **Humanizer Agent**. Map the input variable `draft_text` to the agent's draft payload (the `raw_draft` field from the main agent's `draft_payload` output). The Connected Agent will return the humanized text, which the main agent can then include in its output.
+
 > Do not use both approaches simultaneously — this would result in double humanization.
 
 ---
@@ -257,6 +274,43 @@ Then pack and import the solution via PAC CLI.
 ## Phase 6 — Canvas App
 
 Follow `docs/canvas-app-setup.md` to create and configure the Canvas app.
+
+---
+
+## Phase 6.5 — Environment Configuration
+
+### Connection References for Solution Packaging
+
+When packaging the solution for multi-environment deployment, convert direct connections to connection references. Create connection references for each connector used:
+
+| Connection Reference | Connector | Used By |
+|---------------------|-----------|---------|
+| `cr_Office365Outlook` | Office 365 Outlook | Email trigger flow, Send Email flow |
+| `cr_MicrosoftTeams` | Microsoft Teams | Teams Message trigger flow |
+| `cr_Office365Users` | Office 365 Users | User profile lookup in all trigger flows |
+| `cr_MicrosoftGraph` | Microsoft Graph | Calendar Scan flow, research tool actions |
+| `cr_SharePoint` | SharePoint | Research tool action (Tier 2) |
+| `cr_Dataverse` | Microsoft Dataverse | All flows (card creation, outcome tracking, sender profiles) |
+| `cr_CopilotStudio` | Microsoft Copilot Studio | Agent invocation in all trigger flows |
+
+### Environment Variables
+
+| Variable | Type | Description | Default |
+|----------|------|-------------|---------|
+| `AdminNotificationEmail` | Text | Email address for error and monitoring notifications sent by flow error Scopes | (set during deployment) |
+| `StalenessThresholdHours` | Number | Hours before a High-priority PENDING card triggers a NUDGE | 24 |
+| `ExpirationDays` | Number | Days before a PENDING card expires to EXPIRED | 7 |
+| `BriefingScheduleTime` | Text | Cron expression for Daily Briefing flow recurrence | `0 7 * * 1-5` (weekdays at 7 AM) |
+| `SenderProfileMinSignals` | Number | Minimum signal count before sender categorization activates | 5 |
+
+### Canvas App Formula Reference (PCF-to-Flow Wiring)
+
+The Canvas App connects the PCF component to Power Automate flows through output properties. Key formulas:
+
+- **Send Email:** `If(AssistantDashboard.sendAction <> "", Flow_SendEmail.Run(AssistantDashboard.sendAction))`
+- **Dismiss:** Update Dataverse row directly via `Patch(cr_assistantcards, ...)`
+- **Command Execution:** `If(AssistantDashboard.commandText <> "", Set(varResponse, Flow_CommandExecution.Run(AssistantDashboard.commandText).response))`
+- **Refresh Timer:** `Timer.OnTimerEnd = Refresh(cr_assistantcards)` (30-second interval for staleness refresh)
 
 ---
 
