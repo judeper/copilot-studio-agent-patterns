@@ -1,5 +1,7 @@
 import * as React from "react";
 import { useState, useMemo } from "react";
+import { Button, Text, Badge, Card, TabList, Tab, tokens } from "@fluentui/react-components";
+import { ArrowLeftRegular } from "@fluentui/react-icons";
 import type { AssistantCard } from "./types";
 
 interface ConfidenceCalibrationProps {
@@ -145,39 +147,34 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
     return (
         <div className="calibration-dashboard">
             <div className="calibration-header">
-                <button className="calibration-back" onClick={onBack}>
-                    ← Back to Dashboard
-                </button>
-                <h2>Agent Performance</h2>
-                <span className="calibration-sample">
-                    Based on {resolvedCards.length} resolved cards
-                </span>
+                <Button appearance="subtle" icon={<ArrowLeftRegular />} onClick={onBack}>
+                    Back to Dashboard
+                </Button>
+                <Text as="h2" size={500} weight="semibold" block>Agent Performance</Text>
+                <Badge appearance="outline" size="small">
+                    Based on {resolvedCards.length} resolved card{resolvedCards.length !== 1 ? "s" : ""}
+                </Badge>
             </div>
 
             {/* Tab bar */}
-            <div className="calibration-tabs">
-                {(["accuracy", "triage", "drafts", "senders"] as const).map((tab) => (
-                    <button
-                        key={tab}
-                        className={`calibration-tab ${activeTab === tab ? "calibration-tab-active" : ""}`}
-                        onClick={() => setActiveTab(tab)}
-                    >
-                        {tab === "accuracy" && "Confidence Accuracy"}
-                        {tab === "triage" && "Triage Quality"}
-                        {tab === "drafts" && "Draft Quality"}
-                        {tab === "senders" && "Top Senders"}
-                    </button>
-                ))}
-            </div>
+            <TabList
+                selectedValue={activeTab}
+                onTabSelect={(_e, data) => setActiveTab(data.value as typeof activeTab)}
+            >
+                <Tab value="accuracy">Confidence Accuracy</Tab>
+                <Tab value="triage">Triage Quality</Tab>
+                <Tab value="drafts">Draft Quality</Tab>
+                <Tab value="senders">Top Senders</Tab>
+            </TabList>
 
             {/* Tab content */}
             <div className="calibration-content">
                 {activeTab === "accuracy" && (
                     <div className="calibration-section">
-                        <p className="calibration-description">
+                        <Text block size={300} style={{ color: tokens.colorNeutralForeground2 }}>
                             Does higher confidence actually predict that you'll act on the card?
                             Each row shows cards in a confidence range and what percentage you responded to.
-                        </p>
+                        </Text>
                         <table className="calibration-table">
                             <thead>
                                 <tr>
@@ -196,17 +193,17 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
                                         <td>{b.acted}</td>
                                         <td>{b.dismissed}</td>
                                         <td>
-                                            <span
-                                                className={
-                                                    b.accuracy >= 70
-                                                        ? "calibration-good"
-                                                        : b.accuracy >= 40
-                                                          ? "calibration-ok"
-                                                          : "calibration-poor"
-                                                }
-                                            >
-                                                {b.accuracy}%
-                                            </span>
+                                            {b.total === 0 ? (
+                                                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>No data</Text>
+                                            ) : (
+                                                <Badge
+                                                    appearance="filled"
+                                                    color={b.accuracy >= 70 ? "success" : b.accuracy >= 40 ? "warning" : "danger"}
+                                                    size="small"
+                                                >
+                                                    {b.accuracy}%
+                                                </Badge>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -217,66 +214,84 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
 
                 {activeTab === "triage" && (
                     <div className="calibration-section">
-                        <p className="calibration-description">
+                        <Text block size={300} style={{ color: tokens.colorNeutralForeground2 }}>
                             How well is the triage classifier working? FULL cards should mostly be acted on.
                             LIGHT cards being dismissed is expected behavior.
-                        </p>
+                        </Text>
                         <div className="calibration-stats-grid">
-                            <div className="calibration-stat-card">
-                                <div className="calibration-stat-value">{triageStats.fullAccuracy}%</div>
-                                <div className="calibration-stat-label">FULL card action rate</div>
-                                <div className="calibration-stat-detail">
+                            <Card className="calibration-stat-card">
+                                <Text size={600} weight="bold" block>
+                                    {triageStats.fullTotal === 0 ? (
+                                        <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>No data</Text>
+                                    ) : (
+                                        <>{triageStats.fullAccuracy}%</>
+                                    )}
+                                </Text>
+                                <Text size={300} weight="semibold" block>FULL card action rate</Text>
+                                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }} block>
                                     {triageStats.fullActed} acted / {triageStats.fullTotal} total
-                                </div>
-                            </div>
-                            <div className="calibration-stat-card">
-                                <div className="calibration-stat-value">{triageStats.fullDismissed}</div>
-                                <div className="calibration-stat-label">FULL cards dismissed</div>
-                                <div className="calibration-stat-detail">
+                                </Text>
+                            </Card>
+                            <Card className="calibration-stat-card">
+                                <Text size={600} weight="bold" block>{triageStats.fullDismissed}</Text>
+                                <Text size={300} weight="semibold" block>FULL cards dismissed</Text>
+                                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }} block>
                                     These were over-triaged (could have been LIGHT)
-                                </div>
-                            </div>
-                            <div className="calibration-stat-card">
-                                <div className="calibration-stat-value">{triageStats.lightDismissRate}%</div>
-                                <div className="calibration-stat-label">LIGHT card dismiss rate</div>
-                                <div className="calibration-stat-detail">
+                                </Text>
+                            </Card>
+                            <Card className="calibration-stat-card">
+                                <Text size={600} weight="bold" block>
+                                    {triageStats.lightTotal === 0 ? (
+                                        <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>No data</Text>
+                                    ) : (
+                                        <>{triageStats.lightDismissRate}%</>
+                                    )}
+                                </Text>
+                                <Text size={300} weight="semibold" block>LIGHT card dismiss rate</Text>
+                                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }} block>
                                     {triageStats.lightDismissed} / {triageStats.lightTotal} — expected to be high
-                                </div>
-                            </div>
+                                </Text>
+                            </Card>
                         </div>
                     </div>
                 )}
 
                 {activeTab === "drafts" && (
                     <div className="calibration-section">
-                        <p className="calibration-description">
+                        <Text block size={300} style={{ color: tokens.colorNeutralForeground2 }}>
                             How often are you sending drafts as-is vs editing them? A high as-is rate means
                             the agent is calibrated well for your voice and preferences.
-                        </p>
+                        </Text>
                         <div className="calibration-stats-grid">
-                            <div className="calibration-stat-card">
-                                <div className="calibration-stat-value">{draftStats.asIsRate}%</div>
-                                <div className="calibration-stat-label">Sent as-is rate</div>
-                                <div className="calibration-stat-detail">
+                            <Card className="calibration-stat-card">
+                                <Text size={600} weight="bold" block>
+                                    {draftStats.total === 0 ? (
+                                        <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>No data</Text>
+                                    ) : (
+                                        <>{draftStats.asIsRate}%</>
+                                    )}
+                                </Text>
+                                <Text size={300} weight="semibold" block>Sent as-is rate</Text>
+                                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }} block>
                                     {draftStats.asIs} of {draftStats.total} sent drafts
-                                </div>
-                            </div>
-                            <div className="calibration-stat-card">
-                                <div className="calibration-stat-value">{draftStats.edited}</div>
-                                <div className="calibration-stat-label">Drafts edited before send</div>
-                                <div className="calibration-stat-detail">
+                                </Text>
+                            </Card>
+                            <Card className="calibration-stat-card">
+                                <Text size={600} weight="bold" block>{draftStats.edited}</Text>
+                                <Text size={300} weight="semibold" block>Drafts edited before send</Text>
+                                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }} block>
                                     These needed human refinement
-                                </div>
-                            </div>
+                                </Text>
+                            </Card>
                         </div>
                     </div>
                 )}
 
                 {activeTab === "senders" && (
                     <div className="calibration-section">
-                        <p className="calibration-description">
+                        <Text block size={300} style={{ color: tokens.colorNeutralForeground2 }}>
                             Your most active senders ranked by signal volume, with your response rate for each.
-                        </p>
+                        </Text>
                         <table className="calibration-table">
                             <thead>
                                 <tr>
@@ -293,23 +308,19 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
                                         <td>{s.signalCount}</td>
                                         <td>{s.responseCount}</td>
                                         <td>
-                                            <span
-                                                className={
-                                                    s.responseRate >= 70
-                                                        ? "calibration-good"
-                                                        : s.responseRate >= 40
-                                                          ? "calibration-ok"
-                                                          : "calibration-poor"
-                                                }
+                                            <Badge
+                                                appearance="filled"
+                                                color={s.responseRate >= 70 ? "success" : s.responseRate >= 40 ? "warning" : "danger"}
+                                                size="small"
                                             >
                                                 {s.responseRate}%
-                                            </span>
+                                            </Badge>
                                         </td>
                                     </tr>
                                 ))}
                                 {topSenders.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} style={{ textAlign: "center", color: "#888" }}>
+                                        <td colSpan={4} style={{ textAlign: "center", color: tokens.colorNeutralForeground3 }}>
                                             No sender data yet — resolve some cards first.
                                         </td>
                                     </tr>
