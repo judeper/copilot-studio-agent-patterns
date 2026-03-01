@@ -1,0 +1,65 @@
+{
+  "tableName": "cr_briefingschedule",
+  "entitySetName": "cr_briefingschedules",
+  "displayName": "Briefing Schedules",
+  "pluralName": "Briefing Schedules",
+  "description": "Stores per-user Daily Briefing schedule preferences. Each user has at most one row. The Daily Briefing flow (Flow 6) reads this table to determine when and whether to generate a briefing for each user.",
+  "primaryColumn": "cr_userdisplayname",
+  "ownershipType": "UserOwned",
+  "columns": [
+    {
+      "logicalName": "cr_userdisplayname",
+      "displayName": "User Display Name",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Display name of the user. Serves as the primary column for readability in the Dataverse UI."
+    },
+    {
+      "logicalName": "cr_schedulehour",
+      "displayName": "Schedule Hour",
+      "type": "WholeNumber",
+      "minValue": 0,
+      "maxValue": 23,
+      "required": true,
+      "description": "Hour of day (0-23) when the briefing should be generated. Default: 7 (7 AM)."
+    },
+    {
+      "logicalName": "cr_scheduleminute",
+      "displayName": "Schedule Minute",
+      "type": "WholeNumber",
+      "minValue": 0,
+      "maxValue": 59,
+      "required": true,
+      "description": "Minute of hour (0-59) when the briefing should be generated. Default: 0."
+    },
+    {
+      "logicalName": "cr_scheduledays",
+      "displayName": "Schedule Days",
+      "type": "Text",
+      "maxLength": 100,
+      "required": true,
+      "description": "Comma-separated list of days when the briefing runs. Values: Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday. Default: 'Monday,Tuesday,Wednesday,Thursday,Friday'."
+    },
+    {
+      "logicalName": "cr_timezone",
+      "displayName": "Time Zone",
+      "type": "Text",
+      "maxLength": 100,
+      "required": true,
+      "description": "IANA timezone string for schedule evaluation (e.g., 'America/New_York', 'Europe/London'). Default: user's AAD timezone."
+    },
+    {
+      "logicalName": "cr_isenabled",
+      "displayName": "Is Enabled",
+      "type": "TwoOption",
+      "required": true,
+      "description": "Whether the daily briefing is active for this user. Default: true. Set to false to pause briefings without deleting the schedule."
+    }
+  ],
+  "notes": {
+    "design_rationale": "One row per user. The Owner field (standard Dataverse system column) links the schedule to the user. The flow runs on a frequent recurrence (every 15 minutes) and checks if any user's scheduled time has arrived, rather than relying on a per-user recurrence trigger.",
+    "scheduling_approach": "The flow runs frequently and compares the current time against each user's cr_schedulehour/cr_scheduleminute/cr_scheduledays/cr_timezone. This avoids the need for per-user Power Automate flows (which don't scale) while still supporting per-user schedules.",
+    "default_behavior": "If a user has no row in this table, the flow uses the default schedule (weekdays at 7 AM in the flow's configured timezone). This preserves backward compatibility with existing deployments."
+  }
+}
