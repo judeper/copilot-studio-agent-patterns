@@ -300,7 +300,7 @@ When packaging the solution for multi-environment deployment, convert direct con
 | `AdminNotificationEmail` | Text | Email address for error and monitoring notifications sent by flow error Scopes | (set during deployment) |
 | `StalenessThresholdHours` | Number | Hours before a High-priority PENDING card triggers a NUDGE | 24 |
 | `ExpirationDays` | Number | Days before a PENDING card expires to EXPIRED | 7 |
-| `BriefingScheduleTime` | Text | Cron expression for Daily Briefing flow recurrence | `0 7 * * 1-5` (weekdays at 7 AM) |
+| ~~`BriefingScheduleTime`~~ | ~~Text~~ | Replaced by the BriefingSchedule Dataverse table. Each user configures their schedule via the Canvas App UI. The Daily Briefing flow (Flow 6) checks the table every 15 minutes. Default for users without a schedule row: weekdays at 7 AM. | See `schemas/briefingschedule-table.json` |
 | `SenderProfileMinSignals` | Number | Minimum signal count before sender categorization activates | 5 |
 
 ### Canvas App Formula Reference (PCF-to-Flow Wiring)

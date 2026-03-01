@@ -574,6 +574,41 @@ New-TextColumn -SchemaName "${PublisherPrefix}_sourcesignalid" `
     -Description "Unique ID of the original signal. EMAIL: internetMessageId. TEAMS: messageId. CALENDAR: eventId."
 
 # ─────────────────────────────────────
+# 3e. Sprint 3 — Reminder Due Column
+# ─────────────────────────────────────
+
+# Reminder Due (DateTime — for SELF_REMINDER cards)
+$reminderDueDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ReminderDue"
+    RequiredLevel = @{ Value = "None" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Reminder Due"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "When this reminder should fire. Only populated for SELF_REMINDER trigger type cards."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($entityId)/Attributes" -Method Post -Headers $headers -Body $reminderDueDef
+    Write-Host "  Column 'Reminder Due' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Reminder Due' failed (may already exist): $($_.Exception.Message)"
+}
+
+# ─────────────────────────────────────
 # 4. Sprint 1B — Create Sender Profile Table
 # ─────────────────────────────────────
 Write-Host "Creating SenderProfile Dataverse table..." -ForegroundColor Cyan
@@ -1117,6 +1152,268 @@ try {
 } catch {
     Write-Warning "  Alternate key creation failed (may already exist): $($_.Exception.Message)"
 }
+
+# ─────────────────────────────────────
+# 4b. Create Briefing Schedule Table (Phase 15)
+# ─────────────────────────────────────
+Write-Host "`n--- Creating Briefing Schedules Table ---" -ForegroundColor Cyan
+
+$briefingEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_BriefingSchedule"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Briefing Schedule"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Briefing Schedules"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Per-user Daily Briefing schedule preferences"
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_userdisplayname"
+    Attributes = @(
+        # Primary Name — User Display Name
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_UserDisplayName"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 200
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "User Display Name"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Display name of the user. Primary column for readability."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    $briefingResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $briefingEntityDef
+    $briefingEntityId = $briefingResult.MetadataId
+    Write-Host "  BriefingSchedule table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  BriefingSchedule table creation failed (may already exist): $($_.Exception.Message)"
+    # Try to get existing entity ID for column creation
+    try {
+        $briefingEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_briefingschedule')" -Headers $headers).MetadataId
+    } catch {
+        Write-Warning "  Could not retrieve BriefingSchedule entity ID. Column creation may fail."
+    }
+}
+
+# Add columns to BriefingSchedule table
+
+# Schedule Hour (WholeNumber 0-23)
+$scheduleHourDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ScheduleHour"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MinValue = 0
+    MaxValue = 23
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Schedule Hour"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Hour of day (0-23) when the briefing should be generated."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $scheduleHourDef
+    Write-Host "  Column 'Schedule Hour' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Schedule Hour' failed: $($_.Exception.Message)"
+}
+
+# Schedule Minute (WholeNumber 0-59)
+$scheduleMinuteDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ScheduleMinute"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MinValue = 0
+    MaxValue = 59
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Schedule Minute"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Minute of hour (0-59) when the briefing should be generated."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $scheduleMinuteDef
+    Write-Host "  Column 'Schedule Minute' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Schedule Minute' failed: $($_.Exception.Message)"
+}
+
+# Schedule Days (Text)
+$scheduleDaysDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ScheduleDays"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MaxLength = 100
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Schedule Days"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Comma-separated list of days when the briefing runs."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $scheduleDaysDef
+    Write-Host "  Column 'Schedule Days' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Schedule Days' failed: $($_.Exception.Message)"
+}
+
+# Time Zone (Text)
+$timezoneDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_TimeZone"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MaxLength = 100
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Time Zone"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "IANA timezone string for schedule evaluation (e.g., America/New_York)."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $timezoneDef
+    Write-Host "  Column 'Time Zone' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Time Zone' failed: $($_.Exception.Message)"
+}
+
+# Is Enabled (TwoOption / Boolean)
+$isEnabledDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_IsEnabled"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Is Enabled"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Whether the daily briefing is active for this user."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $isEnabledDef
+    Write-Host "  Column 'Is Enabled' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Is Enabled' failed: $($_.Exception.Message)"
+}
+
+Write-Host "BriefingSchedule table provisioning complete." -ForegroundColor Green
 
 # ─────────────────────────────────────
 # 5. Create Error Log Table for Monitoring (I-18)
