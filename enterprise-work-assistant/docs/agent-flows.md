@@ -174,6 +174,47 @@ Format as a comma-separated string to match the agent prompt's few-shot examples
 
 > This produces a string like `"Jordan Martinez, Senior Account Manager, Enterprise Sales"` which matches the format used in the main agent prompt's few-shot examples.
 
+**3a. List sender profile** *(Phase 14: SENDER_PROFILE passthrough)*
+
+Look up the sender's profile to pass behavioral data to the agent for sender-adaptive triage.
+
+| Setting | Value |
+|---------|-------|
+| Table name | Sender Profiles |
+| Filter rows | `cr_senderemail eq '@{outputs('Compose_SENDER_EMAIL')}' and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Row count | `1` |
+| Select columns | `cr_signalcount,cr_responserate,cr_avgresponsehours,cr_dismissrate,cr_avgeditdistance,cr_sendercategory,cr_isinternal` |
+
+**3b. Compose — SENDER_PROFILE** *(Phase 14)*
+
+Builds the 7-field JSON object the agent prompt expects, or null for first-time senders:
+
+```
+@{if(
+    greater(length(outputs('List_sender_profile')?['body/value']), 0),
+    concat(
+        '{"signal_count":',
+        string(coalesce(first(outputs('List_sender_profile')?['body/value'])?['cr_signalcount'], 0)),
+        ',"response_rate":',
+        string(coalesce(first(outputs('List_sender_profile')?['body/value'])?['cr_responserate'], 0)),
+        ',"avg_response_hours":',
+        string(coalesce(first(outputs('List_sender_profile')?['body/value'])?['cr_avgresponsehours'], 0)),
+        ',"dismiss_rate":',
+        string(coalesce(first(outputs('List_sender_profile')?['body/value'])?['cr_dismissrate'], 0)),
+        ',"avg_edit_distance":',
+        string(coalesce(first(outputs('List_sender_profile')?['body/value'])?['cr_avgeditdistance'], 0)),
+        ',"sender_category":"',
+        coalesce(first(outputs('List_sender_profile')?['body/value'])?['cr_sendercategory'], 'null'),
+        '","is_internal":',
+        if(equals(first(outputs('List_sender_profile')?['body/value'])?['cr_isinternal'], true), 'true', 'false'),
+        '}'
+    ),
+    'null'
+)}
+```
+
+> **Note**: Uses `coalesce()` to handle null fields on partially-populated profiles. The `sender_category` field maps the Choice integer back to a label -- if the Dataverse connector returns the label string, use it directly; if it returns the integer value, add a nested `if()` chain to map 100000000->"AUTO_HIGH", 100000001->"AUTO_MEDIUM", 100000002->"AUTO_LOW", 100000003->"USER_OVERRIDE".
+
 **4. Invoke the agent**
 
 Add the **Microsoft Copilot Studio** connector (search for "Microsoft Copilot Studio" in the connector list — do NOT use the AI Builder connector). Select the **"Execute Agent and wait"** action. Choose the **Enterprise Work Assistant** agent.
@@ -188,6 +229,7 @@ Add the **Microsoft Copilot Studio** connector (search for "Microsoft Copilot St
 | PAYLOAD | `@{outputs('Compose_PAYLOAD')}` |
 | USER_CONTEXT | `@{outputs('Compose_USER_CONTEXT')}` |
 | CURRENT_DATETIME | `@{utcNow()}` |
+| SENDER_PROFILE | `@{outputs('Compose_SENDER_PROFILE')}` |
 
 **5. Parse JSON** — Parse the agent's response
 
@@ -296,50 +338,26 @@ Add another **Microsoft Copilot Studio** **"Execute Agent and wait"** action. Se
 | Row ID | ID from step 7 |
 | Humanized Draft | Response from step 9 |
 
-**11. Upsert Sender Profile** *(Sprint 1B)*
+**11. Upsert Sender Profile** *(Sprint 1B — updated Phase 14: uses Dataverse Upsert with alternate key)*
 
-Add a parallel branch after step 7 (the Dataverse card write) that runs independently of the humanizer handoff. This uses the List → Condition → Add/Update pattern since the Dataverse connector has no native upsert action.
-
-**11a. List rows** — Dataverse connector → Sender Profiles table
+Uses the Dataverse connector's **"Update or add rows (V2)"** action (also known as Upsert) with the alternate key `cr_senderemail_key` to atomically create or update the sender profile. This eliminates the previous List+Condition+Add/Update pattern and prevents race conditions when multiple flows process signals from the same sender concurrently.
 
 | Setting | Value |
 |---------|-------|
 | Table name | Sender Profiles |
-| Filter rows | `cr_senderemail eq '@{outputs('Compose_SENDER_EMAIL')}'` |
-| Row count | `1` |
-| Select columns | `cr_senderprofileid,cr_signalcount,cr_senderdisplayname` |
-
-**11b. Condition — Sender exists**
-
-```
-@greater(length(outputs('List_rows')?['body/value']), 0)
-```
-
-**If Yes (update existing):**
-
-**11c. Update a row** — Dataverse → Sender Profiles
-
-| Column | Value |
-|--------|-------|
-| Row ID | `@{first(outputs('List_rows')?['body/value'])?['cr_senderprofileid']}` |
-| Signal Count | `@{add(first(outputs('List_rows')?['body/value'])?['cr_signalcount'], 1)}` |
+| Alternate key | `cr_senderemail_key` |
+| cr_senderemail (key column) | `@{outputs('Compose_SENDER_EMAIL')}` |
 | Sender Display Name | `@{outputs('Compose_SENDER_DISPLAY')}` |
+| Signal Count | `@{add(coalesce(triggerOutputs()?['body/cr_signalcount'], 0), 1)}` |
 | Last Signal Date | `@{utcNow()}` |
-
-**If No (create new):**
-
-**11d. Add a new row** — Dataverse → Sender Profiles
-
-| Column | Value |
-|--------|-------|
-| Sender Email | `@{outputs('Compose_SENDER_EMAIL')}` |
-| Sender Display Name | `@{outputs('Compose_SENDER_DISPLAY')}` |
-| Signal Count | `1` |
-| Response Count | `0` |
-| Last Signal Date | `@{utcNow()}` |
-| Sender Category | `100000001` *(AUTO_MEDIUM — default for new senders)* |
-| Is Internal | See expression below |
+| Is Internal | See IS_INTERNAL Compose below |
 | **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
+
+> **Note**: The Upsert action creates the row if no match exists for the alternate key, or updates the matching row. Fields not specified in the Upsert are left unchanged on update (so `cr_responsecount`, `cr_avgresponsehours`, `cr_dismisscount`, `cr_avgeditdistance` are not touched by trigger flows). For new rows, unspecified WholeNumber/Decimal fields default to null.
+
+> **Signal Count increment**: The `add(coalesce(..., 0), 1)` pattern handles both new rows (coalesce returns 0 when no existing row) and existing rows (reads current value). Note: if exact atomic increment is needed under high concurrency, consider using a Power Automate Cloud flow action with optimistic concurrency (ETag). For typical email/Teams volumes, the Upsert approach is sufficient.
+
+> **Sender Category**: Not set during upsert -- new rows default to null (no category). The Sender Profile Analyzer (Flow 9) computes and sets `cr_sendercategory` weekly based on accumulated interaction data.
 
 **Compose — IS_INTERNAL:**
 
@@ -429,15 +447,17 @@ Add these columns to the "Add a new row" action:
 | Conversation Cluster ID | `@{if(not(empty(triggerOutputs()?['body/replyToId'])), triggerOutputs()?['body/replyToId'], triggerOutputs()?['body/id'])}` **(Sprint 1B: threadId for replies, messageId for root messages)** |
 | Source Signal ID | `@{triggerOutputs()?['body/id']}` **(Sprint 1B)** |
 
-**Sprint 1B: Sender upsert for TEAMS_MESSAGE flow**
+**Sprint 1B: Sender upsert for TEAMS_MESSAGE flow** *(updated Phase 14: uses Dataverse Upsert with alternate key)*
 
-Same List → Condition → Add/Update pattern as Flow 1 step 11. For Teams, to get the sender's actual email (instead of AAD user ID), add a "Get user profile (V2)" action using the sender's user ID:
+Same Upsert pattern as Flow 1 step 11, using the Dataverse **"Update or add rows (V2)"** action with alternate key `cr_senderemail_key`. For Teams, to get the sender's actual email (instead of AAD user ID), add a "Get user profile (V2)" action using the sender's user ID:
 
 ```
 @{triggerOutputs()?['body/from/user/id']}
 ```
 
-Use the returned `mail` property as the sender email for the upsert. If the "Get user profile" action fails (external user), fall back to the AAD user ID as the sender email.
+Use the returned `mail` property as the sender email for the Upsert. If the "Get user profile" action fails (external user), fall back to the AAD user ID as the sender email.
+
+**Sender profile passthrough** *(Phase 14)*: Before the agent invocation, add steps 3a (List sender profile) and 3b (Compose SENDER_PROFILE) using the same pattern as Flow 1. Use the Teams sender's resolved email as the lookup key. Add `SENDER_PROFILE` to the agent invocation input variables alongside `TRIGGER_TYPE = "TEAMS_MESSAGE"`.
 
 ---
 
@@ -550,11 +570,13 @@ Use `seriesMasterId` for recurring events (correctly groups all instances of the
 
 > The `seriesMasterId` approach groups all instances of recurring meetings (e.g., weekly 1:1s, quarterly QBRs) regardless of subject line changes between occurrences.
 
-**Sprint 1B: Sender upsert for CALENDAR_SCAN flow**
+**Sprint 1B: Sender upsert for CALENDAR_SCAN flow** *(updated Phase 14: uses Dataverse Upsert with alternate key)*
 
-Same List → Condition → Add/Update pattern as Flow 1 step 11, using the organizer's email address (`items('Apply_to_each')?['organizer/emailAddress/address']`) and display name (`items('Apply_to_each')?['organizer/emailAddress/name']`).
+Same Upsert pattern as Flow 1 step 11, using the Dataverse **"Update or add rows (V2)"** action with alternate key `cr_senderemail_key`. Uses the organizer's email address (`items('Apply_to_each')?['organizer/emailAddress/address']`) as the key column and display name (`items('Apply_to_each')?['organizer/emailAddress/name']`).
 
-> **Performance note:** The Apply to each loop already has a 5-second delay between iterations. The sender upsert adds 2-3 actions per iteration. For a 14-day calendar scan that might process 30-50 events, the flow will take 3-5 minutes total. This is acceptable for a daily batch flow.
+**Sender profile passthrough** *(Phase 14)*: Before step 4c (Invoke agent), add steps for sender profile lookup and SENDER_PROFILE compose using the same pattern as Flow 1 steps 3a-3b. Use the organizer's email address as the lookup key. Add `SENDER_PROFILE` to the agent invocation input variables alongside `TRIGGER_TYPE = "CALENDAR_SCAN"`.
+
+> **Performance note:** The Apply to each loop already has a 5-second delay between iterations. The sender Upsert is a single action (replacing the previous 2-3 action List+Condition+Add/Update pattern). For a 14-day calendar scan that might process 30-50 events, the flow will take 3-5 minutes total. This is acceptable for a daily batch flow.
 
 **4e. Delay** — 5 seconds
 
@@ -1779,36 +1801,11 @@ Apply the categorization rules from Sprint 4:
 
 This flow depends on Flow 5 (Card Outcome Tracker) Branch B (DISMISSED) incrementing `cr_dismisscount` on each sender's profile whenever a card is dismissed. Without this, `dismiss_rate` computed in step 3e is always 0 and AUTO_LOW categorization never triggers. See Flow 5 Branch B for the implementation.
 
-### Updating Existing Trigger Flows for Sender Profile Passthrough
+### Sender Profile Passthrough (Implemented — Phase 14)
 
-All 3 trigger flows (EMAIL, TEAMS, CALENDAR) need an additional step to look up the sender profile and pass it to the agent:
+All 3 trigger flows (EMAIL, TEAMS, CALENDAR) look up the sender profile and pass it to the agent as the `SENDER_PROFILE` input variable. This enables sender-adaptive triage threshold adjustments in the main agent.
 
-**Insert between the pre-filter and the agent invocation:**
-
-1. **List sender profile** — Dataverse → Sender Profiles
-   - Filter: `cr_senderemail eq '@{...sender_email...}'`
-   - Top: 1
-
-2. **Compose SENDER_PROFILE** — Conditional:
-   ```
-   @{if(
-       greater(length(outputs('List_sender_profile')?['body/value']), 0),
-       string(first(outputs('List_sender_profile')?['body/value'])),
-       'null'
-   )}
-   ```
-
-3. Pass the serialized JSON (or the string `null`) as the `{{SENDER_PROFILE}}` input variable to the agent.
-
-### Known Gap: R-17 — SENDER_PROFILE Not Passed to Agent
-
-The sender profile passthrough (section "Updating Existing Trigger Flows" above) is a WARN-level deferral candidate. The analyzer flow still provides value by categorizing senders — even if the main agent does not yet consume the `{{SENDER_PROFILE}}` input variable. The categorization data is stored in Dataverse and can be queried by the Orchestrator Agent's `QuerySenderProfile` tool action.
-
-**Current state**: The trigger flows (Flow 1/2/3) do NOT yet pass SENDER_PROFILE to the main agent. The main agent prompt defines `{{SENDER_PROFILE}}` as an input variable, but the flows do not populate it.
-
-**Impact**: Sender-adaptive triage (adjusting triage thresholds based on sender category) is silently disabled. All senders are treated equally regardless of their AUTO_HIGH/AUTO_LOW categorization. This does not break any functionality — it only means the sender intelligence feature does not influence triage decisions.
-
-**Resolution path**: When implementing the sender profile passthrough, update each trigger flow (Flow 1/2/3) per the instructions above. This is a future fix, not a deploy blocker.
+The passthrough is implemented as steps 3a (List sender profile) and 3b (Compose SENDER_PROFILE) in each trigger flow, inserted between the USER_CONTEXT compose and the agent invocation. See Flow 1 steps 3a-3b for the canonical implementation. First-time senders with no profile row pass `SENDER_PROFILE = null` to the agent -- the agent prompt handles this case by using default triage thresholds.
 
 ### Flow Diagram
 
@@ -1834,8 +1831,7 @@ Trigger (Recurrence — Sunday 8 PM)
 - [ ] Test: Sender with dismiss_rate >= 0.6 AND total >= 5 → AUTO_LOW
 - [ ] Test: Sender with USER_OVERRIDE → Not recategorized
 - [ ] Test: Sender with < 5 total interactions → Skipped (stays NEUTRAL)
-- [ ] Test: Sender profile passthrough (R-17) — deferred, verify agent works without it
-- [ ] Note: R-17 (SENDER_PROFILE not passed to agent) is a known gap — sender-adaptive triage is inactive
+- [ ] Trigger flows pass SENDER_PROFILE JSON (or null for first-time senders) to the main agent
 
 ---
 
