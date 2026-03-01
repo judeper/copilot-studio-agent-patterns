@@ -12,7 +12,7 @@ import {
  * ConfidenceCalibration test suite (F-04).
  *
  * Covers all 4 analytics tabs, empty states, division safety,
- * and edge cases for the 324 lines of analytics logic.
+ * and edge cases for the analytics logic.
  */
 
 // Helper: create a card with specific outcome and confidence
@@ -93,7 +93,7 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Triage Quality"));
+            await userEvent.click(screen.getByRole("tab", { name: "Triage Quality" }));
 
             expect(screen.getByText("FULL card action rate")).toBeInTheDocument();
             expect(screen.getByText("FULL cards dismissed")).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Triage Quality"));
+            await userEvent.click(screen.getByRole("tab", { name: "Triage Quality" }));
 
             // 2/3 FULL cards acted on = 67%
             expect(screen.getByText("67%")).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Draft Quality"));
+            await userEvent.click(screen.getByRole("tab", { name: "Draft Quality" }));
 
             expect(screen.getByText("Sent as-is rate")).toBeInTheDocument();
             expect(screen.getByText("Drafts edited before send")).toBeInTheDocument();
@@ -138,7 +138,7 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Draft Quality"));
+            await userEvent.click(screen.getByRole("tab", { name: "Draft Quality" }));
 
             // 2/3 sent as-is = 67%
             expect(screen.getByText("67%")).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Top Senders"));
+            await userEvent.click(screen.getByRole("tab", { name: "Top Senders" }));
 
             expect(screen.getByText("Alice")).toBeInTheDocument();
             expect(screen.getByText("Bob")).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Top Senders"));
+            await userEvent.click(screen.getByRole("tab", { name: "Top Senders" }));
 
             expect(screen.getByText(/No sender data yet/)).toBeInTheDocument();
         });
@@ -180,12 +180,14 @@ describe("ConfidenceCalibration", () => {
             expect(screen.getByText(/Based on 0 resolved cards/)).toBeInTheDocument();
         });
 
-        it("shows 0% rates with no resolved cards", () => {
+        it("shows 'No data' instead of 0% with no resolved cards", () => {
             renderCalibration([]);
 
-            // All accuracy buckets should show 0%
-            const zeroPcts = screen.getAllByText("0%");
-            expect(zeroPcts.length).toBeGreaterThan(0);
+            // All accuracy buckets should show "No data" instead of "0%"
+            const noDataTexts = screen.getAllByText("No data");
+            expect(noDataTexts.length).toBeGreaterThan(0);
+            // Should not show any "0%" in the accuracy tab
+            expect(screen.queryByText("0%")).toBeNull();
         });
     });
 
@@ -206,7 +208,7 @@ describe("ConfidenceCalibration", () => {
             ];
             const { container } = renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Draft Quality"));
+            await userEvent.click(screen.getByRole("tab", { name: "Draft Quality" }));
 
             const textContent = container.textContent ?? "";
             expect(textContent).not.toContain("NaN");
@@ -219,7 +221,7 @@ describe("ConfidenceCalibration", () => {
             ];
             const { container } = renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Triage Quality"));
+            await userEvent.click(screen.getByRole("tab", { name: "Triage Quality" }));
 
             const textContent = container.textContent ?? "";
             expect(textContent).not.toContain("NaN");
@@ -246,7 +248,7 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            await userEvent.click(screen.getByText("Triage Quality"));
+            await userEvent.click(screen.getByRole("tab", { name: "Triage Quality" }));
 
             // 100% FULL card action rate
             expect(screen.getByText("100%")).toBeInTheDocument();
@@ -270,6 +272,18 @@ describe("ConfidenceCalibration", () => {
             await userEvent.click(screen.getByText(/Back to Dashboard/));
 
             expect(onBack).toHaveBeenCalledTimes(1);
+        });
+
+        it("shows 'No data' for empty accuracy buckets with populated cards in other buckets", () => {
+            // Only one card in 90-100 bucket, other buckets should show "No data"
+            const cards = [
+                makeCard({ confidence_score: 95, card_outcome: "SENT_AS_IS", triage_tier: "FULL" }),
+            ];
+            renderCalibration(cards);
+
+            // 90-100 bucket has data, other 3 buckets show "No data"
+            const noDataTexts = screen.getAllByText("No data");
+            expect(noDataTexts.length).toBe(3);
         });
     });
 });
