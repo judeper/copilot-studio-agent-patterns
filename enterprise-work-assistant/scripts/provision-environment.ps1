@@ -1413,6 +1413,23 @@ try {
 Write-Host "Error Log table provisioning complete." -ForegroundColor Green
 
 # ─────────────────────────────────────
+# 5a. Publish All Customizations
+# ─────────────────────────────────────
+Write-Host "Publishing all customizations..." -ForegroundColor Cyan
+
+try {
+    # Refresh token in case it expired during provisioning
+    $token = az account get-access-token --resource $OrgUrl --query accessToken -o tsv
+    $headers["Authorization"] = "Bearer $token"
+
+    Invoke-RestMethod -Uri "$apiBase/PublishAllXml" -Method Post -Headers $headers
+    Write-Host "  All customizations published successfully." -ForegroundColor Green
+} catch {
+    Write-Warning "  PublishAllXml failed: $($_.Exception.Message)"
+    Write-Host "  Fallback: Run 'pac org publish --all' manually after provisioning." -ForegroundColor Yellow
+}
+
+# ─────────────────────────────────────
 # 6. Enable PCF Components for Canvas Apps
 # ─────────────────────────────────────
 Write-Host "Enabling PCF components for Canvas apps..." -ForegroundColor Cyan
