@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithProviders } from '../../../test/helpers/renderWithProviders';
 import { CommandBar } from '../CommandBar';
 import type { OrchestratorResponse } from '../types';
 
@@ -20,33 +21,33 @@ describe('CommandBar', () => {
     });
 
     it('renders input field and send button', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         expect(screen.getByPlaceholderText('Type a command...')).toBeTruthy();
         expect(screen.getByText('Send')).toBeTruthy();
     });
 
     it('shows context-aware placeholder when card is selected', () => {
-        render(<CommandBar {...defaultProps} currentCardId="card-123" />);
+        renderWithProviders(<CommandBar {...defaultProps} currentCardId="card-123" />);
         expect(
             screen.getByPlaceholderText('Ask about this card or type a command...'),
         ).toBeTruthy();
     });
 
     it('renders quick action chips when not expanded', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         expect(screen.getByText("What's urgent?")).toBeTruthy();
         expect(screen.getByText('Draft status')).toBeTruthy();
         expect(screen.getByText('My day')).toBeTruthy();
     });
 
     it('send button is disabled when input is empty', () => {
-        render(<CommandBar {...defaultProps} />);
-        const sendBtn = screen.getByText('Send') as HTMLButtonElement;
-        expect(sendBtn.disabled).toBe(true);
+        renderWithProviders(<CommandBar {...defaultProps} />);
+        const sendBtn = screen.getByRole('button', { name: /Send/ });
+        expect(sendBtn).toBeDisabled();
     });
 
     it('calls onExecuteCommand when Send is clicked', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
         fireEvent.change(input, { target: { value: 'What needs attention?' } });
         fireEvent.click(screen.getByText('Send'));
@@ -57,7 +58,7 @@ describe('CommandBar', () => {
     });
 
     it('calls onExecuteCommand with currentCardId when set', () => {
-        render(<CommandBar {...defaultProps} currentCardId="card-456" />);
+        renderWithProviders(<CommandBar {...defaultProps} currentCardId="card-456" />);
         const input = screen.getByPlaceholderText(
             'Ask about this card or type a command...',
         );
@@ -70,7 +71,7 @@ describe('CommandBar', () => {
     });
 
     it('calls onExecuteCommand on Enter key', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
         fireEvent.change(input, { target: { value: 'Show urgent items' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -78,7 +79,7 @@ describe('CommandBar', () => {
     });
 
     it('clears input after submit', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText(
             'Type a command...',
         ) as HTMLInputElement;
@@ -89,7 +90,7 @@ describe('CommandBar', () => {
 
     it('shows "Thinking..." when processing', () => {
         // Submit a command first to create conversation
-        const { rerender } = render(<CommandBar {...defaultProps} />);
+        const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
         fireEvent.change(input, { target: { value: 'test' } });
         fireEvent.click(screen.getByText('Send'));
@@ -100,17 +101,17 @@ describe('CommandBar', () => {
     });
 
     it('disables input and send button when processing', () => {
-        render(<CommandBar {...defaultProps} isProcessing={true} />);
+        renderWithProviders(<CommandBar {...defaultProps} isProcessing={true} />);
         const input = screen.getByPlaceholderText(
             'Type a command...',
         ) as HTMLInputElement;
-        const sendBtn = screen.getByText('...') as HTMLButtonElement;
+        const sendBtn = screen.getByRole('button', { name: '...' });
         expect(input.disabled).toBe(true);
-        expect(sendBtn.disabled).toBe(true);
+        expect(sendBtn).toBeDisabled();
     });
 
     it('executes quick action on chip click', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         fireEvent.click(screen.getByText("What's urgent?"));
         expect(mockExecute).toHaveBeenCalledWith(
             'What needs my attention right now?',
@@ -119,7 +120,7 @@ describe('CommandBar', () => {
     });
 
     it('shows clear button after conversation exists', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
         fireEvent.change(input, { target: { value: 'test' } });
         fireEvent.click(screen.getByText('Send'));
@@ -127,7 +128,7 @@ describe('CommandBar', () => {
     });
 
     it('clears conversation on clear button click', () => {
-        render(<CommandBar {...defaultProps} />);
+        renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
         fireEvent.change(input, { target: { value: 'test' } });
         fireEvent.click(screen.getByText('Send'));
@@ -148,7 +149,7 @@ describe('CommandBar', () => {
         };
 
         // First submit a command to create conversation
-        const { rerender } = render(<CommandBar {...defaultProps} />);
+        const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
         fireEvent.change(input, { target: { value: 'test' } });
         fireEvent.click(screen.getByText('Send'));
@@ -173,7 +174,7 @@ describe('CommandBar', () => {
             side_effects: [],
         };
 
-        const { rerender } = render(<CommandBar {...defaultProps} />);
+        const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
         fireEvent.change(input, { target: { value: 'test' } });
         fireEvent.click(screen.getByText('Send'));
