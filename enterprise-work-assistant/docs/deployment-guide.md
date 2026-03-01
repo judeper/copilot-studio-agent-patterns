@@ -155,7 +155,7 @@ Create four input variables in the agent:
 | PAYLOAD | Multi-line text | Raw content JSON | Yes | N/A |
 | USER_CONTEXT | Text | Comma-separated string: "DisplayName, JobTitle, Department" | Yes | N/A |
 | CURRENT_DATETIME | Text | ISO 8601 timestamp | Yes | N/A |
-| SENDER_PROFILE | Multi-line text | Serialized sender profile JSON from SenderProfile table. Contains sender_category, signal_count, response_rate, dismiss_rate, avg_response_hours, avg_edit_distance. Used for sender-adaptive triage threshold adjustments. | Optional (Sprint 4) | null if no profile exists |
+| SENDER_PROFILE | Multi-line text | Serialized sender profile JSON from SenderProfile table, or the string 'null' for first-time senders. Contains signal_count, response_rate, avg_response_hours, dismiss_rate, avg_edit_distance, sender_category, is_internal. Populated by trigger flows (Flows 1-3) before agent invocation. Enables sender-adaptive triage threshold adjustments. | Optional | null if no profile exists |
 
 ### 2.4 Register Research Tools (Actions)
 
@@ -421,7 +421,7 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] USER_OVERRIDE senders are never recategorized by the analyzer
 - [ ] Senders with < 3 signals are skipped
 - [ ] Card Outcome Tracker increments cr_dismisscount on DISMISSED outcomes
-- [ ] Trigger flows pass SENDER_PROFILE JSON to the main agent
+- [x] Trigger flows pass SENDER_PROFILE JSON to the main agent
 - [ ] Agent upgrades LIGHT → FULL for AUTO_HIGH senders with actionable content
 - [ ] Agent does NOT downgrade FULL → LIGHT for executives/clients regardless of category
 - [ ] Confidence scoring applies sender-adaptive modifiers (staleness urgency, edit distance penalty)
