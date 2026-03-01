@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Tech Debt Cleanup
-status: unknown
-last_updated: "2026-03-01T02:17:56.932Z"
+status: in-progress
+last_updated: "2026-03-01T03:12:41.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 14
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -18,25 +18,26 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** v2.2 Tech Debt Cleanup — Phase 15 complete, ready for Phase 16
+**Current focus:** v2.2 Tech Debt Cleanup — Phase 16, Plan 01 complete
 
 ## Current Position
 
-Phase: 15 complete (second of 6 in v2.2, phases 14-19)
-Plan: 15-02 complete (2/2 plans in phase 15)
-Status: Phase 15 complete, ready for Phase 16
-Last activity: 2026-02-28 — Plan 15-02 complete (BriefingSchedule table, per-user Flow 6, Canvas App schedule UI)
+Phase: 16 in progress (third of 6 in v2.2, phases 14-19)
+Plan: 16-01 complete (1/2 plans in phase 16)
+Status: Plan 16-01 complete, ready for Plan 16-02
+Last activity: 2026-02-28 — Plan 16-01 complete (BriefingCard + ConfidenceCalibration Fluent UI migration)
 
-Progress: [████░░░░░░] 33% (4/12 plans estimated across 6 phases)
+Progress: [████░░░░░░] 42% (5/12 plans estimated across 6 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4 (v2.2)
+- Total plans completed: 5 (v2.2)
 - Plan 14-01: 5 min, 2 tasks, 9 files
 - Plan 14-02: 6 min, 2 tasks, 2 files
 - Plan 15-01: 3 min, 2 tasks, 3 files
 - Plan 15-02: 5 min, 2 tasks, 5 files
+- Plan 16-01: 8 min, 2 tasks, 6 files
 
 *Updated after each plan completion*
 
@@ -72,6 +73,10 @@ Progress: [████░░░░░░] 33% (4/12 plans estimated across 6 ph
 - 15-minute polling interval for Flow 6 BriefingSchedule (same rationale as Flow 10)
 - One row per user in BriefingSchedule table with Owner field as user link
 - Deduplication built into per-user loop rather than separate pre-check
+- Installed react@18 as dev dep for test env (PCF provides react at runtime, testing-library v16 needs react-dom/client)
+- Installed @testing-library/dom explicitly (peer dep not auto-installed with --legacy-peer-deps)
+- Used getByRole("tab") in Fluent UI Tab tests (Tab renders text twice for layout stability)
+- Kept native HTML table elements in ConfidenceCalibration (Fluent UI v9 has no 1:1 Table replacement)
 
 ### Pending Todos
 
@@ -84,5 +89,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 15-02-PLAN.md (Phase 15 complete)
-Resume file: .planning/phases/15-workflow-completeness/15-02-SUMMARY.md
+Stopped at: Completed 16-01-PLAN.md
+Resume file: .planning/phases/16-fluent-ui-migration-ux-polish/16-01-SUMMARY.md
