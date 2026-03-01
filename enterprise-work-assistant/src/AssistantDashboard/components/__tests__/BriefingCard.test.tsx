@@ -13,6 +13,17 @@ jest.mock('@fluentui/react-components', () => ({
     ),
     Text: (props: Record<string, unknown>) => <span>{props.children as React.ReactNode}</span>,
     Badge: (props: Record<string, unknown>) => <span>{props.children as React.ReactNode}</span>,
+    Card: (props: Record<string, unknown>) => <div>{props.children as React.ReactNode}</div>,
+}));
+
+// Mock Fluent UI Icons
+jest.mock('@fluentui/react-icons', () => ({
+    ArrowLeftRegular: () => <span data-testid="icon-arrow-left" />,
+    DismissRegular: () => <span data-testid="icon-dismiss" />,
+    ChevronDownRegular: () => <span data-testid="icon-chevron-down" />,
+    ChevronRightRegular: () => <span data-testid="icon-chevron-right" />,
+    CalendarRegular: () => <span data-testid="icon-calendar" />,
+    ArrowRightRegular: () => <span data-testid="icon-arrow-right" />,
 }));
 
 describe('BriefingCard', () => {
@@ -69,7 +80,7 @@ describe('BriefingCard', () => {
         expect(screen.getByText(/US Bank compliance/)).toBeTruthy();
     });
 
-    it('calls onJumpToCard when "Open card →" is clicked', () => {
+    it('calls onJumpToCard when "Open card" is clicked', () => {
         render(
             <BriefingCard
                 card={dailyBriefingItem}
@@ -77,7 +88,7 @@ describe('BriefingCard', () => {
                 onDismissCard={mockDismiss}
             />,
         );
-        const jumpLinks = screen.getAllByText('Open card →');
+        const jumpLinks = screen.getAllByText('Open card');
         fireEvent.click(jumpLinks[0]);
         expect(mockJump).toHaveBeenCalledWith('full-001');
     });
@@ -164,5 +175,32 @@ describe('BriefingCard', () => {
             />,
         );
         expect(screen.getByText(/Q3 Budget Review/)).toBeTruthy();
+    });
+
+    it('renders Back button when onBack is provided', () => {
+        const mockBack = jest.fn();
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+                onBack={mockBack}
+            />,
+        );
+        const backButton = screen.getByText('Back');
+        expect(backButton).toBeTruthy();
+        fireEvent.click(backButton);
+        expect(mockBack).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render Back button when onBack is omitted', () => {
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        expect(screen.queryByText('Back')).toBeNull();
     });
 });
