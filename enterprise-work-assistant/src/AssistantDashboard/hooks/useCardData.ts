@@ -37,6 +37,11 @@ function parseCardOutcome(formatted: string | undefined): CardOutcome {
  */
 export function useCardData(dataset: DataSet | undefined, version: number): AssistantCard[] {
     return React.useMemo(() => {
+        // version is consumed here to satisfy exhaustive-deps — it serves as a
+        // cache-busting signal because the PCF mutates dataset in place without
+        // changing the object reference.
+        void version;
+
         if (!dataset || !dataset.sortedRecordIds || dataset.sortedRecordIds.length === 0) {
             return [];
         }

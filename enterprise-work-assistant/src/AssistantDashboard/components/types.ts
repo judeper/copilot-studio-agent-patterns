@@ -113,7 +113,7 @@ export interface AppProps {
     width: number;
     height: number;
     onSelectCard: (cardId: string) => void;
-    onSendDraft: (cardId: string, finalText: string) => void;
+    onSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
     onJumpToCard: (cardId: string) => void; // Sprint 2: navigate to a specific card from briefing
