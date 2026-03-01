@@ -83,40 +83,40 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SNDR-01 | — | Pending |
-| SNDR-02 | — | Pending |
-| SNDR-03 | — | Pending |
-| WKFL-01 | — | Pending |
-| WKFL-02 | — | Pending |
-| WKFL-03 | — | Pending |
-| UIUX-01 | — | Pending |
-| UIUX-02 | — | Pending |
-| UIUX-03 | — | Pending |
-| UIUX-04 | — | Pending |
-| UIUX-05 | — | Pending |
-| UIUX-06 | — | Pending |
-| UIUX-07 | — | Pending |
-| UIUX-08 | — | Pending |
-| OPER-01 | — | Pending |
-| OPER-02 | — | Pending |
-| OPER-03 | — | Pending |
-| OPER-04 | — | Pending |
-| OPER-05 | — | Pending |
-| DOCS-01 | — | Pending |
-| DOCS-02 | — | Pending |
-| DOCS-03 | — | Pending |
-| DOCS-04 | — | Pending |
-| DOCS-05 | — | Pending |
-| DOCS-06 | — | Pending |
-| DOCS-07 | — | Pending |
-| DOCS-08 | — | Pending |
-| QUAL-01 | — | Pending |
+| SNDR-01 | Phase 14 | Pending |
+| SNDR-02 | Phase 14 | Pending |
+| SNDR-03 | Phase 14 | Pending |
+| WKFL-01 | Phase 15 | Pending |
+| WKFL-02 | Phase 15 | Pending |
+| WKFL-03 | Phase 15 | Pending |
+| UIUX-01 | Phase 16 | Pending |
+| UIUX-02 | Phase 17 | Pending |
+| UIUX-03 | Phase 17 | Pending |
+| UIUX-04 | Phase 16 | Pending |
+| UIUX-05 | Phase 16 | Pending |
+| UIUX-06 | Phase 16 | Pending |
+| UIUX-07 | Phase 18 | Pending |
+| UIUX-08 | Phase 17 | Pending |
+| OPER-01 | Phase 18 | Pending |
+| OPER-02 | Phase 18 | Pending |
+| OPER-03 | Phase 18 | Pending |
+| OPER-04 | Phase 18 | Pending |
+| OPER-05 | Phase 18 | Pending |
+| DOCS-01 | Phase 19 | Pending |
+| DOCS-02 | Phase 19 | Pending |
+| DOCS-03 | Phase 19 | Pending |
+| DOCS-04 | Phase 19 | Pending |
+| DOCS-05 | Phase 19 | Pending |
+| DOCS-06 | Phase 19 | Pending |
+| DOCS-07 | Phase 19 | Pending |
+| DOCS-08 | Phase 19 | Pending |
+| QUAL-01 | Phase 14 | Pending |
 
 **Coverage:**
 - v2.2 requirements: 28 total
-- Mapped to phases: 0
-- Unmapped: 28 ⚠️
+- Mapped to phases: 28
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after initial definition*
+*Last updated: 2026-02-28 after roadmap creation*
