@@ -1,6 +1,6 @@
 # Agent Flows — Step-by-Step Build Guide
 
-This guide walks through building the nine Power Automate flows that drive the Enterprise Work Assistant. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-9 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, and sender analytics.
+This guide walks through building the ten Power Automate flows that drive the Enterprise Work Assistant. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-10 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, sender analytics, and reminder firing.
 
 ## Prerequisites
 
@@ -258,8 +258,10 @@ if(equals(body('Parse_JSON')?['triage_tier'],'LIGHT'),100000001,100000002)
 **Compose -- Trigger Type Value:**
 
 ```
-if(equals(body('Parse_JSON')?['trigger_type'],'EMAIL'),100000000,if(equals(body('Parse_JSON')?['trigger_type'],'TEAMS_MESSAGE'),100000001,100000002))
+if(equals(body('Parse_JSON')?['trigger_type'],'EMAIL'),100000000,if(equals(body('Parse_JSON')?['trigger_type'],'TEAMS_MESSAGE'),100000001,if(equals(body('Parse_JSON')?['trigger_type'],'CALENDAR_SCAN'),100000002,if(equals(body('Parse_JSON')?['trigger_type'],'DAILY_BRIEFING'),100000003,if(equals(body('Parse_JSON')?['trigger_type'],'SELF_REMINDER'),100000004,if(equals(body('Parse_JSON')?['trigger_type'],'COMMAND_RESULT'),100000005,100000002))))))
 ```
+
+> **Note**: This expression maps all 6 trigger types to their Dataverse Choice values. The final fallback (100000002 / CALENDAR_SCAN) handles any unexpected values defensively. Flows 1-3 hardcode their trigger type via the agent input variable, so the parsed output will always match one of the 6 values. Flows 6 and 8 write directly with literal Choice values and do not use this Compose action. Flow 10 (Reminder Firing) also writes directly with a literal value.
 
 **Compose -- Priority Value:**
 
@@ -1829,6 +1831,101 @@ Trigger (Recurrence — Sunday 8 PM)
 
 ---
 
+## Flow 10 — Reminder Firing *(Phase 15)*
+
+### Overview
+
+Scheduled flow that checks for SELF_REMINDER cards whose due date has passed. When a reminder is due, the flow updates the card's status to NUDGE so it surfaces prominently in the user's dashboard. This completes the reminder lifecycle: the Orchestrator creates SELF_REMINDER cards with a future cr_reminderdue date, and this flow fires them when the time arrives.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Minute |
+| Interval | 15 |
+
+> **Design note**: A 15-minute interval balances timeliness (reminders fire within 15 minutes of their due time) against flow run consumption. Adjust based on your Power Automate plan's run quota. For daily reminders, an hourly interval is sufficient; for time-sensitive reminders, consider 5 minutes.
+
+### Actions
+
+**1. List due reminders** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_triggertype eq 100000004 and cr_cardoutcome eq 100000000 and cr_reminderdue le @{utcNow()} and cr_cardstatus ne 100000004` |
+| Sort by | `cr_reminderdue asc` |
+| Row count | `50` |
+| Select columns | `cr_assistantcardid,cr_itemsummary,cr_reminderdue,cr_priority,_ownerid_value` |
+
+> The filter selects SELF_REMINDER cards (trigger type 100000004) that are still PENDING (outcome 100000000), have a due date in the past (`cr_reminderdue le utcNow()`), and have NOT already been nudged (card status is not NUDGE / 100000004). This prevents re-nudging cards that have already fired.
+
+**2. Condition — Has due reminders**
+
+```
+@greater(length(outputs('List_due_reminders')?['body/value']), 0)
+```
+
+**If No:** Terminate (no action needed).
+
+**If Yes:**
+
+**3. Apply to each** — Loop over due reminders
+
+For each due reminder card:
+
+**3a. Update card status to NUDGE** — Dataverse connector → Update a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Row ID | `@{items('Apply_to_each')?['cr_assistantcardid']}` |
+| Card Status | `100000004` *(NUDGE)* |
+| Priority | `100000000` *(High — override to High when reminder fires)* |
+
+> When the card status changes to NUDGE, the PCF dashboard's Canvas App Timer triggers a Dataverse refresh within 30 seconds. The NUDGE status renders the card with visual emphasis in the card gallery, identical to how the Staleness Monitor (Flow 8) surfaces overdue items.
+
+**3b. Compose — Notification summary** (optional)
+
+```
+Reminder fired: @{items('Apply_to_each')?['cr_itemsummary']} (due @{items('Apply_to_each')?['cr_reminderdue']})
+```
+
+> This Compose is for optional notification or audit logging. If your organization uses Teams notifications, add a "Post message in a chat or channel" action here to send the reminder text to the user.
+
+### Error Handling
+
+Wrap steps 1-3 in a **Scope** with "Run after: has failed" parallel branch. Log the error to the admin notification email (same pattern as other flows).
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — every 15 minutes)
+  │
+  ├── 1. List SELF_REMINDER cards where cr_reminderdue <= now() and status != NUDGE
+  ├── 2. Has due reminders?
+  │   ├── No → Terminate
+  │   └── Yes → 3. Apply to each
+  │       ├── 3a. Update card status to NUDGE + priority to High
+  │       └── 3b. (Optional) Compose notification summary
+  └── (on failure) → Error handling scope
+```
+
+### Deployment Checklist
+
+- [ ] cr_reminderdue column added to Assistant Cards table (run updated `provision-environment.ps1`)
+- [ ] Flow created with 15-minute recurrence trigger
+- [ ] Dataverse filter correctly targets SELF_REMINDER + PENDING + past due date + not already NUDGE
+- [ ] Card status update sets NUDGE (100000004) and Priority to High (100000000)
+- [ ] Error handling scope configured with admin notification
+- [ ] Test: Create SELF_REMINDER card with cr_reminderdue 1 minute in the future, wait for flow run, verify card status changes to NUDGE
+- [ ] Test: SELF_REMINDER card with future cr_reminderdue is NOT nudged
+- [ ] Test: Already-nudged SELF_REMINDER card is NOT re-nudged
+
+---
+
 ## Canvas App: Staleness Refresh Mechanism (I-17)
 
 The PCF virtual control cannot implement a polling timer (no `setInterval` in PCF virtual controls -- the platform does not provide a persistent JavaScript execution context between renders). Instead, automatic refresh is configured at the Canvas App level.
@@ -1870,7 +1967,7 @@ PCF virtual controls render via `updateView()` calls from the platform. They can
 
 ## Error Monitoring Strategy (I-18)
 
-All nine flows use error Scopes (Try/Catch pattern) to handle failures gracefully. This section defines the centralized monitoring infrastructure that error Scopes write to.
+All ten flows use error Scopes (Try/Catch pattern) to handle failures gracefully. This section defines the centralized monitoring infrastructure that error Scopes write to.
 
 ### 1. Error Log Table: `cr_errorlog`
 
@@ -1936,6 +2033,7 @@ Each flow's existing error Scope should be updated to include the two actions ab
 | Flow 7 | "Flow 7: Command Execution" |
 | Flow 8 | "Flow 8: Staleness Monitor" |
 | Flow 9 | "Flow 9: Sender Profile Analyzer" |
+| Flow 10 | "Flow 10: Reminder Firing" |
 
 ### 4. Monitoring Dashboard (Optional)
 
