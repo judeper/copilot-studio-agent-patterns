@@ -40,16 +40,20 @@ Every artifact in the solution must be correct and consistent — schemas match 
 
 ### Active
 
-## Current Milestone: v2.1 Pre-Deployment Audit
+## Current Milestone: v2.2 Tech Debt Cleanup
 
-**Goal:** Validate the entire reference pattern is correct, implementable, and complete before deploying to a real Power Platform environment.
+**Goal:** Resolve all 16 deferred tech debt items from the v2.1 pre-deployment audit, bringing the solution to a clean state with no known outstanding issues.
 
 **Target features:**
-- AI Council review of platform architecture (Dataverse, Power Automate, Copilot Studio)
-- AI Council review of frontend/PCF layer (React components, hooks, state, tests)
-- AI Council review of integration/end-to-end data flows across all layers
-- Reconciliation of disagreements via targeted research
-- Remediation of any issues found
+- Complete Sprint 4 sender intelligence (pass SENDER_PROFILE to agent, add reminder firing flow)
+- Add deployment-time configuration (Canvas App Timer for staleness, connection reference management)
+- Replace plain HTML with Fluent UI components in 4 PCF components (accessibility/theming)
+- Harden operational resilience (security role cleanup, pagination, retry logic, card archival)
+- Fix race conditions in sender profile upsert and outcome tracker concurrent updates
+- Add infrastructure documentation (firewall/SMTP policy, performance testing baseline)
+- Implement BriefingCard schedule configuration UI
+- Conduct accessibility audit (keyboard navigation, screen readers)
+- Define localization/i18n strategy for non-English deployments
 
 ### Out of Scope
 
@@ -103,4 +107,4 @@ Shipped v2.0 with ~59k LOC TypeScript/CSS (handwritten) across the reference pat
 | Confidence score modifiers (+10/-10/+5) | Temporal urgency, edit distance penalty, engagement bonus add relational context | ✓ Good — meaningful signal adjustments |
 
 ---
-*Last updated: 2026-02-28 after v2.1 milestone start*
+*Last updated: 2026-02-28 after v2.2 milestone start*
