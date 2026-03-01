@@ -11,7 +11,7 @@ Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pr
 
 - [ ] **SNDR-01**: SENDER_PROFILE JSON is passed to main agent as input variable so triage uses sender behavior data (R-17/I-14)
 - [ ] **SNDR-02**: Sender profile upsert uses Upsert with alternate key to prevent race conditions under concurrent signals (R-19/I-22)
-- [ ] **SNDR-03**: SENT_EDITED outcome uses full edit distance comparison instead of 0/1 boolean (I-21)
+- [x] **SNDR-03**: SENT_EDITED outcome uses full edit distance comparison instead of 0/1 boolean (I-21)
 
 ### Workflow Completeness
 
@@ -51,7 +51,7 @@ Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pr
 
 ### Code Quality
 
-- [ ] **QUAL-01**: ESLint react-hooks plugin installed and configured to catch hook dependency errors (F-22)
+- [x] **QUAL-01**: ESLint react-hooks plugin installed and configured to catch hook dependency errors (F-22)
 
 ## v2.1 Requirements (Complete)
 
@@ -85,7 +85,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | SNDR-01 | Phase 14 | Pending |
 | SNDR-02 | Phase 14 | Pending |
-| SNDR-03 | Phase 14 | Pending |
+| SNDR-03 | Phase 14 | Complete |
 | WKFL-01 | Phase 15 | Pending |
 | WKFL-02 | Phase 15 | Pending |
 | WKFL-03 | Phase 15 | Pending |
@@ -110,7 +110,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOCS-06 | Phase 19 | Pending |
 | DOCS-07 | Phase 19 | Pending |
 | DOCS-08 | Phase 19 | Pending |
-| QUAL-01 | Phase 14 | Pending |
+| QUAL-01 | Phase 14 | Complete |
 
 **Coverage:**
 - v2.2 requirements: 28 total
