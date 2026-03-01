@@ -24,7 +24,7 @@ Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pr
 - [x] **UIUX-01**: BriefingCard, ConfidenceCalibration, CommandBar, and App use Fluent UI components instead of plain HTML (F-09 to F-12)
 - [ ] **UIUX-02**: All interactive elements have ARIA labels, roles, and screen reader support (F-17)
 - [ ] **UIUX-03**: Escape key closes detail views and panels (F-18)
-- [ ] **UIUX-04**: Loading state with Spinner/Shimmer displays while data loads (F-13)
+- [x] **UIUX-04**: Loading state with Spinner/Shimmer displays while data loads (F-13)
 - [x] **UIUX-05**: BriefingCard detail view has a Back navigation button (F-14)
 - [x] **UIUX-06**: Empty analytics buckets show "No data" instead of misleading 0% (F-19)
 - [ ] **UIUX-07**: DataSet paging implemented for deployments with >100 active cards (F-20/I-32)
@@ -92,7 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UIUX-01 | Phase 16 | Complete |
 | UIUX-02 | Phase 17 | Pending |
 | UIUX-03 | Phase 17 | Pending |
-| UIUX-04 | Phase 16 | Pending |
+| UIUX-04 | Phase 16 | Complete |
 | UIUX-05 | Phase 16 | Complete |
 | UIUX-06 | Phase 16 | Complete |
 | UIUX-07 | Phase 18 | Pending |
