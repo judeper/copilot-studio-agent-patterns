@@ -19,11 +19,12 @@ import {
 import type { AssistantCard, DraftPayload } from "./types";
 import { PRIORITY_COLORS } from "./constants";
 import { isSafeUrl } from "../utils/urlSanitizer";
+import { levenshteinRatio } from "../utils/levenshtein";
 
 interface CardDetailProps {
     card: AssistantCard;
     onBack: () => void;
-    onSendDraft: (cardId: string, finalText: string) => void;
+    onSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
 }
@@ -124,7 +125,9 @@ export const CardDetail: React.FC<CardDetailProps> = ({
         const finalText = isEditing ? editedDraft : card.humanized_draft;
         if (!finalText) return;
         setLocalSendState("sending");
-        onSendDraft(card.id, finalText);
+        const originalDraft = card.humanized_draft ?? "";
+        const ratio = levenshteinRatio(originalDraft, finalText);
+        onSendDraft(card.id, finalText, ratio);
     }, [card.id, card.humanized_draft, editedDraft, isEditing, onSendDraft]);
 
     const handleCancelSend = React.useCallback(() => {

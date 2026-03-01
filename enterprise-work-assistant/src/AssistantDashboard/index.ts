@@ -20,7 +20,7 @@ const AppWrapper: React.FC<{
     width: number;
     height: number;
     onSelectCard: (cardId: string) => void;
-    onSendDraft: (cardId: string, finalText: string) => void;
+    onSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
     onJumpToCard: (cardId: string) => void;
@@ -63,7 +63,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
 
     // Stable callback references — created once in init, never recreated
     private handleSelectCard: (cardId: string) => void;
-    private handleSendDraft: (cardId: string, finalText: string) => void;
+    private handleSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     private handleCopyDraft: (cardId: string) => void;
     private handleDismissCard: (cardId: string) => void;
     private handleJumpToCard: (cardId: string) => void;
@@ -80,10 +80,11 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             this.selectedCardId = cardId;
             this.notifyOutputChanged();
         };
-        this.handleSendDraft = (cardId: string, finalText: string) => {
+        this.handleSendDraft = (cardId: string, finalText: string, editDistanceRatio: number) => {
             // JSON-encode for Canvas app parsing via ParseJSON()
-            // Canvas app uses isEdited to set SENT_AS_IS vs SENT_EDITED outcome
-            this.sendDraftAction = JSON.stringify({ cardId, finalText });
+            // Canvas app receives editDistanceRatio (0 = sent as-is, >0 = edited)
+            // to set SENT_AS_IS vs SENT_EDITED outcome and store in cr_avgeditdistance
+            this.sendDraftAction = JSON.stringify({ cardId, finalText, editDistanceRatio });
             this.notifyOutputChanged();
         };
         this.handleCopyDraft = (cardId: string) => {
