@@ -9,6 +9,10 @@ import {
     MailRegular,
     ChatRegular,
     CalendarRegular,
+    WeatherSunnyRegular,
+    SlideTextRegular,
+    AlertRegular,
+    ClockRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard } from "./types";
 import { PRIORITY_COLORS } from "./constants";
@@ -22,6 +26,9 @@ const triggerIcons: Record<string, React.ReactElement> = {
     EMAIL: <MailRegular />,
     TEAMS_MESSAGE: <ChatRegular />,
     CALENDAR_SCAN: <CalendarRegular />,
+    DAILY_BRIEFING: <WeatherSunnyRegular />,
+    COMMAND_RESULT: <SlideTextRegular />,
+    SELF_REMINDER: <AlertRegular />,
 };
 
 const statusAppearance: Record<string, "filled" | "outline" | "tint"> = {
@@ -29,6 +36,7 @@ const statusAppearance: Record<string, "filled" | "outline" | "tint"> = {
     LOW_CONFIDENCE: "tint",
     SUMMARY_ONLY: "outline",
     NO_OUTPUT: "outline",
+    NUDGE: "tint",
 };
 
 const statusColor: Record<string, "success" | "warning" | "informative" | "subtle"> = {
@@ -36,6 +44,7 @@ const statusColor: Record<string, "success" | "warning" | "informative" | "subtl
     LOW_CONFIDENCE: "warning",
     SUMMARY_ONLY: "informative",
     NO_OUTPUT: "subtle",
+    NUDGE: "warning",
 };
 
 export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
