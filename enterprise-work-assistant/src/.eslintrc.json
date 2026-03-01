@@ -1,13 +1,15 @@
 {
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "react-hooks"],
   "extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react-hooks/recommended"
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
-    "no-console": ["warn", { "allow": ["warn"] }]
+    "no-console": ["warn", { "allow": ["warn"] }],
+    "react-hooks/exhaustive-deps": "error"
   },
   "parserOptions": {
     "ecmaVersion": 2020,
@@ -19,5 +21,10 @@
   "env": {
     "browser": true,
     "es2020": true
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
   }
 }
