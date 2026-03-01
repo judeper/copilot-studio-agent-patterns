@@ -1,11 +1,14 @@
 import * as React from "react";
 import { useState } from "react";
+import { Button, Text, Badge, Card } from "@fluentui/react-components";
+import { ArrowLeftRegular, DismissRegular, ChevronDownRegular, ChevronRightRegular, CalendarRegular, ArrowRightRegular } from "@fluentui/react-icons";
 import type { AssistantCard, DailyBriefing, BriefingActionItem, BriefingFyiItem, BriefingStaleAlert } from "./types";
 
 interface BriefingCardProps {
     card: AssistantCard;
     onJumpToCard: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
+    onBack?: () => void;
 }
 
 /**
@@ -43,28 +46,31 @@ function ActionItem({
 }) {
     return (
         <div className="briefing-action-item">
-            <div className="briefing-action-rank">#{item.rank}</div>
+            <Badge appearance="filled" size="small">#{item.rank}</Badge>
             <div className="briefing-action-content">
-                <div className="briefing-action-summary">{item.thread_summary}</div>
-                <div className="briefing-action-recommendation">
+                <Text block>{item.thread_summary}</Text>
+                <Text block size={300}>
                     {item.recommended_action}
-                </div>
-                <div className="briefing-action-reason">{item.urgency_reason}</div>
+                </Text>
+                <Text block size={200}>{item.urgency_reason}</Text>
                 {item.related_calendar && (
                     <div className="briefing-action-calendar">
-                        📅 {item.related_calendar}
+                        <CalendarRegular /> {item.related_calendar}
                     </div>
                 )}
                 <div className="briefing-action-links">
                     {item.card_ids.map((id) => (
-                        <button
+                        <Button
                             key={id}
-                            className="briefing-jump-link"
+                            appearance="transparent"
+                            size="small"
+                            icon={<ArrowRightRegular />}
+                            iconPosition="after"
                             onClick={() => onJumpToCard(id)}
                             title={`Open card ${id.substring(0, 8)}...`}
                         >
-                            Open card →
-                        </button>
+                            Open card
+                        </Button>
                     ))}
                 </div>
             </div>
@@ -82,8 +88,8 @@ function FyiItem({ item }: { item: BriefingFyiItem }) {
 
     return (
         <div className="briefing-fyi-item">
-            <span className="briefing-fyi-category">{categoryLabel}</span>
-            <span className="briefing-fyi-summary">{item.summary}</span>
+            <Badge appearance="outline" size="small">{categoryLabel}</Badge>
+            <Text>{item.summary}</Text>
         </div>
     );
 }
@@ -103,21 +109,24 @@ function StaleAlert({
     return (
         <div className={`briefing-stale-item ${severityClass}`}>
             <div className="briefing-stale-summary">
-                {alert.summary}
-                <span className="briefing-stale-hours">
+                <Text>{alert.summary}</Text>
+                <Badge appearance="tint" color="warning" size="small">
                     {Math.round(alert.hours_pending)}h pending
-                </span>
+                </Badge>
             </div>
             <div className="briefing-stale-actions">
-                <span className="briefing-stale-recommendation">
+                <Text size={200}>
                     Suggested: {alert.recommended_action.toLowerCase()}
-                </span>
-                <button
-                    className="briefing-jump-link"
+                </Text>
+                <Button
+                    appearance="transparent"
+                    size="small"
+                    icon={<ArrowRightRegular />}
+                    iconPosition="after"
                     onClick={() => onJumpToCard(alert.card_id)}
                 >
-                    Open →
-                </button>
+                    Open
+                </Button>
             </div>
         </div>
     );
@@ -131,22 +140,28 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
     card,
     onJumpToCard,
     onDismissCard,
+    onBack,
 }) => {
     const [fyiExpanded, setFyiExpanded] = useState(false);
     const briefing = parseBriefing(card);
 
     if (!briefing) {
         return (
-            <div className="briefing-card briefing-card-error">
+            <Card className="briefing-card briefing-card-error">
                 <div className="briefing-header">
-                    <h2>Daily Briefing</h2>
-                    <span className="briefing-date">{card.created_on}</span>
+                    {onBack && (
+                        <Button appearance="subtle" icon={<ArrowLeftRegular />} onClick={onBack}>
+                            Back
+                        </Button>
+                    )}
+                    <Text as="h2" size={500} weight="semibold" block>Daily Briefing</Text>
+                    <Text size={200}>{card.created_on}</Text>
                 </div>
-                <p className="briefing-error-message">
+                <Text block>
                     Unable to parse briefing data. The briefing agent may have
                     returned an unexpected format.
-                </p>
-            </div>
+                </Text>
+            </Card>
         );
     }
 
@@ -155,24 +170,31 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
     const hasStale = briefing.stale_alerts && briefing.stale_alerts.length > 0;
 
     return (
-        <div className="briefing-card">
+        <Card className="briefing-card">
+            {/* Back button */}
+            {onBack && (
+                <Button appearance="subtle" icon={<ArrowLeftRegular />} onClick={onBack}>
+                    Back
+                </Button>
+            )}
+
             {/* Header */}
             <div className="briefing-header">
-                <h2>Daily Briefing</h2>
-                <span className="briefing-date">{briefing.briefing_date}</span>
-                <span className="briefing-count">
+                <Text as="h2" size={500} weight="semibold" block>Daily Briefing</Text>
+                <Text size={200}>{briefing.briefing_date}</Text>
+                <Badge appearance="outline" size="small">
                     {briefing.total_open_items} open item
                     {briefing.total_open_items !== 1 ? "s" : ""}
-                </span>
+                </Badge>
             </div>
 
             {/* Day Shape */}
-            <div className="briefing-day-shape">{briefing.day_shape}</div>
+            <Text block size={300} className="briefing-day-shape">{briefing.day_shape}</Text>
 
             {/* Stale Alerts (shown first — these need immediate attention) */}
             {hasStale && (
                 <div className="briefing-section briefing-stale-section">
-                    <h3>Overdue Items</h3>
+                    <Text as="h3" size={400} weight="semibold" block>Overdue Items</Text>
                     {briefing.stale_alerts!.map((alert) => (
                         <StaleAlert
                             key={alert.card_id}
@@ -186,7 +208,7 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
             {/* Action Items */}
             {hasActions && (
                 <div className="briefing-section briefing-actions-section">
-                    <h3>Action Items</h3>
+                    <Text as="h3" size={400} weight="semibold" block>Action Items</Text>
                     {briefing.action_items.map((item) => (
                         <ActionItem
                             key={`action-${item.rank}`}
@@ -200,17 +222,13 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
             {/* FYI (collapsible) */}
             {hasFyi && (
                 <div className="briefing-section briefing-fyi-section">
-                    <button
-                        className="briefing-fyi-toggle"
+                    <Button
+                        appearance="transparent"
+                        icon={fyiExpanded ? <ChevronDownRegular /> : <ChevronRightRegular />}
                         onClick={() => setFyiExpanded(!fyiExpanded)}
                     >
-                        <h3>
-                            For Your Information ({briefing.fyi_items!.length})
-                            <span className="briefing-fyi-chevron">
-                                {fyiExpanded ? "▾" : "▸"}
-                            </span>
-                        </h3>
-                    </button>
+                        For Your Information ({briefing.fyi_items!.length})
+                    </Button>
                     {fyiExpanded &&
                         briefing.fyi_items!.map((item, i) => (
                             <FyiItem key={`fyi-${i}`} item={item} />
@@ -221,19 +239,20 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
             {/* No items state */}
             {!hasActions && !hasStale && (
                 <div className="briefing-empty">
-                    Your inbox is clear. No pending items need attention today.
+                    <Text block>Your inbox is clear. No pending items need attention today.</Text>
                 </div>
             )}
 
             {/* Dismiss briefing */}
             <div className="briefing-footer">
-                <button
-                    className="briefing-dismiss-button"
+                <Button
+                    appearance="subtle"
+                    icon={<DismissRegular />}
                     onClick={() => onDismissCard(card.id)}
                 >
                     Dismiss briefing
-                </button>
+                </Button>
             </div>
-        </div>
+        </Card>
     );
 };
