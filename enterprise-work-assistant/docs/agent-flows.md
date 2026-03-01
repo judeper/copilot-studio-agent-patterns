@@ -340,7 +340,7 @@ Add another **Microsoft Copilot Studio** **"Execute Agent and wait"** action. Se
 
 **11. Upsert Sender Profile** *(Sprint 1B — updated Phase 14: uses Dataverse Upsert with alternate key)*
 
-Uses the Dataverse connector's **"Update or add rows (V2)"** action (also known as Upsert) with the alternate key `cr_senderemail_key` to atomically create or update the sender profile. This eliminates the previous List+Condition+Add/Update pattern and prevents race conditions when multiple flows process signals from the same sender concurrently.
+Uses the Dataverse connector's **"Update or add rows (V2)"** action (also known as Upsert) with the alternate key `cr_senderemail_key` to atomically create or update the sender profile. This eliminates the previous List-then-Condition-then-Add/Update pattern and prevents race conditions when multiple flows process signals from the same sender concurrently.
 
 | Setting | Value |
 |---------|-------|
@@ -576,7 +576,7 @@ Same Upsert pattern as Flow 1 step 11, using the Dataverse **"Update or add rows
 
 **Sender profile passthrough** *(Phase 14)*: Before step 4c (Invoke agent), add steps for sender profile lookup and SENDER_PROFILE compose using the same pattern as Flow 1 steps 3a-3b. Use the organizer's email address as the lookup key. Add `SENDER_PROFILE` to the agent invocation input variables alongside `TRIGGER_TYPE = "CALENDAR_SCAN"`.
 
-> **Performance note:** The Apply to each loop already has a 5-second delay between iterations. The sender Upsert is a single action (replacing the previous 2-3 action List+Condition+Add/Update pattern). For a 14-day calendar scan that might process 30-50 events, the flow will take 3-5 minutes total. This is acceptable for a daily batch flow.
+> **Performance note:** The Apply to each loop already has a 5-second delay between iterations. The sender Upsert is a single action (replacing the previous 2-3 action List-then-Condition-then-Add/Update pattern). For a 14-day calendar scan that might process 30-50 events, the flow will take 3-5 minutes total. This is acceptable for a daily batch flow.
 
 **4e. Delay** — 5 seconds
 
@@ -804,6 +804,10 @@ Automated flow that fires when a card's outcome changes in Dataverse and perform
 - **Trigger filtering**: Uses `filteringattributes` parameter set to exactly `cr_cardoutcome` to prevent infinite trigger loops. Only fires when the outcome column changes, not on any other row modification.
 - **Non-blocking**: Failures in this flow do not affect the user experience. The outcome has already been written to the card row by the Send Email flow (for sends) or Canvas app Patch (for dismissals).
 - **Running average**: Uses the standard running average formula to update `cr_avgresponsehours` without loading all historical data.
+- **Pre-computed edit distance** *(Phase 14)*: The edit distance ratio (0-100) is computed client-side by the PCF component using a Levenshtein algorithm and stored in `cr_editdistanceratio` on the Assistant Card row. This flow reads the pre-computed value instead of computing a 0/1 boolean. The Canvas App writes `cr_editdistanceratio` (WholeNumber, 0-100, nullable) when processing the PCF's `sendDraftAction` output.
+- **Upsert pattern** *(Phase 14)*: All sender profile writes use Dataverse Upsert with alternate key `cr_senderemail_key` instead of the previous List-then-Condition-then-Update pattern, preventing race conditions on concurrent card actions.
+
+> **Schema note** *(Phase 14)*: The Assistant Cards table requires a `cr_editdistanceratio` column (WholeNumber, 0-100, nullable) to store the per-card edit distance ratio. The Canvas App writes this value when processing the PCF's `sendDraftAction` JSON output (which includes `editDistanceRatio`). This column is read by this flow to compute the sender-level running average in `cr_avgeditdistance`.
 
 ### Trigger
 
@@ -827,7 +831,7 @@ Automated flow that fires when a card's outcome changes in Dataverse and perform
 |---------|-------|
 | Table name | Assistant Cards |
 | Row ID | `@{triggerOutputs()?['body/cr_assistantcardid']}` |
-| Select columns | `cr_cardoutcome,cr_outcometimestamp,cr_originalsenderemail,cr_originalsenderdisplay,cr_humanizeddraft,createdon,_ownerid_value` |
+| Select columns | `cr_cardoutcome,cr_outcometimestamp,cr_originalsenderemail,cr_originalsenderdisplay,cr_humanizeddraft,cr_editdistanceratio,createdon,_ownerid_value` |
 
 **2. Switch — Route by outcome type**
 
@@ -852,37 +856,33 @@ Route to the appropriate branch based on the outcome value. Three branches handl
 
 ---
 
-#### Branch B: DISMISSED — Increment dismiss count
+#### Branch B: DISMISSED — Increment dismiss count *(Phase 14: uses Upsert)*
 
-When a user dismisses a card, the sender's dismiss count must be incremented. This data feeds the Sender Profile Analyzer (Flow 9), which computes `dismiss_rate` to auto-categorize senders. Without this branch, `cr_dismisscount` never increments and `dismiss_rate` is always 0, meaning AUTO_LOW categorization never triggers.
+When a user dismisses a card, the sender's dismiss count is incremented via Upsert. This data feeds the Sender Profile Analyzer (Flow 9) for AUTO_LOW categorization.
 
-**2b-1. List rows — Find sender profile by email + owner**
+**2b-1. Get sender profile by alternate key** — Dataverse → Sender Profiles
 
 | Setting | Value |
 |---------|-------|
 | Table name | Sender Profiles |
-| Filter rows | `cr_senderemail eq '@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}' and _ownerid_value eq '@{outputs('Get_the_modified_card_row')?['body/_ownerid_value']}'` |
-| Row count | `1` |
-| Select columns | `cr_senderprofileid,cr_dismisscount` |
+| Alternate key | `cr_senderemail_key` |
+| Key value | `@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}` |
+| Select columns | `cr_dismisscount` |
 
-**2b-2. Condition — Sender profile exists**
+Configure a **Run after** setting to run on both success and failure (404 = no existing profile).
 
-```
-@greater(length(outputs('List_rows_dismissed')?['body/value']), 0)
-```
+**2b-2. Upsert sender profile — Dismiss tracking**
 
-**If No:** Log a warning and terminate. The sender profile should exist from the trigger flow's upsert (Flow 1/2/3 step 11).
-
-**If Yes:**
-
-**2b-3. Update a row — Increment dismiss count** — Dataverse → Sender Profiles
-
-| Column | Value |
-|--------|-------|
-| Row ID | `@{first(outputs('List_rows_dismissed')?['body/value'])?['cr_senderprofileid']}` |
-| Dismiss Count | `@{add(first(outputs('List_rows_dismissed')?['body/value'])?['cr_dismisscount'], 1)}` |
+| Setting | Value |
+|---------|-------|
+| Table name | Sender Profiles |
+| Alternate key | `cr_senderemail_key` |
+| cr_senderemail (key column) | `@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}` |
+| Dismiss Count | `@{add(coalesce(outputs('Get_sender_profile_dismissed')?['body/cr_dismisscount'], 0), 1)}` |
+| **Owner** | `@{outputs('Get_the_modified_card_row')?['body/_ownerid_value']}` |
 
 > Do NOT update response hours or response count for dismissals. Only `cr_dismisscount` is incremented.
+> The `coalesce(..., 0)` handles the case where no sender profile exists yet (first interaction was a dismiss without a prior signal -- unlikely but possible if the trigger flow's upsert failed).
 
 ---
 
@@ -896,22 +896,18 @@ When a user dismisses a card, the sender's dismiss count must be incremented. Th
 
 **If Yes (SENT_EDITED):**
 
-**2a-1a. Compose — EDIT_DISTANCE**
+**2a-1a. Compose — EDIT_DISTANCE** *(Phase 14: receives pre-computed ratio from PCF)*
 
-Compute whether the user edited the draft before sending. A full Levenshtein distance is complex in Power Automate expressions, so for MVP we use a simplified boolean comparison: if the final sent text differs from the humanized draft, mark as edited with a normalized distance of 1.0; if identical, distance is 0.0:
+The edit distance ratio (0-100) is now computed client-side in the PCF component using a Levenshtein algorithm and passed through the Canvas App to this flow. The flow no longer computes edit distance -- it receives it as a column on the Assistant Card row.
 
 ```
-@{if(
-    equals(
-        outputs('Get_the_modified_card_row')?['body/cr_humanizeddraft'],
-        triggerOutputs()?['body/cr_humanizeddraft']
-    ),
-    0,
-    1
+@{coalesce(
+    outputs('Get_the_modified_card_row')?['body/cr_editdistanceratio'],
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000002), 100, 0)
 )}
 ```
 
-> **Note**: For a more granular edit distance, a custom connector or Azure Function could compute the actual Levenshtein distance. The simplified 0/1 approach is acceptable for MVP — it still provides signal for "how often does this user edit drafts" analysis.
+> **Note**: The PCF component computes `editDistanceRatio` using Levenshtein distance when the user clicks Send. The Canvas App extracts `editDistanceRatio` from the PCF's `sendDraftAction` JSON output and writes it to the Assistant Card row's `cr_editdistanceratio` column alongside the outcome. If `cr_editdistanceratio` is null (legacy cards created before this change), fall back to the previous approach: 100 for SENT_EDITED (assumes full rewrite), 0 for SENT_AS_IS.
 
 **2a-1b. Compose — NEW_AVG_EDIT_DISTANCE**
 
@@ -937,7 +933,7 @@ Uses the running average formula: `new_avg = ((old_avg * old_count) + new_distan
 )}
 ```
 
-> The edit distance average is stored in `cr_avgeditdistance` on the SenderProfile table. For the simplified 0/1 approach, this effectively tracks the percentage of responses that were edited.
+> The edit distance average is stored in `cr_avgeditdistance` on the SenderProfile table. Values range from 0 (user always sends drafts as-is) to 100 (user always completely rewrites drafts). The agent prompt's sender-adaptive confidence adjustment checks `avg_edit_distance > 70` to penalize confidence for senders whose drafts are frequently rewritten.
 
 **3. Calculate response time**
 
@@ -958,85 +954,83 @@ Uses the running average formula: `new_avg = ((old_avg * old_count) + new_distan
 
 > Calculates the difference in ticks between outcome timestamp and card creation time, converts from 100-nanosecond ticks to seconds (÷10,000,000), then to hours (÷3,600). Result is a decimal number of hours.
 
-**4. List rows — Find sender profile**
+**3a. Get sender profile by alternate key** *(Phase 14: replaces List rows)*
+
+Fetch the current sender profile to compute running averages. Uses the alternate key for consistent lookup.
 
 | Setting | Value |
 |---------|-------|
 | Table name | Sender Profiles |
-| Filter rows | `cr_senderemail eq '@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}' and _ownerid_value eq '@{outputs('Get_the_modified_card_row')?['body/_ownerid_value']}'` |
-| Row count | `1` |
-| Select columns | `cr_senderprofileid,cr_responsecount,cr_avgresponsehours,cr_dismisscount,cr_avgeditdistance` |
+| Alternate key | `cr_senderemail_key` |
+| Key value | `@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}` |
+| Select columns | `cr_responsecount,cr_avgresponsehours,cr_avgeditdistance` |
 
-> **Note**: The filter includes the owner ID to ensure we update the correct user's sender profile (since Sender Profiles are UserOwned, the same sender email can appear once per user). The select includes `cr_dismisscount` and `cr_avgeditdistance` for the DISMISSED and SENT_EDITED branches respectively.
-
-**5. Condition — Sender profile exists**
-
-```
-@greater(length(outputs('List_rows_Find_sender_profile')?['body/value']), 0)
-```
-
-**If No:** Log a warning and terminate. The sender profile should have been created by the trigger flow (step 11). If it's missing, the trigger flow may not have been updated for Sprint 1B yet. Do NOT create a new sender profile here — that's the trigger flow's responsibility.
-
-**If Yes:**
-
-**6. Update a row — Update sender profile** — Dataverse → Sender Profiles
-
-| Column | Value |
-|--------|-------|
-| Row ID | `@{first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_senderprofileid']}` |
-| Response Count | `@{add(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_responsecount'], 1)}` |
-| Average Response Hours | See running average expression below |
-| Average Edit Distance | `@{outputs('Compose_NEW_AVG_EDIT_DISTANCE')}` *(only for SENT_EDITED outcomes; omit for SENT_AS_IS)* |
+Configure a **Run after** setting to run on both success and failure (404 = no existing profile).
 
 **Compose — NEW_AVG_RESPONSE_HOURS:**
 
-Uses the running average formula: `new_avg = ((old_avg × old_count) + new_value) / (old_count + 1)`
+Uses the running average formula: `new_avg = ((old_avg x old_count) + new_value) / (old_count + 1)`
 
 ```
-@{div(
-    add(
-        mul(
-            float(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_avgresponsehours']),
-            float(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_responsecount'])
+@{if(
+    empty(outputs('Get_sender_profile_response')?['body/cr_avgresponsehours']),
+    outputs('Compose_RESPONSE_HOURS'),
+    div(
+        add(
+            mul(
+                float(outputs('Get_sender_profile_response')?['body/cr_avgresponsehours']),
+                float(outputs('Get_sender_profile_response')?['body/cr_responsecount'])
+            ),
+            float(outputs('Compose_RESPONSE_HOURS'))
         ),
-        float(outputs('Compose_RESPONSE_HOURS'))
-    ),
-    add(
-        float(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_responsecount']),
-        1
+        add(
+            float(outputs('Get_sender_profile_response')?['body/cr_responsecount']),
+            1
+        )
     )
 )}
 ```
 
-> **Edge case**: If `cr_avgresponsehours` is null (first response ever), the running average simplifies to just the current response hours. Handle with: `if(empty(first(outputs('List_rows_Find_sender_profile')?['body/value'])?['cr_avgresponsehours']), outputs('Compose_RESPONSE_HOURS'), <running average expression>)`
+> **Edge case**: If `cr_avgresponsehours` is null (first response ever), the running average simplifies to just the current response hours. The `if(empty(...))` check handles this.
+
+**4. Upsert sender profile — Response tracking** *(Phase 14: replaces previous List-then-Condition-then-Update)*
+
+Uses Dataverse Upsert with alternate key `cr_senderemail_key` to atomically update the sender's response metrics. This prevents race conditions when multiple cards from the same sender are actioned concurrently.
+
+| Setting | Value |
+|---------|-------|
+| Table name | Sender Profiles |
+| Alternate key | `cr_senderemail_key` |
+| cr_senderemail (key column) | `@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}` |
+| Response Count | `@{add(coalesce(outputs('Get_sender_profile_response')?['body/cr_responsecount'], 0), 1)}` |
+| Average Response Hours | `@{outputs('Compose_NEW_AVG_RESPONSE_HOURS')}` |
+| Average Edit Distance | `@{outputs('Compose_NEW_AVG_EDIT_DISTANCE')}` *(only for SENT_EDITED outcomes; omit field entirely for SENT_AS_IS)* |
+| **Owner** | `@{outputs('Get_the_modified_card_row')?['body/_ownerid_value']}` |
+
+> **Note**: The Upsert needs the current response count to compute the incremented value. The **"Get sender profile by alternate key"** action (step 3a) fetches the current values. If no row exists (404), the Upsert creates it with the provided values and `coalesce(..., 0)` handles the null case.
+
+> **Design note**: Upsert writes only outcome-specific fields per user decision. SENT_AS_IS updates response count + avg response hours. SENT_EDITED also updates avg edit distance. Fields not specified in the Upsert are left unchanged.
 
 ### Flow Diagram
 
 ```
 Trigger (cr_cardoutcome changed, non-PENDING)
-  │
-  ├── 1. Get modified card row (incl. cr_humanizeddraft)
-  ├── 2. Switch on outcome type:
-  │   │
-  │   ├── Branch A: SENT_AS_IS or SENT_EDITED
-  │   │   ├── 2a-1. Is SENT_EDITED?
-  │   │   │   └── Yes → Compute edit distance + running avg
-  │   │   ├── 3. Calculate response hours
-  │   │   ├── 4. Find sender profile by email + owner
-  │   │   ├── 5. Sender profile exists?
-  │   │   │   └── No → Log warning → Terminate
-  │   │   └── 6. Update sender profile
-  │   │       ├── Increment response count
-  │   │       ├── Recalculate avg response hours
-  │   │       └── Update avg edit distance (SENT_EDITED only)
-  │   │
-  │   ├── Branch B: DISMISSED
-  │   │   ├── 2b-1. Find sender profile by email + owner
-  │   │   ├── 2b-2. Sender profile exists?
-  │   │   │   └── No → Log warning → Terminate
-  │   │   └── 2b-3. Increment cr_dismisscount
-  │   │
-  │   └── Branch C: EXPIRED → Terminate (no profile update)
+  |
+  +-- 1. Get modified card row
+  +-- 2. Switch on outcome type:
+      |
+      +-- Branch A: SENT_AS_IS or SENT_EDITED
+      |   +-- 2a-1. Is SENT_EDITED?
+      |   |   +-- Yes: Read pre-computed edit distance ratio + compute running avg
+      |   +-- 3. Calculate response hours
+      |   +-- 3a. Get sender profile by alternate key (run-after success+failure)
+      |   +-- 4. Upsert sender profile (response count, avg hours, avg edit distance)
+      |
+      +-- Branch B: DISMISSED
+      |   +-- 2b-1. Get current dismiss count (alternate key, run-after success+failure)
+      |   +-- 2b-2. Upsert sender profile (dismiss count)
+      |
+      +-- Branch C: EXPIRED -> Terminate
 ```
 
 ### Deployment Checklist
