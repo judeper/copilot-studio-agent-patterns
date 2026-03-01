@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Tech Debt Cleanup
 status: in-progress
-last_updated: "2026-03-01T03:12:41.000Z"
+last_updated: "2026-03-01T03:21:09.000Z"
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 14
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -18,26 +18,27 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** v2.2 Tech Debt Cleanup — Phase 16, Plan 01 complete
+**Current focus:** v2.2 Tech Debt Cleanup — Phase 16 complete, ready for Phase 17
 
 ## Current Position
 
-Phase: 16 in progress (third of 6 in v2.2, phases 14-19)
-Plan: 16-01 complete (1/2 plans in phase 16)
-Status: Plan 16-01 complete, ready for Plan 16-02
-Last activity: 2026-02-28 — Plan 16-01 complete (BriefingCard + ConfidenceCalibration Fluent UI migration)
+Phase: 16 complete (third of 6 in v2.2, phases 14-19)
+Plan: 16-02 complete (2/2 plans in phase 16)
+Status: Phase 16 complete, ready for Phase 17
+Last activity: 2026-02-28 — Plan 16-02 complete (CommandBar + App Fluent UI migration, loading spinner, onBack wiring)
 
-Progress: [████░░░░░░] 42% (5/12 plans estimated across 6 phases)
+Progress: [█████░░░░░] 50% (6/12 plans estimated across 6 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5 (v2.2)
+- Total plans completed: 6 (v2.2)
 - Plan 14-01: 5 min, 2 tasks, 9 files
 - Plan 14-02: 6 min, 2 tasks, 2 files
 - Plan 15-01: 3 min, 2 tasks, 3 files
 - Plan 15-02: 5 min, 2 tasks, 5 files
 - Plan 16-01: 8 min, 2 tasks, 6 files
+- Plan 16-02: 5 min, 2 tasks, 4 files
 
 *Updated after each plan completion*
 
@@ -77,6 +78,9 @@ Progress: [████░░░░░░] 42% (5/12 plans estimated across 6 ph
 - Installed @testing-library/dom explicitly (peer dep not auto-installed with --legacy-peer-deps)
 - Used getByRole("tab") in Fluent UI Tab tests (Tab renders text twice for layout stability)
 - Kept native HTML table elements in ConfidenceCalibration (Fluent UI v9 has no 1:1 Table replacement)
+- Fluent UI Input onChange uses (_e, data) => data.value pattern (not e.target.value)
+- Loading spinner shows only when cards empty AND no filters active (distinguishes initial load from empty filter results)
+- Kept div wrappers for CommandBar conversation panel (Fluent Card not semantically appropriate for scrollable log)
 
 ### Pending Todos
 
@@ -89,5 +93,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 16-01-PLAN.md
-Resume file: .planning/phases/16-fluent-ui-migration-ux-polish/16-01-SUMMARY.md
+Stopped at: Completed 16-02-PLAN.md (Phase 16 complete)
+Resume file: .planning/phases/16-fluent-ui-migration-ux-polish/16-02-SUMMARY.md
