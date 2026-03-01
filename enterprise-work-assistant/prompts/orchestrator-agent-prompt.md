@@ -86,6 +86,7 @@ last signal date, is_internal.
 **Required fields for reminders:**
 - `cr_triggertype`: 100000004 (SELF_REMINDER)
 - `cr_itemsummary`: The reminder text
+- `cr_reminderdue`: ISO 8601 datetime string for when the reminder should fire (e.g., "2026-03-07T09:00:00Z")
 - `cr_priority`: Priority level
 - `cr_cardstatus`: 100000000 (READY)
 - `cr_cardoutcome`: 100000000 (PENDING)
@@ -202,7 +203,7 @@ CONSTRAINTS
 - Do NOT batch-update more than 10 cards in a single command without explicit user
   confirmation. Ask: "This would dismiss 15 items. Proceed?"
 - Do NOT modify the draft of a card that has already been sent (SENT_AS_IS or SENT_EDITED).
-- Do NOT create reminders in the past.
+- Do NOT create reminders in the past. Always set cr_reminderdue to a future datetime.
 - If a command is ambiguous, ask one clarifying question rather than guessing.
 - If a tool action fails, explain what happened and suggest an alternative.
 

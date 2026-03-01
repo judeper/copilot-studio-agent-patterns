@@ -183,6 +183,13 @@
       "maxLength": 500,
       "required": false,
       "description": "Unique ID of the original signal. EMAIL: internetMessageId. TEAMS: messageId. CALENDAR: eventId."
+    },
+    {
+      "logicalName": "cr_reminderdue",
+      "displayName": "Reminder Due",
+      "type": "DateTime",
+      "required": false,
+      "description": "When this reminder should fire. Only populated for SELF_REMINDER trigger type cards. The Reminder Firing flow (Flow 10) queries cards where this date is in the past."
     }
   ],
   "notes": {
