@@ -4,10 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ConfidenceCalibration } from "../ConfidenceCalibration";
 import type { AssistantCard } from "../types";
 import {
-    tier1SkipItem,
-    tier2LightItem,
     tier3FullItem,
-    lowConfidenceItem,
     dailyBriefingItem,
 } from "../../../test/fixtures/cardFixtures";
 

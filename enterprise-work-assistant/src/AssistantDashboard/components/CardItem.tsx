@@ -12,7 +12,6 @@ import {
     WeatherSunnyRegular,
     SlideTextRegular,
     AlertRegular,
-    ClockRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard } from "./types";
 import { PRIORITY_COLORS } from "./constants";
