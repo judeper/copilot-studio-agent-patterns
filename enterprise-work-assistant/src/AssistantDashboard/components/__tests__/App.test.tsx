@@ -177,7 +177,37 @@ describe('App view state navigation', () => {
             />
         );
 
-        // Should show gallery empty state
+        // Should show loading spinner (empty cards + no filters = initial load state)
+        expect(screen.getByText('Loading cards...')).toBeInTheDocument();
+    });
+});
+
+describe('App loading state', () => {
+    it('shows loading spinner when cards are empty with no filters', () => {
+        renderApp({
+            cards: [],
+            filterTriggerType: '',
+            filterPriority: '',
+            filterCardStatus: '',
+            filterTemporalHorizon: '',
+        });
+
+        expect(screen.getByText('Loading cards...')).toBeInTheDocument();
+        // Should NOT show the filter bar or empty state text
+        expect(screen.queryByText('No cards match the current filters.')).not.toBeInTheDocument();
+    });
+
+    it('shows filter empty state (not spinner) when cards are empty due to filter', () => {
+        renderApp({
+            cards: [],
+            filterTriggerType: 'CALENDAR_SCAN',
+            filterPriority: '',
+            filterCardStatus: '',
+            filterTemporalHorizon: '',
+        });
+
+        // Should show filtered empty state, not loading spinner
         expect(screen.getByText('No cards match the current filters.')).toBeInTheDocument();
+        expect(screen.queryByText('Loading cards...')).not.toBeInTheDocument();
     });
 });
