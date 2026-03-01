@@ -38,7 +38,6 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     const [conversation, setConversation] = useState<ConversationEntry[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
     const responseRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
 
     // When a new response arrives, add it to conversation history
     useEffect(() => {
@@ -155,7 +154,6 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             {/* Input row */}
             <div className="command-input-row">
                 <Input
-                    ref={inputRef}
                     className="command-input"
                     placeholder={
                         currentCardId

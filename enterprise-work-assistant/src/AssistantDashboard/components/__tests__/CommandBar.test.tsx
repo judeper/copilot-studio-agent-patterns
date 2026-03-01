@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../../test/helpers/renderWithProviders';
 import { CommandBar } from '../CommandBar';
 import type { OrchestratorResponse } from '../types';
@@ -46,54 +47,53 @@ describe('CommandBar', () => {
         expect(sendBtn).toBeDisabled();
     });
 
-    it('calls onExecuteCommand when Send is clicked', () => {
+    it('calls onExecuteCommand when Send is clicked', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
-        fireEvent.change(input, { target: { value: 'What needs attention?' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'What needs attention?');
+        await userEvent.click(screen.getByText('Send'));
         expect(mockExecute).toHaveBeenCalledWith(
             'What needs attention?',
             null,
         );
     });
 
-    it('calls onExecuteCommand with currentCardId when set', () => {
+    it('calls onExecuteCommand with currentCardId when set', async () => {
         renderWithProviders(<CommandBar {...defaultProps} currentCardId="card-456" />);
         const input = screen.getByPlaceholderText(
             'Ask about this card or type a command...',
         );
-        fireEvent.change(input, { target: { value: 'Make this shorter' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'Make this shorter');
+        await userEvent.click(screen.getByText('Send'));
         expect(mockExecute).toHaveBeenCalledWith(
             'Make this shorter',
             'card-456',
         );
     });
 
-    it('calls onExecuteCommand on Enter key', () => {
+    it('calls onExecuteCommand on Enter key', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
-        fireEvent.change(input, { target: { value: 'Show urgent items' } });
-        fireEvent.keyDown(input, { key: 'Enter' });
+        await userEvent.type(input, 'Show urgent items{Enter}');
         expect(mockExecute).toHaveBeenCalledWith('Show urgent items', null);
     });
 
-    it('clears input after submit', () => {
+    it('clears input after submit', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText(
             'Type a command...',
         ) as HTMLInputElement;
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'test');
+        await userEvent.click(screen.getByText('Send'));
         expect(input.value).toBe('');
     });
 
-    it('shows "Thinking..." when processing', () => {
+    it('shows "Thinking..." when processing', async () => {
         // Submit a command first to create conversation
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'test');
+        await userEvent.click(screen.getByText('Send'));
 
         // Re-render with isProcessing=true
         rerender(<CommandBar {...defaultProps} isProcessing={true} />);
@@ -110,35 +110,35 @@ describe('CommandBar', () => {
         expect(sendBtn).toBeDisabled();
     });
 
-    it('executes quick action on chip click', () => {
+    it('executes quick action on chip click', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
-        fireEvent.click(screen.getByText("What's urgent?"));
+        await userEvent.click(screen.getByText("What's urgent?"));
         expect(mockExecute).toHaveBeenCalledWith(
             'What needs my attention right now?',
             null,
         );
     });
 
-    it('shows clear button after conversation exists', () => {
+    it('shows clear button after conversation exists', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'test');
+        await userEvent.click(screen.getByText('Send'));
         expect(screen.getByTitle('Clear conversation')).toBeTruthy();
     });
 
-    it('clears conversation on clear button click', () => {
+    it('clears conversation on clear button click', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'test');
+        await userEvent.click(screen.getByText('Send'));
         // Clear
-        fireEvent.click(screen.getByTitle('Clear conversation'));
+        await userEvent.click(screen.getByTitle('Clear conversation'));
         // Quick actions should reappear
         expect(screen.getByText("What's urgent?")).toBeTruthy();
     });
 
-    it('renders card links from response', () => {
+    it('renders card links from response', async () => {
         const response: OrchestratorResponse = {
             response_text: 'Here are your urgent items.',
             card_links: [
@@ -151,8 +151,8 @@ describe('CommandBar', () => {
         // First submit a command to create conversation
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'test');
+        await userEvent.click(screen.getByText('Send'));
 
         // Re-render with response
         rerender(
@@ -167,7 +167,7 @@ describe('CommandBar', () => {
         expect(screen.getByText('Budget email →')).toBeTruthy();
     });
 
-    it('calls onJumpToCard when card link is clicked', () => {
+    it('calls onJumpToCard when card link is clicked', async () => {
         const response: OrchestratorResponse = {
             response_text: 'Found it.',
             card_links: [{ card_id: 'card-abc', label: 'Test card' }],
@@ -176,8 +176,8 @@ describe('CommandBar', () => {
 
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         const input = screen.getByPlaceholderText('Type a command...');
-        fireEvent.change(input, { target: { value: 'test' } });
-        fireEvent.click(screen.getByText('Send'));
+        await userEvent.type(input, 'test');
+        await userEvent.click(screen.getByText('Send'));
 
         rerender(
             <CommandBar
@@ -187,7 +187,7 @@ describe('CommandBar', () => {
             />,
         );
 
-        fireEvent.click(screen.getByText('Test card →'));
+        await userEvent.click(screen.getByText('Test card →'));
         expect(mockJump).toHaveBeenCalledWith('card-abc');
     });
 });
