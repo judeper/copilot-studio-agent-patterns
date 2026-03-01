@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "@fluentui/react-components";
 
 interface ErrorBoundaryState {
     hasError: boolean;
@@ -36,9 +37,12 @@ export class ErrorBoundary extends React.Component<
                 <div style={{ padding: "20px", textAlign: "center" }}>
                     <h3>Something went wrong</h3>
                     <p>The dashboard encountered an error. Please refresh the page.</p>
-                    <button onClick={() => this.setState({ hasError: false, error: null })}>
+                    <Button
+                        appearance="primary"
+                        onClick={() => this.setState({ hasError: false, error: null })}
+                    >
                         Try Again
-                    </button>
+                    </Button>
                 </div>
             );
         }

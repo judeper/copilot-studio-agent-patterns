@@ -6,6 +6,7 @@ import {
     tier1SkipItem,
     tier2LightItem,
     tier3FullItem,
+    dailyBriefingItem,
 } from '../../../test/fixtures/cardFixtures';
 
 /**
@@ -179,6 +180,34 @@ describe('App view state navigation', () => {
 
         // Should show loading spinner (empty cards + no filters = initial load state)
         expect(screen.getByText('Loading cards...')).toBeInTheDocument();
+    });
+});
+
+describe('App briefing integration', () => {
+    it('renders briefing cards in gallery without Back button', () => {
+        renderApp({
+            cards: [dailyBriefingItem, tier3FullItem],
+        });
+
+        // Briefing summary renders in gallery
+        expect(screen.getByText(dailyBriefingItem.item_summary)).toBeInTheDocument();
+        // Regular card also renders
+        expect(screen.getByText(tier3FullItem.item_summary)).toBeInTheDocument();
+        // No Back button in gallery mode — briefing cards render inline
+        expect(screen.queryByText('Back')).not.toBeInTheDocument();
+    });
+
+    it('navigates via briefing action item jump-to-card to regular card detail', async () => {
+        const onJumpToCard = jest.fn();
+        renderApp({
+            cards: [dailyBriefingItem, tier3FullItem],
+            onJumpToCard,
+        });
+
+        // Click first action item's "Open card" link in the briefing card
+        const openCardButtons = screen.getAllByText('Open card');
+        await userEvent.click(openCardButtons[0]);
+        expect(onJumpToCard).toHaveBeenCalled();
     });
 });
 

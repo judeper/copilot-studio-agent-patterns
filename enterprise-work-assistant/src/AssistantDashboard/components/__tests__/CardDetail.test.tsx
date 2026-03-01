@@ -166,6 +166,7 @@ describe('CardDetail', () => {
         expect(onSendDraft).toHaveBeenCalledWith(
             tier3FullItem.id,
             tier3FullItem.humanized_draft,
+            expect.any(Number),
         );
     });
 
