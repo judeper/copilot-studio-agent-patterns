@@ -1,42 +1,61 @@
-# Requirements: Enterprise Work Assistant
+# Requirements: Enterprise Work Assistant — Second Brain
 
 **Defined:** 2026-02-28
-**Core Value:** Validate the entire reference pattern is correct, implementable, and complete before deploying to a real Power Platform environment.
+**Core Value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run. The system should learn from user behavior to improve its assistance over time.
 
-## v2.1 Requirements
+## v2.2 Requirements
 
-Requirements for pre-deployment audit. Each maps to roadmap phases.
+Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pre-deployment audit deferral log (27 items) + audit tech debt summary.
 
-### Platform Architecture Review
+### Sender Intelligence
 
-- [x] **PLAT-01**: All Dataverse table/column definitions are valid and creatable
-- [x] **PLAT-02**: All Power Automate flow specs translate to buildable flows
-- [x] **PLAT-03**: Copilot Studio agent configs are complete and valid
-- [x] **PLAT-04**: Deployment scripts work for a fresh environment
-- [x] **PLAT-05**: No platform limitations contradict the design
+- [ ] **SNDR-01**: SENDER_PROFILE JSON is passed to main agent as input variable so triage uses sender behavior data (R-17/I-14)
+- [ ] **SNDR-02**: Sender profile upsert uses Upsert with alternate key to prevent race conditions under concurrent signals (R-19/I-22)
+- [ ] **SNDR-03**: SENT_EDITED outcome uses full edit distance comparison instead of 0/1 boolean (I-21)
 
-### Frontend / PCF Review
+### Workflow Completeness
 
-- [x] **PCF-01**: Component architecture is sound (state, props, hooks)
-- [x] **PCF-02**: All v2.0 tech debt items categorized as deploy-blocking or deferrable
-- [x] **PCF-03**: Test coverage is adequate for deployment confidence
-- [x] **PCF-04**: Data flow from Dataverse through hooks to render is correct
-- [x] **PCF-05**: No missing error handling or UX gaps
+- [ ] **WKFL-01**: Scheduled flow checks SELF_REMINDER cards for due reminders and surfaces them to the user (I-31)
+- [ ] **WKFL-02**: BriefingCard schedule is configurable via Dataverse table and Canvas App UI, persisting across sessions (R-35)
+- [ ] **WKFL-03**: Trigger Type Compose action covers all 6 trigger types including DAILY_BRIEFING, SELF_REMINDER, COMMAND_RESULT (R-15/I-19)
 
-### Integration / E2E Review
+### UI / UX / Accessibility
 
-- [x] **INTG-01**: Cross-layer contracts are consistent (schema ↔ prompts ↔ flows ↔ code)
-- [x] **INTG-02**: All user workflows complete end-to-end without gaps
-- [x] **INTG-03**: Error handling exists at every layer boundary
-- [x] **INTG-04**: Security model is complete (auth, data access, XSS, injection)
-- [x] **INTG-05**: No race conditions or timing issues in async flows
+- [ ] **UIUX-01**: BriefingCard, ConfidenceCalibration, CommandBar, and App use Fluent UI components instead of plain HTML (F-09 to F-12)
+- [ ] **UIUX-02**: All interactive elements have ARIA labels, roles, and screen reader support (F-17)
+- [ ] **UIUX-03**: Escape key closes detail views and panels (F-18)
+- [ ] **UIUX-04**: Loading state with Spinner/Shimmer displays while data loads (F-13)
+- [ ] **UIUX-05**: BriefingCard detail view has a Back navigation button (F-14)
+- [ ] **UIUX-06**: Empty analytics buckets show "No data" instead of misleading 0% (F-19)
+- [ ] **UIUX-07**: DataSet paging implemented for deployments with >100 active cards (F-20/I-32)
+- [ ] **UIUX-08**: Localization/i18n strategy defined with string externalization pattern (I-33)
 
-### Reconciliation & Remediation
+### Operational Resilience
 
-- [x] **FIX-01**: All council disagreements researched and resolved
-- [x] **FIX-02**: Deploy-blocking issues fixed in code/docs
-- [x] **FIX-03**: Non-blocking issues documented with rationale for deferral
-- [x] **FIX-04**: Final state validated — clean for deployment
+- [ ] **OPER-01**: Power Automate Compose actions use Left() truncation for fields exceeding maxLength (R-34)
+- [ ] **OPER-02**: Outcome tracker flow uses optimistic concurrency to prevent counter drift (I-23)
+- [ ] **OPER-03**: Draft edits persist to Dataverse cr_editeddraft column across sessions (I-28)
+- [ ] **OPER-04**: Dismiss action includes retry logic and error toast on failure (I-29)
+- [ ] **OPER-05**: Dead-letter mechanism evaluated for failed flow runs with documented decision (I-30)
+
+### Deployment Documentation
+
+- [ ] **DOCS-01**: PAC CLI minimum version documented in deployment guide (R-14)
+- [ ] **DOCS-02**: NuGet restore step added to deploy-solution.ps1 (R-20)
+- [ ] **DOCS-03**: Managed vs Unmanaged solution guidance documented for production (R-21)
+- [ ] **DOCS-04**: Knowledge source configuration steps documented (R-23)
+- [ ] **DOCS-05**: Agent timeout tuning guidance documented (R-30)
+- [ ] **DOCS-06**: API rate limit awareness section added (R-31)
+- [ ] **DOCS-07**: Capacity planning section with usage-dependent guidance (R-32)
+- [ ] **DOCS-08**: License and role requirements matrix documented (R-33)
+
+### Code Quality
+
+- [ ] **QUAL-01**: ESLint react-hooks plugin installed and configured to catch hook dependency errors (F-22)
+
+## v2.1 Requirements (Complete)
+
+All 19 requirements satisfied. See milestones/v2.1-REQUIREMENTS.md for details.
 
 ## Future Requirements
 
@@ -52,10 +71,11 @@ Requirements for pre-deployment audit. Each maps to roadmap phases.
 
 | Feature | Reason |
 |---------|--------|
-| Adding new agent capabilities | v2.1 is audit-only; new features are v3.0+ |
-| Actual Power Platform deployment | v2.1 validates the blueprint; deployment is the next milestone |
-| Performance optimization | No runtime to benchmark against; defer to post-deployment |
-| Mobile / responsive design | Canvas App PCF is desktop-only |
+| New agent patterns (OOO agent, meeting prep) | Separate milestone — additive features, not tech debt |
+| Runtime Power Platform testing | No local environment available — validation through code review and unit tests |
+| TypeScript 5.x upgrade | Blocked by pcf-scripts pinning TS 4.9.5 |
+| Mobile responsiveness | Not relevant to Canvas App PCF dashboard |
+| Actual Power Platform deployment | v2.2 improves the blueprint; deployment is a future milestone |
 
 ## Traceability
 
@@ -63,31 +83,40 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAT-01 | Phase 10 | Complete |
-| PLAT-02 | Phase 10 | Complete |
-| PLAT-03 | Phase 10 | Complete |
-| PLAT-04 | Phase 10 | Complete |
-| PLAT-05 | Phase 10 | Complete |
-| PCF-01 | Phase 11 | Complete |
-| PCF-02 | Phase 11 | Complete |
-| PCF-03 | Phase 11 | Complete |
-| PCF-04 | Phase 11 | Complete |
-| PCF-05 | Phase 11 | Complete |
-| INTG-01 | Phase 12 | Complete |
-| INTG-02 | Phase 12 | Complete |
-| INTG-03 | Phase 12 | Complete |
-| INTG-04 | Phase 12 | Complete |
-| INTG-05 | Phase 12 | Complete |
-| FIX-01 | Phase 13 | Complete |
-| FIX-02 | Phase 13 | Complete |
-| FIX-03 | Phase 13 | Complete |
-| FIX-04 | Phase 13 | Complete |
+| SNDR-01 | — | Pending |
+| SNDR-02 | — | Pending |
+| SNDR-03 | — | Pending |
+| WKFL-01 | — | Pending |
+| WKFL-02 | — | Pending |
+| WKFL-03 | — | Pending |
+| UIUX-01 | — | Pending |
+| UIUX-02 | — | Pending |
+| UIUX-03 | — | Pending |
+| UIUX-04 | — | Pending |
+| UIUX-05 | — | Pending |
+| UIUX-06 | — | Pending |
+| UIUX-07 | — | Pending |
+| UIUX-08 | — | Pending |
+| OPER-01 | — | Pending |
+| OPER-02 | — | Pending |
+| OPER-03 | — | Pending |
+| OPER-04 | — | Pending |
+| OPER-05 | — | Pending |
+| DOCS-01 | — | Pending |
+| DOCS-02 | — | Pending |
+| DOCS-03 | — | Pending |
+| DOCS-04 | — | Pending |
+| DOCS-05 | — | Pending |
+| DOCS-06 | — | Pending |
+| DOCS-07 | — | Pending |
+| DOCS-08 | — | Pending |
+| QUAL-01 | — | Pending |
 
 **Coverage:**
-- v2.1 requirements: 19 total
-- Mapped to phases: 19
-- Unmapped: 0
+- v2.2 requirements: 28 total
+- Mapped to phases: 0
+- Unmapped: 28 ⚠️
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after roadmap creation*
+*Last updated: 2026-02-28 after initial definition*
