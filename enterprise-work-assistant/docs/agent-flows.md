@@ -1052,7 +1052,9 @@ Trigger (cr_cardoutcome changed, non-PENDING)
 
 ### Overview
 
-Runs every weekday morning. Gathers open cards, stale items, today's calendar, and sender profiles, then invokes the Daily Briefing Agent to produce a prioritized action plan. Writes the briefing as a special DAILY_BRIEFING card to Dataverse.
+Runs every 15 minutes. For each user with an active schedule in the BriefingSchedule Dataverse table, checks if the current time matches the user's configured briefing time. If so, gathers open cards, stale items, today's calendar, and sender profiles, then invokes the Daily Briefing Agent to produce a prioritized action plan. Writes the briefing as a special DAILY_BRIEFING card to Dataverse.
+
+> **Phase 15 change**: The trigger changed from a fixed weekly recurrence (weekdays at 7 AM) to a 15-minute recurrence that reads per-user schedules from the BriefingSchedule Dataverse table. This enables each user to configure their own briefing time and days.
 
 ### Trigger
 
@@ -1060,30 +1062,93 @@ Runs every weekday morning. Gathers open cards, stale items, today's calendar, a
 
 | Setting | Value |
 |---------|-------|
-| Frequency | Week |
-| Interval | 1 |
-| Days | Monday, Tuesday, Wednesday, Thursday, Friday |
-| At These Hours | 7 |
-| At These Minutes | 0 |
-| Time Zone | Select appropriate timezone for the user |
+| Frequency | Minute |
+| Interval | 15 |
+
+> **Design change (Phase 15)**: The trigger now runs every 15 minutes instead of at a fixed weekly time. The flow checks the BriefingSchedule Dataverse table to determine which users need a briefing at the current time. This enables per-user schedule configuration without requiring separate flows per user.
 
 ### Actions
 
-**1. Get my profile (V2)** — Office 365 Users connector
+**1. List active briefing schedules** — Dataverse connector -> List rows
 
-Get the current user's AAD profile for ownership and identity.
+| Setting | Value |
+|---------|-------|
+| Table name | Briefing Schedules |
+| Filter rows | `cr_isenabled eq true` |
+| Row count | `100` |
+| Select columns | `cr_briefingscheduleid,cr_userdisplayname,cr_schedulehour,cr_scheduleminute,cr_scheduledays,cr_timezone,_ownerid_value` |
 
-**2. List open cards** — Dataverse connector
+**2. Apply to each** — Loop over active schedules
+
+For each schedule row, check if the current time matches the user's configured schedule.
+
+**2a. Compose -- CURRENT_TIME_IN_USER_TZ**
+
+Convert UTC now to the user's timezone:
+```
+@{convertTimeZone(utcNow(), 'UTC', items('Apply_to_each')?['cr_timezone'], 'HH:mm')}
+```
+
+**2b. Compose -- CURRENT_DAY_IN_USER_TZ**
+
+Get the current day name in the user's timezone:
+```
+@{convertTimeZone(utcNow(), 'UTC', items('Apply_to_each')?['cr_timezone'], 'dddd')}
+```
+
+**2c. Condition -- Is it time for this user's briefing?**
+
+Check if (a) the current hour:minute is within the 15-minute window of the user's schedule, (b) today is one of their scheduled days, and (c) a briefing hasn't already been generated today:
+
+```
+@and(
+    equals(int(first(split(outputs('Compose_CURRENT_TIME_IN_USER_TZ'), ':'))), items('Apply_to_each')?['cr_schedulehour']),
+    less(int(last(split(outputs('Compose_CURRENT_TIME_IN_USER_TZ'), ':'))), add(items('Apply_to_each')?['cr_scheduleminute'], 15)),
+    greaterOrEquals(int(last(split(outputs('Compose_CURRENT_TIME_IN_USER_TZ'), ':'))), items('Apply_to_each')?['cr_scheduleminute']),
+    contains(items('Apply_to_each')?['cr_scheduledays'], outputs('Compose_CURRENT_DAY_IN_USER_TZ'))
+)
+```
+
+> **Deduplication**: To prevent duplicate briefings if the flow triggers multiple times in the 15-minute window, add a guard step (step 2d below) that checks if today's briefing already exists for this user.
+
+**2d. List today's briefings for user** — Dataverse connector -> List rows
 
 | Setting | Value |
 |---------|-------|
 | Table name | Assistant Cards |
-| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Filter rows | `cr_triggertype eq 100000003 and _ownerid_value eq '@{items('Apply_to_each')?['_ownerid_value']}' and createdon ge @{startOfDay(convertTimeZone(utcNow(), 'UTC', items('Apply_to_each')?['cr_timezone']))}` |
+| Row count | `1` |
+
+**2e. Condition -- Briefing not already generated today**
+
+```
+@equals(length(outputs('List_todays_briefings_for_user')?['body/value']), 0)
+```
+
+**If Yes (no briefing yet today):** Proceed with steps 3-11 (the original Flow 6 logic, now renumbered).
+
+**If No:** Skip -- briefing already exists for this user today.
+
+**3. Get user profile** — Office 365 Users -> Get user profile (V2)
+
+Use the schedule owner's user ID from the BriefingSchedule row:
+```
+@{items('Apply_to_each')?['_ownerid_value']}
+```
+
+> **Multi-user note (Phase 15)**: In the original Flow 6 design, the flow ran under a single user's identity using "Get my profile." With the BriefingSchedule table, the flow iterates over all users with active schedules. This requires the flow's service account to have **read** access to each user's Assistant Cards and Sender Profiles via Dataverse security roles. Ensure the flow connection uses a service account with appropriate permissions, or run the flow with the "Run as" option set to each row's owner.
+
+**4. List open cards** — Dataverse connector
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_user_profile')?['body/id']}'` |
 | Sort by | `createdon desc` |
 | Row count | `50` |
 | Select columns | `cr_assistantcardid,cr_fulljson,cr_humanizeddraft,cr_cardoutcome,cr_originalsenderemail,cr_originalsenderdisplay,cr_originalsubject,cr_conversationclusterid,cr_sourcesignalid,createdon,cr_triggertype,cr_priority,cr_cardstatus,cr_triagetier,cr_confidencescore` |
 
-**3. Condition — Token budget guard** *(Council Issue 12)*
+**5. Condition — Token budget guard** *(Council Issue 12)*
 
 Serialize the open cards array and check length. If the serialized string exceeds ~40,000 characters (~10K tokens), truncate to the first N cards that fit:
 
@@ -1097,19 +1162,19 @@ Serialize the open cards array and check length. If the serialized string exceed
 
 > **Design note**: The 40,000 character threshold is conservative — it leaves room for the calendar events, sender profiles, and the agent's own reasoning within the context window. Monitor actual token usage in Copilot Studio analytics and adjust.
 
-**4. List stale cards** — Dataverse connector
+**6. List stale cards** — Dataverse connector
 
 | Setting | Value |
 |---------|-------|
 | Table name | Assistant Cards |
-| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon lt @{addHours(utcNow(), -24)} and cr_priority ne 100000003` |
+| Filter rows | `cr_cardoutcome eq 100000000 and _ownerid_value eq '@{outputs('Get_user_profile')?['body/id']}' and createdon lt @{addHours(utcNow(), -24)} and cr_priority ne 100000003` |
 | Sort by | `createdon asc` |
 | Row count | `20` |
 | Select columns | `cr_assistantcardid,cr_itemsummary,cr_originalsenderdisplay,cr_priority,createdon` |
 
 > The `cr_priority ne 100000003` filter excludes N/A priority items (Choice value 100000003), which are typically informational and don't become "stale."
 
-**5. Get today's calendar** — Office 365 Outlook connector → Get events (V4)
+**7. Get today's calendar** — Office 365 Outlook connector -> Get events (V4)
 
 | Setting | Value |
 |---------|-------|
@@ -1119,18 +1184,18 @@ Serialize the open cards array and check length. If the serialized string exceed
 | Order By | start/dateTime asc |
 | Top | 20 |
 
-**6. List sender profiles** — Dataverse connector
+**8. List sender profiles** — Dataverse connector
 
 | Setting | Value |
 |---------|-------|
 | Table name | Sender Profiles |
-| Filter rows | `_ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Filter rows | `_ownerid_value eq '@{outputs('Get_user_profile')?['body/id']}'` |
 | Row count | `100` |
 | Select columns | `cr_senderemail,cr_senderdisplayname,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_sendercategory` |
 
 > This loads all sender profiles for the user. The briefing agent uses these to assess sender importance when ranking items. For users with >100 senders, consider filtering to senders appearing in the open_cards list.
 
-**7. Compose — BRIEFING_INPUT**
+**9. Compose -- BRIEFING_INPUT**
 
 Assemble the input JSON for the Daily Briefing Agent:
 
@@ -1140,12 +1205,12 @@ Assemble the input JSON for the Daily Briefing Agent:
     "stale_cards": @{outputs('List_stale_cards')?['body/value']},
     "today_calendar": @{outputs('Get_todays_calendar')?['body/value']},
     "sender_profiles": @{outputs('List_sender_profiles')?['body/value']},
-    "user_context": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}, @{outputs('Get_my_profile_(V2)')?['body/jobTitle']}, @{outputs('Get_my_profile_(V2)')?['body/department']}",
+    "user_context": "@{outputs('Get_user_profile')?['body/displayName']}, @{outputs('Get_user_profile')?['body/jobTitle']}, @{outputs('Get_user_profile')?['body/department']}",
     "current_datetime": "@{utcNow()}"
 }
 ```
 
-**8. Invoke Daily Briefing Agent** — Microsoft Copilot Studio → "Execute Agent and wait"
+**10. Invoke Daily Briefing Agent** — Microsoft Copilot Studio -> "Execute Agent and wait"
 
 Select the **Daily Briefing Agent**. Pass the serialized input:
 
@@ -1153,7 +1218,7 @@ Select the **Daily Briefing Agent**. Pass the serialized input:
 @{string(outputs('Compose_BRIEFING_INPUT'))}
 ```
 
-**9. Parse JSON** — Simplified briefing output schema
+**11. Parse JSON** — Simplified briefing output schema
 
 Use a flattened schema (no `oneOf`) matching the briefing output contract in `schemas/briefing-output-schema.json`. For the Parse JSON action, use:
 
@@ -1172,7 +1237,7 @@ Use a flattened schema (no `oneOf`) matching the briefing output contract in `sc
 }
 ```
 
-**10. Condition — Briefing generated successfully**
+**12. Condition -- Briefing generated successfully**
 
 ```
 @not(empty(body('Parse_JSON')?['day_shape']))
@@ -1180,7 +1245,7 @@ Use a flattened schema (no `oneOf`) matching the briefing output contract in `sc
 
 **If Yes:**
 
-**10a. Compose — OUTPUT_ENVELOPE** *(I-15 fix: wrap briefing in standard output-schema.json envelope)*
+**12a. Compose -- OUTPUT_ENVELOPE** *(I-15 fix: wrap briefing in standard output-schema.json envelope)*
 
 The Daily Briefing Agent returns a briefing-specific JSON structure (`briefing_type`, `day_shape`, `action_items`, etc.) that does NOT conform to the standard `output-schema.json` envelope. The PCF component's `BriefingCard.tsx` calls `parseBriefing()`, which reads from `card.draft_payload` to extract the briefing data. Without envelope wrapping, `draft_payload` would be `null` and `parseBriefing()` would fail.
 
@@ -1206,7 +1271,7 @@ Wrap the raw briefing response in the standard output envelope:
 
 > **CRITICAL**: The `draft_payload` field contains the stringified briefing JSON. This is what `BriefingCard.tsx` parses via `JSON.parse(card.draft_payload)` to access `briefing_type`, `day_shape`, `action_items`, `fyi_items`, and `stale_alerts`. Without this envelope wrapping, the briefing card will fail to render because it cannot find `draft_payload` on the card record.
 
-**11. Add a new row** — Dataverse → Assistant Cards
+**13. Add a new row** — Dataverse -> Assistant Cards
 
 | Column | Value |
 |--------|-------|
@@ -1219,7 +1284,7 @@ Wrap the raw briefing response in the standard output envelope:
 | Confidence Score | `100` |
 | Full JSON | `@{string(outputs('Compose_OUTPUT_ENVELOPE'))}` |
 | Card Outcome | `100000000` *(PENDING)* |
-| **Owner** | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
+| **Owner** | `@{outputs('Get_user_profile')?['body/id']}` |
 
 > **Key change from earlier version**: `cr_fulljson` now stores the **envelope-wrapped** output, not the raw briefing JSON. This ensures `cr_fulljson` conforms to `output-schema.json` like all other card types. The `draft_payload` field inside the envelope contains the raw briefing JSON that `BriefingCard.tsx` parses. Priority and Temporal Horizon are set to N/A (matching the envelope values) instead of being left null.
 
@@ -1227,58 +1292,56 @@ Wrap the raw briefing response in the standard output envelope:
 
 ### Deduplication
 
-The briefing flow runs daily. To prevent duplicate briefings:
+The briefing flow runs every 15 minutes. Deduplication is built into the per-user loop (steps 2d-2e):
 
-Add a pre-check at the start of the flow (between steps 1 and 2):
+- **Step 2d** queries the Assistant Cards table for existing DAILY_BRIEFING cards created today for the current user (in the user's timezone).
+- **Step 2e** checks if the query returned zero results. If a briefing already exists today, the user is skipped.
 
-**1a. List existing briefings today** — Dataverse
-
-| Setting | Value |
-|---------|-------|
-| Table name | Assistant Cards |
-| Filter rows | `cr_triggertype eq 100000003 and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and createdon ge @{startOfDay(utcNow())}` |
-| Row count | `1` |
-
-**1b. Condition — Briefing already exists today**
-
-```
-@greater(length(outputs('List_existing_briefings_today')?['body/value']), 0)
-```
-
-**If Yes:** Terminate — a briefing was already generated today (idempotent).
+This per-user deduplication ensures that even if the flow fires multiple times in the 15-minute window, each user receives at most one briefing per day. The timezone-aware `startOfDay` calculation prevents edge cases where a user's "today" spans a UTC day boundary.
 
 ### Flow Diagram
 
 ```
-Trigger (Recurrence — weekday 7 AM)
-  │
-  ├── 1. Get user profile
-  ├── 1a. Check for existing briefing today
-  │   └── Already exists? → Terminate
-  │
-  ├── 2. List open cards (top 50 PENDING)
-  ├── 3. Token budget guard (truncate if >40K chars)
-  ├── 4. List stale cards (>24h, non-N/A priority)
-  ├── 5. Get today's calendar events
-  ├── 6. List sender profiles
-  ├── 7. Compose BRIEFING_INPUT
-  ├── 8. Invoke Daily Briefing Agent
-  ├── 9. Parse JSON response
-  ├── 10. Valid briefing?
-  │   └── No → Terminate
-  ├── 10a. Wrap in output envelope (draft_payload = briefing JSON)
-  └── 11. Write envelope-wrapped card to Dataverse
+Trigger (Recurrence -- every 15 minutes)
+  |
+  +-- 1. List active briefing schedules from Dataverse
+  +-- 2. Apply to each schedule
+      +-- 2a. Convert current time to user's timezone
+      +-- 2b. Get current day in user's timezone
+      +-- 2c. Is it time for this user's briefing?
+      |   +-- No -> Skip
+      +-- 2d. Check if briefing already generated today
+      +-- 2e. Briefing not already generated?
+      |   +-- No -> Skip (already generated)
+      |   +-- Yes -> Generate briefing
+      |       +-- 3. Get user profile
+      |       +-- 4. List open cards (for this user)
+      |       +-- 5. Token budget guard
+      |       +-- 6. List stale cards
+      |       +-- 7. Get today's calendar
+      |       +-- 8. List sender profiles
+      |       +-- 9. Compose BRIEFING_INPUT
+      |       +-- 10. Invoke Daily Briefing Agent
+      |       +-- 11. Parse JSON response
+      |       +-- 12. Valid briefing?
+      |       |   +-- No -> Terminate
+      |       +-- 12a. Wrap in output envelope (draft_payload = briefing JSON)
+      |       +-- 13. Write envelope-wrapped card to Dataverse
+      |       +-- (on failure) -> Error handling scope
 ```
 
 ### Deployment Checklist
 
 - [ ] Daily Briefing Agent created and published in Copilot Studio
-- [ ] Flow trigger set to correct timezone for the user
+- [ ] BriefingSchedule Dataverse table created (run updated `provision-environment.ps1`)
+- [ ] At least one user has a row in the BriefingSchedule table (or test with default schedule)
+- [ ] Flow connection uses a service account with read access to all users' cards and profiles
 - [ ] Token budget threshold set (default 40,000 characters)
-- [ ] Test: Run manually → briefing card appears in dashboard with BriefingCard renderer
-- [ ] Test: Run twice on same day → second run terminates (deduplication)
-- [ ] Test: Empty inbox → briefing card shows "Your inbox is clear" message
-- [ ] Test: Cards with stale_alerts → amber/red indicators render correctly
+- [ ] Test: Create BriefingSchedule row for test user with schedule 5 minutes in the future -> flow generates briefing card
+- [ ] Test: Run flow twice in same 15-minute window -> second run skips user (deduplication)
+- [ ] Test: Disable user's schedule (Is Enabled = false) -> flow skips user
+- [ ] Test: Set schedule days to exclude today -> flow skips user
+- [ ] Test: Empty inbox -> briefing card shows "Your inbox is clear" message
 - [ ] Test: Verify `cr_fulljson` contains output envelope with `draft_payload` field (I-15)
 - [ ] Test: BriefingCard.tsx `parseBriefing()` successfully parses `card.draft_payload`
 

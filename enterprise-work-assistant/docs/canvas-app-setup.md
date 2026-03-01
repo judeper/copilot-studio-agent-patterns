@@ -267,6 +267,138 @@ This lets users ask follow-up questions about any card directly from the app.
 
 ---
 
+## 11. Briefing Schedule Configuration
+
+The Daily Briefing schedule is stored in the `Briefing Schedules` Dataverse table, allowing each user to configure when they receive their daily briefing.
+
+### 11.1 Add Data Source
+
+1. In the left panel, click **Data** -> **Add data**
+2. Search for **Dataverse**
+3. Select the **Briefing Schedules** table
+4. Click **Connect**
+
+### 11.2 Add Schedule Configuration Controls
+
+Create a new screen or panel (e.g., `scrSettings`) for schedule configuration:
+
+**Schedule Hour Dropdown**
+- **Name**: `drpBriefingHour`
+- **Items**: `Sequence(24, 0)` *(generates 0-23)*
+- **Default**: `7`
+- **DisplayMode**: `DisplayMode.Edit`
+
+**Schedule Minute Dropdown**
+- **Name**: `drpBriefingMinute`
+- **Items**: `[0, 15, 30, 45]`
+- **Default**: `0`
+
+**Schedule Days Checkboxes**
+
+Add seven Checkbox controls, one per day:
+- **Names**: `chkMon`, `chkTue`, `chkWed`, `chkThu`, `chkFri`, `chkSat`, `chkSun`
+- **Default (weekdays)**: `chkMon.Default = true`, ..., `chkFri.Default = true`, `chkSat.Default = false`, `chkSun.Default = false`
+
+**Timezone Dropdown**
+- **Name**: `drpTimezone`
+- **Items**: `["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Europe/Berlin", "Asia/Tokyo", "Asia/Shanghai", "Australia/Sydney"]`
+- **Default**: `"America/New_York"`
+
+> **Tip**: Customize the timezone list for your organization's locations. The full IANA timezone list is available at [Wikipedia: List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
+
+**Enabled Toggle**
+- **Name**: `tglBriefingEnabled`
+- **Default**: `true`
+
+**Save Button**
+- **Name**: `btnSaveBriefingSchedule`
+- **Text**: `"Save Schedule"`
+- **OnSelect**:
+
+```
+// On screen load, check for existing schedule (see 11.3 below)
+// Use upsert pattern to create or update
+Patch(
+    'Briefing Schedules',
+    If(
+        IsBlank(varMySchedule),
+        Defaults('Briefing Schedules'),
+        varMySchedule
+    ),
+    {
+        'User Display Name': User().FullName,
+        'Schedule Hour': drpBriefingHour.Selected.Value,
+        'Schedule Minute': drpBriefingMinute.Selected.Value,
+        'Schedule Days': Concat(
+            Filter(
+                Table(
+                    {day: "Monday", checked: chkMon.Value},
+                    {day: "Tuesday", checked: chkTue.Value},
+                    {day: "Wednesday", checked: chkWed.Value},
+                    {day: "Thursday", checked: chkThu.Value},
+                    {day: "Friday", checked: chkFri.Value},
+                    {day: "Saturday", checked: chkSat.Value},
+                    {day: "Sunday", checked: chkSun.Value}
+                ),
+                checked
+            ),
+            day,
+            ","
+        ),
+        'Time Zone': drpTimezone.Selected.Value,
+        'Is Enabled': tglBriefingEnabled.Value,
+        Owner: LookUp(Users, 'Primary Email' = User().Email)
+    }
+);
+// Refresh the local variable after save
+Set(
+    varMySchedule,
+    LookUp(
+        'Briefing Schedules',
+        Owner.'Primary Email' = User().Email
+    )
+);
+Notify("Briefing schedule saved", NotificationType.Success)
+```
+
+> **Note**: The `Patch` with `Defaults()` creates a new row. When `varMySchedule` has an existing row, `Patch` updates it instead. This upsert pattern ensures one row per user.
+
+### 11.3 Load Existing Schedule on Screen Load
+
+Set the `OnVisible` property of the settings screen:
+
+```
+Set(
+    varMySchedule,
+    LookUp(
+        'Briefing Schedules',
+        Owner.'Primary Email' = User().Email
+    )
+);
+
+// Pre-populate controls if schedule exists
+If(
+    !IsBlank(varMySchedule),
+    UpdateContext({
+        locHour: varMySchedule.'Schedule Hour',
+        locMinute: varMySchedule.'Schedule Minute',
+        locTimezone: varMySchedule.'Time Zone',
+        locEnabled: varMySchedule.'Is Enabled'
+    })
+)
+```
+
+Set each dropdown's `Default` to the loaded value (e.g., `drpBriefingHour.Default = If(!IsBlank(varMySchedule), varMySchedule.'Schedule Hour', 7)`).
+
+For the day checkboxes, parse the comma-separated string:
+```
+chkMon.Default = If(!IsBlank(varMySchedule), "Monday" in varMySchedule.'Schedule Days', true)
+chkTue.Default = If(!IsBlank(varMySchedule), "Tuesday" in varMySchedule.'Schedule Days', true)
+// ... repeat for each day
+```
+
+---
+
 ## Testing Checklist
 
 ### v1.0 Core Functionality
