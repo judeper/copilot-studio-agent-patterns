@@ -18,23 +18,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** v2.2 Tech Debt Cleanup — Phase 14: Sender Intelligence Completion
+**Current focus:** v2.2 Tech Debt Cleanup — Phase 15: Workflow Completeness
 
 ## Current Position
 
-Phase: 14 complete (first of 6 in v2.2, phases 14-19)
-Plan: 14-02 complete (2/2 plans in phase 14)
-Status: Phase 14 complete, ready for phase 15
-Last activity: 2026-02-28 — Plan 14-02 complete (Upsert migration, SENDER_PROFILE passthrough, edit distance ratio)
+Phase: 15 in progress (second of 6 in v2.2, phases 14-19)
+Plan: 15-01 complete (1/2 plans in phase 15)
+Status: Plan 15-01 complete, ready for 15-02
+Last activity: 2026-02-28 — Plan 15-01 complete (Reminder firing flow, trigger type Compose fix)
 
-Progress: [██░░░░░░░░] 17% (2/12 plans estimated across 6 phases)
+Progress: [███░░░░░░░] 25% (3/12 plans estimated across 6 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2 (v2.2)
+- Total plans completed: 3 (v2.2)
 - Plan 14-01: 5 min, 2 tasks, 9 files
 - Plan 14-02: 6 min, 2 tasks, 2 files
+- Plan 15-01: 3 min, 2 tasks, 3 files
 
 *Updated after each plan completion*
 
@@ -64,6 +65,9 @@ Progress: [██░░░░░░░░] 17% (2/12 plans estimated across 6 ph
 - Used alternate key cr_senderemail_key for all Dataverse Upsert operations (race-safe sender profile writes)
 - Kept running average formula unchanged for edit distance -- works identically with 0-100 range as with 0/1
 - Added coalesce fallback for legacy cards without cr_editdistanceratio column
+- 15-minute recurrence interval for Flow 10 Reminder Firing balances timeliness vs run quota
+- Reuse NUDGE card status for fired reminders (same visual emphasis as stale cards)
+- Override priority to High when reminder fires for prominent surfacing
 
 ### Pending Todos
 
@@ -76,5 +80,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 14-02-PLAN.md (Phase 14 complete)
-Resume file: .planning/phases/14-sender-intelligence-completion/14-02-SUMMARY.md
+Stopped at: Completed 15-01-PLAN.md
+Resume file: .planning/phases/15-workflow-completeness/15-01-SUMMARY.md
