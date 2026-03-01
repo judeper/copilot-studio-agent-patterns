@@ -64,3 +64,55 @@
 
 ---
 
+## v2.1 Pre-Deployment Audit (Shipped: 2026-03-01)
+
+**Phases completed:** 4 phases (10-13), 10 plans
+**Timeline:** 2026-02-28 → 2026-03-01
+**Audit result:** 19/19 requirements satisfied, 16 tech debt items documented and triaged
+
+**Delivered:** Comprehensive multi-perspective review of the entire Enterprise Work Assistant codebase across platform architecture, frontend/PCF, and integration/E2E dimensions, followed by targeted remediation of all critical and high-priority findings.
+
+**Key accomplishments:**
+1. Platform Architecture Review — reconciled correctness, gaps, and implementability findings into unified verdict (Phase 10)
+2. Frontend/PCF Review — audited all React components, hooks, and PCF lifecycle for type safety, accessibility, and performance (Phase 11)
+3. Integration/E2E Review — validated all cross-layer boundaries between Power Automate, Copilot Studio, Canvas App, and PCF (Phase 12)
+4. Remediation — resolved all critical/high findings: ErrorBoundary, pcf-scripts cross-platform safety, lint fixes, FluentProvider wiring, and documentation corrections (Phase 13)
+
+**Archives:**
+- .planning/v2.1-MILESTONE-AUDIT.md
+
+---
+
+## v2.2 Tech Debt Cleanup (In Progress)
+
+**Phases completed so far:** 3/6 (14-16 complete, 17-19 pending)
+**Requirements:** 11/28 satisfied
+**Timeline:** Started 2026-03-01
+
+**Delivered (completed phases):**
+
+### Phase 14: Sender Intelligence Completion (2026-03-01)
+- ESLint React hooks enforcement, Levenshtein edit distance utility and tests
+- Power Automate Flow 5 migrated to Dataverse alternate key upsert pattern for sender profiles
+- SENDER_PROFILE passthrough wired in Flows 1-3 to main agent
+
+### Phase 15: Workflow Completeness (2026-03-01)
+- Flow 10 reminder firing with NUDGE status update
+- Trigger Type Compose expression mapping all 6 trigger types
+- BriefingSchedule Dataverse table with per-user daily briefing configuration
+- Flow 6 schedule-aware trigger and Canvas App schedule management UI
+
+### Phase 16: Fluent UI Migration and UX Polish (2026-03-01)
+- BriefingCard and ConfidenceCalibration migrated to Fluent UI v9 (Button, Text, Badge, Card, TabList/Tab)
+- Back button navigation in BriefingCard detail view (onBack prop with ArrowLeftRegular icon)
+- Empty analytics buckets show "No data" instead of misleading "0%"
+- CommandBar migrated to Fluent UI v9 (Input, Button, Spinner)
+- App loading Spinner for initial data fetch, Fluent Button for Agent Performance
+- ErrorBoundary migrated to Fluent UI Button — zero plain HTML interactive elements in dashboard
+- 166 tests passing across 12 test suites
+
+**Remaining phases:**
+- Phase 17: Accessibility and Internationalization (UIUX-02, UIUX-03, UIUX-08)
+- Phase 18: Operational Resilience (UIUX-07, OPER-01 to OPER-05)
+- Phase 19: Deployment Documentation (DOCS-01 to DOCS-08)
+
