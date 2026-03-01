@@ -117,8 +117,8 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         this.datasetVersion++;
 
         // Read orchestrator response channel properties (F-02)
-        const orchestratorResponse = (context.parameters as Record<string, { raw?: string | boolean | null }>).orchestratorResponse?.raw as string | null ?? null;
-        const isProcessing = (context.parameters as Record<string, { raw?: string | boolean | null }>).isProcessing?.raw as boolean ?? false;
+        const orchestratorResponse = (context.parameters as unknown as Record<string, { raw?: string | boolean | null }>).orchestratorResponse?.raw as string | null ?? null;
+        const isProcessing = (context.parameters as unknown as Record<string, { raw?: string | boolean | null }>).isProcessing?.raw as boolean ?? false;
 
         return React.createElement(AppWrapper, {
             dataset: dataset,

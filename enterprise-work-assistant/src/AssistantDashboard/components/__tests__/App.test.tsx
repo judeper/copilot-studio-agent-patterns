@@ -30,6 +30,8 @@ function renderApp(overrides: Partial<React.ComponentProps<typeof App>> = {}) {
         onDismissCard: jest.fn(),
         onJumpToCard: jest.fn(),
         onExecuteCommand: jest.fn(),
+        orchestratorResponse: null,
+        isProcessing: false,
     };
 
     return render(<App {...defaultProps} {...overrides} />);
@@ -146,6 +148,8 @@ describe('App view state navigation', () => {
                 onDismissCard={jest.fn()}
                 onJumpToCard={jest.fn()}
                 onExecuteCommand={jest.fn()}
+                orchestratorResponse={null}
+                isProcessing={false}
             />
         );
 
@@ -168,6 +172,8 @@ describe('App view state navigation', () => {
                 onDismissCard={jest.fn()}
                 onJumpToCard={jest.fn()}
                 onExecuteCommand={jest.fn()}
+                orchestratorResponse={null}
+                isProcessing={false}
             />
         );
 
