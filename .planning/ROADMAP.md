@@ -57,7 +57,7 @@ Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
 **Milestone Goal:** Resolve all deferred tech debt items from the v2.1 pre-deployment audit, bringing the solution to a clean state with no known outstanding issues.
 
 - [x] **Phase 14: Sender Intelligence Completion** - Wire SENDER_PROFILE to agent, fix race conditions, and add full edit distance tracking (completed 2026-03-01)
-- [ ] **Phase 15: Workflow Completeness** - Add reminder firing flow, briefing schedule configuration, and complete trigger type coverage
+- [x] **Phase 15: Workflow Completeness** - Add reminder firing flow, briefing schedule configuration, and complete trigger type coverage (completed 2026-03-01)
 - [ ] **Phase 16: Fluent UI Migration and UX Polish** - Replace plain HTML with Fluent UI components and fix UX gaps (loading, navigation, empty states)
 - [ ] **Phase 17: Accessibility and Internationalization** - ARIA/keyboard/screen reader audit plus i18n string externalization strategy
 - [ ] **Phase 18: Operational Resilience** - Concurrency guards, retry logic, pagination, persistence, dead-letter evaluation, and field truncation
@@ -227,7 +227,7 @@ Phases execute in numeric order: 14 -> 15 -> 16 -> 17 -> 18 -> 19
 | 12. Integration / E2E Review | v2.1 | 2/2 | Complete | 2026-02-28 |
 | 13. Remediation | v2.1 | 4/4 | Complete | 2026-03-01 |
 | 14. Sender Intelligence Completion | 2/2 | Complete    | 2026-03-01 | - |
-| 15. Workflow Completeness | 1/2 | In Progress|  | - |
+| 15. Workflow Completeness | 2/2 | Complete   | 2026-03-01 | - |
 | 16. Fluent UI Migration and UX Polish | v2.2 | 0/TBD | Not started | - |
 | 17. Accessibility and Internationalization | v2.2 | 0/TBD | Not started | - |
 | 18. Operational Resilience | v2.2 | 0/TBD | Not started | - |

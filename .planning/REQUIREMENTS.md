@@ -16,7 +16,7 @@ Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pr
 ### Workflow Completeness
 
 - [x] **WKFL-01**: Scheduled flow checks SELF_REMINDER cards for due reminders and surfaces them to the user (I-31)
-- [ ] **WKFL-02**: BriefingCard schedule is configurable via Dataverse table and Canvas App UI, persisting across sessions (R-35)
+- [x] **WKFL-02**: BriefingCard schedule is configurable via Dataverse table and Canvas App UI, persisting across sessions (R-35)
 - [x] **WKFL-03**: Trigger Type Compose action covers all 6 trigger types including DAILY_BRIEFING, SELF_REMINDER, COMMAND_RESULT (R-15/I-19)
 
 ### UI / UX / Accessibility
@@ -87,7 +87,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SNDR-02 | Phase 14 | Complete |
 | SNDR-03 | Phase 14 | Complete |
 | WKFL-01 | Phase 15 | Complete |
-| WKFL-02 | Phase 15 | Pending |
+| WKFL-02 | Phase 15 | Complete |
 | WKFL-03 | Phase 15 | Complete |
 | UIUX-01 | Phase 16 | Pending |
 | UIUX-02 | Phase 17 | Pending |
