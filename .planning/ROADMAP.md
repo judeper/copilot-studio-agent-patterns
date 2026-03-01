@@ -4,7 +4,8 @@
 
 - ✅ **v1.0 Production Readiness** — Phases 1-9 (shipped 2026-02-22)
 - ✅ **v2.0 Second Brain Evolution** — Sprints 1A-4 (shipped 2026-02-28)
-- 🚧 **v2.1 Pre-Deployment Audit** — Phases 10-13 (in progress)
+- ✅ **v2.1 Pre-Deployment Audit** — Phases 10-13 (shipped 2026-03-01)
+- 🚧 **v2.2 Tech Debt Cleanup** — Phases 14-19 (in progress)
 
 ## Phases
 
@@ -39,16 +40,33 @@ Full details: milestones/v2.0-ROADMAP.md
 
 </details>
 
-### 🚧 v2.1 Pre-Deployment Audit (In Progress)
+<details>
+<summary>✅ v2.1 Pre-Deployment Audit (Phases 10-13) — SHIPPED 2026-03-01</summary>
 
-**Milestone Goal:** Validate the entire reference pattern is correct, implementable, and complete before deploying to a real Power Platform environment. Three-round AI Council review followed by remediation.
-
-- [x] **Phase 10: Platform Architecture Review** - AI Council reviews Dataverse, Power Automate, and Copilot Studio layers for correctness, implementability, and gaps (completed 2026-02-28)
-- [x] **Phase 11: Frontend / PCF Review** - AI Council reviews React components, hooks, state management, and test coverage for deployment readiness (completed 2026-02-28)
-- [x] **Phase 12: Integration / E2E Review** - AI Council reviews cross-layer contracts, user workflows, error handling, and security model end-to-end (completed 2026-02-28)
+- [x] **Phase 10: Platform Architecture Review** - AI Council reviews Dataverse, Power Automate, and Copilot Studio layers (completed 2026-02-28)
+- [x] **Phase 11: Frontend / PCF Review** - AI Council reviews React components, hooks, state management, and test coverage (completed 2026-02-28)
+- [x] **Phase 12: Integration / E2E Review** - AI Council reviews cross-layer contracts, user workflows, error handling, and security model (completed 2026-02-28)
 - [x] **Phase 13: Remediation** - Fix deploy-blocking issues, document deferrals, and validate final state (completed 2026-03-01)
 
+Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
+
+</details>
+
+### 🚧 v2.2 Tech Debt Cleanup (Phases 14-19)
+
+**Milestone Goal:** Resolve all deferred tech debt items from the v2.1 pre-deployment audit, bringing the solution to a clean state with no known outstanding issues.
+
+- [ ] **Phase 14: Sender Intelligence Completion** - Wire SENDER_PROFILE to agent, fix race conditions, and add full edit distance tracking
+- [ ] **Phase 15: Workflow Completeness** - Add reminder firing flow, briefing schedule configuration, and complete trigger type coverage
+- [ ] **Phase 16: Fluent UI Migration and UX Polish** - Replace plain HTML with Fluent UI components and fix UX gaps (loading, navigation, empty states)
+- [ ] **Phase 17: Accessibility and Internationalization** - ARIA/keyboard/screen reader audit plus i18n string externalization strategy
+- [ ] **Phase 18: Operational Resilience** - Concurrency guards, retry logic, pagination, persistence, dead-letter evaluation, and field truncation
+- [ ] **Phase 19: Deployment Documentation** - PAC CLI versioning, NuGet restore, managed solutions, knowledge sources, tuning, rate limits, capacity, licensing
+
 ## Phase Details
+
+<details>
+<summary>Phase 10-13 Details (v2.1 — completed)</summary>
 
 ### Phase 10: Platform Architecture Review
 **Goal**: Every platform-layer artifact (Dataverse definitions, Power Automate flow specs, Copilot Studio configs, deployment scripts) is validated as correct, buildable, and complete by three independent AI Council agents
@@ -79,8 +97,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — AI Council: 3 agents (Correctness, Implementability, Gaps) review all PCF source files, tests, and configs independently
-- [ ] 11-02-PLAN.md — Reconciliation: merge, deduplicate, resolve disagreements, classify tech debt, produce unified verdict
+- [x] 11-01-PLAN.md — AI Council: 3 agents (Correctness, Implementability, Gaps) review all PCF source files, tests, and configs independently
+- [x] 11-02-PLAN.md — Reconciliation: merge, deduplicate, resolve disagreements, classify tech debt, produce unified verdict
 
 ### Phase 12: Integration / E2E Review
 **Goal**: Cross-layer contracts are consistent, every user workflow completes end-to-end without gaps, and the security model is complete
@@ -92,11 +110,11 @@ Plans:
   3. Error handling exists at every layer boundary (agent-to-Dataverse, Dataverse-to-PCF, PCF-to-Power Automate) with defined fallback behavior
   4. Security model covers authentication, row-level data access, XSS prevention, and prompt injection defense with no unprotected surfaces
   5. Async flows (polling, fire-and-forget output bindings, concurrent agent calls) have no race conditions, resource leaks, or timing assumptions that break under load
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 12-01: AI Council — 3 parallel agents (Correctness, Implementability, Gaps) review integration/E2E concerns
-- [ ] 12-02: Reconciliation — resolve disagreements, produce unified findings
+- [x] 12-01-PLAN.md — AI Council: 3 parallel agents (Correctness, Implementability, Gaps) review integration/E2E concerns
+- [x] 12-02-PLAN.md — Reconciliation: resolve disagreements, produce unified findings
 
 ### Phase 13: Remediation
 **Goal**: All deploy-blocking issues from Phases 10-12 are fixed, non-blocking issues are documented with deferral rationale, and the final state passes validation
@@ -110,15 +128,84 @@ Plans:
 **Plans**: 4 plans (wave-aligned)
 
 Plans:
-- [ ] 13-01-PLAN.md — Wave 1: Schema/contract fixes + audit wiring gap resolution (R-01, R-02, R-03, R-09, I-16, F-06, F-08 + promote R-10, decide R-18, propagate I-15, resolve I-11)
-- [ ] 13-02-PLAN.md — Wave 2: Missing flow specifications (R-04, R-05+I-15, R-06+R-18, R-07, R-08) — unblocks 3 broken E2E flows
-- [ ] 13-03-PLAN.md — Wave 3: Frontend fixes + Wave 4 test coverage (F-01, F-02, F-03, F-07, I-17, I-18, F-04, F-05)
-- [ ] 13-04-PLAN.md — Deferral log + final validation (FIX-03, FIX-04) + quick-fix selected deferral candidates
+- [x] 13-01-PLAN.md — Wave 1: Schema/contract fixes + audit wiring gap resolution
+- [x] 13-02-PLAN.md — Wave 2: Missing flow specifications
+- [x] 13-03-PLAN.md — Wave 3: Frontend fixes + test coverage
+- [x] 13-04-PLAN.md — Deferral log + final validation
+
+</details>
+
+### Phase 14: Sender Intelligence Completion
+**Goal**: The agent fully leverages sender behavioral data for triage decisions, with race-safe profile updates and accurate edit distance tracking
+**Depends on**: Nothing (first phase of v2.2)
+**Requirements**: SNDR-01, SNDR-02, SNDR-03, QUAL-01
+**Success Criteria** (what must be TRUE):
+  1. The main triage agent receives SENDER_PROFILE JSON as an input variable and its system prompt references sender behavior data when making priority decisions
+  2. Concurrent sender profile updates from simultaneous agent calls resolve correctly via Dataverse Upsert with alternate key (no duplicate rows, no lost updates)
+  3. SENT_EDITED outcomes record a Levenshtein edit distance ratio between original draft and edited version, replacing the previous boolean flag
+  4. ESLint react-hooks plugin is installed and configured, and the codebase passes with zero hook dependency warnings
+**Plans**: TBD
+
+### Phase 15: Workflow Completeness
+**Goal**: Every workflow path in the system completes end-to-end with no dead ends -- reminders fire on schedule, briefing schedule persists across sessions, and all trigger types route correctly
+**Depends on**: Phase 14
+**Requirements**: WKFL-01, WKFL-02, WKFL-03
+**Success Criteria** (what must be TRUE):
+  1. A scheduled Power Automate flow queries SELF_REMINDER cards with due dates in the past and surfaces them to the user as active cards
+  2. Users can configure the Daily Briefing schedule via Canvas App UI, the schedule persists in a Dataverse BriefingSchedule table, and the briefing flow reads it at execution time
+  3. The Trigger Type Compose action in the main triage flow correctly maps all 6 trigger types (EMAIL, TEAMS_CHAT, CALENDAR, DAILY_BRIEFING, SELF_REMINDER, COMMAND_RESULT) to their downstream processing branches
+**Plans**: TBD
+
+### Phase 16: Fluent UI Migration and UX Polish
+**Goal**: All four identified components use Fluent UI v9 components instead of plain HTML, with consistent theming, loading states, and navigation patterns
+**Depends on**: Phase 14 (ESLint catches hook issues during component rewrites)
+**Requirements**: UIUX-01, UIUX-04, UIUX-05, UIUX-06
+**Success Criteria** (what must be TRUE):
+  1. BriefingCard, ConfidenceCalibration, CommandBar, and App components use Fluent UI v9 components (Button, Card, Input, Spinner, Tab, etc.) with zero plain HTML interactive elements remaining
+  2. Data loading states display a Fluent UI Spinner or Shimmer placeholder instead of blank content or layout shift
+  3. BriefingCard detail view includes a visible Back button that returns the user to the briefing summary list
+  4. Analytics views (ConfidenceCalibration tabs) display "No data available" text for empty buckets instead of misleading 0% values
+**Plans**: TBD
+
+### Phase 17: Accessibility and Internationalization
+**Goal**: The dashboard is usable via keyboard-only navigation and screen readers, and a documented i18n strategy enables future non-English deployments
+**Depends on**: Phase 16 (accessibility audit is more effective after Fluent UI migration)
+**Requirements**: UIUX-02, UIUX-03, UIUX-08
+**Success Criteria** (what must be TRUE):
+  1. Every interactive element (buttons, tabs, inputs, cards) has an appropriate ARIA label or role, and screen readers can announce the element's purpose and state
+  2. Pressing Escape closes any open detail panel, edit panel, or command bar overlay, returning focus to the previously active element
+  3. A documented i18n strategy specifies the string externalization pattern (resource files vs. constants), covers all user-facing text in the PCF control, and provides a concrete example of adding a second language
+**Plans**: TBD
+
+### Phase 18: Operational Resilience
+**Goal**: The system handles production-scale data volumes, concurrent operations, and transient failures without data loss or silent corruption
+**Depends on**: Phase 15 (flow specs from WKFL must be stable before adding resilience patterns)
+**Requirements**: OPER-01, OPER-02, OPER-03, OPER-04, OPER-05, UIUX-07
+**Success Criteria** (what must be TRUE):
+  1. Power Automate Compose actions use Left() truncation for any field that could exceed its Dataverse maxLength, preventing silent data loss on long inputs
+  2. Outcome tracker flow uses optimistic concurrency (ETag/If-Match) on running average updates so concurrent card actions do not cause counter drift
+  3. Draft edits written via the inline edit panel persist to the Dataverse cr_editeddraft column and survive browser refresh
+  4. Dismiss action includes retry logic (up to 3 attempts with exponential backoff) and displays a Fluent UI error toast on final failure instead of silently dropping the action
+  5. DataSet paging is implemented so deployments with more than 100 active cards load additional pages on demand without truncating results
+**Plans**: TBD
+
+### Phase 19: Deployment Documentation
+**Goal**: The deployment guide covers every prerequisite, configuration step, and operational concern a Power Platform admin needs to deploy and maintain the solution
+**Depends on**: Nothing (documentation is independent of code phases)
+**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05, DOCS-06, DOCS-07, DOCS-08
+**Success Criteria** (what must be TRUE):
+  1. The deployment guide specifies the minimum PAC CLI version, includes a NuGet restore step in deploy-solution.ps1, and documents managed vs. unmanaged solution guidance for production deployments
+  2. Knowledge source configuration steps (which documents to upload, how to configure the agent's knowledge base) are documented with screenshots or step descriptions
+  3. Agent timeout tuning guidance and API rate limit awareness sections exist with concrete recommended values and throttling mitigation strategies
+  4. A capacity planning section provides usage-dependent guidance (expected Dataverse row growth rates, flow run quotas, API call volumes) for sizing the deployment
+  5. A license and role requirements matrix lists every Power Platform license, Dataverse security role, and connector permission needed to deploy and operate the solution
+**Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 10 → 11 → 12 → 13
+Phases execute in numeric order: 14 -> 15 -> 16 -> 17 -> 18 -> 19
+(Phase 19 can execute in parallel with 15-18 since documentation is independent)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -131,13 +218,13 @@ Phases execute in numeric order: 10 → 11 → 12 → 13
 | 7. Documentation Accuracy | v1.0 | 2/2 | Complete | 2026-02-21 |
 | 8. Test Infrastructure and Unit Tests | v1.0 | 2/2 | Complete | 2026-02-22 |
 | 9. Tech Debt Cleanup | v1.0 | 1/1 | Complete | 2026-02-22 |
-| Sprint 1A: Outcome Tracking + Send Flow | v2.0 | 1/1 | Complete | 2026-02-28 |
-| Sprint 1B: Conversation Clustering + Sender Profiles | v2.0 | 1/1 | Complete | 2026-02-28 |
-| Sprint 2: Daily Briefing + Staleness Monitor | v2.0 | 1/1 | Complete | 2026-02-28 |
-| Sprint 3: Command Bar + Orchestrator Agent | v2.0 | 1/1 | Complete | 2026-02-28 |
-| Sprint 4: Sender Intelligence + Adaptive Triage | v2.0 | 1/1 | Complete | 2026-02-28 |
-| Review: End-to-End Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
-| 10. Platform Architecture Review | v2.1 | Complete    | 2026-02-28 | 2026-02-28 |
-| 11. Frontend / PCF Review | 2/2 | Complete    | 2026-02-28 | - |
-| 12. Integration / E2E Review | 2/2 | Complete    | 2026-02-28 | - |
-| 13. Remediation | 4/4 | Complete    | 2026-03-01 | - |
+| 10. Platform Architecture Review | v2.1 | 2/2 | Complete | 2026-02-28 |
+| 11. Frontend / PCF Review | v2.1 | 2/2 | Complete | 2026-02-28 |
+| 12. Integration / E2E Review | v2.1 | 2/2 | Complete | 2026-02-28 |
+| 13. Remediation | v2.1 | 4/4 | Complete | 2026-03-01 |
+| 14. Sender Intelligence Completion | v2.2 | 0/TBD | Not started | - |
+| 15. Workflow Completeness | v2.2 | 0/TBD | Not started | - |
+| 16. Fluent UI Migration and UX Polish | v2.2 | 0/TBD | Not started | - |
+| 17. Accessibility and Internationalization | v2.2 | 0/TBD | Not started | - |
+| 18. Operational Resilience | v2.2 | 0/TBD | Not started | - |
+| 19. Deployment Documentation | v2.2 | 0/TBD | Not started | - |
