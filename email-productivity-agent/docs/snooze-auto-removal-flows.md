@@ -49,7 +49,7 @@ Condition: cr_snoozefolderid is null or empty?
 **If folder ID is null** (first run):
 
 ```
-Action: HTTP with Azure AD
+Action: HTTP with Microsoft Entra ID
 Method: POST
 URI: https://graph.microsoft.com/v1.0/me/mailFolders
 Body:
@@ -76,7 +76,7 @@ Variable: snoozeFolderId = outputs('Get_Config')?['body/cr_snoozefolderid']
 #### Step 2: List Messages in Snoozed Folder
 
 ```
-Action: HTTP with Azure AD
+Action: HTTP with Microsoft Entra ID
 Method: GET
 URI: https://graph.microsoft.com/v1.0/me/mailFolders/{snoozeFolderId}/messages
   ?$select=id,conversationId,subject,receivedDateTime
@@ -97,7 +97,7 @@ Concurrency: 1 (sequential to avoid alternate key conflicts)
 Inside the loop:
 
 ```
-Action: HTTP with Azure AD (Dataverse Upsert)
+Action: HTTP with Microsoft Entra ID (Dataverse Upsert)
 Method: PATCH
 URI: {OrgUrl}/api/data/v9.2/cr_snoozedconversations(
   cr_conversationid='@{encodeURIComponent(items('Apply_to_each')?['conversationId'])}',
@@ -201,7 +201,7 @@ Condition: Agent response unsnoozeAction equals "SUPPRESS"
 #### Step 5: Move Snoozed Message Back to Inbox
 
 ```
-Action: HTTP with Azure AD
+Action: HTTP with Microsoft Entra ID
 Method: POST
 URI: https://graph.microsoft.com/v1.0/me/messages/{cr_originalmessageid}/move
 Body:
