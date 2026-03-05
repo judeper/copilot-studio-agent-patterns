@@ -90,17 +90,17 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    - Navigate to the **Inputs** tab
    - Click **Create a new variable** for each input below:
 
-   | Variable Name | Data Type | Description |
+   | Variable Name | Data Type | Description (paste into Description field) |
    |---|---|---|
-   | `CONVERSATION_ID` | String | Graph API conversationId for the email thread |
-   | `ORIGINAL_SUBJECT` | String | Subject line of the original sent email |
-   | `RECIPIENT_EMAIL` | String | Email address of the tracked recipient |
-   | `RECIPIENT_TYPE` | String | One of: Internal, External, Priority, General |
-   | `DAYS_SINCE_SENT` | Number | Calendar days since the email was sent |
-   | `THREAD_EXCERPT` | String | Plain text excerpt of the email thread (up to 2000 chars) |
-   | `USER_DISPLAY_NAME` | String | Display name of the user who sent the email |
+   | `CONVERSATION_ID` | String | The Microsoft Graph conversationId that uniquely identifies the email thread being tracked for follow-up |
+   | `ORIGINAL_SUBJECT` | String | Subject line of the original sent email that has not received a reply |
+   | `RECIPIENT_EMAIL` | String | Email address of the specific recipient who has not replied to the sent email |
+   | `RECIPIENT_TYPE` | String | Recipient classification: Internal (same org), External (different org), Priority (VIP), or General (default) |
+   | `DAYS_SINCE_SENT` | Number | Number of calendar days that have elapsed since the original email was sent |
+   | `THREAD_EXCERPT` | String | Plain text excerpt of the most recent messages in the email thread, up to 2000 characters, for context |
+   | `USER_DISPLAY_NAME` | String | Display name of the user who sent the original email, used for personalizing the follow-up draft |
 
-   > **Generative fill behavior:** With generative orchestration enabled, each input has a "How will the agent fill this input?" property. The default is "Dynamically fill with the best option" — the agent extracts the value from conversation context. When invoked from Power Automate, the values are passed explicitly, so the default behavior is fine.
+   > **Descriptions matter:** These descriptions help generative orchestration reason about each variable during interactive testing. While Power Automate passes values explicitly, good descriptions improve the agent's ability to infer values in the test panel and any future interactive scenarios.
    >
    > **Note:** Input variables are defined via the **Topic Details → Inputs tab**, NOT via Settings → Agent inputs (which does not exist). This is distinct from tool-level inputs which are configured on the Tools page.
 
