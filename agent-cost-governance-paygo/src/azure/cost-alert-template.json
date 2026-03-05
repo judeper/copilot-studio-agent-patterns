@@ -1,0 +1,126 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "metadata": {
+        "description": "ARM template for Azure Cost Management budget with alert thresholds for Copilot Studio PAYGO cost monitoring.",
+        "solution": "Agent Cost Governance — PAYGO"
+    },
+    "parameters": {
+        "budgetName": {
+            "type": "string",
+            "defaultValue": "copilot-studio-monthly",
+            "metadata": {
+                "description": "Name of the budget in Azure Cost Management."
+            }
+        },
+        "budgetAmount": {
+            "type": "int",
+            "metadata": {
+                "description": "Monthly budget amount in the subscription's billing currency."
+            }
+        },
+        "startDate": {
+            "type": "string",
+            "metadata": {
+                "description": "Budget start date in YYYY-MM-DD format. Must be the first day of a month."
+            }
+        },
+        "endDate": {
+            "type": "string",
+            "defaultValue": "2027-12-31",
+            "metadata": {
+                "description": "Budget end date in YYYY-MM-DD format. Must be the first day of a month or later."
+            }
+        },
+        "alertRecipients": {
+            "type": "array",
+            "metadata": {
+                "description": "Array of email addresses to receive budget alert notifications."
+            }
+        },
+        "thresholdPercentages": {
+            "type": "array",
+            "defaultValue": [50, 80, 100],
+            "metadata": {
+                "description": "Array of threshold percentages at which to trigger alerts (e.g., [50, 80, 100])."
+            }
+        },
+        "resourceGroupFilter": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Optional: Resource group name to scope the budget. Leave empty for subscription-level budget."
+            }
+        }
+    },
+    "variables": {
+        "budgetFilterDimensions": "[if(empty(parameters('resourceGroupFilter')), createArray(), createArray(createObject('name', 'ResourceGroupName', 'operator', 'In', 'values', createArray(parameters('resourceGroupFilter')))))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Consumption/budgets",
+            "apiVersion": "2023-11-01",
+            "name": "[parameters('budgetName')]",
+            "properties": {
+                "timePeriod": {
+                    "startDate": "[parameters('startDate')]",
+                    "endDate": "[parameters('endDate')]"
+                },
+                "timeGrain": "Monthly",
+                "amount": "[parameters('budgetAmount')]",
+                "category": "Cost",
+                "notifications": {
+                    "alertAt50Percent": {
+                        "enabled": "[if(contains(parameters('thresholdPercentages'), 50), true(), false())]",
+                        "operator": "GreaterThanOrEqualTo",
+                        "threshold": 50,
+                        "thresholdType": "Actual",
+                        "contactEmails": "[parameters('alertRecipients')]",
+                        "locale": "en-us"
+                    },
+                    "alertAt80Percent": {
+                        "enabled": "[if(contains(parameters('thresholdPercentages'), 80), true(), false())]",
+                        "operator": "GreaterThanOrEqualTo",
+                        "threshold": 80,
+                        "thresholdType": "Actual",
+                        "contactEmails": "[parameters('alertRecipients')]",
+                        "locale": "en-us"
+                    },
+                    "alertAt100Percent": {
+                        "enabled": "[if(contains(parameters('thresholdPercentages'), 100), true(), false())]",
+                        "operator": "GreaterThanOrEqualTo",
+                        "threshold": 100,
+                        "thresholdType": "Actual",
+                        "contactEmails": "[parameters('alertRecipients')]",
+                        "locale": "en-us"
+                    },
+                    "forecastAt100Percent": {
+                        "enabled": true,
+                        "operator": "GreaterThanOrEqualTo",
+                        "threshold": 100,
+                        "thresholdType": "Forecasted",
+                        "contactEmails": "[parameters('alertRecipients')]",
+                        "locale": "en-us"
+                    }
+                },
+                "filter": {
+                    "dimensions": "[variables('budgetFilterDimensions')]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "budgetId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Consumption/budgets', parameters('budgetName'))]"
+        },
+        "budgetName": {
+            "type": "string",
+            "value": "[parameters('budgetName')]"
+        },
+        "budgetAmount": {
+            "type": "int",
+            "value": "[parameters('budgetAmount')]"
+        }
+    }
+}
