@@ -151,13 +151,24 @@ Set up these Power Automate connections:
   - **Base Resource URL:** `https://graph.microsoft.com`
   - **Azure AD Resource URI:** `https://graph.microsoft.com`
 
-### Step 5: Build Power Automate Flows
+### Step 5: Build Agent Flows (inside Copilot Studio)
 
-Follow the step-by-step guide in `docs/follow-up-nudge-flows.md`:
+> **Architecture choice:** We use **Agent Flows** (Copilot Studio) instead of Power Automate Cloud Flows. This avoids requiring Power Automate Premium licenses — premium connectors (Dataverse, HTTP/Entra ID) are covered by the Copilot Studio license and consume Copilot Credits instead.
+>
+> ⚠️ **Maker credentials:** Agent Flows authenticate as the agent maker/publisher, not the end user. For single-user or small pilot deployments this is fine. For multi-user (50+), consider a service account model with application-level Graph permissions.
 
-1. **Flow 1: Sent Items Tracker** — Trigger: "When a new email arrives" on Sent Items
-2. **Flow 2: Response Detection & Nudge Delivery** — Trigger: Daily recurrence at 9 AM
-3. **Flow 5: Data Retention Cleanup** — Trigger: Weekly recurrence
+**Creating Agent Flows in Copilot Studio:**
+1. Open Copilot Studio → left nav → **Flows**
+2. Click **+ New agent flow**
+3. Delete the default "Run a flow from Copilot" trigger
+4. Click **+ Add a trigger** → search for the appropriate trigger type
+5. Build the flow actions, then **Save** → **Publish**
+
+Build these 3 flows following `docs/follow-up-nudge-flows.md`:
+
+1. **Flow 1: Sent Items Tracker** — Trigger: "When a new email arrives (V3)" → Folder: SentItems
+2. **Flow 2: Response Detection & Nudge Delivery** — Trigger: Recurrence → Daily at 9 AM
+3. **Flow 5: Data Retention Cleanup** — Trigger: Recurrence → Weekly
 
 ### Step 6: Teams Admin Policy Check
 
