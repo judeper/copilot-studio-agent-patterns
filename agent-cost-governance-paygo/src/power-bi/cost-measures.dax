@@ -1,0 +1,194 @@
+// =============================================================================
+// Agent Cost Governance — PAYGO: Power BI DAX Measures
+// =============================================================================
+// These measures calculate Copilot Studio PAYGO costs from Azure Cost Management
+// data imported via the Power BI native connector or Cost Export.
+//
+// IMPORTANT: Meter names may vary by tenant, agreement type, and billing region.
+// The CONTAINSSTRING filters below accommodate known variations. If your tenant
+// uses different meter names, update the filter predicates accordingly.
+//
+// Copilot Studio billing unit: Copilot Credits (since September 2025).
+// PAYGO rate: $0.01 per Copilot Credit.
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// Measure: Total PAYGO Cost (Current Month)
+// Returns the total Copilot Studio PAYGO cost for the current calendar month.
+// -----------------------------------------------------------------------------
+
+Total PAYGO Cost Current Month =
+VAR _CurrentMonthStart = DATE(YEAR(TODAY()), MONTH(TODAY()), 1)
+VAR _CurrentMonthEnd = EOMONTH(TODAY(), 0)
+RETURN
+    CALCULATE(
+        SUM('Cost Details'[Cost]),
+        FILTER(
+            'Cost Details',
+            'Cost Details'[Date] >= _CurrentMonthStart
+                && 'Cost Details'[Date] <= _CurrentMonthEnd
+                && (
+                    CONTAINSSTRING('Cost Details'[MeterCategory], "Copilot Studio")
+                    || CONTAINSSTRING('Cost Details'[MeterCategory], "Power Platform")
+                )
+                && (
+                    CONTAINSSTRING('Cost Details'[MeterName], "Copilot")
+                    || CONTAINSSTRING('Cost Details'[MeterName], "Credit")
+                    || CONTAINSSTRING('Cost Details'[MeterName], "Message")
+                )
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// Measure: Total PAYGO Cost (Prior Month)
+// Returns the total Copilot Studio PAYGO cost for the prior calendar month.
+// Used internally by the MoM variance measures.
+// -----------------------------------------------------------------------------
+
+Total PAYGO Cost Prior Month =
+VAR _PriorMonthStart = DATE(YEAR(EDATE(TODAY(), -1)), MONTH(EDATE(TODAY(), -1)), 1)
+VAR _PriorMonthEnd = EOMONTH(TODAY(), -1)
+RETURN
+    CALCULATE(
+        SUM('Cost Details'[Cost]),
+        FILTER(
+            'Cost Details',
+            'Cost Details'[Date] >= _PriorMonthStart
+                && 'Cost Details'[Date] <= _PriorMonthEnd
+                && (
+                    CONTAINSSTRING('Cost Details'[MeterCategory], "Copilot Studio")
+                    || CONTAINSSTRING('Cost Details'[MeterCategory], "Power Platform")
+                )
+                && (
+                    CONTAINSSTRING('Cost Details'[MeterName], "Copilot")
+                    || CONTAINSSTRING('Cost Details'[MeterName], "Credit")
+                    || CONTAINSSTRING('Cost Details'[MeterName], "Message")
+                )
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// Measure: Cost by Environment / Resource Group
+// Returns the Copilot Studio PAYGO cost grouped by resource group.
+// Use this measure in visuals with ResourceGroup on the axis/rows.
+// Each resource group typically maps to a billing policy and its linked
+// Power Platform environments.
+// -----------------------------------------------------------------------------
+
+Cost by Environment =
+CALCULATE(
+    SUM('Cost Details'[Cost]),
+    FILTER(
+        'Cost Details',
+        CONTAINSSTRING('Cost Details'[MeterCategory], "Copilot Studio")
+        || CONTAINSSTRING('Cost Details'[MeterCategory], "Power Platform")
+    ),
+    FILTER(
+        'Cost Details',
+        CONTAINSSTRING('Cost Details'[MeterName], "Copilot")
+        || CONTAINSSTRING('Cost Details'[MeterName], "Credit")
+        || CONTAINSSTRING('Cost Details'[MeterName], "Message")
+    )
+)
+
+
+// -----------------------------------------------------------------------------
+// Measure: Month-over-Month Variance (Absolute)
+// Returns the absolute dollar change from the prior month.
+// Positive = cost increase; Negative = cost decrease.
+// -----------------------------------------------------------------------------
+
+MoM Variance Absolute =
+VAR _CurrentMonth = [Total PAYGO Cost Current Month]
+VAR _PriorMonth = [Total PAYGO Cost Prior Month]
+RETURN
+    _CurrentMonth - _PriorMonth
+
+
+// -----------------------------------------------------------------------------
+// Measure: Month-over-Month Variance (Percentage)
+// Returns the percentage change from the prior month.
+// Returns BLANK() if the prior month had zero cost (avoids division by zero).
+// -----------------------------------------------------------------------------
+
+MoM Variance % =
+VAR _CurrentMonth = [Total PAYGO Cost Current Month]
+VAR _PriorMonth = [Total PAYGO Cost Prior Month]
+RETURN
+    IF(
+        _PriorMonth = 0 || ISBLANK(_PriorMonth),
+        BLANK(),
+        DIVIDE(_CurrentMonth - _PriorMonth, _PriorMonth)
+    )
+
+
+// -----------------------------------------------------------------------------
+// Measure: Daily Average Cost (Current Month)
+// Returns the average daily cost for the current month based on days elapsed.
+// Useful for projecting month-end spend.
+// -----------------------------------------------------------------------------
+
+Daily Average Cost Current Month =
+VAR _CurrentMonthStart = DATE(YEAR(TODAY()), MONTH(TODAY()), 1)
+VAR _DaysElapsed = TODAY() - _CurrentMonthStart + 1
+VAR _CurrentMonthCost = [Total PAYGO Cost Current Month]
+RETURN
+    IF(
+        _DaysElapsed > 0,
+        DIVIDE(_CurrentMonthCost, _DaysElapsed),
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// Measure: Projected Month-End Cost
+// Linear projection of the current month's cost based on the daily average.
+// This is a simple extrapolation — actual costs may vary based on usage patterns.
+// -----------------------------------------------------------------------------
+
+Projected Month End Cost =
+VAR _DaysInMonth = DAY(EOMONTH(TODAY(), 0))
+VAR _DailyAvg = [Daily Average Cost Current Month]
+RETURN
+    IF(
+        NOT ISBLANK(_DailyAvg),
+        _DailyAvg * _DaysInMonth,
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// Measure: Budget Utilization %
+// Requires a 'Budget' table or parameter with a [BudgetAmount] column/value.
+// Returns the percentage of budget consumed in the current month.
+// -----------------------------------------------------------------------------
+
+Budget Utilization % =
+VAR _Budget = SELECTEDVALUE('Budget'[BudgetAmount], 0)
+VAR _Actual = [Total PAYGO Cost Current Month]
+RETURN
+    IF(
+        _Budget > 0,
+        DIVIDE(_Actual, _Budget),
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// Measure: Budget Remaining
+// Returns the remaining budget for the current month.
+// Negative value indicates budget overrun.
+// -----------------------------------------------------------------------------
+
+Budget Remaining =
+VAR _Budget = SELECTEDVALUE('Budget'[BudgetAmount], 0)
+VAR _Actual = [Total PAYGO Cost Current Month]
+RETURN
+    IF(
+        _Budget > 0,
+        _Budget - _Actual,
+        BLANK()
+    )
