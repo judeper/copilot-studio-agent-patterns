@@ -147,6 +147,7 @@ Set up these Power Automate connections:
 - **Microsoft Teams** — for Adaptive Card nudge delivery
 - **Dataverse** — for FollowUpTracking and NudgeConfiguration operations
 - **HTTP with Microsoft Entra ID** — for direct Graph API calls (premium connector)
+  - Use the **"preauthorized"** variant if the standard version fails with `AADSTS65002` (consent error). The preauthorized connector has pre-consented Graph permissions.
   - **Base Resource URL:** `https://graph.microsoft.com`
   - **Azure AD Resource URI:** `https://graph.microsoft.com`
 
