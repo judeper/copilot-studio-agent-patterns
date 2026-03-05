@@ -1,0 +1,120 @@
+{
+  "tableName": "cr_followuptracking",
+  "entitySetName": "cr_followuptrackings",
+  "displayName": "Follow-Up Tracking",
+  "pluralName": "Follow-Up Tracking",
+  "description": "Tracks sent emails pending follow-up. One row per To-line recipient per sent message. The Sent Items Tracker flow creates rows; the Response Detection flow checks for replies and triggers nudges.",
+  "primaryColumn": "cr_originalsubject",
+  "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_followup_message_recipient_key",
+      "displayName": "Message + Recipient Key",
+      "keyAttributes": ["cr_sourcesignalid", "cr_recipientemail"],
+      "purpose": "Composite alternate key enabling safe Upsert. Prevents duplicate rows when the same sent email is processed more than once (e.g., Power Automate retry). One row per recipient per message."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_sourcesignalid",
+      "displayName": "Source Signal ID",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Graph message ID of the sent email. Part of composite alternate key. May be updated if the message is moved (Graph move invalidates the original ID)."
+    },
+    {
+      "logicalName": "cr_conversationid",
+      "displayName": "Conversation ID",
+      "type": "Text",
+      "maxLength": 500,
+      "required": true,
+      "description": "Graph conversationId — primary mechanism for reply matching. Shared by all messages in the same thread."
+    },
+    {
+      "logicalName": "cr_internetmessageheaders",
+      "displayName": "Internet Message Headers",
+      "type": "MultilineText",
+      "maxLength": 2000,
+      "required": false,
+      "description": "Stored In-Reply-To and References headers from the sent email. Used as fallback matching when conversationId is unreliable (e.g., recipient changes subject)."
+    },
+    {
+      "logicalName": "cr_sentdatetime",
+      "displayName": "Sent Date Time",
+      "type": "DateTime",
+      "required": true,
+      "description": "When the email was sent. Used to calculate FollowUpDate and to scope the Graph reply search (only look for replies after this date)."
+    },
+    {
+      "logicalName": "cr_recipientemail",
+      "displayName": "Recipient Email",
+      "type": "Text",
+      "maxLength": 254,
+      "required": true,
+      "description": "Email address of the To-line recipient being tracked. Part of composite alternate key. One row per recipient per message."
+    },
+    {
+      "logicalName": "cr_recipienttype",
+      "displayName": "Recipient Type",
+      "type": "Text",
+      "maxLength": 20,
+      "required": true,
+      "description": "Classification of the recipient: 'Internal' (same domain), 'External' (different domain), 'Priority' (on priority contact list), or 'General' (default). Determines which NudgeConfiguration column to use for follow-up delay."
+    },
+    {
+      "logicalName": "cr_originalsubject",
+      "displayName": "Original Subject",
+      "type": "Text",
+      "maxLength": 400,
+      "required": true,
+      "description": "Email subject line. Used as the primary column display name and in the nudge Adaptive Card."
+    },
+    {
+      "logicalName": "cr_followupdate",
+      "displayName": "Follow-Up Date",
+      "type": "DateTime",
+      "required": true,
+      "description": "Calculated: cr_sentdatetime + configured business days (from NudgeConfiguration). The Response Detection flow queries rows where this date is in the past."
+    },
+    {
+      "logicalName": "cr_responsereceived",
+      "displayName": "Response Received",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": false,
+      "description": "Whether a reply from this specific recipient has been detected via Graph API. Set to true by the Response Detection flow."
+    },
+    {
+      "logicalName": "cr_nudgesent",
+      "displayName": "Nudge Sent",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": false,
+      "description": "Whether the follow-up nudge Adaptive Card has been delivered to the user. Set to true after successful Teams card delivery."
+    },
+    {
+      "logicalName": "cr_dismissedbyuser",
+      "displayName": "Dismissed By User",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": false,
+      "description": "Whether the user dismissed this nudge via the Adaptive Card 'Dismiss' button. Prevents further nudging for this recipient on this message."
+    },
+    {
+      "logicalName": "cr_lastchecked",
+      "displayName": "Last Checked",
+      "type": "DateTime",
+      "required": false,
+      "description": "Timestamp of the last time the Response Detection flow checked this row for a reply. Used as a race condition guard — the flow re-queries the row before sending a nudge to confirm the state hasn't changed."
+    }
+  ],
+  "notes": {
+    "cardinality": "One row per To-line recipient per sent message. CC recipients are excluded. Example: an email to 3 To-line recipients creates 3 rows, all sharing the same cr_sourcesignalid and cr_conversationid.",
+    "state_transitions": "Three booleans (cr_responsereceived, cr_nudgesent, cr_dismissedbyuser) create 8 possible states. Valid states: Awaiting (F/F/F), Nudged (F/T/F), Replied (T/F/F), Replied-After-Nudge (T/T/F), Dismissed (F/F/T), Dismissed-After-Nudge (F/T/T). Invalid: any state where cr_responsereceived=true AND cr_dismissedbyuser=true (prevent in flow logic).",
+    "data_retention": "A weekly scheduled cleanup flow should delete rows older than 90 days where cr_responsereceived=true OR cr_dismissedbyuser=true.",
+    "reply_matching": "Primary: match Graph messages by cr_conversationid where from.emailAddress.address equals cr_recipientemail and receivedDateTime > cr_sentdatetime. Fallback: match via In-Reply-To/References headers in cr_internetmessageheaders.",
+    "security": "UserOwned table with ownership-based RLS. Users can only read/write their own rows.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "tableName": "cr_snoozedconversation",
+  "entitySetName": "cr_snoozedconversations",
+  "displayName": "Snoozed Conversation",
+  "pluralName": "Snoozed Conversations",
+  "description": "Tracks email conversations that the user has snoozed (moved to the managed EPA-Snoozed folder). The Snooze Detection flow scans the folder periodically and upserts rows. The Auto-Unsnooze flow moves messages back to Inbox when a new reply arrives.",
+  "primaryColumn": "cr_conversationid",
+  "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_snoozed_conversation_owneruserid_key",
+      "displayName": "Conversation + Owner User ID Key",
+      "keyAttributes": ["cr_conversationid", "cr_owneruserid"],
+      "purpose": "Composite alternate key enabling safe Upsert during periodic folder scans. Prevents duplicate rows when the same conversation is detected across multiple polling cycles. Uses cr_owneruserid instead of ownerid because Dataverse does not support ownerid in alternate keys."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_owneruserid",
+      "displayName": "Owner User ID",
+      "type": "Text",
+      "maxLength": 36,
+      "required": true,
+      "description": "The systemuserid GUID of the owning user. Used as alternate key since ownerid is not supported in Dataverse alternate keys."
+    },
+    {
+      "logicalName": "cr_conversationid",
+      "displayName": "Conversation ID",
+      "type": "Text",
+      "maxLength": 255,
+      "required": true,
+      "description": "Graph conversationId of the snoozed thread. Primary column and part of the composite alternate key. Shared by all messages in the same thread. Reduced to 255 to keep composite key (255 + 36 = 291 chars × 2 = 582 bytes) within SQL Server's 900-byte index limit."
+    },
+    {
+      "logicalName": "cr_originalmessageid",
+      "displayName": "Original Message ID",
+      "type": "Text",
+      "maxLength": 500,
+      "required": true,
+      "description": "Graph message ID of the snoozed email. IMPORTANT: This ID is invalidated when the message is moved via Graph API — the Auto-Unsnooze flow must capture the new ID from the move response and update this field."
+    },
+    {
+      "logicalName": "cr_snoozeuntil",
+      "displayName": "Snooze Until",
+      "type": "DateTime",
+      "required": false,
+      "description": "When the snooze should expire and the message should return to Inbox automatically. Null if the user snoozed indefinitely (only auto-unsnooze on reply)."
+    },
+    {
+      "logicalName": "cr_currentfolder",
+      "displayName": "Current Folder",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Graph folder ID where the snoozed message currently resides. Initially set to the EPA-Snoozed folder ID. Updated after auto-unsnooze to the Inbox folder ID."
+    },
+    {
+      "logicalName": "cr_unsnoozedbyagent",
+      "displayName": "Unsnoozed By Agent",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": false,
+      "description": "Whether the agent automatically moved this message back to Inbox because a new reply was detected on the thread."
+    },
+    {
+      "logicalName": "cr_unsnoozeddatetime",
+      "displayName": "Unsnoozed Date Time",
+      "type": "DateTime",
+      "required": false,
+      "description": "Timestamp when the auto-unsnooze occurred. Null if still snoozed."
+    },
+    {
+      "logicalName": "cr_originalsubject",
+      "displayName": "Original Subject",
+      "type": "Text",
+      "maxLength": 400,
+      "required": false,
+      "description": "Subject line of the snoozed email. Used for display in Teams notifications when auto-unsnoozing."
+    }
+  ],
+  "notes": {
+    "managed_folder": "This feature uses a managed folder named 'EPA-Snoozed' created by the agent (not Outlook's native Snoozed folder). The native Snoozed folder is not a Graph well-known folder and its displayName varies by locale. The managed folder's Graph ID is stored in NudgeConfiguration.cr_snoozefolderid.",
+    "message_id_invalidation": "CRITICAL: When POST /me/messages/{id}/move is called, Graph deletes the original message and returns a NEW message with a NEW ID. The Auto-Unsnooze flow must capture the new ID from the response body and update cr_originalmessageid immediately.",
+    "data_retention": "A weekly cleanup flow should delete rows where cr_unsnoozedbyagent=true AND createdon < 30 days ago.",
+    "security": "UserOwned table with ownership-based RLS. Users can only read/write their own rows.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "metadata": {
+    "description": "Follow-up nudge card delivered via Teams Flow bot. Shows unreplied email context with action buttons for draft, snooze, and dismiss."
+  },
+  "body": [
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "Image",
+              "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bell/3D/bell_3d.png",
+              "size": "Small",
+              "altText": "Nudge bell icon"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "Follow-Up Reminder",
+              "weight": "Bolder",
+              "size": "Medium",
+              "color": "Accent"
+            },
+            {
+              "type": "TextBlock",
+              "text": "No response received — consider following up",
+              "size": "Small",
+              "isSubtle": true,
+              "spacing": "None"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "${originalSubject}",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "type": "FactSet",
+          "facts": [
+            {
+              "title": "To",
+              "value": "${recipientEmail}"
+            },
+            {
+              "title": "Sent",
+              "value": "${sentDate}"
+            },
+            {
+              "title": "Waiting",
+              "value": "${daysSinceSent} days"
+            },
+            {
+              "title": "Priority",
+              "value": "${nudgePriority}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "**Thread Summary**",
+      "spacing": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "${threadSummary}",
+      "wrap": true,
+      "isSubtle": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "**Suggested Follow-Up**",
+      "spacing": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "${suggestedDraft}",
+      "wrap": true,
+      "maxLines": 6
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "✏️ Draft Follow-Up",
+      "style": "positive",
+      "data": {
+        "action": "draft_followup",
+        "trackingId": "${trackingId}",
+        "conversationId": "${conversationId}",
+        "recipientEmail": "${recipientEmail}",
+        "suggestedDraft": "${suggestedDraft}"
+      }
+    },
+    {
+      "type": "Action.Submit",
+      "title": "⏰ Snooze 2 Days",
+      "data": {
+        "action": "snooze_nudge",
+        "trackingId": "${trackingId}"
+      }
+    },
+    {
+      "type": "Action.Submit",
+      "title": "✖️ Dismiss",
+      "data": {
+        "action": "dismiss_nudge",
+        "trackingId": "${trackingId}"
+      }
+    }
+  ],
+  "_template_notes": {
+    "usage": "This template is used by Flow 2 (Response Detection & Nudge Delivery). Variable placeholders (${...}) are replaced by Power Automate Compose actions before posting to Teams.",
+    "variables": {
+      "originalSubject": "Email subject line from cr_originalsubject",
+      "recipientEmail": "Recipient address from cr_recipientemail",
+      "sentDate": "Formatted date from cr_sentdatetime",
+      "daysSinceSent": "Calculated: div(sub(ticks(utcNow()), ticks(cr_sentdatetime)), 864000000000)",
+      "nudgePriority": "From Copilot agent response: nudgePriority",
+      "threadSummary": "From Copilot agent response: threadSummary",
+      "suggestedDraft": "From Copilot agent response: suggestedDraft (truncated to 500 chars for card display)",
+      "trackingId": "Dataverse row ID (cr_followuptrackingid)",
+      "conversationId": "From cr_conversationid"
+    },
+    "action_handling": {
+      "draft_followup": "Action.Submit triggers a child flow that invokes the Copilot agent to generate a full draft, then posts it back as a new Adaptive Card with Send/Edit/Cancel buttons.",
+      "snooze_nudge": "Action.Submit triggers a flow that updates cr_followupdate = addDays(utcNow(), 2) and cr_nudgesent = false to re-enable nudging after the snooze period.",
+      "dismiss_nudge": "Action.Submit triggers a flow that sets cr_dismissedbyuser = true."
+    },
+    "size_limit": "Teams Adaptive Cards have a 28 KB limit. If the daily digest contains >10 nudges, truncate to top 10 by priority and add a 'View all in dashboard' ActionSet."
+  }
+}
