@@ -83,10 +83,14 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    - Go to **Settings** (gear icon, top-right) → **Generative AI**
    - Under **How should your agent interact with people?**, select **Generative (preview)**
    - This allows the agent to use its instructions to handle any input, rather than requiring pre-defined topics
-6. **Define Input Variables:**
-   - Go to **Settings** → **Agent inputs** to define the input variables the agent receives from Power Automate. Add each variable listed below.
+7. **Define Input Variables (via Topic Details → Inputs tab):**
+   - Go to **Topics** in the left sidebar
+   - Open the main topic (e.g., the default conversational topic, or create a new topic named "Follow-Up Nudge")
+   - In the topic authoring canvas, click **Details** in the top navigation bar
+   - Navigate to the **Inputs** tab
+   - Click **Create a new variable** for each input below:
 
-   | Variable Name | Type | Description |
+   | Variable Name | Data Type | Description |
    |---|---|---|
    | `CONVERSATION_ID` | String | Graph API conversationId for the email thread |
    | `ORIGINAL_SUBJECT` | String | Subject line of the original sent email |
@@ -96,15 +100,17 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    | `THREAD_EXCERPT` | String | Plain text excerpt of the email thread (up to 2000 chars) |
    | `USER_DISPLAY_NAME` | String | Display name of the user who sent the email |
 
-   > Note: In Copilot Studio, all text-based inputs use the **String** type. DateTime values are passed as ISO 8601 strings.
+   > **Generative fill behavior:** With generative orchestration enabled, each input has a "How will the agent fill this input?" property. The default is "Dynamically fill with the best option" — the agent extracts the value from conversation context. When invoked from Power Automate, the values are passed explicitly, so the default behavior is fine.
+   >
+   > **Note:** Input variables are defined via the **Topic Details → Inputs tab**, NOT via Settings → Agent inputs (which does not exist). This is distinct from tool-level inputs which are configured on the Tools page.
 
-7. **Configure Agent Output:**
+8. **Configure Agent Output:**
    1. In the agent's main topic, add a **Text** output variable named `agentResponse`
    2. In the last **Message** node, set the output to the system's generated response
    3. In the Power Automate flow, parse this output with `json(outputs('Run_a_flow_action')?['body/agentResponse'])` to access individual fields
 
    **Verify:** Test the agent with sample inputs from the Examples section of the prompt file. The response should be valid JSON matching the output schema.
-8. Click **Publish** (top-right) to make the agent available to Power Automate flows
+9. Click **Publish** (top-right) to make the agent available to Power Automate flows
 
 > **Tip:** After publishing, test the agent using the **Test agent** panel (bottom-left). Provide sample input values and verify the response is valid JSON matching the output schema in the prompt.
 
@@ -159,9 +165,9 @@ If you ran an earlier version of the script that didn't include SnoozedConversat
 4. Set up **trigger phrases** such as: "snooze check", "evaluate snooze", "check snoozed email"
 5. In the topic editor, add a **Generative answers** node or a **Message** node with the prompt logic
 6. Paste the contents of `prompts/snooze-agent-system-prompt.md` as the topic's instructions
-7. Define input variables for this topic:
+7. Define input variables for this topic via **Details** → **Inputs** tab (click **Details** in the topic authoring canvas top bar):
 
-   | Variable Name | Type | Description |
+   | Variable Name | Data Type | Description |
    |---|---|---|
    | `CONVERSATION_ID` | String | Graph API conversationId of the snoozed thread |
    | `SNOOZED_SUBJECT` | String | Subject of the original snoozed email |
@@ -173,7 +179,7 @@ If you ran an earlier version of the script that didn't include SnoozedConversat
    | `CURRENT_DATETIME` | String | Current UTC datetime in ISO 8601 format |
    | `USER_TIMEZONE` | String | IANA timezone identifier (e.g., "America/New_York") |
 
-   > Note: In Copilot Studio, all text-based inputs use the **String** type. DateTime values are passed as ISO 8601 strings.
+   > **Note:** Input variables are defined via **Topic Details → Inputs tab**, NOT via Settings. See Step 7 (Phase 1) for full details on the generative fill behavior.
 
 8. Click **Save** and **Publish** the agent
 
