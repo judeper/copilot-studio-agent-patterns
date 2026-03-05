@@ -1,0 +1,45 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Copilot Studio PAYGO Tagging Strategy",
+    "description": "Required Azure resource tags for billing policy resource groups. These tags enable cost allocation, ownership tracking, and governance reporting in Azure Cost Management and Power BI.",
+    "type": "object",
+    "required": ["CostCenter", "Environment", "BusinessUnit", "AgentOwner"],
+    "properties": {
+        "CostCenter": {
+            "type": "string",
+            "description": "Financial cost center code for charge-back and budget allocation. Must match the organization's chart of accounts.",
+            "examples": ["IT-OPS-4200", "DIGITAL-3100", "WEALTH-MGMT-5500"]
+        },
+        "Environment": {
+            "type": "string",
+            "description": "Deployment stage of the Power Platform environment linked to this resource group.",
+            "enum": ["Production", "Staging", "Development", "Sandbox", "UAT"]
+        },
+        "BusinessUnit": {
+            "type": "string",
+            "description": "Organizational business unit responsible for the Copilot Studio agents in the linked environment.",
+            "examples": ["Digital-Technology", "Wealth-Management", "Operations", "Risk-Compliance", "Human-Resources"]
+        },
+        "AgentOwner": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the individual or team responsible for the agents in the linked environment. Used for alert routing and accountability.",
+            "examples": ["platform-team@contoso.com", "john.doe@contoso.com"]
+        }
+    },
+    "additionalProperties": true,
+    "examples": [
+        {
+            "CostCenter": "IT-OPS-4200",
+            "Environment": "Production",
+            "BusinessUnit": "Digital-Technology",
+            "AgentOwner": "platform-team@contoso.com"
+        },
+        {
+            "CostCenter": "WEALTH-5500",
+            "Environment": "Development",
+            "BusinessUnit": "Wealth-Management",
+            "AgentOwner": "wealth-dev@contoso.com"
+        }
+    ]
+}
