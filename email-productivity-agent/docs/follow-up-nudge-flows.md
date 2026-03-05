@@ -57,12 +57,19 @@ Condition 4: Skip self-sends
 
 ### Actions
 
+#### Step 0: Get User Profile
+
+```
+Action: Office 365 Users — Get my profile (V2)
+Purpose: Retrieves the current user's ID and domain for owner filtering and recipient classification.
+```
+
 #### Step 1: Get User's Nudge Configuration
 
 ```
 Action: Dataverse — List rows
 Table: Nudge Configurations (cr_nudgeconfigurations)
-Filter: _ownerid_value eq '<current-user-id>'
+Filter: _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
 Top Count: 1
 ```
 
@@ -87,9 +94,10 @@ cr_owneruserid: "@{outputs('Get_my_profile_(V2)')?['body/id']}"
 #### Step 2: Get User's Tenant Domain
 
 ```
-Action: Office 365 Users — Get my profile (V2)
 Expression: split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]
 Store as: variable 'userDomain'
+
+Note: Get_my_profile_(V2) is called in Step 0 above. This step only extracts the domain.
 ```
 
 #### Step 3: Loop Through To-Line Recipients
@@ -251,14 +259,26 @@ Scope: Scope_Handle_Errors
 
 ### Actions
 
-#### Step 1b: Get User Profile
+#### Step 1: Get User Profile
 
 ```
 Action: Office 365 Users — Get my profile (V2)
 Purpose: Provides USER_DISPLAY_NAME for agent input
 ```
 
-#### Step 1: Query Overdue Follow-Ups
+#### Step 2: Check Nudge Enabled
+
+```
+Action: Dataverse — Get a row by ID (or List rows with filter)
+Table: Nudge Configurations
+Filter: cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
+
+Condition: cr_nudgesenabled equals false
+  If yes → Terminate flow (Status: Succeeded, Message: "Nudges disabled for this user")
+  If no → Continue to Step 3
+```
+
+#### Step 3: Query Overdue Follow-Ups
 
 ```
 Action: Dataverse — List rows
@@ -268,11 +288,14 @@ Filter:
   and cr_nudgesent eq false
   and cr_dismissedbyuser eq false
   and cr_followupdate le @{utcNow()}
+  and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
 Sort: cr_followupdate asc
 Top Count: 50 (process in batches to avoid timeout)
 ```
 
-#### Step 2: Loop Through Pending Follow-Ups
+> ⚠️ Owner filter is required for data isolation. Do not remove this filter even if using RLS-based security roles.
+
+#### Step 4: Loop Through Pending Follow-Ups
 
 ```
 Action: Apply to each
@@ -282,7 +305,7 @@ Concurrency: 5 (limit parallel Graph API calls)
 
 Inside the loop:
 
-##### Step 2a: Check for Reply via Graph API
+##### Step 4a: Check for Reply via Graph API
 
 ```
 Action: HTTP with Azure AD
@@ -304,7 +327,7 @@ Authentication: Azure AD (delegated, Mail.Read)
 > ```
 > Without this check, a Graph API outage (429, 500, 503) is indistinguishable from "no reply found," causing false nudges.
 
-##### Step 2b: Check If Specific Recipient Replied
+##### Step 4b: Check If Specific Recipient Replied
 
 ```
 Condition: Reply from tracked recipient?
@@ -331,7 +354,7 @@ If filter result is NOT empty → Reply found
 >
 > Without this filter, Out-of-Office auto-replies will be counted as real replies, suppressing valid nudges.
 
-##### Step 2c: If Reply Found → Update Dataverse
+##### Step 4c: If Reply Found → Update Dataverse
 
 ```
 Action: Dataverse — Update a row
@@ -343,7 +366,7 @@ cr_lastchecked: @{utcNow()}
 
 Then **continue** to next iteration (skip nudge).
 
-##### Step 2d: If No Reply → Race Condition Guard
+##### Step 4d: If No Reply → Race Condition Guard
 
 Before sending a nudge, re-query the row to confirm it hasn't been updated by another flow:
 
@@ -360,7 +383,7 @@ Condition: Still pending?
 
 If the row has changed, skip this item.
 
-##### Step 2d-pre: Get Thread Preview
+##### Step 4d-pre: Get Thread Preview
 
 ```
 Action: HTTP with Azure AD — GET
@@ -378,7 +401,7 @@ Compose: threadExcerpt
   Expression: take(join(body('extractPreviews'), ' --- '), 2000)
 ```
 
-##### Step 2e: If Still Pending → Invoke Copilot Agent (Optional)
+##### Step 4e: If Still Pending → Invoke Copilot Agent (Optional)
 
 ```
 Action: Run a flow from Copilot (or HTTP to agent endpoint)
@@ -407,7 +430,7 @@ Condition: nudgeAction equals "SKIP"
   If no → Proceed to Step 2f
 ```
 
-##### Step 2f: Post Adaptive Card (Fire-and-Forget)
+##### Step 4f: Post Adaptive Card (Fire-and-Forget)
 
 ```
 Action: Microsoft Teams — Post adaptive card as the Flow bot to a user

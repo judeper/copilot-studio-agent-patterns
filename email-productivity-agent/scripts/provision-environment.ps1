@@ -347,7 +347,7 @@ function New-WholeNumberColumn {
         [int]$MinValue = 0,
         [int]$MaxValue = 2147483647,
         [bool]$Required = $false,
-        [int]$DefaultValue = $null
+        $DefaultValue = $null
     )
 
     $colProps = @{
@@ -358,7 +358,7 @@ function New-WholeNumberColumn {
         MaxValue = $MaxValue
     }
     if ($null -ne $DefaultValue) {
-        $colProps["DefaultValue"] = @{ "Value" = $DefaultValue }
+        $colProps["DefaultFormValue"] = [int]$DefaultValue
     }
 
     $colDef = $colProps + @{
