@@ -32,7 +32,7 @@ Before building these flows, ensure:
 ```
 Action: Office 365 Users — Get my profile (V2)
 Purpose: Retrieves the current user's systemuserid, which is needed for the
-cr_owneruserid alternate key in the Dataverse upsert (Step 3).
+owner filter in Step 1 and the cr_owneruserid alternate key in the Dataverse upsert (Step 3).
 Output: outputs('Get_my_profile_(V2)')?['body/id']
 ```
 
@@ -41,7 +41,7 @@ Output: outputs('Get_my_profile_(V2)')?['body/id']
 ```
 Action: Dataverse — Get a row by ID (or List rows filtered by owner)
 Table: Nudge Configurations
-Filter: _ownerid_value eq '<current-user-id>'
+Filter: _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
 
 Condition: cr_snoozefolderid is null or empty?
 ```
