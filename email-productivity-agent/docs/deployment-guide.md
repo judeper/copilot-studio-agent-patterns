@@ -17,6 +17,17 @@ Step-by-step checklist for deploying the Email Productivity Agent to a Power Pla
 | **Power Apps Premium** | Required for Canvas App accessing custom Dataverse tables |
 | **Copilot Studio License** | Required for agent invocations (consumed per call) |
 
+### DLP Policy Check
+
+Verify that the following connectors are in the same DLP connector group (Business or Non-Business) in the **Power Platform Admin Center** → **Data policies**:
+
+- Office 365 Outlook
+- Microsoft Teams
+- Microsoft Dataverse
+- HTTP with Azure AD (premium)
+
+If HTTP with Azure AD is blocked or in a different group, contact your tenant admin to update the DLP policy.
+
 ### Graph API Permissions (Delegated)
 
 | Permission | Scope | Justification |
@@ -43,6 +54,7 @@ This creates:
 - Power Platform environment (`EmailProductivityAgent-Dev`)
 - `cr_followuptracking` table with 12 columns + composite alternate key
 - `cr_nudgeconfiguration` table with 7 columns + owner alternate key
+- `cr_snoozedconversation` table with 8 columns (conversationId, ownerUserId, originalMessageId, snoozeUntil, currentFolder, unsnoozedByAgent, unsnoozedDateTime, originalSubject) + composite alternate key (cr_conversationid + cr_owneruserid)
 
 ### Step 2: Create Security Roles
 
@@ -68,8 +80,7 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    - Under **How should your agent interact with people?**, select **Generative (preview)**
    - This allows the agent to use its instructions to handle any input, rather than requiring pre-defined topics
 6. **Define Input Variables:**
-   - Go to **Topics** → click the **System** topic that handles the agent's main logic
-   - In the topic editor, click **Variables** (right panel) → **Add input variable** for each:
+   - Go to **Settings** → **Agent inputs** to define the input variables the agent receives from Power Automate. Add each variable listed below.
 
    | Variable Name | Type | Description |
    |---|---|---|
@@ -77,7 +88,7 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    | `ORIGINAL_SUBJECT` | String | Subject line of the original sent email |
    | `RECIPIENT_EMAIL` | String | Email address of the tracked recipient |
    | `RECIPIENT_TYPE` | String | One of: Internal, External, Priority, General |
-   | `DAYS_SINCE_SENT` | Number | Business days since the email was sent |
+   | `DAYS_SINCE_SENT` | Number | Calendar days since the email was sent |
    | `THREAD_EXCERPT` | String | Plain text excerpt of the email thread (up to 2000 chars) |
    | `USER_DISPLAY_NAME` | String | Display name of the user who sent the email |
 
@@ -105,6 +116,8 @@ Set up these Power Automate connections:
 - **Microsoft Teams** — for Adaptive Card nudge delivery
 - **Dataverse** — for FollowUpTracking and NudgeConfiguration operations
 - **HTTP with Azure AD** — for direct Graph API calls (premium connector)
+  - **Base Resource URL:** `https://graph.microsoft.com`
+  - **Azure AD Resource URI:** `https://graph.microsoft.com`
 
 ### Step 6: Teams Admin Policy Check
 
@@ -125,17 +138,11 @@ Verify the Power Automate flow bot is allowed in your Teams environment:
 
 ## Phase 2: Snooze Auto-Removal
 
-### Step 8: Provision Snoozed Conversations Table
+### Step 8: Verify Snoozed Conversations Table
 
-If you ran the provisioning script before the SnoozedConversation table was added, re-run it:
+On a fresh install, Step 1 already creates all three tables (including `cr_snoozedconversation`). No additional provisioning is needed.
 
-```powershell
-pwsh provision-environment.ps1 -TenantId "<tenant-id>"
-```
-
-The script is idempotent — it will skip existing tables and columns, and create only the missing `cr_snoozedconversation` table.
-
-Or manually create the table following `schemas/snoozed-conversations-table.json`.
+If you ran an earlier version of the script that didn't include SnoozedConversation, manually create the table using the Dataverse maker portal following `schemas/snoozed-conversations-table.json`, or use the PAC CLI to add just the table.
 
 ### Step 9: Configure Snooze Agent
 
@@ -150,7 +157,8 @@ Or manually create the table following `schemas/snoozed-conversations-table.json
    | Variable Name | Type | Description |
    |---|---|---|
    | `CONVERSATION_ID` | String | Graph API conversationId of the snoozed thread |
-   | `ORIGINAL_SUBJECT` | String | Subject of the snoozed email |
+   | `SNOOZED_SUBJECT` | String | Subject of the original snoozed email |
+   | `NEW_MESSAGE_SENDER` | String | Email address of the person who sent the new reply |
    | `NEW_MESSAGE_SENDER_NAME` | String | Display name of the person who replied |
    | `NEW_MESSAGE_SUBJECT` | String | Subject of the new reply |
    | `NEW_MESSAGE_EXCERPT` | String | Plain text excerpt of the reply (up to 500 chars) |
@@ -172,7 +180,10 @@ Follow `docs/snooze-auto-removal-flows.md`:
 
 ### Step 11: Ensure Mail.ReadWrite Permission
 
-If not already granted, update the Entra ID app registration to include `Mail.ReadWrite` (delegated). Re-consent if needed.
+The **HTTP with Azure AD** connector uses a delegated auth model — the connection owner consents to permissions at connection-creation time. No separate app registration is needed.
+
+- For `Mail.ReadWrite`, if your tenant requires admin consent for this scope, a **Global Admin** must pre-approve it in **Entra ID** → **Enterprise applications** → the "HTTP with Azure AD" service principal → **Permissions** → **Grant admin consent**.
+- If you are using a **custom connector** with a registered app instead of the built-in HTTP with Azure AD connector, add `Mail.ReadWrite` to the app's **API permissions** in the Entra ID app registration and re-consent.
 
 ---
 
@@ -220,6 +231,15 @@ To delete all data for a specific user:
 # PowerShell script using Dataverse Web API
 $userId = "<user-systemuserid>"
 $orgUrl = "https://<org>.crm.dynamics.com"
+
+# Authenticate
+$token = az account get-access-token --resource $orgUrl --query accessToken -o tsv
+$headers = @{
+    "Authorization" = "Bearer $token"
+    "Content-Type"  = "application/json"
+    "OData-MaxVersion" = "4.0"
+    "OData-Version" = "4.0"
+}
 
 # Delete FollowUpTracking rows
 $trackingRows = Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_followuptrackings?`$filter=_ownerid_value eq '$userId'" -Headers $headers

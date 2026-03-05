@@ -50,9 +50,9 @@
       "logicalName": "cr_recipientemail",
       "displayName": "Recipient Email",
       "type": "Text",
-      "maxLength": 254,
+      "maxLength": 250,
       "required": true,
-      "description": "Email address of the To-line recipient being tracked. Part of composite alternate key. One row per recipient per message."
+      "description": "Email address of the To-line recipient being tracked. Part of composite alternate key. One row per recipient per message. Reduced to 250 to keep composite key (200+250)×2=900 bytes at the SQL Server index limit."
     },
     {
       "logicalName": "cr_recipienttype",

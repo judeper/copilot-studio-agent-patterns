@@ -346,15 +346,22 @@ function New-WholeNumberColumn {
         [string]$Description,
         [int]$MinValue = 0,
         [int]$MaxValue = 2147483647,
-        [bool]$Required = $false
+        [bool]$Required = $false,
+        [int]$DefaultValue = $null
     )
 
-    $colDef = @{
+    $colProps = @{
         "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
         SchemaName = $SchemaName
         RequiredLevel = @{ Value = if ($Required) { "ApplicationRequired" } else { "None" } }
         MinValue = $MinValue
         MaxValue = $MaxValue
+    }
+    if ($null -ne $DefaultValue) {
+        $colProps["DefaultValue"] = @{ "Value" = $DefaultValue }
+    }
+
+    $colDef = $colProps + @{
         DisplayName = @{
             "@odata.type" = "Microsoft.Dynamics.CRM.Label"
             LocalizedLabels = @(@{
@@ -493,7 +500,7 @@ New-TextColumn -EntityId $followUpEntityId `
     -SchemaName "${PublisherPrefix}_recipientemail" `
     -DisplayName "Recipient Email" `
     -Description "Email address of the recipient being tracked for follow-up." `
-    -MaxLength 254 -Required $true
+    -MaxLength 250 -Required $true
 
 # Recipient Type
 New-TextColumn -EntityId $followUpEntityId `
@@ -664,28 +671,28 @@ New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_internaldays" `
     -DisplayName "Internal Days" `
     -Description "Number of days to wait before nudging for internal recipients." `
-    -MinValue 0 -MaxValue 365
+    -MinValue 1 -MaxValue 30 -DefaultValue 3
 
 # External Days (WholeNumber, default 5)
 New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_externaldays" `
     -DisplayName "External Days" `
     -Description "Number of days to wait before nudging for external recipients." `
-    -MinValue 0 -MaxValue 365
+    -MinValue 1 -MaxValue 30 -DefaultValue 5
 
 # Priority Days (WholeNumber, default 1)
 New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_prioritydays" `
     -DisplayName "Priority Days" `
     -Description "Number of days to wait before nudging for priority emails." `
-    -MinValue 0 -MaxValue 365
+    -MinValue 1 -MaxValue 30 -DefaultValue 1
 
 # General Days (WholeNumber, default 7)
 New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_generaldays" `
     -DisplayName "General Days" `
     -Description "Number of days to wait before nudging for general emails." `
-    -MinValue 0 -MaxValue 365
+    -MinValue 1 -MaxValue 30 -DefaultValue 7
 
 # Nudges Enabled (Boolean, default true)
 New-BooleanColumn -EntityId $nudgeEntityId `
@@ -844,7 +851,7 @@ New-TextColumn -EntityId $snoozedEntityId `
     -SchemaName "${PublisherPrefix}_originalmessageid" `
     -DisplayName "Original Message ID" `
     -Description "Graph message ID of the snoozed email. Invalidated when moved via Graph API." `
-    -MaxLength 200 -Required $true
+    -MaxLength 500 -Required $true
 
 # Snooze Until
 New-DateTimeColumn -EntityId $snoozedEntityId `
