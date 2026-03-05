@@ -201,7 +201,7 @@ Expression:
 
 ```
 Action: Dataverse — Perform an unbound action (Upsert)
-  OR use HTTP with Azure AD connector:
+  OR use HTTP with Microsoft Entra ID connector:
 
   PATCH {OrgUrl}/api/data/v9.2/cr_followuptrackings(
     cr_sourcesignalid='@{encodeURIComponent(triggerOutputs()?['body/internetMessageId'])}',
@@ -308,7 +308,7 @@ Inside the loop:
 ##### Step 4a: Check for Reply via Graph API
 
 ```
-Action: HTTP with Azure AD
+Action: HTTP with Microsoft Entra ID
 Method: GET
 URI: https://graph.microsoft.com/v1.0/me/messages
   ?$filter=conversationId eq '@{items('Apply_to_each')?['cr_conversationid']}'
@@ -386,7 +386,7 @@ If the row has changed, skip this item.
 ##### Step 4d-pre: Get Thread Preview
 
 ```
-Action: HTTP with Azure AD — GET
+Action: HTTP with Microsoft Entra ID — GET
 URI: https://graph.microsoft.com/v1.0/me/messages
   ?$filter=conversationId eq '@{items('Apply_to_each')?['cr_conversationid']}'
   &$select=bodyPreview,from,receivedDateTime

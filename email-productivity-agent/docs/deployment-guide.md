@@ -13,7 +13,7 @@ Step-by-step checklist for deploying the Email Productivity Agent to a Power Pla
 | **PowerShell 7+** | Required for provisioning scripts |
 | **Power Platform Environment** | With Copilot Studio capacity allocated |
 | **Microsoft 365 License** | E3/E5 or Business Premium (for Graph API access) |
-| **Power Automate Premium** | Required for Dataverse connector and HTTP with Azure AD connector |
+| **Power Automate Premium** | Required for Dataverse connector and HTTP with Microsoft Entra ID connector |
 | **Power Apps Premium** | Required for Canvas App accessing custom Dataverse tables |
 | **Copilot Studio License** | Required for agent invocations (consumed per call) |
 
@@ -24,9 +24,9 @@ Verify that the following connectors are in the same DLP connector group (Busine
 - Office 365 Outlook
 - Microsoft Teams
 - Microsoft Dataverse
-- HTTP with Azure AD (premium)
+- HTTP with Microsoft Entra ID (premium)
 
-If HTTP with Azure AD is blocked or in a different group, contact your tenant admin to update the DLP policy.
+If HTTP with Microsoft Entra ID is blocked or in a different group, contact your tenant admin to update the DLP policy.
 
 ### Graph API Permissions (Delegated)
 
@@ -146,7 +146,7 @@ Set up these Power Automate connections:
 - **Office 365 Outlook** — for email triggers and message queries
 - **Microsoft Teams** — for Adaptive Card nudge delivery
 - **Dataverse** — for FollowUpTracking and NudgeConfiguration operations
-- **HTTP with Azure AD** — for direct Graph API calls (premium connector)
+- **HTTP with Microsoft Entra ID** — for direct Graph API calls (premium connector)
   - **Base Resource URL:** `https://graph.microsoft.com`
   - **Azure AD Resource URI:** `https://graph.microsoft.com`
 
@@ -221,10 +221,10 @@ Follow `docs/snooze-auto-removal-flows.md`:
 
 ### Step 11: Ensure Mail.ReadWrite Permission
 
-The **HTTP with Azure AD** connector uses a delegated auth model — the connection owner consents to permissions at connection-creation time. No separate app registration is needed.
+The **HTTP with Microsoft Entra ID** connector uses a delegated auth model — the connection owner consents to permissions at connection-creation time. No separate app registration is needed.
 
-- For `Mail.ReadWrite`, if your tenant requires admin consent for this scope, a **Global Admin** must pre-approve it in **Entra ID** → **Enterprise applications** → the "HTTP with Azure AD" service principal → **Permissions** → **Grant admin consent**.
-- If you are using a **custom connector** with a registered app instead of the built-in HTTP with Azure AD connector, add `Mail.ReadWrite` to the app's **API permissions** in the Entra ID app registration and re-consent.
+- For `Mail.ReadWrite`, if your tenant requires admin consent for this scope, a **Global Admin** must pre-approve it in **Entra ID** → **Enterprise applications** → the "HTTP with Microsoft Entra ID" service principal → **Permissions** → **Grant admin consent**.
+- If you are using a **custom connector** with a registered app instead of the built-in HTTP with Microsoft Entra ID connector, add `Mail.ReadWrite` to the app's **API permissions** in the Entra ID app registration and re-consent.
 
 ### Multi-User Deployment Model
 
