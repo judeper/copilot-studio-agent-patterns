@@ -102,14 +102,40 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 
    > **Descriptions matter:** These descriptions help generative orchestration reason about each variable during interactive testing. While Power Automate passes values explicitly, good descriptions improve the agent's ability to infer values in the test panel and any future interactive scenarios.
    >
+   > **Fill behavior for PA-invoked agents:** For each input variable, set **"How will the agent fill this input?"** to **"Set as a value"** (not "Dynamically fill with best option"). Since Power Automate passes values programmatically, the agent should not attempt to infer or prompt for these values.
+   >
    > **Note:** Input variables are defined via the **Topic Details → Inputs tab**, NOT via Settings → Agent inputs (which does not exist). This is distinct from tool-level inputs which are configured on the Tools page.
 
-8. **Configure Agent Output:**
-   1. In the agent's main topic, add a **Text** output variable named `agentResponse`
-   2. In the last **Message** node, set the output to the system's generated response
-   3. In the Power Automate flow, parse this output with `json(outputs('Run_a_flow_action')?['body/agentResponse'])` to access individual fields
+8. **Configure Agent Output (required — generative orchestration does NOT auto-return output to PA):**
 
-   **Verify:** Test the agent with sample inputs from the Examples section of the prompt file. The response should be valid JSON matching the output schema.
+   Generative orchestration's LLM response text is **not** automatically piped back to the calling Power Automate flow. You must explicitly define an output variable and wire it to the LLM response.
+
+   **Step A — Define the output variable:**
+   1. In the topic authoring canvas, click **Details** (top bar) → **Outputs** tab
+   2. Click **Create a new variable**
+   3. Name: `AgentResponseJSON`
+   4. Data type: **String** (Copilot Studio only supports Number, String, Boolean for outputs — not Object/List)
+   5. Description: "Structured JSON with action, confidence, priority, threadSummary, suggestedFollowUp, and reasoning"
+   6. Click **Save**
+
+   **Step B — Wire the LLM response to the output variable:**
+   1. On the authoring canvas, click **+ Add node** → **Add an action** → **Create a prompt** (or **Generative answers**)
+   2. In the prompt/instruction box, author the system prompt referencing the 7 input variables using the `/` variable picker (e.g., `{Topic.RECIPIENT_EMAIL}`). Instruct the model to return only valid JSON in the target schema.
+   3. Under **Save response as**, select or create a local variable (e.g., `Topic.GeneratedJSON`)
+   4. Below the Generative Answers node, add a **Variable management** → **Set a variable value** node:
+      - **Set:** `Topic.AgentResponseJSON` (your declared output variable)
+      - **To:** `Topic.GeneratedJSON` (the Generative Answers output)
+   5. Add an **End topic** node at the bottom
+      - ⚠️ Do **NOT** add a "Send a message" node — that sends a reply to an interactive user, not to the calling flow
+
+   **Step C — Verify in Power Automate (after flow is built):**
+   - The output variable `AgentResponseJSON` appears in the Copilot Studio connector action's dynamic content panel
+   - Expression to access: `outputs('Your_CopilotStudio_Action_Name')?['body']?['AgentResponseJSON']`
+   - To parse the JSON string: `json(outputs('Your_CopilotStudio_Action_Name')?['body']?['AgentResponseJSON'])`
+   - Then access fields: `body('Parse_JSON')?['action']`, `body('Parse_JSON')?['confidence']`, etc.
+
+   > **Defensive pattern:** Since LLMs can occasionally return malformed JSON, add a Condition node in PA after Parse JSON to check `empty(body('Parse_JSON')?['action'])`. If true, retry or route to a fallback branch.
+
 9. Click **Publish** (top-right) to make the agent available to Power Automate flows
 
 > **Tip:** After publishing, test the agent using the **Test agent** panel (bottom-left). Provide sample input values and verify the response is valid JSON matching the output schema in the prompt.
