@@ -80,7 +80,8 @@ email-productivity-agent/
 │   └── adaptive-card-nudge.json                 # Teams Adaptive Card template
 ├── scripts/
 │   ├── provision-environment.ps1                # Environment + Dataverse table setup
-│   └── create-security-roles.ps1                # Ownership-based RLS
+│   ├── create-security-roles.ps1                # Ownership-based RLS
+│   └── assign-security-role.ps1                 # Assign role to users
 └── src/                                         # (Reserved for future PCF components)
 ```
 
@@ -101,6 +102,9 @@ email-productivity-agent/
 cd email-productivity-agent/scripts
 pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@example.com>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
+pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
+# Or assign to specific users:
+# pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -UserEmails "user1@example.com","user2@example.com"
 
 # 2. Configure Copilot Studio agent (see docs/deployment-guide.md Step 3)
 
