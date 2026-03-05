@@ -7,6 +7,8 @@ A collection of production-ready patterns for building autonomous agents on the 
 | Solution | Description | Components |
 |----------|-------------|------------|
 | [Enterprise Work Assistant](enterprise-work-assistant/) | AI assistant that triages emails, Teams messages, and calendar events — conducting research and preparing briefings and drafts automatically | Copilot Studio agent, Power Automate flows, Dataverse, Power Apps Component Framework (PCF) React dashboard, Canvas app |
+| [Email Productivity Agent](email-productivity-agent/) | Gmail-like follow-up nudges and smart snooze for Outlook — automatically reminds you to follow up on unreplied emails and unsnoozes threads when new replies arrive | Copilot Studio agent, Power Automate flows, Dataverse, Teams Adaptive Cards |
+| [Agent Cost Governance — PAYGO](agent-cost-governance-paygo/) | Leadership-quality PAYGO cost visibility for Copilot Studio agents — budget dashboards, alerts, and FSI regulatory alignment using Azure Cost Management + Power BI | Azure Cost Management, Power BI, PowerShell provisioning, ARM templates, FSI governance artifacts |
 
 ## Prerequisites
 
