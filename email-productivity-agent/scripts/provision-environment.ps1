@@ -356,6 +356,7 @@ function New-WholeNumberColumn {
         RequiredLevel = @{ Value = if ($Required) { "ApplicationRequired" } else { "None" } }
         MinValue = $MinValue
         MaxValue = $MaxValue
+        Format = "None"
     }
     if ($null -ne $DefaultValue) {
         $colProps["DefaultFormValue"] = [int]$DefaultValue
