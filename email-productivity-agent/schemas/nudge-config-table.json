@@ -1,0 +1,99 @@
+{
+  "tableName": "cr_nudgeconfiguration",
+  "entitySetName": "cr_nudgeconfigurations",
+  "displayName": "Nudge Configuration",
+  "pluralName": "Nudge Configurations",
+  "description": "Per-user configuration for follow-up nudge behavior. One row per user. Stores follow-up delay periods by recipient type, master enable/disable, and the managed snoozed folder ID.",
+  "primaryColumn": "cr_configlabel",
+  "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_nudgeconfig_owneruserid_key",
+      "displayName": "Owner User ID Key",
+      "keyAttributes": ["cr_owneruserid"],
+      "purpose": "Ensures one configuration row per user. Enables safe Upsert to create default config on first use without race conditions. Uses cr_owneruserid instead of ownerid because Dataverse does not support ownerid in alternate keys."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_owneruserid",
+      "displayName": "Owner User ID",
+      "type": "Text",
+      "maxLength": 36,
+      "required": true,
+      "description": "The systemuserid GUID of the owning user. Used as alternate key since ownerid is not supported in Dataverse alternate keys."
+    },
+    {
+      "logicalName": "cr_configlabel",
+      "displayName": "Config Label",
+      "type": "Text",
+      "maxLength": 100,
+      "required": true,
+      "description": "Primary column. Auto-populated with the user's display name + ' Nudge Config' for readability in views."
+    },
+    {
+      "logicalName": "cr_internaldays",
+      "displayName": "Internal Follow-Up Days",
+      "type": "WholeNumber",
+      "minValue": 1,
+      "maxValue": 30,
+      "required": true,
+      "defaultValue": 3,
+      "description": "Business days to wait before nudging for internal (same-domain) recipients."
+    },
+    {
+      "logicalName": "cr_externaldays",
+      "displayName": "External Follow-Up Days",
+      "type": "WholeNumber",
+      "minValue": 1,
+      "maxValue": 30,
+      "required": true,
+      "defaultValue": 5,
+      "description": "Business days to wait before nudging for external recipients."
+    },
+    {
+      "logicalName": "cr_prioritydays",
+      "displayName": "Priority Follow-Up Days",
+      "type": "WholeNumber",
+      "minValue": 1,
+      "maxValue": 30,
+      "required": true,
+      "defaultValue": 1,
+      "description": "Business days to wait before nudging for priority contacts."
+    },
+    {
+      "logicalName": "cr_generaldays",
+      "displayName": "General Follow-Up Days",
+      "type": "WholeNumber",
+      "minValue": 1,
+      "maxValue": 30,
+      "required": true,
+      "defaultValue": 7,
+      "description": "Business days to wait before nudging for general/uncategorized recipients."
+    },
+    {
+      "logicalName": "cr_nudgesenabled",
+      "displayName": "Nudges Enabled",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": true,
+      "description": "Master on/off switch for follow-up nudges. When false, the Sent Items Tracker still logs emails but the Response Detection flow skips this user."
+    },
+    {
+      "logicalName": "cr_snoozefolderid",
+      "displayName": "Snooze Folder ID",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Graph folder ID of the user's managed EPA-Snoozed folder. Created on first use by the Snooze Detection flow. Null until Phase 2 (Snooze Auto-Removal) is deployed."
+    }
+  ],
+  "notes": {
+    "cardinality": "Exactly one row per user. The alternate key on cr_owneruserid enforces this. Default values are applied on first creation. Note: cr_owneruserid duplicates the ownerid value because Dataverse does not support ownerid in alternate keys.",
+    "recipient_type_mapping": "The Sent Items Tracker flow determines recipient type by: (1) checking against a priority contact list (future feature), (2) comparing recipient domain to user's tenant domain (Internal vs External), (3) defaulting to General.",
+    "business_day_calculation": "Business days exclude weekends (Saturday, Sunday) using dayOfWeek() in Power Automate expressions. Holiday exclusion is explicitly out of scope for MVP.",
+    "configuration_surface": "Users configure their nudge settings via a Canvas App settings screen. Direct Dataverse editing is not supported for end users.",
+    "security": "UserOwned table with ownership-based RLS. Users can only read/write their own configuration row.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
+  }
+}
