@@ -27,6 +27,15 @@ Before building these flows, ensure:
 
 ### Actions
 
+#### Step 0: Get User Profile
+
+```
+Action: Office 365 Users — Get my profile (V2)
+Purpose: Retrieves the current user's systemuserid, which is needed for the
+cr_owneruserid alternate key in the Dataverse upsert (Step 3).
+Output: outputs('Get_my_profile_(V2)')?['body/id']
+```
+
 #### Step 1: Get or Create Managed Snoozed Folder
 
 ```
@@ -116,7 +125,7 @@ Body:
 
 ```
 Scope: Scope_Scan_Folder
-  [Steps 1-3 above]
+  [Steps 0-3 above]
 
 Scope: Scope_Handle_Errors (Run After: has failed)
   Actions:

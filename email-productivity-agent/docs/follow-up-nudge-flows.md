@@ -77,7 +77,10 @@ cr_externaldays: 5
 cr_prioritydays: 1
 cr_generaldays: 7
 cr_nudgesenabled: true
+cr_owneruserid: "@{outputs('Get_my_profile_(V2)')?['body/id']}"
 ```
+
+> **Note:** `cr_owneruserid` is required and serves as the alternate key. Without it, the Dataverse create will fail.
 
 **Early exit**: If `cr_nudgesenabled = false`, terminate the flow (skip this user).
 
@@ -85,7 +88,7 @@ cr_nudgesenabled: true
 
 ```
 Action: Office 365 Users — Get my profile (V2)
-Expression: split(outputs('Get_my_profile')?['body/mail'], '@')[1]
+Expression: split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]
 Store as: variable 'userDomain'
 ```
 
@@ -202,7 +205,7 @@ Action: Dataverse — Perform an unbound action (Upsert)
     "cr_sourcesignalid": "@{triggerOutputs()?['body/internetMessageId']}",
     "cr_conversationid": "@{triggerOutputs()?['body/conversationId']}",
     "cr_internetmessageheaders": "@{outputs('messageHeaders')}",
-    "cr_sentdatetime": "@{triggerOutputs()?['body/receivedDateTime']}",
+    "cr_sentdatetime": "@{triggerOutputs()?['body/sentDateTime']}",
     "cr_recipientemail": "@{items('Apply_to_each')?['emailAddress']?['address']}",
     "cr_recipienttype": "@{variables('recipientType')}",
     "cr_originalsubject": "@{take(triggerOutputs()?['body/subject'], 400)}",
@@ -247,6 +250,13 @@ Scope: Scope_Handle_Errors
 | Start Time | 09:00 |
 
 ### Actions
+
+#### Step 1b: Get User Profile
+
+```
+Action: Office 365 Users — Get my profile (V2)
+Purpose: Provides USER_DISPLAY_NAME for agent input
+```
 
 #### Step 1: Query Overdue Follow-Ups
 
@@ -360,8 +370,12 @@ URI: https://graph.microsoft.com/v1.0/me/messages
   &$orderby=receivedDateTime desc
   &$top=3
 
+Select: extractPreviews
+  From: body('Get_thread_preview')?['value']
+  Map: item()?['bodyPreview']
+
 Compose: threadExcerpt
-  Expression: take(join(body('Get_thread_preview')?['value'], ' --- '), 2000)
+  Expression: take(join(body('extractPreviews'), ' --- '), 2000)
 ```
 
 ##### Step 2e: If Still Pending → Invoke Copilot Agent (Optional)
@@ -374,7 +388,7 @@ Input Variables:
   RECIPIENT_EMAIL: items('Apply_to_each')?['cr_recipientemail']
   RECIPIENT_TYPE: items('Apply_to_each')?['cr_recipienttype']
   DAYS_SINCE_SENT: div(sub(ticks(utcNow()), ticks(items('Apply_to_each')?['cr_sentdatetime'])), 864000000000)
-  THREAD_EXCERPT: outputs('Get_thread_preview')?['body/bodyPreview']
+  THREAD_EXCERPT: outputs('threadExcerpt')
   USER_DISPLAY_NAME: outputs('Get_my_profile_(V2)')?['body/displayName']
 
 Note: 864000000000 ticks = 1 day. Power Automate does not have a

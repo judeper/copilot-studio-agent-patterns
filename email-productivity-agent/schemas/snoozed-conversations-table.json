@@ -4,7 +4,7 @@
   "displayName": "Snoozed Conversation",
   "pluralName": "Snoozed Conversations",
   "description": "Tracks email conversations that the user has snoozed (moved to the managed EPA-Snoozed folder). The Snooze Detection flow scans the folder periodically and upserts rows. The Auto-Unsnooze flow moves messages back to Inbox when a new reply arrives.",
-  "primaryColumn": "cr_conversationid",
+  "primaryColumn": "cr_originalsubject",
   "ownershipType": "UserOwned",
   "alternateKeys": [
     {
