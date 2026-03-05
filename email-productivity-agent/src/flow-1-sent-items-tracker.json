@@ -1,0 +1,305 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_new_email_arrives_(V3)": {
+        "type": "OpenApiConnectionNotification",
+        "inputs": {
+          "parameters": {
+            "folderPath": "SentItems",
+            "importance": "Any",
+            "fetchOnlyWithAttachment": false,
+            "includeAttachments": false,
+            "subjectFilter": ""
+          },
+          "host": {
+            "connectionName": "shared_office365",
+            "operationId": "OnNewEmailV3",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+          }
+        },
+        "splitOn": "@triggerOutputs()?['body/value']"
+      }
+    },
+    "actions": {
+      "Get_email_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "messageId": "@triggerOutputs()?['body/id']"
+          },
+          "host": {
+            "connectionName": "shared_office365",
+            "operationId": "GetEmailV2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+          }
+        },
+        "runAfter": {}
+      },
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {
+          "Get_email_(V2)": ["Succeeded"]
+        }
+      },
+      "Condition_Skip_Calendar": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "startsWith": [
+                "@outputs('Get_email_(V2)')?['body/itemClass']",
+                "IPM.Schedule"
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_Calendar": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded",
+              "runError": {
+                "message": "Skipped: calendar response"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": ["Succeeded"]
+        }
+      },
+      "Condition_Skip_AutoReply": {
+        "type": "If",
+        "expression": {
+          "or": [
+            {
+              "startsWith": [
+                "@coalesce(outputs('Get_email_(V2)')?['body/subject'], '')",
+                "Automatic reply:"
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_AutoReply": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded",
+              "runError": {
+                "message": "Skipped: auto-reply"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Condition_Skip_Calendar": ["Succeeded"]
+        }
+      },
+      "Init_recipientType": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "recipientType",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Condition_Skip_AutoReply": ["Succeeded"]
+        }
+      },
+      "Init_userDomain": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "userDomain",
+              "type": "string",
+              "value": "@split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]"
+            }
+          ]
+        },
+        "runAfter": {
+          "Init_recipientType": ["Succeeded"]
+        }
+      },
+      "List_NudgeConfig": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeconfigurations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Init_userDomain": ["Succeeded"]
+        }
+      },
+      "Condition_Config_Exists": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@length(outputs('List_NudgeConfig')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Create_Default_NudgeConfig": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_nudgeconfigurations",
+                "item/cr_configlabel": "Default Nudge Config",
+                "item/cr_internaldays": 3,
+                "item/cr_externaldays": 5,
+                "item/cr_prioritydays": 1,
+                "item/cr_generaldays": 7,
+                "item/cr_nudgesenabled": true,
+                "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_NudgeConfig": ["Succeeded"]
+        }
+      },
+      "Compose_normalizedStartDate": {
+        "type": "Compose",
+        "inputs": "@if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 0), addDays(triggerOutputs()?['body/sentDateTime'], 1), if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 6), addDays(triggerOutputs()?['body/sentDateTime'], 2), triggerOutputs()?['body/sentDateTime']))",
+        "runAfter": {
+          "Condition_Config_Exists": ["Succeeded"]
+        }
+      },
+      "Scope_Track_Recipients": {
+        "type": "Scope",
+        "actions": {
+          "Apply_to_each_recipient": {
+            "type": "Foreach",
+            "foreach": "@outputs('Get_email_(V2)')?['body/toRecipients']",
+            "actions": {
+              "Compose_recipientDomain": {
+                "type": "Compose",
+                "inputs": "@split(items('Apply_to_each_recipient')?['emailAddress']?['address'], '@')[1]"
+              },
+              "Set_recipientType": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "recipientType",
+                  "value": "@if(equals(outputs('Compose_recipientDomain'), variables('userDomain')), 'Internal', 'External')"
+                },
+                "runAfter": {
+                  "Compose_recipientDomain": ["Succeeded"]
+                }
+              },
+              "Compose_followUpDays": {
+                "type": "Compose",
+                "inputs": "@if(equals(variables('recipientType'), 'Internal'), if(greater(length(outputs('List_NudgeConfig')?['body/value']), 0), first(outputs('List_NudgeConfig')?['body/value'])?['cr_internaldays'], 3), if(equals(variables('recipientType'), 'External'), if(greater(length(outputs('List_NudgeConfig')?['body/value']), 0), first(outputs('List_NudgeConfig')?['body/value'])?['cr_externaldays'], 5), if(equals(variables('recipientType'), 'Priority'), if(greater(length(outputs('List_NudgeConfig')?['body/value']), 0), first(outputs('List_NudgeConfig')?['body/value'])?['cr_prioritydays'], 1), if(greater(length(outputs('List_NudgeConfig')?['body/value']), 0), first(outputs('List_NudgeConfig')?['body/value'])?['cr_generaldays'], 7))))",
+                "runAfter": {
+                  "Set_recipientType": ["Succeeded"]
+                }
+              },
+              "Compose_followUpDate": {
+                "type": "Compose",
+                "inputs": "@addDays(outputs('Compose_normalizedStartDate'), add(int(outputs('Compose_followUpDays')), mul(2, div(add(int(outputs('Compose_followUpDays')), sub(dayOfWeek(outputs('Compose_normalizedStartDate')), 1)), 5))))",
+                "runAfter": {
+                  "Compose_followUpDays": ["Succeeded"]
+                }
+              },
+              "Upsert_FollowUpTracking": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_followuptrackings",
+                    "recordId": "@{encodeURIComponent(concat('cr_sourcesignalid=''', encodeURIComponent(triggerOutputs()?['body/internetMessageId']), ''',cr_recipientemail=''', encodeURIComponent(items('Apply_to_each_recipient')?['emailAddress']?['address']), ''''))}",
+                    "item/cr_sourcesignalid": "@triggerOutputs()?['body/internetMessageId']",
+                    "item/cr_conversationid": "@triggerOutputs()?['body/conversationId']",
+                    "item/cr_sentdatetime": "@triggerOutputs()?['body/sentDateTime']",
+                    "item/cr_recipientemail": "@items('Apply_to_each_recipient')?['emailAddress']?['address']",
+                    "item/cr_recipienttype": "@variables('recipientType')",
+                    "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
+                    "item/cr_followupdate": "@outputs('Compose_followUpDate')",
+                    "item/cr_responsereceived": false,
+                    "item/cr_nudgesent": false,
+                    "item/cr_dismissedbyuser": false
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpsertRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {
+                  "Compose_followUpDate": ["Succeeded"]
+                }
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "Compose_normalizedStartDate": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 1 error: @{result('Scope_Track_Recipients')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded",
+              "runError": {
+                "message": "Completed with errors — see error details"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Track_Recipients": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}
