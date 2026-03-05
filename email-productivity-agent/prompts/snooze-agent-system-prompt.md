@@ -99,15 +99,8 @@ Write a brief, friendly notification message (1-2 sentences) informing the user 
 - SNOOZED_SUBJECT: "Project Timeline Review"
 - NEW_MESSAGE_EXCERPT: "Thanks for sending this over. I've reviewed the timeline and have a few concerns about the Q3 milestones. Can we schedule 30 minutes to discuss?"
 
-**Output**:
-```json
-{
-  "unsnoozeAction": "UNSNOOZE",
-  "notificationMessage": "📬 Sarah Chen replied to 'Project Timeline Review' — she has concerns about Q3 milestones and wants to schedule a discussion.",
-  "urgency": "High",
-  "confidence": 97
-}
-```
+**Output** (raw JSON, no code fences):
+{"unsnoozeAction":"UNSNOOZE","notificationMessage":"📬 Sarah Chen replied to 'Project Timeline Review' — she has concerns about Q3 milestones and wants to schedule a discussion.","urgency":"High","confidence":97}
 
 ### Example 2: Out-of-Office — Suppress
 
@@ -117,13 +110,5 @@ Write a brief, friendly notification message (1-2 sentences) informing the user 
 - SNOOZED_SUBJECT: "Partnership Proposal"
 - NEW_MESSAGE_EXCERPT: "Thank you for your email. I am currently out of the office until March 15th with limited access to email. For urgent matters, please contact..."
 
-**Output**:
-```json
-{
-  "unsnoozeAction": "SUPPRESS",
-  "suppressReason": "New message is an out-of-office auto-reply, not a substantive response.",
-  "notificationMessage": "",
-  "urgency": "Low",
-  "confidence": 98
-}
-```
+**Output** (raw JSON, no code fences):
+{"unsnoozeAction":"SUPPRESS","suppressReason":"New message is an out-of-office auto-reply, not a substantive response.","notificationMessage":"","urgency":"Low","confidence":98}
