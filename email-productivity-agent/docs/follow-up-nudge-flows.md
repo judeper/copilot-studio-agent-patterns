@@ -381,9 +381,16 @@ Note: 864000000000 ticks = 1 day. Power Automate does not have a
 dateDifference() function; use ticks arithmetic instead.
 
 Output:
+  - nudgeAction: "NUDGE" or "SKIP"
+  - skipReason: (only if nudgeAction = "SKIP") why the nudge was suppressed
   - threadSummary: Brief summary of the thread context
   - suggestedDraft: Suggested follow-up message text
   - nudgePriority: High / Medium / Low
+  - confidence: 0-100 confidence score
+
+Condition: nudgeAction equals "SKIP"
+  If yes → Update cr_dismissedbyuser = true (agent-skipped), continue to next
+  If no → Proceed to Step 2f
 ```
 
 ##### Step 2f: Post Adaptive Card (Fire-and-Forget)

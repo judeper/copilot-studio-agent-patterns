@@ -185,7 +185,7 @@ Input:
   USER_TIMEZONE: <from user profile or NudgeConfig>
   CURRENT_DATETIME: utcNow()
 
-Condition: Agent response unsnooze_action equals "SUPPRESS"
+Condition: Agent response unsnoozeAction equals "SUPPRESS"
   If yes → Exit (don't unsnooze)
 ```
 
@@ -232,7 +232,7 @@ Adaptive Card:
   "body": [
     {
       "type": "TextBlock",
-      "text": "@{outputs('Agent_Response')?['notification_message']}",
+      "text": "@{outputs('Agent_Response')?['notificationMessage']}",
       "wrap": true
     }
   ]

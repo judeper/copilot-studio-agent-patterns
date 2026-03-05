@@ -127,16 +127,8 @@ Return a JSON object with this exact structure:
 - ORIGINAL_SUBJECT: "Q3 Budget Review — Need Your Input"
 - THREAD_EXCERPT: "Hi Sarah, I've attached the Q3 budget draft for your review. Could you take a look at the marketing allocation section and let me know if the numbers align with your team's plans? I'd like to finalize by end of next week."
 
-**Output**:
-```json
-{
-  "nudgeAction": "NUDGE",
-  "threadSummary": "You asked Sarah to review the Q3 budget draft, specifically the marketing allocation section, with a deadline of end of next week. No response received in 4 days.",
-  "suggestedDraft": "Hi Sarah,\n\nJust circling back on the Q3 budget draft I sent over earlier this week. I'd really appreciate your input on the marketing allocation section when you get a chance.\n\nThe deadline to finalize is end of next week, so if you could take a look in the next day or two, that would be great.\n\nThanks!",
-  "nudgePriority": "Medium",
-  "confidence": 92
-}
-```
+**Output** (raw JSON, no code fences):
+{"nudgeAction":"NUDGE","threadSummary":"You asked Sarah to review the Q3 budget draft, specifically the marketing allocation section, with a deadline of end of next week. No response received in 4 days.","suggestedDraft":"Hi Sarah,\n\nJust circling back on the Q3 budget draft I sent over earlier this week. I'd really appreciate your input on the marketing allocation section when you get a chance.\n\nThe deadline to finalize is end of next week, so if you could take a look in the next day or two, that would be great.\n\nThanks!","nudgePriority":"Medium","confidence":92}
 
 ### Example 2: FYI Email — Skip
 
@@ -146,11 +138,5 @@ Return a JSON object with this exact structure:
 - ORIGINAL_SUBJECT: "FYI: Updated Team Directory"
 - THREAD_EXCERPT: "Hi team, sharing the updated team directory for Q3. No action needed — just for your reference."
 
-**Output**:
-```json
-{
-  "nudgeAction": "SKIP",
-  "skipReason": "Email was informational only ('No action needed') — no response expected.",
-  "confidence": 95
-}
-```
+**Output** (raw JSON, no code fences):
+{"nudgeAction":"SKIP","skipReason":"Email was informational only ('No action needed') — no response expected.","confidence":95}
