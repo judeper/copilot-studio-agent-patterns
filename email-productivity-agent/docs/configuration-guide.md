@@ -2,6 +2,8 @@
 
 This guide explains how to customize the Email Productivity Agent's behavior for your needs.
 
+> ⚠️ **Note:** The Canvas App for user-facing settings is planned for a future release. In the current version, administrators can configure settings directly via the **Dataverse maker portal** (Power Apps → Tables → Nudge Configuration) or a **model-driven app**. The instructions below describe the intended UI; use the Dataverse table editor as the interim alternative.
+
 ---
 
 ## Nudge Timeframes
@@ -19,10 +21,10 @@ The agent uses configurable follow-up periods based on recipient type. Each user
 
 ### How to Change Timeframes
 
-Via the **Canvas App Settings Screen**:
+Via the **Dataverse maker portal** (or Canvas App when available):
 
-1. Open the Email Productivity Agent Canvas App
-2. Navigate to **Settings** → **Nudge Configuration**
+1. Open the Nudge Configuration table in **Power Apps → Tables**
+2. Navigate to the user's **Nudge Configuration** row
 3. Adjust the number of business days for each recipient type
 4. Changes take effect on the next daily nudge scan (9 AM)
 
@@ -32,7 +34,7 @@ Via the **Canvas App Settings Screen**:
 
 To temporarily disable all nudge notifications:
 
-1. Open Settings → Nudge Configuration
+1. Open the Nudge Configuration table in **Power Apps → Tables** (or Settings → Nudge Configuration in the Canvas App when available)
 2. Toggle **"Nudges Enabled"** to Off
 3. The Sent Items Tracker will continue logging emails, but no nudge notifications will be delivered
 4. Toggle back to On to resume nudging (pending nudges from the disabled period will be caught up)
@@ -110,11 +112,11 @@ Nudge notifications are delivered as **Teams Adaptive Cards** in your 1:1 chat w
 | **⏰ Snooze 2 Days** | Postpones the nudge by 2 business days |
 | **✖️ Dismiss** | Permanently dismisses this nudge (won't remind again) |
 
-### Daily Digest
+### Delivery Cadence
 
-Nudges are delivered once daily at **9 AM** (in your local timezone). All pending follow-ups due that day are grouped into a single notification to minimize interruption.
+Each overdue follow-up generates an individual Adaptive Card notification in Teams. Cards are delivered sequentially during the daily check at **9 AM** (configurable time, in your local timezone).
 
-If more than 10 nudges are due on the same day, the card shows the top 10 by priority with a link to view the rest in the dashboard.
+> **Future enhancement:** Grouping multiple nudges into a batched daily digest is planned for a future release.
 
 ---
 

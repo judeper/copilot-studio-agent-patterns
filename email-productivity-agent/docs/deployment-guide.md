@@ -53,7 +53,7 @@ pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@domai
 This creates:
 - Power Platform environment (`EmailProductivityAgent-Dev`)
 - `cr_followuptracking` table with 12 columns + composite alternate key
-- `cr_nudgeconfiguration` table with 7 columns + owner alternate key
+- `cr_nudgeconfiguration` table with 8 columns (including cr_owneruserid) + owner alternate key
 - `cr_snoozedconversation` table with 8 columns (conversationId, ownerUserId, originalMessageId, snoozeUntil, currentFolder, unsnoozedByAgent, unsnoozedDateTime, originalSubject) + composite alternate key (cr_conversationid + cr_owneruserid)
 
 ### Step 2: Create Security Roles
@@ -92,24 +92,19 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    | `THREAD_EXCERPT` | String | Plain text excerpt of the email thread (up to 2000 chars) |
    | `USER_DISPLAY_NAME` | String | Display name of the user who sent the email |
 
-7. **Configure JSON Output:**
-   - In the topic editor, at the end of the conversation flow, add a **Message** node
-   - Set the message to return the agent's structured JSON response
-   - Alternatively, configure the agent's **Output variable** as a Text variable containing the JSON response
-   - The downstream Power Automate flow will parse this JSON using the simplified schema in `docs/follow-up-nudge-flows.md`
+   > Note: In Copilot Studio, all text-based inputs use the **String** type. DateTime values are passed as ISO 8601 strings.
+
+7. **Configure Agent Output:**
+   1. In the agent's main topic, add a **Text** output variable named `agentResponse`
+   2. In the last **Message** node, set the output to the system's generated response
+   3. In the Power Automate flow, parse this output with `json(outputs('Run_a_flow_action')?['body/agentResponse'])` to access individual fields
+
+   **Verify:** Test the agent with sample inputs from the Examples section of the prompt file. The response should be valid JSON matching the output schema.
 8. Click **Publish** (top-right) to make the agent available to Power Automate flows
 
 > **Tip:** After publishing, test the agent using the **Test agent** panel (bottom-left). Provide sample input values and verify the response is valid JSON matching the output schema in the prompt.
 
-### Step 4: Build Power Automate Flows
-
-Follow the step-by-step guide in `docs/follow-up-nudge-flows.md`:
-
-1. **Flow 1: Sent Items Tracker** — Trigger: "When a new email arrives" on Sent Items
-2. **Flow 2: Response Detection & Nudge Delivery** — Trigger: Daily recurrence at 9 AM
-3. **Flow 5: Data Retention Cleanup** — Trigger: Weekly recurrence
-
-### Step 5: Configure Connection References
+### Step 4: Configure Connection References
 
 Set up these Power Automate connections:
 - **Office 365 Outlook** — for email triggers and message queries
@@ -118,6 +113,14 @@ Set up these Power Automate connections:
 - **HTTP with Azure AD** — for direct Graph API calls (premium connector)
   - **Base Resource URL:** `https://graph.microsoft.com`
   - **Azure AD Resource URI:** `https://graph.microsoft.com`
+
+### Step 5: Build Power Automate Flows
+
+Follow the step-by-step guide in `docs/follow-up-nudge-flows.md`:
+
+1. **Flow 1: Sent Items Tracker** — Trigger: "When a new email arrives" on Sent Items
+2. **Flow 2: Response Detection & Nudge Delivery** — Trigger: Daily recurrence at 9 AM
+3. **Flow 5: Data Retention Cleanup** — Trigger: Weekly recurrence
 
 ### Step 6: Teams Admin Policy Check
 
@@ -166,6 +169,8 @@ If you ran an earlier version of the script that didn't include SnoozedConversat
    | `CURRENT_DATETIME` | String | Current UTC datetime in ISO 8601 format |
    | `USER_TIMEZONE` | String | IANA timezone identifier (e.g., "America/New_York") |
 
+   > Note: In Copilot Studio, all text-based inputs use the **String** type. DateTime values are passed as ISO 8601 strings.
+
 8. Click **Save** and **Publish** the agent
 
 > **Note:** The snooze agent is invoked by Flow 4 (Auto-Unsnooze) when a new reply is detected for a snoozed conversation. For MVP, you can skip the agent and always unsnooze — see `docs/snooze-auto-removal-flows.md` Step 4 for details.
@@ -184,6 +189,22 @@ The **HTTP with Azure AD** connector uses a delegated auth model — the connect
 
 - For `Mail.ReadWrite`, if your tenant requires admin consent for this scope, a **Global Admin** must pre-approve it in **Entra ID** → **Enterprise applications** → the "HTTP with Azure AD" service principal → **Permissions** → **Grant admin consent**.
 - If you are using a **custom connector** with a registered app instead of the built-in HTTP with Azure AD connector, add `Mail.ReadWrite` to the app's **API permissions** in the Entra ID app registration and re-consent.
+
+### Multi-User Deployment Model
+
+Each user runs their own set of flows under their own connections:
+
+**Event-driven flows** (Flow 1: Sent Items Tracker, Flow 4: Auto-Unsnooze):
+- Each user must have their own copy with their own Office 365 connection
+- Use "Send a copy" or export/import to distribute to pilot users
+
+**Scheduled flows** (Flow 2: Response Detection, Flow 3: Snooze Detection):
+- Each user needs their own instance running on their own schedule
+- The flow uses `Get my profile (V2)` to scope all queries to the current user
+
+**Per-user connections:** Every flow uses `/me/` Graph API endpoints and the current user's Office 365 connection. Flows cannot be shared via a single service account without significant modification.
+
+> ⚠️ For organizations with 50+ users, consider a service account model with application permissions. This requires Graph API application permissions (`Mail.Read`, `Mail.ReadWrite`) and modifying flows to iterate over users. Contact your Power Platform admin for guidance.
 
 ---
 

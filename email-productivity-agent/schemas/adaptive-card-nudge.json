@@ -94,6 +94,14 @@
     },
     {
       "type": "TextBlock",
+      "text": "⚠️ AI-generated draft — always verify content before sending",
+      "size": "Small",
+      "color": "Attention",
+      "isSubtle": true,
+      "spacing": "Small"
+    },
+    {
+      "type": "TextBlock",
       "text": "${suggestedDraft}",
       "wrap": true,
       "maxLines": 6
@@ -147,6 +155,6 @@
       "snooze_nudge": "Action.Submit triggers a flow that updates cr_followupdate = addDays(utcNow(), 2) and cr_nudgesent = false to re-enable nudging after the snooze period.",
       "dismiss_nudge": "Action.Submit triggers a flow that sets cr_dismissedbyuser = true."
     },
-    "size_limit": "Teams Adaptive Cards have a 28 KB limit. If the daily digest contains >10 nudges, truncate to top 10 by priority and add a 'View all in dashboard' ActionSet."
+    "size_limit": "Teams Adaptive Cards have a 28 KB limit."
   }
 }
