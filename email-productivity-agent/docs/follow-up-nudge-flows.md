@@ -89,7 +89,7 @@ cr_owneruserid: "@{outputs('Get_my_profile_(V2)')?['body/id']}"
 
 > **Note:** `cr_owneruserid` is required and serves as the alternate key. Without it, the Dataverse create will fail.
 
-**Early exit**: If `cr_nudgesenabled = false`, terminate the flow (skip this user).
+> **Note:** Flow 1 always tracks sent emails regardless of the `cr_nudgesenabled` setting. The nudge-enabled check is performed in Flow 2 (Response Detection), so disabling nudges only suppresses notifications — tracking continues and pending nudges will catch up when re-enabled.
 
 #### Step 2: Get User's Tenant Domain
 
