@@ -82,7 +82,8 @@ email-productivity-agent/
 │   ├── provision-environment.ps1                # Environment + Dataverse table setup
 │   ├── create-security-roles.ps1                # Ownership-based RLS
 │   └── assign-security-role.ps1                 # Assign role to users
-└── src/                                         # (Reserved for future PCF components)
+├── src/
+│   └── nudge-topic.yaml                         # Copilot Studio topic YAML (paste into code editor)
 ```
 
 ## Quick Start
