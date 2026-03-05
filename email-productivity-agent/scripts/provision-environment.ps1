@@ -426,11 +426,14 @@ $followUpEntityDef = @{
     PrimaryNameAttribute = "${PublisherPrefix}_originalsubject"
     Attributes = @(
         # Primary Name — Original Subject (Text 400 chars)
+        # IsPrimaryName and FormatName are required by the Dataverse CreateEntity API
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_originalsubject"
-            RequiredLevel = @{ Value = "ApplicationRequired" }
+            RequiredLevel = @{ Value = "ApplicationRequired"; CanBeChanged = $true }
             MaxLength = 400
+            FormatName = @{ Value = "Text" }
             DisplayName = @{
                 "@odata.type" = "Microsoft.Dynamics.CRM.Label"
                 LocalizedLabels = @(@{
@@ -625,11 +628,14 @@ $nudgeEntityDef = @{
     PrimaryNameAttribute = "${PublisherPrefix}_configlabel"
     Attributes = @(
         # Primary Name — Config Label (Text 100 chars)
+        # IsPrimaryName and FormatName are required by the Dataverse CreateEntity API
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_configlabel"
-            RequiredLevel = @{ Value = "ApplicationRequired" }
+            RequiredLevel = @{ Value = "ApplicationRequired"; CanBeChanged = $true }
             MaxLength = 100
+            FormatName = @{ Value = "Text" }
             DisplayName = @{
                 "@odata.type" = "Microsoft.Dynamics.CRM.Label"
                 LocalizedLabels = @(@{
@@ -798,11 +804,14 @@ $snoozedEntityDef = @{
     PrimaryNameAttribute = "${PublisherPrefix}_originalsubject"
     Attributes = @(
         # Primary Name — Original Subject (Text 400 chars)
+        # IsPrimaryName and FormatName are required by the Dataverse CreateEntity API
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_originalsubject"
-            RequiredLevel = @{ Value = "None" }
+            RequiredLevel = @{ Value = "None"; CanBeChanged = $true }
             MaxLength = 400
+            FormatName = @{ Value = "Text" }
             DisplayName = @{
                 "@odata.type" = "Microsoft.Dynamics.CRM.Label"
                 LocalizedLabels = @(@{
