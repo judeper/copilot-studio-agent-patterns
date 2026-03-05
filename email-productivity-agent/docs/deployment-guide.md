@@ -72,10 +72,14 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 1. Open [Copilot Studio](https://copilotstudio.microsoft.com) and select the provisioned environment from the environment picker (top-right)
 2. Click **Create** → **New agent** → **Skip to configure** (to bypass the wizard)
 3. Set the agent name to **"Email Productivity Agent"**
-4. In the **Overview** tab, under **Instructions**, paste the entire contents of `prompts/nudge-agent-system-prompt.md`
+4. **Select AI Model:**
+   - The default model (GPT-5 Chat or equivalent) is recommended
+   - The prompts are model-agnostic and work with any capable LLM available in Copilot Studio
+   - No model change is required unless your organization has specific model governance requirements
+5. In the **Overview** tab, under **Instructions**, paste the entire contents of `prompts/nudge-agent-system-prompt.md`
    - Include everything from the role description through the constraints and examples
    - Do NOT include the markdown title (`# Follow-Up Nudge Agent — System Prompt`) — start from the role/context section
-5. **Enable Generative Orchestration:**
+6. **Enable Generative Orchestration:**
    - Go to **Settings** (gear icon, top-right) → **Generative AI**
    - Under **How should your agent interact with people?**, select **Generative (preview)**
    - This allows the agent to use its instructions to handle any input, rather than requiring pre-defined topics
