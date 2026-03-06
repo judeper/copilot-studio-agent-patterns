@@ -1,0 +1,186 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_someone_responds_to_an_adaptive_card": {
+        "type": "OpenApiConnectionNotification",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_teams",
+            "operationId": "OnCardAction",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+          }
+        }
+      }
+    },
+    "actions": {
+      "Parse_Card_Response": {
+        "type": "ParseJson",
+        "inputs": {
+          "content": "@triggerOutputs()?['body/data']",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string" },
+              "trackingId": { "type": "string" },
+              "conversationId": { "type": "string" },
+              "recipientEmail": { "type": "string" }
+            },
+            "required": ["action", "trackingId"]
+          }
+        },
+        "runAfter": {}
+      },
+      "Switch_On_Action": {
+        "type": "Switch",
+        "expression": "@body('Parse_Card_Response')?['action']",
+        "cases": {
+          "Case_Dismiss": {
+            "case": "dismiss_nudge",
+            "actions": {
+              "Update_Dismissed": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_followuptrackings",
+                    "recordId": "@body('Parse_Card_Response')?['trackingId']",
+                    "item/cr_dismissedbyuser": true
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              },
+              "Reply_Dismissed": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "poster": "Flow bot",
+                    "location": "Chat with Flow bot",
+                    "body/recipient/to": "@triggerOutputs()?['body/responder/objectId']",
+                    "body/messageBody": "✅ Nudge dismissed."
+                  },
+                  "host": {
+                    "connectionName": "shared_teams",
+                    "operationId": "PostMessageToConversation",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                  }
+                },
+                "runAfter": {
+                  "Update_Dismissed": ["Succeeded"]
+                }
+              }
+            }
+          },
+          "Case_Snooze": {
+            "case": "snooze_nudge",
+            "actions": {
+              "Update_Snoozed": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_followuptrackings",
+                    "recordId": "@body('Parse_Card_Response')?['trackingId']",
+                    "item/cr_followupdate": "@addDays(utcNow(), 2)",
+                    "item/cr_nudgesent": false
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              },
+              "Reply_Snoozed": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "poster": "Flow bot",
+                    "location": "Chat with Flow bot",
+                    "body/recipient/to": "@triggerOutputs()?['body/responder/objectId']",
+                    "body/messageBody": "⏰ Snoozed for 2 days. You'll be reminded again on @{formatDateTime(addDays(utcNow(), 2), 'MMM dd')}."
+                  },
+                  "host": {
+                    "connectionName": "shared_teams",
+                    "operationId": "PostMessageToConversation",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                  }
+                },
+                "runAfter": {
+                  "Update_Snoozed": ["Succeeded"]
+                }
+              }
+            }
+          },
+          "Case_Draft": {
+            "case": "draft_followup",
+            "actions": {
+              "Reply_Draft_Placeholder": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "poster": "Flow bot",
+                    "location": "Chat with Flow bot",
+                    "body/recipient/to": "@triggerOutputs()?['body/responder/objectId']",
+                    "body/messageBody": "✏️ Draft generation coming soon. For now, compose your follow-up to @{body('Parse_Card_Response')?['recipientEmail']} manually."
+                  },
+                  "host": {
+                    "connectionName": "shared_teams",
+                    "operationId": "PostMessageToConversation",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "default": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Parse_Card_Response": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Reply_Error": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "poster": "Flow bot",
+                "location": "Chat with Flow bot",
+                "body/recipient/to": "@triggerOutputs()?['body/responder/objectId']",
+                "body/messageBody": "❌ Action couldn't be completed. Please try again."
+              },
+              "host": {
+                "connectionName": "shared_teams",
+                "operationId": "PostMessageToConversation",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "Switch_On_Action": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 2b: Card Action Handler",
+    "description": "Handles adaptive card button responses (Draft, Snooze, Dismiss) from Teams nudge cards posted by Flow 2.",
+    "requiredConnections": [
+      "shared_teams (Microsoft Teams)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)"
+    ],
+    "notes": {
+      "draftAction": "The 'Draft Follow-Up' button is a placeholder in MVP. To enable full AI drafting, add a Copilot agent invocation before the reply message that generates a complete email draft.",
+      "trigger": "The 'When someone responds to an adaptive card' trigger fires for ALL adaptive card responses in Teams. If you have multiple flows posting cards, add a condition to check for the expected action values."
+    }
+  }
+}
