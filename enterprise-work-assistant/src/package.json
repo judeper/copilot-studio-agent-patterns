@@ -13,11 +13,10 @@
     "test": "jest --config test/jest.config.ts",
     "test:coverage": "jest --config test/jest.config.ts --coverage"
   },
-  "dependencies": {
-    "@fluentui/react-components": "^9.46.0",
-    "@fluentui/react-icons": "^2.0.245"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@fluentui/react-components": "^9.46.0",
+    "@fluentui/react-icons": "^2.0.245",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

@@ -191,7 +191,56 @@ try {
 }
 
 # ─────────────────────────────────────
-# 6. Summary
+# 6. Add Privileges for BriefingSchedule
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on BriefingSchedule table..." -ForegroundColor Cyan
+
+$briefingLogicalName = "${PublisherPrefix}_briefingschedule"
+# IMPORTANT: Dataverse privileges use the entity SchemaName (PascalCase), not LogicalName (lowercase)
+$briefingSchemaName = "${PublisherPrefix}_BriefingSchedule"
+
+# Check if table exists before configuring privileges
+try {
+    $briefingEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$briefingLogicalName')?`$select=ObjectTypeCode" -Headers $headers
+    $briefingObjectTypeCode = $briefingEntityMeta.ObjectTypeCode
+
+    $briefingPrivilegeNames = @(
+        "prvCreate${briefingSchemaName}",
+        "prvRead${briefingSchemaName}",
+        "prvWrite${briefingSchemaName}",
+        "prvDelete${briefingSchemaName}",
+        "prvAppend${briefingSchemaName}",
+        "prvAppendTo${briefingSchemaName}"
+    )
+
+    foreach ($privName in $briefingPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{
+                        Depth = "Basic"
+                        PrivilegeId = $privId
+                        BusinessUnitId = $rootBuId
+                    })
+                } | ConvertTo-Json -Depth 5)
+
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  BriefingSchedule table not found — skipping. Run provision-environment.ps1 with Phase 15 to create it."
+}
+
+# ─────────────────────────────────────
+# 7. Summary
 # ─────────────────────────────────────
 Write-Host ""
 Write-Host "═══════════════════════════════════════════" -ForegroundColor Cyan
@@ -202,6 +251,7 @@ Write-Host "Role: Enterprise Work Assistant User" -ForegroundColor White
 Write-Host "Tables:" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_assistantcard (Assistant Cards)" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_senderprofile (Sender Profiles) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_briefingschedule (Briefing Schedules) — if provisioned" -ForegroundColor White
 Write-Host "Depth: Basic (User-level) — each user sees only their own rows" -ForegroundColor White
 Write-Host ""
 Write-Host "NEXT STEP:" -ForegroundColor Yellow
