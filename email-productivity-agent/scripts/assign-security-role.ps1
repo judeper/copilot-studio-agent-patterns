@@ -85,7 +85,11 @@ foreach ($uid in $userIds) {
         } | ConvertTo-Json)
         Write-Host "  Assigned to $uid" -ForegroundColor Green
     } catch {
-        $errMsg = ($_.ErrorDetails.Message | ConvertFrom-Json).error.message
+        $errMsg = $null
+        if ($_.ErrorDetails.Message) {
+            try { $errMsg = ($_.ErrorDetails.Message | ConvertFrom-Json).error.message } catch {}
+        }
+        if (-not $errMsg) { $errMsg = $_.Exception.Message }
         if ($errMsg -match "Cannot insert duplicate key") {
             Write-Host "  Already assigned to $uid" -ForegroundColor Yellow
         } else {

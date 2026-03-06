@@ -459,7 +459,11 @@ try {
     Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $followUpEntityDef
     Write-Host "  FollowUpTracking table created." -ForegroundColor Green
 } catch {
-    Write-Warning "  FollowUpTracking table creation failed (may already exist): $($_.Exception.Message)"
+    if ($_.Exception.Response.StatusCode.value__ -eq 409 -or $_.Exception.Message -match "already exists|duplicate") {
+        Write-Host "  FollowUpTracking table already exists — skipping creation." -ForegroundColor Yellow
+    } else {
+        throw "FollowUpTracking table creation failed: $($_.Exception.Message)"
+    }
 }
 
 # Get entity metadata ID
@@ -661,7 +665,11 @@ try {
     Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $nudgeEntityDef
     Write-Host "  NudgeConfiguration table created." -ForegroundColor Green
 } catch {
-    Write-Warning "  NudgeConfiguration table creation failed (may already exist): $($_.Exception.Message)"
+    if ($_.Exception.Response.StatusCode.value__ -eq 409 -or $_.Exception.Message -match "already exists|duplicate") {
+        Write-Host "  NudgeConfiguration table already exists — skipping creation." -ForegroundColor Yellow
+    } else {
+        throw "NudgeConfiguration table creation failed: $($_.Exception.Message)"
+    }
 }
 
 # Get entity metadata ID for nudge configuration
@@ -837,7 +845,11 @@ try {
     Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $snoozedEntityDef
     Write-Host "  SnoozedConversation table created." -ForegroundColor Green
 } catch {
-    Write-Warning "  SnoozedConversation table creation failed (may already exist): $($_.Exception.Message)"
+    if ($_.Exception.Response.StatusCode.value__ -eq 409 -or $_.Exception.Message -match "already exists|duplicate") {
+        Write-Host "  SnoozedConversation table already exists — skipping creation." -ForegroundColor Yellow
+    } else {
+        throw "SnoozedConversation table creation failed: $($_.Exception.Message)"
+    }
 }
 
 # Get entity metadata ID for snoozed conversation
