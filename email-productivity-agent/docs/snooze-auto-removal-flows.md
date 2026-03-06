@@ -11,6 +11,12 @@ Before building these flows, ensure:
 2. The `cr_snoozedconversation` Dataverse table is provisioned
 3. Security roles include Basic-depth privileges on `cr_SnoozedConversation`
 
+> **Automated deployment:** These flows can be deployed automatically using the deploy script:
+> ```powershell
+> pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase2"
+> ```
+> The specifications below are provided as reference for customization and troubleshooting.
+
 ---
 
 ## Flow 3: Snooze Detection (Folder Scanner)

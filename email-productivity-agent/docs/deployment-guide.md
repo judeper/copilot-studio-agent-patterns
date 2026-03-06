@@ -21,6 +21,7 @@ Step-by-step checklist for deploying the Email Productivity Agent to a Power Pla
 Verify that the following connectors are in the same DLP connector group (Business or Non-Business) in the **Power Platform Admin Center** → **Data policies**:
 
 - Office 365 Outlook
+- Office 365 Users
 - Microsoft Teams
 - Microsoft Dataverse
 - HTTP with Microsoft Entra ID (premium)
@@ -143,6 +144,7 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 
 Set up these Power Automate connections:
 - **Office 365 Outlook** — for email triggers and message queries
+- **Office 365 Users** — for user profile lookups (Get my profile V2)
 - **Microsoft Teams** — for Adaptive Card nudge delivery
 - **Dataverse** — for FollowUpTracking and NudgeConfiguration operations
 - **HTTP with Microsoft Entra ID** — for direct Graph API calls (premium connector)
@@ -152,7 +154,7 @@ Set up these Power Automate connections:
 
 ### Step 5: Deploy Power Automate Flows
 
-The deploy script creates all 4 flows via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution.
+The deploy script creates all 4 Phase 1 flows via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution.
 
 > **Why the Flow Management API?** Flows must be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity) because only the Flow API properly binds connections at runtime. Dataverse-created flows always fail activation with "connection references need connections" regardless of PAC solution import settings.
 
@@ -164,17 +166,18 @@ The deploy script creates all 4 flows via the **Flow Management API** with conne
 cd email-productivity-agent/scripts
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
-    -EnvironmentId "<environment-guid>"
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Phase1"
 ```
 
 The script will:
 1. Create/reuse the `EmailProductivityAgent` solution
 2. Create 5 connection references in the solution
 3. Auto-discover connections in the environment and map them to connectors
-4. Create all 4 flows via the Flow Management API with `state=Started`
+4. Create all 4 Phase 1 flows via the Flow Management API with `state=Started`
 5. Add flows to the solution
 
-**Expected output:** All 4 flows created and running (✓ ON).
+**Expected output:** All 4 Phase 1 flows created and running (✓ ON).
 
 > **Troubleshooting — Flow API validation errors:**
 > - `WorkflowOperationParametersExtraParameter`: A dynamic parameter (e.g., `body/recipient/to`) is in flattened format. Convert to nested: `"body": { "recipient": { "to": "..." } }`
