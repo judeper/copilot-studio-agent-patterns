@@ -1,0 +1,100 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Weekly_Sunday_230AM": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Week",
+          "interval": 1,
+          "schedule": {
+            "weekDays": ["Sunday"],
+            "hours": ["2"],
+            "minutes": ["30"]
+          },
+          "timeZone": "Eastern Standard Time"
+        }
+      }
+    },
+    "actions": {
+      "List_Old_Unsnoozed_Rows": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_snoozedconversations",
+            "$filter": "cr_unsnoozedbyagent eq true and createdon lt @{addDays(utcNow(), -30)}",
+            "$top": 100
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Delete_Old_Records": {
+        "type": "Scope",
+        "actions": {
+          "Apply_to_each": {
+            "type": "Foreach",
+            "foreach": "@outputs('List_Old_Unsnoozed_Rows')?['body/value']",
+            "actions": {
+              "Delete_Row": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_snoozedconversations",
+                    "recordId": "@items('Apply_to_each')?['cr_snoozedconversationid']"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "DeleteRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "List_Old_Unsnoozed_Rows": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 6 snooze cleanup error: @{result('Scope_Delete_Old_Records')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded"
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Delete_Old_Records": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 6: Snooze Cleanup",
+    "description": "Weekly Sunday 2:30 AM: purges unsnoozed conversation tracking rows older than 30 days.",
+    "requiredConnections": [
+      "shared_commondataserviceforapps (Microsoft Dataverse)"
+    ],
+    "notes": {
+      "retentionDays": "Default 30 days. Change the -30 in the filter expression to adjust.",
+      "batchSize": "Processes 100 rows per run. For large backlogs, run manually or increase $top.",
+      "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions."
+    }
+  }
+}
