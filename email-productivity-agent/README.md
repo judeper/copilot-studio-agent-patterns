@@ -67,7 +67,7 @@ email-productivity-agent/
 ├── README.md                                    # This file
 ├── docs/
 │   ├── deployment-guide.md                      # End-to-end deployment checklist
-│   ├── follow-up-nudge-flows.md                 # Flow 1, 2, 5 step-by-step specs
+│   ├── follow-up-nudge-flows.md                 # Flow 1, 2, 2b, 5 step-by-step specs
 │   ├── snooze-auto-removal-flows.md             # Flow 3, 4, 6 step-by-step specs
 │   └── configuration-guide.md                   # User-facing settings documentation
 ├── prompts/
@@ -156,7 +156,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Flow 2b: Card Action Handler | When someone responds to an adaptive card | Handle Draft / Snooze / Dismiss button clicks |
 | Flow 3: Snooze Detection | Every 15 minutes | Scan EPA-Snoozed folder, upsert to SnoozedConversations |
 | Flow 4: Auto-Unsnooze | When a new email arrives (Inbox) | Match against snoozed conversations, move back to Inbox |
-| Flow 5: Nudge Cleanup | Weekly (Sunday 2 AM) | Delete resolved FollowUpTracking rows older than 90 days |
+| Flow 5: Data Retention Cleanup | Weekly (Sunday 2 AM) | Delete resolved FollowUpTracking rows older than 90 days |
 | Flow 6: Snooze Cleanup | Weekly (Sunday 2:30 AM) | Delete resolved SnoozedConversation rows older than 30 days |
 
 ## Dataverse Tables
