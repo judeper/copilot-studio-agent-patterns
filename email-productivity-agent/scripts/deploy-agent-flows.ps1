@@ -392,11 +392,22 @@ foreach ($flowKey in $flowsToProcess) {
         Write-Host "  ✓ $($flow.DisplayName) — Created & Started" -ForegroundColor Green
         Write-Host "    Flow API ID: $flowApiId" -ForegroundColor Gray
 
-        # Wait for Dataverse to sync, then find the workflow ID
-        Start-Sleep -Seconds 3
-        $wf = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=name eq '$($flow.DisplayName)'&`$select=workflowid" -Headers $dvHeaders
-        if ($wf.value.Count -gt 0) {
-            $wfId = $wf.value[0].workflowid
+        # Poll for Dataverse sync (can take 10-30s in fresh environments)
+        $wfId = $null
+        $syncAttempts = 0
+        $syncMaxAttempts = 10
+        do {
+            Start-Sleep -Seconds 3
+            $syncAttempts++
+            $wf = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=name eq '$($flow.DisplayName)'&`$select=workflowid" -Headers $dvHeaders
+            if ($wf.value.Count -gt 0) {
+                $wfId = $wf.value[0].workflowid
+                break
+            }
+            Write-Host "    Waiting for Dataverse sync... ($syncAttempts/$syncMaxAttempts)" -ForegroundColor Gray
+        } while ($syncAttempts -lt $syncMaxAttempts)
+
+        if ($wfId) {
             Write-Host "    Dataverse ID: $wfId" -ForegroundColor Gray
             $createdFlows += [PSCustomObject]@{ Key = $flowKey; DisplayName = $flow.DisplayName; FlowId = $wfId; FlowApiId = $flowApiId; Status = "Created (ON)" }
         }
@@ -453,7 +464,11 @@ foreach ($cf in $createdFlows) {
         Write-Host "  ✓ $($cf.DisplayName)" -ForegroundColor Green
     }
     catch {
-        $msg = ($_.ErrorDetails.Message | ConvertFrom-Json).error.message
+        $msg = $null
+        if ($_.ErrorDetails.Message) {
+            try { $msg = ($_.ErrorDetails.Message | ConvertFrom-Json).error.message } catch {}
+        }
+        if (-not $msg) { $msg = $_.Exception.Message }
         if ($msg -match "already exists") {
             Write-Host "  ✓ $($cf.DisplayName) (already in solution)" -ForegroundColor Green
         }
