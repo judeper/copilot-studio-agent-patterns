@@ -71,10 +71,7 @@
             "Terminate_Nudges_Disabled": {
               "type": "Terminate",
               "inputs": {
-                "runStatus": "Succeeded",
-                "runError": {
-                  "message": "Nudges disabled for this user"
-                }
+                "runStatus": "Succeeded"
               }
             }
           }
@@ -372,8 +369,10 @@
                                 "parameters": {
                                   "poster": "Flow bot",
                                   "location": "Chat with Flow bot",
-                                  "body/recipient/to": "@outputs('Get_my_profile_(V2)')?['body/id']",
-                                  "body/messageBody": "@{outputs('Compose_AdaptiveCard')}"
+                                  "body": {
+                                    "recipient": { "to": "@outputs('Get_my_profile_(V2)')?['body/id']" },
+                                    "messageBody": "@{outputs('Compose_AdaptiveCard')}"
+                                  }
                                 },
                                 "host": {
                                   "connectionName": "shared_teams",
@@ -448,10 +447,7 @@
           "Terminate_Graceful": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded",
-              "runError": {
-                "message": "Completed with errors — see error details"
-              }
+              "runStatus": "Succeeded"
             },
             "runAfter": {
               "Compose_ErrorDetails": ["Succeeded"]
