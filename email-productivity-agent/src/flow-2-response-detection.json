@@ -1,0 +1,481 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Daily_9AM": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Day",
+          "interval": 1,
+          "schedule": {
+            "hours": ["9"],
+            "minutes": ["0"]
+          },
+          "timeZone": "Eastern Standard Time"
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "List_NudgeConfig": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeconfigurations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": ["Succeeded"]
+        }
+      },
+      "Condition_Nudges_Enabled": {
+        "type": "If",
+        "expression": {
+          "or": [
+            {
+              "equals": [
+                "@length(outputs('List_NudgeConfig')?['body/value'])",
+                0
+              ]
+            },
+            {
+              "equals": [
+                "@first(outputs('List_NudgeConfig')?['body/value'])?['cr_nudgesenabled']",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {},
+        "else": {
+          "actions": {
+            "Terminate_Nudges_Disabled": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Succeeded",
+                "runError": {
+                  "message": "Nudges disabled for this user"
+                }
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "List_NudgeConfig": ["Succeeded"]
+        }
+      },
+      "List_Overdue_FollowUps": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_followuptrackings",
+            "$filter": "cr_responsereceived eq false and cr_nudgesent eq false and cr_dismissedbyuser eq false and cr_followupdate le @{utcNow()}",
+            "$orderby": "cr_followupdate asc",
+            "$top": 50
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Condition_Nudges_Enabled": ["Succeeded"]
+        }
+      },
+      "Scope_Process_FollowUps": {
+        "type": "Scope",
+        "actions": {
+          "Apply_to_each": {
+            "type": "Foreach",
+            "foreach": "@outputs('List_Overdue_FollowUps')?['body/value']",
+            "actions": {
+              "HTTP_Check_Replies": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "GET",
+                    "request/url": "/v1.0/me/messages?$filter=conversationId eq '@{items('Apply_to_each')?['cr_conversationid']}' and receivedDateTime gt @{items('Apply_to_each')?['cr_sentdatetime']}&$select=from,receivedDateTime,internetMessageHeaders,subject&$top=20"
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  }
+                }
+              },
+              "Condition_HTTP_Success": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@outputs('HTTP_Check_Replies')?['statusCode']",
+                        200
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Filter_Replies_By_Recipient": {
+                    "type": "Query",
+                    "inputs": {
+                      "from": "@body('HTTP_Check_Replies')?['value']",
+                      "where": "@equals(toLower(item()?['from']?['emailAddress']?['address']), toLower(items('Apply_to_each')?['cr_recipientemail']))"
+                    }
+                  },
+                  "Filter_Exclude_AutoReplies": {
+                    "type": "Query",
+                    "inputs": {
+                      "from": "@body('Filter_Replies_By_Recipient')",
+                      "where": "@not(startsWith(coalesce(item()?['subject'], ''), 'Automatic reply:'))"
+                    },
+                    "runAfter": {
+                      "Filter_Replies_By_Recipient": ["Succeeded"]
+                    }
+                  },
+                  "Condition_Reply_Found": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(body('Filter_Exclude_AutoReplies'))",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Update_Row_Reply_Received": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_followuptrackings",
+                            "recordId": "@items('Apply_to_each')?['cr_followuptrackingid']",
+                            "item/cr_responsereceived": true,
+                            "item/cr_lastchecked": "@utcNow()"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Requery_Row_Guard": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "entityName": "cr_followuptrackings",
+                              "recordId": "@items('Apply_to_each')?['cr_followuptrackingid']"
+                            },
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "GetItem",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            }
+                          }
+                        },
+                        "Condition_Still_Pending": {
+                          "type": "If",
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": ["@outputs('Requery_Row_Guard')?['body/cr_responsereceived']", false]
+                              },
+                              {
+                                "equals": ["@outputs('Requery_Row_Guard')?['body/cr_nudgesent']", false]
+                              },
+                              {
+                                "equals": ["@outputs('Requery_Row_Guard')?['body/cr_dismissedbyuser']", false]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Get_Thread_Preview": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "request/method": "GET",
+                                  "request/url": "/v1.0/me/messages?$filter=conversationId eq '@{items('Apply_to_each')?['cr_conversationid']}'&$select=bodyPreview,from,receivedDateTime&$orderby=receivedDateTime desc&$top=3"
+                                },
+                                "host": {
+                                  "connectionName": "shared_webcontents",
+                                  "operationId": "InvokeHttp",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                                }
+                              }
+                            },
+                            "Compose_ThreadExcerpt": {
+                              "type": "Compose",
+                              "inputs": "@take(join(body('Get_Thread_Preview')?['value'], ' --- '), 2000)",
+                              "runAfter": {
+                                "Get_Thread_Preview": ["Succeeded"]
+                              }
+                            },
+                            "Compose_DaysSinceSent": {
+                              "type": "Compose",
+                              "inputs": "@div(sub(ticks(utcNow()), ticks(items('Apply_to_each')?['cr_sentdatetime'])), 864000000000)",
+                              "runAfter": {
+                                "Compose_ThreadExcerpt": ["Succeeded"]
+                              }
+                            },
+                            "Compose_AdaptiveCard": {
+                              "type": "Compose",
+                              "inputs": {
+                                "type": "AdaptiveCard",
+                                "version": "1.4",
+                                "body": [
+                                  {
+                                    "type": "ColumnSet",
+                                    "columns": [
+                                      {
+                                        "type": "Column",
+                                        "width": "auto",
+                                        "items": [
+                                          {
+                                            "type": "Image",
+                                            "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bell/3D/bell_3d.png",
+                                            "size": "Small",
+                                            "altText": "Nudge bell icon"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Column",
+                                        "width": "stretch",
+                                        "items": [
+                                          {
+                                            "type": "TextBlock",
+                                            "text": "Follow-Up Reminder",
+                                            "weight": "Bolder",
+                                            "size": "Medium",
+                                            "color": "Accent"
+                                          },
+                                          {
+                                            "type": "TextBlock",
+                                            "text": "No response received — consider following up",
+                                            "size": "Small",
+                                            "isSubtle": true,
+                                            "spacing": "None"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "Container",
+                                    "style": "emphasis",
+                                    "items": [
+                                      {
+                                        "type": "TextBlock",
+                                        "text": "@{items('Apply_to_each')?['cr_originalsubject']}",
+                                        "weight": "Bolder",
+                                        "wrap": true
+                                      },
+                                      {
+                                        "type": "FactSet",
+                                        "facts": [
+                                          {
+                                            "title": "To",
+                                            "value": "@{items('Apply_to_each')?['cr_recipientemail']}"
+                                          },
+                                          {
+                                            "title": "Sent",
+                                            "value": "@{formatDateTime(items('Apply_to_each')?['cr_sentdatetime'], 'MMM dd, yyyy')}"
+                                          },
+                                          {
+                                            "title": "Waiting",
+                                            "value": "@{outputs('Compose_DaysSinceSent')} days"
+                                          },
+                                          {
+                                            "title": "Type",
+                                            "value": "@{items('Apply_to_each')?['cr_recipienttype']}"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "TextBlock",
+                                    "text": "**Thread Context**",
+                                    "spacing": "Medium"
+                                  },
+                                  {
+                                    "type": "TextBlock",
+                                    "text": "@{take(coalesce(outputs('Compose_ThreadExcerpt'), 'No thread preview available'), 500)}",
+                                    "wrap": true,
+                                    "isSubtle": true,
+                                    "maxLines": 4
+                                  }
+                                ],
+                                "actions": [
+                                  {
+                                    "type": "Action.Submit",
+                                    "title": "✏️ Draft Follow-Up",
+                                    "style": "positive",
+                                    "data": {
+                                      "action": "draft_followup",
+                                      "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}",
+                                      "conversationId": "@{items('Apply_to_each')?['cr_conversationid']}",
+                                      "recipientEmail": "@{items('Apply_to_each')?['cr_recipientemail']}"
+                                    }
+                                  },
+                                  {
+                                    "type": "Action.Submit",
+                                    "title": "⏰ Snooze 2 Days",
+                                    "data": {
+                                      "action": "snooze_nudge",
+                                      "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}"
+                                    }
+                                  },
+                                  {
+                                    "type": "Action.Submit",
+                                    "title": "✖️ Dismiss",
+                                    "data": {
+                                      "action": "dismiss_nudge",
+                                      "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}"
+                                    }
+                                  }
+                                ]
+                              },
+                              "runAfter": {
+                                "Compose_DaysSinceSent": ["Succeeded"]
+                              }
+                            },
+                            "Post_Adaptive_Card_To_Teams": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "poster": "Flow bot",
+                                  "location": "Chat with Flow bot",
+                                  "body/recipient/to": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                                  "body/messageBody": "@{outputs('Compose_AdaptiveCard')}"
+                                },
+                                "host": {
+                                  "connectionName": "shared_teams",
+                                  "operationId": "PostCardToConversation",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                                }
+                              },
+                              "runAfter": {
+                                "Compose_AdaptiveCard": ["Succeeded"]
+                              }
+                            },
+                            "Update_Row_Nudge_Sent": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "entityName": "cr_followuptrackings",
+                                  "recordId": "@items('Apply_to_each')?['cr_followuptrackingid']",
+                                  "item/cr_nudgesent": true,
+                                  "item/cr_lastchecked": "@utcNow()"
+                                },
+                                "host": {
+                                  "connectionName": "shared_commondataserviceforapps",
+                                  "operationId": "UpdateRecord",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                }
+                              },
+                              "runAfter": {
+                                "Post_Adaptive_Card_To_Teams": ["Succeeded"]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "runAfter": {
+                            "Requery_Row_Guard": ["Succeeded"]
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Filter_Exclude_AutoReplies": ["Succeeded"]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "HTTP_Check_Replies": ["Succeeded"]
+                }
+              }
+            },
+            "runtimeConfiguration": {
+              "concurrency": {
+                "repetitions": 5
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "List_Overdue_FollowUps": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 2 error: @{result('Scope_Process_FollowUps')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded",
+              "runError": {
+                "message": "Completed with errors — see error details"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Process_FollowUps": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 2: Response Detection & Nudge Delivery",
+    "description": "Daily 9 AM sweep: checks Graph API for replies to tracked emails, posts Teams adaptive cards for unreplied items.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "agentInvocation": "This MVP version posts nudge cards directly without Copilot agent evaluation. To add agent-based NUDGE/SKIP intelligence, insert a 'Run a flow from Copilot' or HTTP action before Compose_AdaptiveCard that passes the 7 agent inputs and gates on nudgeAction='NUDGE'.",
+      "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions."
+    }
+  }
+}

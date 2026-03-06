@@ -81,9 +81,14 @@ email-productivity-agent/
 ├── scripts/
 │   ├── provision-environment.ps1                # Environment + Dataverse table setup
 │   ├── create-security-roles.ps1                # Ownership-based RLS
-│   └── assign-security-role.ps1                 # Assign role to users
+│   ├── assign-security-role.ps1                 # Assign role to users
+│   └── deploy-agent-flows.ps1                   # Deploy all Power Automate flows via API
 ├── src/
-│   └── nudge-topic.yaml                         # Copilot Studio topic YAML (paste into code editor)
+│   ├── nudge-topic.yaml                         # Copilot Studio topic YAML (paste into code editor)
+│   ├── flow-1-sent-items-tracker.json           # Flow 1: event-driven sent email tracker
+│   ├── flow-2-response-detection.json           # Flow 2: daily reply check + Teams nudge
+│   ├── flow-2b-card-action-handler.json         # Flow 2b: adaptive card button handler
+│   └── flow-5-data-retention.json               # Flow 5: weekly 90-day cleanup
 ```
 
 ## Quick Start
@@ -94,7 +99,7 @@ email-productivity-agent/
 - [Azure CLI](https://aka.ms/installazurecli)
 - [PowerShell 7+](https://github.com/PowerShell/PowerShell)
 - Power Platform environment with Copilot Studio capacity
-- Power Automate Premium license (for Dataverse + HTTP connectors)
+- Copilot Studio license (Agent Flows cover premium connectors — no Power Automate Premium needed)
 
 ### Deploy
 
@@ -104,12 +109,11 @@ cd email-productivity-agent/scripts
 pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@example.com>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
-# Or assign to specific users:
-# pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -UserEmails "user1@example.com","user2@example.com"
 
 # 2. Configure Copilot Studio agent (see docs/deployment-guide.md Step 3)
 
-# 3. Build Power Automate flows (see docs/follow-up-nudge-flows.md)
+# 3. Deploy all Power Automate flows
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -OrgUrl "https://<org>.crm.dynamics.com"
 
 # 4. (Phase 2) Build snooze flows (see docs/snooze-auto-removal-flows.md)
 ```
