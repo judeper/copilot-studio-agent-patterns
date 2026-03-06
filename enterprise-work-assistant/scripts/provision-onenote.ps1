@@ -17,6 +17,13 @@
 .PARAMETER EnvironmentId
     The Power Platform environment ID where Dataverse config rows will be written.
 
+.PARAMETER OrgUrl
+    The Dataverse organization URL (e.g., https://org12345.crm.dynamics.com).
+    Required for provisioning OneNote-specific columns on the AssistantCards table.
+
+.PARAMETER PublisherPrefix
+    Dataverse publisher prefix for custom columns. Defaults to "cr".
+
 .PARAMETER GroupDisplayName
     Display name for the M365 Group. Defaults to "Enterprise Work Assistant - OneNote".
 
@@ -30,15 +37,20 @@
     Existing M365 Group ID. Required when -SkipGroupCreation is set.
 
 .EXAMPLE
-    .\provision-onenote.ps1 -EnvironmentId "00000000-0000-0000-0000-000000000000"
+    .\provision-onenote.ps1 -EnvironmentId "00000000-0000-0000-0000-000000000000" -OrgUrl "https://org12345.crm.dynamics.com"
 
 .EXAMPLE
-    .\provision-onenote.ps1 -EnvironmentId "00000000-0000-0000-0000-000000000000" -SkipGroupCreation -GroupId "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    .\provision-onenote.ps1 -EnvironmentId "00000000-0000-0000-0000-000000000000" -OrgUrl "https://org12345.crm.dynamics.com" -SkipGroupCreation -GroupId "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 #>
 
 param(
     [Parameter(Mandatory = $true)]
     [string]$EnvironmentId,
+
+    [Parameter(Mandatory = $true)]
+    [string]$OrgUrl,
+
+    [string]$PublisherPrefix = "cr",
 
     [string]$GroupDisplayName = "Enterprise Work Assistant - OneNote",
 
@@ -204,6 +216,251 @@ $envVars = @{
 Write-Host "`nEnvironment variables to configure in Power Automate:" -ForegroundColor Green
 foreach ($key in $envVars.Keys | Sort-Object) {
     Write-Host "  $key = $($envVars[$key])"
+}
+
+# ── Step 6: Provision OneNote Columns on AssistantCards Table ────────────────────
+
+Write-Host "`n[6/6] OneNote Dataverse Columns" -ForegroundColor Yellow
+Write-Host "  Adding OneNote-specific columns to the AssistantCards table..."
+
+$dvOrgUrl = $OrgUrl.TrimEnd('/')
+$dvToken = az account get-access-token --resource $dvOrgUrl --query accessToken -o tsv
+if (-not $dvToken) {
+    Write-Warning "  Failed to get Dataverse access token. Run 'az login' first."
+    Write-Warning "  Skipping Dataverse column provisioning — create columns manually per schemas/dataverse-table.json."
+} else {
+    $dvHeaders = @{
+        "Authorization"    = "Bearer $dvToken"
+        "Content-Type"     = "application/json"
+        "OData-MaxVersion" = "4.0"
+        "OData-Version"    = "4.0"
+    }
+    $dvApiBase = "$dvOrgUrl/api/data/v9.2"
+
+    # Look up the AssistantCards entity metadata ID
+    try {
+        $entityMeta = Invoke-RestMethod -Uri "$dvApiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_assistantcard')" -Headers $dvHeaders
+        $dvEntityId = $entityMeta.MetadataId
+    } catch {
+        Write-Warning "  AssistantCards table not found. Run provision-environment.ps1 first."
+        Write-Warning "  Skipping Dataverse column provisioning."
+        $dvEntityId = $null
+    }
+
+    if ($dvEntityId) {
+        # cr_onenotepageid — Text, max 500
+        $pageIdCol = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName    = "${PublisherPrefix}_onenotepageid"
+            RequiredLevel = @{ Value = "None" }
+            MaxLength     = 500
+            DisplayName   = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "OneNote Page ID"
+                    LanguageCode  = 1033
+                })
+            }
+            Description = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "OneNote page ID for the corresponding knowledge page. Populated by flows that write to OneNote."
+                    LanguageCode  = 1033
+                })
+            }
+        } | ConvertTo-Json -Depth 20
+
+        try {
+            Invoke-RestMethod -Uri "$dvApiBase/EntityDefinitions($dvEntityId)/Attributes" -Method Post -Headers $dvHeaders -Body $pageIdCol
+            Write-Host "  Column 'OneNote Page ID' created." -ForegroundColor Green
+        } catch {
+            Write-Warning "  Column 'OneNote Page ID' failed (may already exist): $($_.Exception.Message)"
+        }
+
+        # cr_onenotesyncstatus — Choice: SYNCED, FAILED, PENDING
+        $syncStatusCol = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+            SchemaName    = "${PublisherPrefix}_onenotesyncstatus"
+            RequiredLevel = @{ Value = "None" }
+            DisplayName   = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "OneNote Sync Status"
+                    LanguageCode  = 1033
+                })
+            }
+            Description = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "Sync status for the OneNote page linked to this card. Canvas app displays a warning badge when FAILED."
+                    LanguageCode  = 1033
+                })
+            }
+            OptionSet = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+                IsGlobal        = $false
+                OptionSetType   = "Picklist"
+                Options         = @(
+                    @{
+                        Value = 100000000
+                        Label = @{
+                            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                            LocalizedLabels = @(@{
+                                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                                Label         = "SYNCED"
+                                LanguageCode  = 1033
+                            })
+                        }
+                    },
+                    @{
+                        Value = 100000001
+                        Label = @{
+                            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                            LocalizedLabels = @(@{
+                                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                                Label         = "FAILED"
+                                LanguageCode  = 1033
+                            })
+                        }
+                    },
+                    @{
+                        Value = 100000002
+                        Label = @{
+                            "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                            LocalizedLabels = @(@{
+                                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                                Label         = "PENDING"
+                                LanguageCode  = 1033
+                            })
+                        }
+                    }
+                )
+            }
+        } | ConvertTo-Json -Depth 20
+
+        try {
+            Invoke-RestMethod -Uri "$dvApiBase/EntityDefinitions($dvEntityId)/Attributes" -Method Post -Headers $dvHeaders -Body $syncStatusCol
+            Write-Host "  Column 'OneNote Sync Status' created." -ForegroundColor Green
+        } catch {
+            Write-Warning "  Column 'OneNote Sync Status' failed (may already exist): $($_.Exception.Message)"
+        }
+
+        # cr_onenoteenabled — Boolean (org-level feature flag)
+        $enabledCol = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+            SchemaName    = "${PublisherPrefix}_onenoteenabled"
+            RequiredLevel = @{ Value = "None" }
+            DisplayName   = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "OneNote Enabled"
+                    LanguageCode  = 1033
+                })
+            }
+            Description = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "Feature flag for OneNote integration. When false, all OneNote writes are skipped."
+                    LanguageCode  = 1033
+                })
+            }
+            OptionSet = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+                TrueOption    = @{
+                    Value = 1
+                    Label = @{
+                        "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                        LocalizedLabels = @(@{
+                            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                            Label         = "Yes"
+                            LanguageCode  = 1033
+                        })
+                    }
+                }
+                FalseOption = @{
+                    Value = 0
+                    Label = @{
+                        "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                        LocalizedLabels = @(@{
+                            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                            Label         = "No"
+                            LanguageCode  = 1033
+                        })
+                    }
+                }
+            }
+        } | ConvertTo-Json -Depth 20
+
+        try {
+            Invoke-RestMethod -Uri "$dvApiBase/EntityDefinitions($dvEntityId)/Attributes" -Method Post -Headers $dvHeaders -Body $enabledCol
+            Write-Host "  Column 'OneNote Enabled' created." -ForegroundColor Green
+        } catch {
+            Write-Warning "  Column 'OneNote Enabled' failed (may already exist): $($_.Exception.Message)"
+        }
+
+        # cr_onenoteoptout — Boolean (per-user opt-out)
+        $optOutCol = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+            SchemaName    = "${PublisherPrefix}_onenoteoptout"
+            RequiredLevel = @{ Value = "None" }
+            DisplayName   = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "OneNote Opt-Out"
+                    LanguageCode  = 1033
+                })
+            }
+            Description = @{
+                "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label         = "Per-user preference to disable OneNote sync. When true, OneNote writes for this user are skipped."
+                    LanguageCode  = 1033
+                })
+            }
+            OptionSet = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+                TrueOption    = @{
+                    Value = 1
+                    Label = @{
+                        "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                        LocalizedLabels = @(@{
+                            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                            Label         = "Yes"
+                            LanguageCode  = 1033
+                        })
+                    }
+                }
+                FalseOption = @{
+                    Value = 0
+                    Label = @{
+                        "@odata.type"   = "Microsoft.Dynamics.CRM.Label"
+                        LocalizedLabels = @(@{
+                            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                            Label         = "No"
+                            LanguageCode  = 1033
+                        })
+                    }
+                }
+            }
+        } | ConvertTo-Json -Depth 20
+
+        try {
+            Invoke-RestMethod -Uri "$dvApiBase/EntityDefinitions($dvEntityId)/Attributes" -Method Post -Headers $dvHeaders -Body $optOutCol
+            Write-Host "  Column 'OneNote Opt-Out' created." -ForegroundColor Green
+        } catch {
+            Write-Warning "  Column 'OneNote Opt-Out' failed (may already exist): $($_.Exception.Message)"
+        }
+
+        Write-Host "  OneNote Dataverse columns provisioned." -ForegroundColor Green
+    }
 }
 
 Write-Host "`n━━━ Provisioning Complete ━━━" -ForegroundColor Cyan
