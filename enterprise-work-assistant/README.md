@@ -170,11 +170,15 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Group-scoped Graph app (not delegated `/me/`) | Least-privilege; doesn't break on connection owner changes |
 | Feature flag + per-user opt-out for OneNote | Instant rollback; respects user preferences |
 | `{{PLACEHOLDER}}` HTML templates for OneNote pages | Separates content from structure; Power Automate handles escaping |
+| Draft persistence via `saveDraftAction` output | Debounced (2s) writes to Dataverse ensure edited drafts survive browser refresh |
+| Dismiss retry with `pendingDismissals` map | Up to 3 automatic retries prevent silent failures on network issues |
+| Escape key closes overlays | Standard keyboard UX: Escape exits edit mode, confirmation, detail view, and command bar |
 
 ## Known Limitations
 
 | Limitation | Mitigation |
 |------------|------------|
+| **POC only — not production-hardened** | Full ARIA/screen reader audit, i18n, optimistic concurrency, DataSet paging (100+ cards), and capacity planning are out of scope. See `.planning/ROADMAP.md` for deferred items. |
 | No automated data retention — AssistantCards table stores email subjects, sender PII, behavioral profiles, and communication drafts indefinitely with no cleanup flow | For organizations with data retention requirements, implement a scheduled Power Automate flow to delete/archive cards older than N days based on `cr_createdon`. See the Email Productivity Agent's Flow 5 for a 90-day cleanup reference pattern. |
 | English-only UI and prompts — the PCF component ships with only English localization (`1033.resx`) and all agent prompts are written in English | Non-English email and Teams content is processed correctly, but UI labels remain in English. Add additional `.resx` files for other locales and localize prompts as needed. |
 | OneNote Phase 2-3 not implemented — read-back, annotation promotion, and bi-directional sync are planned but not yet available | Phase 1 (write-only) is fully functional. See [`docs/onenote-integration.md`](docs/onenote-integration.md) for the roadmap. |

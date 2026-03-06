@@ -89,9 +89,11 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit();
+            } else if (e.key === "Escape" && isExpanded) {
+                setIsExpanded(false);
             }
         },
-        [handleSubmit],
+        [handleSubmit, isExpanded],
     );
 
     const handleQuickAction = useCallback(

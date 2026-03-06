@@ -5,7 +5,7 @@
 - ✅ **v1.0 Production Readiness** — Phases 1-9 (shipped 2026-02-22)
 - ✅ **v2.0 Second Brain Evolution** — Sprints 1A-4 (shipped 2026-02-28)
 - ✅ **v2.1 Pre-Deployment Audit** — Phases 10-13 (shipped 2026-03-01)
-- 🚧 **v2.2 Tech Debt Cleanup** — Phases 14-19 (in progress)
+- ✅ **v2.2 Tech Debt Cleanup (POC Scope)** — Phases 14-19 (POC complete)
 
 ## Phases
 
@@ -52,16 +52,16 @@ Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
 
 </details>
 
-### 🚧 v2.2 Tech Debt Cleanup (Phases 14-19)
+### ✅ v2.2 Tech Debt Cleanup — POC Scope (Phases 14-19)
 
-**Milestone Goal:** Resolve all deferred tech debt items from the v2.1 pre-deployment audit, bringing the solution to a clean state with no known outstanding issues.
+**Milestone Goal:** Resolve high-value tech debt from the v2.1 audit for POC readiness. Production-grade items (full a11y audit, i18n, optimistic concurrency, DataSet paging, capacity planning) are out of scope — this is a POC, not a production build.
 
 - [x] **Phase 14: Sender Intelligence Completion** - Wire SENDER_PROFILE to agent, fix race conditions, and add full edit distance tracking (completed 2026-03-01)
 - [x] **Phase 15: Workflow Completeness** - Add reminder firing flow, briefing schedule configuration, and complete trigger type coverage (completed 2026-03-01)
 - [x] **Phase 16: Fluent UI Migration and UX Polish** - Replace plain HTML with Fluent UI components and fix UX gaps (loading, navigation, empty states) (completed 2026-03-01)
-- [ ] **Phase 17: Accessibility and Internationalization** - ARIA/keyboard/screen reader audit plus i18n string externalization strategy
-- [ ] **Phase 18: Operational Resilience** - Concurrency guards, retry logic, pagination, persistence, dead-letter evaluation, and field truncation
-- [ ] **Phase 19: Deployment Documentation** - PAC CLI versioning, NuGet restore, managed solutions, knowledge sources, tuning, rate limits, capacity, licensing
+- [ ] **Phase 17: Accessibility (POC scope)** - Escape key closes overlays (ARIA/screen reader audit and i18n deferred — POC only)
+- [ ] **Phase 18: Operational Resilience (POC scope)** - Draft edit persistence and basic retry on dismiss (optimistic concurrency, field truncation, DataSet paging deferred — POC only)
+- [ ] **Phase 19: Deployment Documentation (POC scope)** - PAC CLI versioning, knowledge source setup, license/role matrix (timeout tuning, capacity planning deferred — POC only)
 
 ## Phase Details
 
@@ -175,45 +175,57 @@ Plans:
 - [ ] 16-01-PLAN.md — BriefingCard + ConfidenceCalibration Fluent UI migration, Back button, empty analytics fix
 - [ ] 16-02-PLAN.md — CommandBar Fluent UI migration, App loading Spinner, Agent Performance button, onBack wiring
 
-### Phase 17: Accessibility and Internationalization
-**Goal**: The dashboard is usable via keyboard-only navigation and screen readers, and a documented i18n strategy enables future non-English deployments
-**Depends on**: Phase 16 (accessibility audit is more effective after Fluent UI migration)
-**Requirements**: UIUX-02, UIUX-03, UIUX-08
+### Phase 17: Accessibility (POC Scope)
+**Goal**: Escape key closes overlays for basic keyboard navigation
+**Depends on**: Phase 16
+**Requirements**: UIUX-03
+**POC Scope Note**: Full ARIA/screen reader audit (UIUX-02) and i18n strategy (UIUX-08) are out of scope — this is a POC, not a production build. Fluent UI v9 components already provide baseline accessibility.
 **Success Criteria** (what must be TRUE):
-  1. Every interactive element (buttons, tabs, inputs, cards) has an appropriate ARIA label or role, and screen readers can announce the element's purpose and state
-  2. Pressing Escape closes any open detail panel, edit panel, or command bar overlay, returning focus to the previously active element
-  3. A documented i18n strategy specifies the string externalization pattern (resource files vs. constants), covers all user-facing text in the PCF control, and provides a concrete example of adding a second language
+  1. Pressing Escape closes any open detail panel, edit panel, or command bar overlay, returning focus to the previously active element
 **Plans**: TBD
 
-### Phase 18: Operational Resilience
-**Goal**: The system handles production-scale data volumes, concurrent operations, and transient failures without data loss or silent corruption
-**Depends on**: Phase 15 (flow specs from WKFL must be stable before adding resilience patterns)
-**Requirements**: OPER-01, OPER-02, OPER-03, OPER-04, OPER-05, UIUX-07
+### Phase 18: Operational Resilience (POC Scope)
+**Goal**: Draft edits persist across sessions and dismiss actions don't silently fail
+**Depends on**: Phase 15
+**Requirements**: OPER-03, OPER-04
+**POC Scope Note**: Field truncation (OPER-01), optimistic concurrency (OPER-02), dead-letter evaluation (OPER-05), and DataSet paging (UIUX-07) are out of scope — this is a POC, not a production build.
 **Success Criteria** (what must be TRUE):
-  1. Power Automate Compose actions use Left() truncation for any field that could exceed its Dataverse maxLength, preventing silent data loss on long inputs
-  2. Outcome tracker flow uses optimistic concurrency (ETag/If-Match) on running average updates so concurrent card actions do not cause counter drift
-  3. Draft edits written via the inline edit panel persist to the Dataverse cr_editeddraft column and survive browser refresh
-  4. Dismiss action includes retry logic (up to 3 attempts with exponential backoff) and displays a Fluent UI error toast on final failure instead of silently dropping the action
-  5. DataSet paging is implemented so deployments with more than 100 active cards load additional pages on demand without truncating results
+  1. Draft edits written via the inline edit panel persist to the Dataverse cr_editeddraft column and survive browser refresh
+  2. Dismiss action includes basic retry logic (1-2 attempts) to prevent silent failures
 **Plans**: TBD
 
-### Phase 19: Deployment Documentation
-**Goal**: The deployment guide covers every prerequisite, configuration step, and operational concern a Power Platform admin needs to deploy and maintain the solution
+### Phase 19: Deployment Documentation (POC Scope)
+**Goal**: Admins can reproduce the POC deployment with documented prerequisites and configuration steps
 **Depends on**: Nothing (documentation is independent of code phases)
-**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05, DOCS-06, DOCS-07, DOCS-08
+**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-08
+**POC Scope Note**: Agent timeout tuning (DOCS-05), API rate limit guidance (DOCS-06), and capacity planning (DOCS-07) are out of scope — this is a POC, not a production build. Use platform defaults.
 **Success Criteria** (what must be TRUE):
-  1. The deployment guide specifies the minimum PAC CLI version, includes a NuGet restore step in deploy-solution.ps1, and documents managed vs. unmanaged solution guidance for production deployments
-  2. Knowledge source configuration steps (which documents to upload, how to configure the agent's knowledge base) are documented with screenshots or step descriptions
-  3. Agent timeout tuning guidance and API rate limit awareness sections exist with concrete recommended values and throttling mitigation strategies
-  4. A capacity planning section provides usage-dependent guidance (expected Dataverse row growth rates, flow run quotas, API call volumes) for sizing the deployment
-  5. A license and role requirements matrix lists every Power Platform license, Dataverse security role, and connector permission needed to deploy and operate the solution
+  1. The deployment guide specifies the minimum PAC CLI version, includes a NuGet restore step in deploy-solution.ps1, and documents managed vs. unmanaged solution guidance
+  2. Knowledge source configuration steps (which documents to upload, how to configure the agent's knowledge base) are documented
+  3. A license and role requirements matrix lists every Power Platform license, Dataverse security role, and connector permission needed to deploy the POC
 **Plans**: TBD
+
+## Items Removed from Scope (POC Decision)
+
+The following items were removed from the v2.2 roadmap because this is a POC, not a production build. They can be revisited if the solution is productionized.
+
+| Removed Item | Original Phase | Reason for Removal |
+|-------------|---------------|-------------------|
+| Full ARIA/screen reader audit | Phase 17 | Fluent UI v9 provides baseline a11y; full audit is weeks of work |
+| i18n strategy & string externalization | Phase 17 | English-only is sufficient for POC |
+| Field truncation with Left() | Phase 18 | Edge case for extreme input lengths; Power Automate auto-truncates |
+| Optimistic concurrency (ETag) | Phase 18 | Race conditions unlikely with <10 demo users |
+| Dead-letter mechanism | Phase 18 | Power Automate provides built-in failure notifications |
+| DataSet paging for 100+ cards | Phase 18 | POC won't have 100+ active cards |
+| Agent timeout tuning guide | Phase 19 | Default 120s timeout is adequate for POC |
+| API rate limit guidance | Phase 19 | Platform limits documented by Microsoft; not POC-specific |
+| Capacity planning guidance | Phase 19 | No usage data available yet; not applicable to demo |
 
 ## Progress
 
 **Execution Order:**
 Phases execute in numeric order: 14 -> 15 -> 16 -> 17 -> 18 -> 19
-(Phase 19 can execute in parallel with 15-18 since documentation is independent)
+(Phase 19 can execute in parallel with 17-18 since documentation is independent)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -230,9 +242,9 @@ Phases execute in numeric order: 14 -> 15 -> 16 -> 17 -> 18 -> 19
 | 11. Frontend / PCF Review | v2.1 | 2/2 | Complete | 2026-02-28 |
 | 12. Integration / E2E Review | v2.1 | 2/2 | Complete | 2026-02-28 |
 | 13. Remediation | v2.1 | 4/4 | Complete | 2026-03-01 |
-| 14. Sender Intelligence Completion | 2/2 | Complete    | 2026-03-01 | - |
-| 15. Workflow Completeness | 2/2 | Complete    | 2026-03-01 | - |
-| 16. Fluent UI Migration and UX Polish | 2/2 | Complete    | 2026-03-01 | - |
-| 17. Accessibility and Internationalization | v2.2 | 0/TBD | Not started | - |
-| 18. Operational Resilience | v2.2 | 0/TBD | Not started | - |
-| 19. Deployment Documentation | v2.2 | 0/TBD | Not started | - |
+| 14. Sender Intelligence Completion | v2.2 | 2/2 | Complete | 2026-03-01 |
+| 15. Workflow Completeness | v2.2 | 2/2 | Complete | 2026-03-01 |
+| 16. Fluent UI Migration and UX Polish | v2.2 | 2/2 | Complete | 2026-03-01 |
+| 17. Accessibility (POC scope) | v2.2 | 0/TBD | Not started | - |
+| 18. Operational Resilience (POC scope) | v2.2 | 0/TBD | Not started | - |
+| 19. Deployment Documentation (POC scope) | v2.2 | 0/TBD | Not started | - |

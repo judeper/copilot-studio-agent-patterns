@@ -43,35 +43,37 @@ Issues that were resolved during remediation (Waves 1-4).
 
 Issues documented with rationale and suggested timeline. None of these prevent deployment.
 
-| # | Issue ID | Phase | Issue | Severity | Deferral Rationale | Suggested Timeline |
-|---|----------|-------|-------|----------|-------------------|--------------------|
-| 1 | R-14 | 10 | PAC CLI version dependency not documented | INFO | Operational documentation -- does not affect artifact correctness. Script works with any recent PAC CLI version. | Post-deployment: add minimum version to README |
-| 2 | R-15 / I-19 | 10, 12 | Trigger Type Compose covers 3 of 6 values (EMAIL, TEAMS_MESSAGE, CALENDAR_SCAN) | WARN | Functional as-is for Sprints 1-3 trigger types. DAILY_BRIEFING, SELF_REMINDER, and COMMAND_RESULT cards are created by dedicated flows that set trigger_type directly, not through the Compose action. Adding a comment to flows is cosmetic. | Post-deployment: add documentation comment in flow descriptions |
-| 3 | R-17 / I-14 | 10, 12 | SENDER_PROFILE JSON not passed to main agent as input variable | WARN | Sender analytics still provide value: Flow 9 (Sender Profile Analyzer) updates cr_sendercategory, which flows can use for routing. Passing SENDER_PROFILE as an input variable requires flow-level input mapping changes in Copilot Studio that need live environment testing. Partial functionality exists without this. | Post-deployment Sprint 5: implement when Copilot Studio environment is available for iterative testing |
-| 4 | R-19 / I-22 | 10, 12 | Sender profile upsert race condition (concurrent signals from same sender) | WARN | Requires R-11 alternate key (now fixed) but also needs flow-level Upsert change. Race window is narrow (concurrent emails from same sender within seconds). Alternate key prevents duplicates; worst case is a lost counter increment. | Post-deployment: change Create to Upsert in trigger flows |
-| 5 | R-20 | 10 | NuGet restore not validated before solution build | INFO | Build toolchain concern. Developer will see clear error if NuGet packages are missing. Does not affect runtime behavior. | Post-deployment: add `dotnet restore` step to deploy-solution.ps1 |
-| 6 | R-21 | 10 | Solution packaged as Unmanaged | INFO | Appropriate for development/testing (current phase). Switching to Managed is a deployment-time concern documented in deployment-guide.md. | Production deployment: change SolutionPackageType in Solution.cdsproj |
-| 7 | R-23 | 10 | Knowledge source configurations not documented | WARN | Environment-specific settings that vary per tenant. Cannot be templated in artifacts. Requires live Copilot Studio environment to configure. | Post-deployment: document after first live configuration |
-| 8 | R-30 | 10 | Agent timeout documentation missing | INFO | Operational concern. Default Copilot Studio timeout (120s) is adequate for MVP. | Post-deployment: add timeout tuning guidance |
-| 9 | R-31 | 10 | API rate limit documentation missing | INFO | Operational concern. Power Platform throttling limits are documented by Microsoft and apply to all solutions. | Post-deployment: add rate limit awareness section |
-| 10 | R-32 | 10 | Capacity planning section missing | INFO | Operational concern. Capacity depends on actual usage patterns not yet known. | Post-deployment: add after usage data is available |
-| 11 | R-33 | 10 | License/role requirements not documented | INFO | Operational concern. License requirements (Power Apps per-user, Copilot Studio capacity) depend on organizational licensing model. | Post-deployment: add license matrix |
-| 12 | R-34 | 10 | maxLength truncation expression not implemented | WARN | Defensive measure for edge case where agent output exceeds column max length. Power Automate truncates automatically on Dataverse write. Low risk of data loss (only affects very long outputs). | Post-deployment: add Left() truncation to Compose actions |
-| 13 | R-35 | 10 | Briefing schedule persistence table missing | WARN | Tech debt #13 reclassified as deferred in 13-03. Briefing schedule requires a dedicated Dataverse table and Canvas App UI beyond v2.1 scope. Daily Briefing uses Power Automate recurrence trigger. | Future milestone: implement schedule configuration UI |
-| 14 | F-09 - F-12 | 11 | Plain HTML instead of Fluent UI in BriefingCard, ConfidenceCalibration, CommandBar, App | WARN | Visual consistency only. Components render correctly with plain HTML. No functional or correctness impact. | Post-deployment: migrate to Fluent UI components for visual consistency |
-| 15 | F-13 | 11 | Missing loading state while data loads | WARN | UX improvement. Dashboard shows empty state briefly before data arrives. Not a functional issue. | Post-deployment: add Spinner/Shimmer loading indicator |
-| 16 | F-14 | 11 | BriefingCard detail view has no Back button | WARN | UX trap -- user must know to use breadcrumb or click outside. Not a functional blocker but poor UX. | Post-deployment: add Back navigation button |
-| 17 | F-17 | 11 | Missing ARIA labels and roles on interactive elements | WARN | Accessibility improvement. All functionality is mouse-accessible. Keyboard/screen-reader users affected. | Post-deployment: accessibility audit and fix |
-| 18 | F-18 | 11 | Missing Escape key to close detail views | WARN | Keyboard navigation improvement. Click-to-close works. | Post-deployment: add keyboard event handlers |
-| 19 | F-19 | 11 | Misleading 0% display for empty analytics buckets | WARN | UX edge case. Affects only new deployments with zero card history. Displays "0%" instead of "No data". | Post-deployment: add empty state messaging |
-| 20 | F-20 / I-32 | 11, 12 | DataSet paging not implemented | WARN | Mitigated by 7-day staleness expiration (cards expire to EXPIRED, reducing active set). Only affects deployments with >100 active cards simultaneously. | Post-deployment: implement paging.loadNextPage() |
-| 21 | F-22 | 11 | Missing React ESLint plugins (eslint-plugin-react-hooks) | WARN | Prevents catching hook dependency errors at lint time. All current hooks are correct (verified by review). Requires npm install which is beyond doc remediation scope. | Next development session: `npm install --save-dev eslint-plugin-react-hooks` |
-| 22 | I-21 | 12 | SENT_EDITED outcome distinction (edit distance) | WARN | Edit distance uses 0/1 boolean for MVP (implemented in 13-02). Full Levenshtein distance requires custom connector or Azure Function. | Post-deployment: implement Levenshtein when custom connector is available |
-| 23 | I-23 | 12 | Concurrent outcome tracker race condition | WARN | Low probability -- requires two users acting on same card within seconds. Impact is minor statistical drift in sender profile counters. | Post-deployment: add optimistic concurrency check if needed |
-| 24 | I-28 | 12 | Draft edits not persisted to Dataverse | WARN | UX improvement. Edited drafts exist in PCF state during session. Refreshing the page loses edits. Non-critical because users typically edit and send immediately. | Post-deployment: add cr_editeddraft column to persist edits |
-| 25 | I-29 | 12 | Dismiss error handling incomplete | WARN | Low-frequency failure. Dismiss action updates Dataverse directly via PCF output property. Error path falls through to generic Canvas App error display. | Post-deployment: add retry logic and error toast |
-| 26 | I-30 | 12 | No dead-letter mechanism for failed flow runs | WARN | Operational concern. Power Automate provides built-in flow run failure notifications and retry policies. Custom dead-letter queue is an optimization. | Post-deployment: evaluate need based on failure rates |
-| 27 | I-31 | 12 | Reminder firing mechanism missing | WARN | Incomplete feature. SELF_REMINDER cards can be created via Command Execution but no flow checks for due reminders. Feature is additive -- does not affect existing functionality. | Future milestone: implement reminder check flow |
+> **POC Scope Update (2026-03-06):** Items marked with ❌ have been removed from scope entirely. This is a POC, not a production build. Only items marked ✅ remain in the v2.2 POC roadmap.
+
+| # | Issue ID | Phase | Issue | Severity | POC | Deferral Rationale | Suggested Timeline |
+|---|----------|-------|-------|----------|-----|-------------------|--------------------|
+| 1 | R-14 | 10 | PAC CLI version dependency not documented | INFO | ✅ | Operational documentation -- does not affect artifact correctness. Script works with any recent PAC CLI version. | Phase 19 (POC) |
+| 2 | R-15 / I-19 | 10, 12 | Trigger Type Compose covers 3 of 6 values | WARN | ✅ DONE | Fixed in Phase 15 | Complete |
+| 3 | R-17 / I-14 | 10, 12 | SENDER_PROFILE JSON not passed to main agent | WARN | ✅ DONE | Fixed in Phase 14 | Complete |
+| 4 | R-19 / I-22 | 10, 12 | Sender profile upsert race condition | WARN | ✅ DONE | Fixed in Phase 14 | Complete |
+| 5 | R-20 | 10 | NuGet restore not validated before solution build | INFO | ✅ | Build toolchain concern. | Phase 19 (POC) |
+| 6 | R-21 | 10 | Solution packaged as Unmanaged | INFO | ✅ | Appropriate for development/testing. | Phase 19 (POC) |
+| 7 | R-23 | 10 | Knowledge source configurations not documented | WARN | ✅ | Environment-specific settings. | Phase 19 (POC) |
+| 8 | R-30 | 10 | Agent timeout documentation missing | INFO | ❌ | Removed from POC scope — use default 120s | N/A (POC) |
+| 9 | R-31 | 10 | API rate limit documentation missing | INFO | ❌ | Removed from POC scope — platform limits documented by Microsoft | N/A (POC) |
+| 10 | R-32 | 10 | Capacity planning section missing | INFO | ❌ | Removed from POC scope — no usage data available | N/A (POC) |
+| 11 | R-33 | 10 | License/role requirements not documented | INFO | ✅ | Operational concern. | Phase 19 (POC) |
+| 12 | R-34 | 10 | maxLength truncation expression not implemented | WARN | ❌ | Removed from POC scope — Power Automate auto-truncates | N/A (POC) |
+| 13 | R-35 | 10 | Briefing schedule persistence table missing | WARN | ✅ DONE | Fixed in Phase 15 | Complete |
+| 14 | F-09 - F-12 | 11 | Plain HTML instead of Fluent UI | WARN | ✅ DONE | Fixed in Phase 16 | Complete |
+| 15 | F-13 | 11 | Missing loading state while data loads | WARN | ✅ DONE | Fixed in Phase 16 | Complete |
+| 16 | F-14 | 11 | BriefingCard detail view has no Back button | WARN | ✅ DONE | Fixed in Phase 16 | Complete |
+| 17 | F-17 | 11 | Missing ARIA labels and roles on interactive elements | WARN | ❌ | Removed from POC scope — Fluent UI provides baseline a11y | N/A (POC) |
+| 18 | F-18 | 11 | Missing Escape key to close detail views | WARN | ✅ | Keyboard navigation improvement. | Phase 17 (POC) |
+| 19 | F-19 | 11 | Misleading 0% display for empty analytics buckets | WARN | ✅ DONE | Fixed in Phase 16 | Complete |
+| 20 | F-20 / I-32 | 11, 12 | DataSet paging not implemented | WARN | ❌ | Removed from POC scope — POC won't have 100+ cards | N/A (POC) |
+| 21 | F-22 | 11 | Missing React ESLint plugins | WARN | ✅ DONE | Fixed in Phase 14 | Complete |
+| 22 | I-21 | 12 | SENT_EDITED outcome distinction (edit distance) | WARN | ✅ DONE | Fixed in Phase 14 | Complete |
+| 23 | I-23 | 12 | Concurrent outcome tracker race condition | WARN | ❌ | Removed from POC scope — unlikely with <10 demo users | N/A (POC) |
+| 24 | I-28 | 12 | Draft edits not persisted to Dataverse | WARN | ✅ | UX improvement. | Phase 18 (POC) |
+| 25 | I-29 | 12 | Dismiss error handling incomplete | WARN | ✅ | Low-frequency failure. | Phase 18 (POC) |
+| 26 | I-30 | 12 | No dead-letter mechanism for failed flow runs | WARN | ❌ | Removed from POC scope — Power Automate has built-in failure notifications | N/A (POC) |
+| 27 | I-31 | 12 | Reminder firing mechanism missing | WARN | ✅ DONE | Fixed in Phase 15 | Complete |
 
 ---
 
