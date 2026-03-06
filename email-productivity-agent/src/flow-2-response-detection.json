@@ -50,9 +50,9 @@
       "Condition_Nudges_Enabled": {
         "type": "If",
         "expression": {
-          "or": [
+          "and": [
             {
-              "equals": [
+              "greater": [
                 "@length(outputs('List_NudgeConfig')?['body/value'])",
                 0
               ]
