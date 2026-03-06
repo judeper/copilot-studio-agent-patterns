@@ -79,7 +79,9 @@ $roleDef = @{
 } | ConvertTo-Json
 
 try {
-    $roleResult = Invoke-RestMethod -Uri "$apiBase/roles" -Method Post -Headers $headers -Body $roleDef
+    $createHeaders = $headers.Clone()
+    $createHeaders["Prefer"] = "return=representation"
+    $roleResult = Invoke-RestMethod -Uri "$apiBase/roles" -Method Post -Headers $createHeaders -Body $roleDef
     $roleId = $roleResult.roleid
     Write-Host "  Role created: $roleId" -ForegroundColor Green
 } catch {
