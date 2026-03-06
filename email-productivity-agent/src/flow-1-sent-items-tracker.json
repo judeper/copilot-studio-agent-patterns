@@ -67,10 +67,7 @@
           "Terminate_Calendar": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded",
-              "runError": {
-                "message": "Skipped: calendar response"
-              }
+              "runStatus": "Succeeded"
             }
           }
         },
@@ -97,10 +94,7 @@
           "Terminate_AutoReply": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded",
-              "runError": {
-                "message": "Skipped: auto-reply"
-              }
+              "runStatus": "Succeeded"
             }
           }
         },
@@ -261,7 +255,7 @@
                   },
                   "host": {
                     "connectionName": "shared_commondataserviceforapps",
-                    "operationId": "UpsertRecord",
+                    "operationId": "UpdateRecord",
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
                   }
                 },
@@ -286,10 +280,7 @@
           "Terminate_Graceful": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded",
-              "runError": {
-                "message": "Completed with errors — see error details"
-              }
+              "runStatus": "Succeeded"
             },
             "runAfter": {
               "Compose_ErrorDetails": ["Succeeded"]

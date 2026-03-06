@@ -66,7 +66,7 @@ $flowMap = @{
     }
     Flow2  = @{
         File        = "flow-2-response-detection.json"
-        DisplayName = "EPA - Flow 2: Response Detection & Nudge Delivery"
+        DisplayName = "EPA - Flow 2: Response Detection and Nudge Delivery"
         ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
     }
     Flow2b = @{

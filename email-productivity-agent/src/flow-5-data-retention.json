@@ -72,10 +72,7 @@
           "Terminate_Graceful": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded",
-              "runError": {
-                "message": "Retention cleanup completed with errors"
-              }
+              "runStatus": "Succeeded"
             },
             "runAfter": {
               "Compose_ErrorDetails": ["Succeeded"]
