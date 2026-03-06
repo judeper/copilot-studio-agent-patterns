@@ -441,7 +441,7 @@ After completing all phases, run through this end-to-end test to verify the solu
 4. **Open Dataverse** → Tables → Assistant Cards → verify a new row exists with your test email's summary
 5. **Open the Canvas app** → verify the card appears in the gallery
 6. **Click the card** → verify the detail view renders correctly (summary, priority badge, key findings, sources)
-7. **Click Dismiss** → verify the card status updates to SUMMARY_ONLY in Dataverse
+7. **Click Dismiss** → verify the card outcome updates to `DISMISSED` in the `cr_cardoutcome` column in Dataverse
 8. **Test filters** → use the dropdown controls to filter by trigger type, priority, and status
 
 > If the CALENDAR_SCAN flow is configured, you can also test it by clicking "Run" manually in Power Automate (no need to wait for the daily schedule).

@@ -415,11 +415,17 @@ Document the mapping between environment display names and environment GUIDs. Th
 
 #### Step 2: Import DAX Measures
 
-Import the DAX measures from [cost-measures.dax](src/power-bi/cost-measures.dax) into the Power BI model. These measures provide:
+Import the DAX measures from [cost-measures.dax](src/power-bi/cost-measures.dax) into the Power BI model. All 9 measures:
 
 - **Total PAYGO Cost (Current Month)**: Filtered sum of Copilot Studio costs for the current calendar month.
+- **Total PAYGO Cost (Prior Month)**: Same calculation for the previous month.
 - **Cost by Environment/Resource Group**: Breakdown by resource group (which maps to billing policy and linked environments).
-- **Month-over-Month Variance**: Percentage and absolute change from the prior month.
+- **Month-over-Month Variance (Absolute)**: Dollar change from the prior month.
+- **Month-over-Month Variance (%)**: Percentage change from the prior month.
+- **Daily Average Cost (Current Month)**: Average daily spend for the current month.
+- **Projected Month-End Cost**: Linear extrapolation based on daily average.
+- **Budget Utilization %**: Current spend as a percentage of the budget.
+- **Budget Remaining**: Budget amount minus current month spend.
 
 See [sample-model.md](src/power-bi/sample-model.md) for the recommended table structure, relationships, and slicer configuration.
 

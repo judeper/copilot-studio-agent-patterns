@@ -97,8 +97,16 @@ enterprise-work-assistant/
     │   │   ├── CardGallery.tsx        # Scrollable card list
     │   │   ├── CardItem.tsx           # Collapsed card (priority, icon, summary)
     │   │   ├── CardDetail.tsx         # Expanded card view (research, draft, sources)
+    │   │   ├── BriefingCard.tsx       # Daily briefing card (action items, FYI, stale alerts)
+    │   │   ├── CommandBar.tsx         # Command input & execution
+    │   │   ├── ConfidenceCalibration.tsx # Low confidence warning badge
     │   │   ├── FilterBar.tsx          # Active filter status bar
-    │   │   └── types.ts              # TypeScript interfaces from schema
+    │   │   ├── ErrorBoundary.tsx      # React error boundary
+    │   │   ├── types.ts              # TypeScript interfaces from schema
+    │   │   └── constants.ts          # UI constants (colors, timings)
+    │   ├── utils/
+    │   │   ├── urlSanitizer.ts        # URL allowlist (https: and mailto: only)
+    │   │   └── levenshtein.ts         # String distance for fuzzy matching
     │   ├── hooks/
     │   │   └── useCardData.ts         # Dataset API → typed AssistantCard[]
     │   ├── styles/
@@ -118,7 +126,8 @@ enterprise-work-assistant/
 ### Prerequisites
 
 - [PAC CLI](https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction) (`dotnet tool install --global Microsoft.PowerApps.CLI.Tool`)
-- [Node.js 18+](https://nodejs.org)
+- [Bun 1.x+](https://bun.sh) — JavaScript runtime used by the build scripts
+- [Node.js 20+](https://nodejs.org) — Required for PCF tooling
 - [PowerShell 7+](https://github.com/PowerShell/PowerShell)
 - Power Platform environment with Copilot Studio capacity
 
