@@ -8,7 +8,7 @@
   "ownershipType": "UserOwned",
   "alternateKeys": [
     {
-      "schemaName": "cr_snoozed_conversation_owneruserid_key",
+      "schemaName": "cr_snoozed_conversation_owner_key",
       "displayName": "Conversation + Owner User ID Key",
       "keyAttributes": ["cr_conversationid", "cr_owneruserid"],
       "purpose": "Composite alternate key enabling safe Upsert during periodic folder scans. Prevents duplicate rows when the same conversation is detected across multiple polling cycles. Uses cr_owneruserid instead of ownerid because Dataverse does not support ownerid in alternate keys."

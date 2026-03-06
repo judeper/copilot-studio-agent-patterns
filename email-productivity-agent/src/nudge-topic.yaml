@@ -3,37 +3,37 @@ inputs:
   - kind: AutomaticTaskInput
     propertyName: CONVERSATION_ID
     description: The Microsoft Graph conversationId that uniquely identifies the email thread being tracked for follow-up
-    shouldPromptUser: true
+    shouldPromptUser: false
 
   - kind: AutomaticTaskInput
     propertyName: ORIGINAL_SUBJECT
     description: Subject line of the original sent email that has not received a reply
-    shouldPromptUser: true
+    shouldPromptUser: false
 
   - kind: AutomaticTaskInput
     propertyName: RECIPIENT_EMAIL
     description: Email address of the specific recipient who has not replied to the sent email
-    shouldPromptUser: true
+    shouldPromptUser: false
 
   - kind: AutomaticTaskInput
     propertyName: RECIPIENT_TYPE
     description: "Recipient classification: Internal (same org), External (different org), Priority (VIP), or General (default)"
-    shouldPromptUser: true
+    shouldPromptUser: false
 
   - kind: AutomaticTaskInput
     propertyName: DAYS_SINCE_SENT
     description: Number of calendar days that have elapsed since the original email was sent
-    shouldPromptUser: true
+    shouldPromptUser: false
 
   - kind: AutomaticTaskInput
     propertyName: THREAD_EXCERPT
     description: Plain text excerpt of the most recent messages in the email thread, up to 2000 characters, for context
-    shouldPromptUser: true
+    shouldPromptUser: false
 
   - kind: AutomaticTaskInput
     propertyName: USER_DISPLAY_NAME
     description: Display name of the user who sent the original email, used for personalizing the follow-up draft
-    shouldPromptUser: true
+    shouldPromptUser: false
 
 beginDialog:
   kind: OnRecognizedIntent
