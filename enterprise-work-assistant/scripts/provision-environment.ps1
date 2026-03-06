@@ -609,6 +609,44 @@ try {
 }
 
 # ─────────────────────────────────────
+# 3f. Sprint 4 — Edit Distance Ratio Column (Phase 14)
+# ─────────────────────────────────────
+
+# Edit Distance Ratio (WholeNumber 0-100, nullable)
+# Computed client-side by the PCF component (Levenshtein) and written by the Canvas App
+# when processing the sendDraftAction output. Read by the Sender Profile Analyzer flow.
+$editDistRatioCol = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_editdistanceratio"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 100
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Edit Distance Ratio"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Levenshtein edit distance ratio (0-100) between the AI draft and the user-edited version. Written by Canvas App, read by Sender Profile Analyzer."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($entityId)/Attributes" -Method Post -Headers $headers -Body $editDistRatioCol
+    Write-Host "  Column 'Edit Distance Ratio' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Edit Distance Ratio' failed (may already exist): $($_.Exception.Message)"
+}
+
+# ─────────────────────────────────────
 # 4. Sprint 1B — Create Sender Profile Table
 # ─────────────────────────────────────
 Write-Host "Creating SenderProfile Dataverse table..." -ForegroundColor Cyan

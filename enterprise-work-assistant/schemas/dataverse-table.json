@@ -212,10 +212,32 @@
       "type": "Boolean",
       "required": false,
       "description": "Per-user preference to disable OneNote sync. When true, OneNote writes for this user are skipped even if cr_onenoteenabled is true."
+    },
+    {
+      "logicalName": "cr_onenotesyncstatus",
+      "displayName": "OneNote Sync Status",
+      "type": "Choice",
+      "required": false,
+      "description": "Sync status for the OneNote page linked to this card. Set by flows that write to OneNote (Flows 3, 6). Canvas app displays a warning badge when FAILED.",
+      "options": [
+        { "label": "SYNCED", "value": 100000000 },
+        { "label": "FAILED", "value": 100000001 },
+        { "label": "PENDING", "value": 100000002 }
+      ]
+    },
+    {
+      "logicalName": "cr_editdistanceratio",
+      "displayName": "Edit Distance Ratio",
+      "type": "WholeNumber",
+      "minValue": 0,
+      "maxValue": 100,
+      "required": false,
+      "description": "Levenshtein edit distance ratio (0-100) between the original AI draft and the user-edited version. Computed client-side by the PCF component and written by the Canvas App when processing sendDraftAction output. Used by the Sender Profile Analyzer flow to compute cr_avgeditdistance."
     }
   ],
   "notes": {
-    "design_rationale": "Full JSON blob in cr_fulljson plus discrete columns only for server-side filtering. This avoids schema drift — the Canvas app uses ParseJSON() on cr_fulljson for detailed rendering while Dataverse queries filter on discrete choice columns. OneNote page IDs are stored as discrete columns to enable lookup and deduplication without parsing cr_fulljson. The cr_onenoteenabled feature flag and cr_onenoteoptout preference enable runtime control of OneNote sync without redeployment.",
+    "design_rationale": "Full JSON blob in cr_fulljson plus discrete columns only for server-side filtering. This avoids schema drift — the Canvas app uses ParseJSON() on cr_fulljson for detailed rendering while Dataverse queries filter on discrete choice columns. OneNote page IDs are stored as discrete columns to enable lookup and deduplication without parsing cr_fulljson. The cr_onenoteenabled feature flag and cr_onenoteoptout preference enable runtime control of OneNote sync without redeployment. The cr_editdistanceratio column stores per-card edit distance for sender intelligence aggregation.",
+    "onenote_provisioning": "OneNote-specific columns (cr_onenotepageid, cr_onenoteenabled, cr_onenoteoptout, cr_onenotesyncstatus) are created by provision-onenote.ps1, not provision-environment.ps1. Run provision-onenote.ps1 after provision-environment.ps1 to add these columns.",
     "skip_items": "SKIP-tier items are NOT written to Dataverse. The agent flow filters them out before the Dataverse write step.",
     "non_discrete_fields": "Fields like research_log, key_findings, verified_sources, and draft_payload are only accessible via ParseJSON() on cr_fulljson. They do not have discrete columns because they are not used for server-side filtering.",
     "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user sees only their own cards.",
