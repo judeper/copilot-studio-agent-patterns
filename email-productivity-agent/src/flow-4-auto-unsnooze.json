@@ -28,6 +28,20 @@
         "inputs": "@triggerOutputs()?['body/conversationId']",
         "runAfter": {}
       },
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {
+          "Compose_newConversationId": ["Succeeded"]
+        }
+      },
       "List_Matching_Snoozed": {
         "type": "OpenApiConnection",
         "inputs": {
@@ -43,7 +57,7 @@
           }
         },
         "runAfter": {
-          "Compose_newConversationId": ["Succeeded"]
+          "Get_my_profile_(V2)": ["Succeeded"]
         }
       },
       "Condition_No_Match": {
@@ -132,9 +146,11 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "poster": "Flow bot",
+                "location": "Chat with Flow bot",
                 "body": {
                   "recipient": {
-                    "to": "@triggerOutputs()?['body/toRecipients'][0]?['emailAddress']?['address']"
+                    "to": "@outputs('Get_my_profile_(V2)')?['body/id']"
                   },
                   "messageBody": "<p>\uD83D\uDCEC <strong>Unsnoozed:</strong> @{outputs('Compose_snoozedRow')?['cr_originalsubject']}<br/>New reply from @{triggerOutputs()?['body/from']?['emailAddress']?['name']} (@{triggerOutputs()?['body/from']?['emailAddress']?['address']})</p>"
                 }
@@ -218,6 +234,7 @@
     "description": "Event-driven: when a new email arrives in Inbox, checks if it matches a snoozed conversation and moves the snoozed message back to Inbox.",
     "requiredConnections": [
       "shared_office365 (Office 365 Outlook)",
+      "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",
       "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
       "shared_teams (Microsoft Teams)"
