@@ -120,6 +120,22 @@ $headers = @{
     "OData-Version" = "4.0"
 }
 
+# Token refresh helper — re-acquires the token every 20 API calls to avoid expiration during long provisioning runs
+$script:apiCallCounter = 0
+function Refresh-TokenIfNeeded {
+    $script:apiCallCounter++
+    if ($script:apiCallCounter % 20 -eq 0) {
+        Write-Host "  Refreshing access token (after $($script:apiCallCounter) API calls)..." -ForegroundColor Yellow
+        $freshToken = az account get-access-token --resource $OrgUrl --query accessToken -o tsv
+        if ($freshToken) {
+            $script:token = $freshToken
+            $headers["Authorization"] = "Bearer $freshToken"
+        } else {
+            Write-Warning "  Token refresh failed — continuing with existing token."
+        }
+    }
+}
+
 $apiBase = "$OrgUrl/api/data/v9.2"
 
 # ─────────────────────────────────────
@@ -148,6 +164,8 @@ try {
 } catch {
     throw "Failed to validate/create publisher prefix '$PublisherPrefix': $($_.Exception.Message). Ensure the authenticated user has System Administrator or System Customizer role."
 }
+
+Refresh-TokenIfNeeded
 
 # Create the entity (table)
 $entityDef = @{
@@ -649,6 +667,8 @@ try {
 # ─────────────────────────────────────
 # 4. Sprint 1B — Create Sender Profile Table
 # ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
 Write-Host "Creating SenderProfile Dataverse table..." -ForegroundColor Cyan
 
 $senderEntityDef = @{
@@ -1194,6 +1214,8 @@ try {
 # ─────────────────────────────────────
 # 4b. Create Briefing Schedule Table (Phase 15)
 # ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
 Write-Host "`n--- Creating Briefing Schedules Table ---" -ForegroundColor Cyan
 
 $briefingEntityDef = @{
@@ -1456,6 +1478,8 @@ Write-Host "BriefingSchedule table provisioning complete." -ForegroundColor Gree
 # ─────────────────────────────────────
 # 5. Create Error Log Table for Monitoring (I-18)
 # ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
 Write-Host "Creating Error Log Dataverse table for flow monitoring..." -ForegroundColor Cyan
 
 $errorLogEntityDef = @{

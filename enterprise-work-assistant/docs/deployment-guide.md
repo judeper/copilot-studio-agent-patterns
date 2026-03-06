@@ -419,7 +419,7 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] AUTO_HIGH: response_rate ≥ 0.8 AND avg_response_hours < 8
 - [ ] AUTO_LOW: response_rate < 0.4 OR dismiss_rate ≥ 0.6
 - [ ] USER_OVERRIDE senders are never recategorized by the analyzer
-- [ ] Senders with < 3 signals are skipped
+- [ ] Senders with < 5 total interactions are skipped
 - [ ] Card Outcome Tracker increments cr_dismisscount on DISMISSED outcomes
 - [x] Trigger flows pass SENDER_PROFILE JSON to the main agent
 - [ ] Agent upgrades LIGHT → FULL for AUTO_HIGH senders with actionable content

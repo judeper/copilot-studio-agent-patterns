@@ -128,3 +128,11 @@ Cost data should not be considered final until after the billing period closes (
 ### PAYGO vs. Prepaid
 
 This data flow tracks PAYGO consumption only. If the organization also uses prepaid Copilot Credit packs, those costs appear as a one-time purchase, not as per-credit consumption. The DAX measures are designed for PAYGO metered consumption; prepaid pack costs require separate handling.
+
+### Azure Cost Management Schema Stability
+
+The solution depends on specific column names (`MeterCategory`, `MeterName`, `Cost`, `ResourceGroup`, `Date`) and meter string patterns. Azure Cost Management has historically renamed columns (e.g., `PreTaxCost` → `CostInBillingCurrency`).
+
+**Monitoring**: After each Power BI data refresh, verify the dashboard shows non-zero values. A sudden drop to $0 may indicate a schema change rather than actual cost reduction.
+
+**Validation**: The `cost-measures.dax` file uses `CONTAINSSTRING` for meter name matching. If Azure introduces new meter categories, update the filter patterns. Check the [Azure Cost Management updates page](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/understand-cost-mgt-data) for schema changes.

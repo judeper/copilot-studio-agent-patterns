@@ -130,6 +130,19 @@ This document provides a comprehensive inventory of the solution's known limitat
 
 ---
 
+### 7. Hybrid Billing (PAYGO + Prepaid) Not Addressed
+
+**Severity**: Low
+**Status**: By design (Phase 1 scope)
+
+**Description**: Organizations using both PAYGO consumption and prepaid credit packs will see only PAYGO costs in the dashboard. Prepaid pack costs ($200/month fixed) are not captured by Azure Cost Management meters.
+
+**Impact**: The dashboard shows partial cost data. Leadership decisions based solely on PAYGO costs may underestimate total Copilot Studio spend.
+
+**Workaround**: Add a manual "Prepaid Cost" row to the Budget table in Power BI with the monthly prepaid amount. The Budget Utilization measure will then reflect total committed spend (PAYGO + prepaid).
+
+---
+
 ## Positioning Statement
 
 > **This solution is an interim financial governance bridge.** It provides leadership-quality cost visibility and audit-grade controls using currently available platform capabilities. As Microsoft enhances native per-agent billing granularity, environment-level attribution controls in the Power Platform Admin Center, and Power BI integration capabilities, the specific artifacts in this solution may be superseded by native platform features. The governance framework, regulatory alignment, and evidence collection practices will remain valuable regardless of platform evolution.
