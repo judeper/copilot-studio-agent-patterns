@@ -47,7 +47,7 @@
         "inputs": {
           "parameters": {
             "entityName": "cr_snoozedconversations",
-            "$filter": "cr_conversationid eq '@{outputs('Compose_newConversationId')}' and cr_unsnoozedbyagent eq false",
+            "$filter": "cr_conversationid eq '@{outputs('Compose_newConversationId')}' and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_unsnoozedbyagent eq false",
             "$top": 1
           },
           "host": {
