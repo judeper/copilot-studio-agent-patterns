@@ -56,10 +56,24 @@
           ]
         },
         "actions": {
-          "Terminate_No_Config": {
-            "type": "Terminate",
+          "Create_Default_NudgeConfig": {
+            "type": "OpenApiConnection",
             "inputs": {
-              "runStatus": "Succeeded"
+              "parameters": {
+                "entityName": "cr_nudgeconfigurations",
+                "item/cr_configlabel": "Default Nudge Config",
+                "item/cr_internaldays": 3,
+                "item/cr_externaldays": 5,
+                "item/cr_prioritydays": 1,
+                "item/cr_generaldays": 7,
+                "item/cr_nudgesenabled": true,
+                "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
             }
           }
         },
@@ -198,7 +212,8 @@
                     "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
                     "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
                     "item/cr_currentfolder": "@variables('snoozeFolderId')",
-                    "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
+                    "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)",
+                    "item/cr_unsnoozedbyagent": false
                   },
                   "host": {
                     "connectionName": "shared_commondataserviceforapps",
@@ -287,7 +302,7 @@
     ],
     "notes": {
       "folderCreation": "On first run, creates the EPA-Snoozed folder via Graph API and stores its ID in NudgeConfiguration.",
-      "upsertBehavior": "Uses Dataverse UpdateRecord with alternate key (conversationId + owneruserid) for idempotent upsert. cr_unsnoozedbyagent is intentionally omitted to avoid resetting Flow 4's true flag.",
+      "upsertBehavior": "Uses Dataverse UpdateRecord with alternate key (conversationId + owneruserid) for idempotent upsert. cr_unsnoozedbyagent is set to false on every upsert to enable re-snooze of the same conversation. If Flow 4 and Flow 3 race (rare), Flow 4's error handler self-heals on next reply.",
       "error404": "If the snoozed folder is deleted, clears cr_snoozefolderid so it gets recreated on next run.",
       "scanInterval": "Default 15 minutes. Change recurrence interval to adjust.",
       "prerequisite": "NudgeConfiguration row must exist for the flow owner (created by Flow 1 on first sent email)."
