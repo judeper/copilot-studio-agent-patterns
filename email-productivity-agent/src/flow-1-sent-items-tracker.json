@@ -280,7 +280,11 @@
           "Terminate_Graceful": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded"
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
             },
             "runAfter": {
               "Compose_ErrorDetails": ["Succeeded"]

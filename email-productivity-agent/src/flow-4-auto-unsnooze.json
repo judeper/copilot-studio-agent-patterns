@@ -111,6 +111,12 @@
                 "connectionName": "shared_webcontents",
                 "operationId": "InvokeHttp",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             }
           },
@@ -216,7 +222,11 @@
           "Terminate_Graceful": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded"
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
             },
             "runAfter": {
               "Condition_Move_404": ["Succeeded"]
