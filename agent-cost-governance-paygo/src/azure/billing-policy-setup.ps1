@@ -52,9 +52,11 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
     [string]$TenantId,
 
     [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
     [string]$SubscriptionId,
 
     [Parameter(Mandatory = $true)]
@@ -76,6 +78,17 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# ---------------------------------------------------------------------------
+# Validate tags contain no placeholder values
+# ---------------------------------------------------------------------------
+$placeholderPattern = 'CHANGE-ME|TODO|PLACEHOLDER|REPLACE'
+foreach ($key in $Tags.Keys) {
+    if ($Tags[$key] -match $placeholderPattern) {
+        Write-Error "Tag '$key' contains a placeholder value ('$($Tags[$key])'). Please provide actual values."
+        exit 1
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Step 1: Authenticate to Azure

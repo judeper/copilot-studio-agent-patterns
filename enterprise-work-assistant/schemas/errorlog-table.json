@@ -1,0 +1,70 @@
+{
+  "tableName": "cr_errorlog",
+  "entitySetName": "cr_errorlogs",
+  "displayName": "Error Log",
+  "pluralName": "Error Logs",
+  "description": "Stores error records from Power Automate agent flows for monitoring and diagnostics. Each row represents one flow error occurrence.",
+  "primaryColumn": "cr_flowname",
+  "ownershipType": "Organization",
+  "columns": [
+    {
+      "logicalName": "cr_errorid",
+      "displayName": "Error ID",
+      "type": "UniqueIdentifier",
+      "required": true,
+      "description": "Primary key. Auto-generated GUID for each error record."
+    },
+    {
+      "logicalName": "cr_flowname",
+      "displayName": "Flow Name",
+      "type": "Text",
+      "maxLength": 100,
+      "required": true,
+      "description": "Name of the Power Automate flow that generated the error."
+    },
+    {
+      "logicalName": "cr_errordetail",
+      "displayName": "Error Detail",
+      "type": "MultilineText",
+      "maxLength": 5000,
+      "required": false,
+      "description": "Full error message and stack trace captured from the flow run."
+    },
+    {
+      "logicalName": "cr_occurredon",
+      "displayName": "Occurred On",
+      "type": "DateTime",
+      "required": false,
+      "description": "Timestamp when the error occurred."
+    },
+    {
+      "logicalName": "cr_affectedcardid",
+      "displayName": "Affected Card ID",
+      "type": "Text",
+      "maxLength": 100,
+      "required": false,
+      "description": "ID of the AssistantCard record affected by this error, if applicable."
+    },
+    {
+      "logicalName": "cr_errorseverity",
+      "displayName": "Error Severity",
+      "type": "Text",
+      "maxLength": 20,
+      "required": false,
+      "description": "Severity level of the error (e.g., Warning, Error, Critical)."
+    },
+    {
+      "logicalName": "cr_resolved",
+      "displayName": "Resolved",
+      "type": "Boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether this error has been investigated and resolved by an admin."
+    }
+  ],
+  "notes": {
+    "design_rationale": "Organization-owned table so all admins can view and manage error records regardless of which user's flow run generated the error.",
+    "security": "Table uses Organization ownership type. All users with the security role can see all error log rows — appropriate for admin-level monitoring data.",
+    "system_columns": "Standard Dataverse system columns (createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
+  }
+}

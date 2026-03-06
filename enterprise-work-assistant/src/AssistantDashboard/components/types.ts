@@ -18,8 +18,8 @@ export interface OrchestratorResponse {
     side_effects: CommandSideEffect[];
 }
 export type TriageTier = "SKIP" | "LIGHT" | "FULL";
-export type Priority = "High" | "Medium" | "Low";
-export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND";
+export type Priority = "High" | "Medium" | "Low" | "N/A";
+export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND" | "N/A";
 export type CardStatus = "READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | "NO_OUTPUT" | "NUDGE";
 export type CardOutcome = "PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISMISSED" | "EXPIRED";
 

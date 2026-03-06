@@ -91,19 +91,21 @@ A simple table or Power BI parameter holding the monthly budget target.
 
 For a single-budget scenario, use a Power BI parameter instead of a table.
 
+> **Single-Budget Limitation**: The `Budget Utilization %` and `Budget Remaining` DAX measures use `SELECTEDVALUE('Budget'[BudgetAmount])` without `USERELATIONSHIP`. This works for a single active budget. For multi-period budgets (e.g., quarterly), adapt the measures to use `USERELATIONSHIP` with the Date Table relationship, or use Power BI parameters to select the active budget period.
+
 ---
 
 ## Relationships
 
 ```
 Date Table[Date]  ──────────>  Cost Details[Date]
-                               (Many-to-One, Single direction)
+                               (One-to-Many, Single direction (Date Table is the one-side))
 
 Environment Mapping[ResourceGroup]  ──────────>  Cost Details[ResourceGroup]
-                                                  (Many-to-One, Single direction)
+                                                  (One-to-Many, Single direction (Environment Mapping is the one-side))
 
 Budget[BudgetPeriod]  ──────────>  Date Table[YearMonth]
-                                   (Many-to-One, Single direction, inactive — use USERELATIONSHIP in measures)
+                                   (Inactive (activate via USERELATIONSHIP in measures))
 ```
 
 ### Relationship Notes

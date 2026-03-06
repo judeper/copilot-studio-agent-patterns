@@ -1844,7 +1844,7 @@ Apply the categorization rules from Sprint 4:
 > **Categorization rules:**
 > - **AUTO_LOW** (100000002): dismiss_rate >= 0.6 AND total_interactions >= 5. Checked FIRST — a high dismiss rate takes priority over response rate.
 > - **AUTO_HIGH** (100000000): response_rate >= 0.8 AND total_interactions >= 5. High engagement senders.
-> - **NEUTRAL** (100000001): Default for all other senders. Falls through when neither threshold is met.
+> - **AUTO_MEDIUM** (100000001): Default for all other senders. Falls through when neither threshold is met.
 > - **USER_OVERRIDE** (100000003): Skipped entirely (step 3a). User-managed, never recategorized.
 >
 > The threshold of 5 minimum interactions prevents premature categorization (e.g., 1 dismiss out of 1 total = 100% dismiss_rate but meaningless).
@@ -1878,7 +1878,7 @@ Trigger (Recurrence — Sunday 8 PM)
       ├── 3b. Compute total_interactions = responsecount + dismisscount
       ├── 3b-1. Skip if total_interactions < 5
       ├── 3c. Compute response_rate, dismiss_rate
-      ├── 3d. Determine category (AUTO_HIGH/NEUTRAL/AUTO_LOW)
+      ├── 3d. Determine category (AUTO_HIGH/AUTO_MEDIUM/AUTO_LOW)
       └── 3e. Update sender profile row (cr_sendercategory)
 ```
 
@@ -1889,7 +1889,7 @@ Trigger (Recurrence — Sunday 8 PM)
 - [ ] Test: Sender with response_rate >= 0.8 AND total >= 5 → AUTO_HIGH
 - [ ] Test: Sender with dismiss_rate >= 0.6 AND total >= 5 → AUTO_LOW
 - [ ] Test: Sender with USER_OVERRIDE → Not recategorized
-- [ ] Test: Sender with < 5 total interactions → Skipped (stays NEUTRAL)
+- [ ] Test: Sender with < 5 total interactions → Skipped (stays AUTO_MEDIUM)
 - [ ] Trigger flows pass SENDER_PROFILE JSON (or null for first-time senders) to the main agent
 
 ---
