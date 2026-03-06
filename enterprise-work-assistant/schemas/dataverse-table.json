@@ -190,10 +190,32 @@
       "type": "DateTime",
       "required": false,
       "description": "When this reminder should fire. Only populated for SELF_REMINDER trigger type cards. The Reminder Firing flow (Flow 10) queries cards where this date is in the past."
+    },
+    {
+      "logicalName": "cr_onenotepageid",
+      "displayName": "OneNote Page ID",
+      "type": "Text",
+      "maxLength": 500,
+      "required": false,
+      "description": "OneNote page ID for the corresponding knowledge page. Populated by flows that write to OneNote (Flows 3, 6). Enables cross-referencing between Dataverse cards and OneNote pages."
+    },
+    {
+      "logicalName": "cr_onenoteenabled",
+      "displayName": "OneNote Enabled",
+      "type": "Boolean",
+      "required": false,
+      "description": "Feature flag for OneNote integration. Stored on a config entity. When false, all OneNote writes are skipped. Used for rollback without redeploying flows."
+    },
+    {
+      "logicalName": "cr_onenoteoptout",
+      "displayName": "OneNote Opt-Out",
+      "type": "Boolean",
+      "required": false,
+      "description": "Per-user preference to disable OneNote sync. When true, OneNote writes for this user are skipped even if cr_onenoteenabled is true."
     }
   ],
   "notes": {
-    "design_rationale": "Full JSON blob in cr_fulljson plus discrete columns only for server-side filtering. This avoids schema drift — the Canvas app uses ParseJSON() on cr_fulljson for detailed rendering while Dataverse queries filter on discrete choice columns.",
+    "design_rationale": "Full JSON blob in cr_fulljson plus discrete columns only for server-side filtering. This avoids schema drift — the Canvas app uses ParseJSON() on cr_fulljson for detailed rendering while Dataverse queries filter on discrete choice columns. OneNote page IDs are stored as discrete columns to enable lookup and deduplication without parsing cr_fulljson. The cr_onenoteenabled feature flag and cr_onenoteoptout preference enable runtime control of OneNote sync without redeployment.",
     "skip_items": "SKIP-tier items are NOT written to Dataverse. The agent flow filters them out before the Dataverse write step.",
     "non_discrete_fields": "Fields like research_log, key_findings, verified_sources, and draft_payload are only accessible via ParseJSON() on cr_fulljson. They do not have discrete columns because they are not used for server-side filtering.",
     "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user sees only their own cards.",

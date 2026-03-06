@@ -2104,3 +2104,199 @@ For operational visibility, create a model-driven app view on the `cr_errorlog` 
 - **Active Errors view**: Filter `cr_isresolved = false`, sort by `cr_occurredon` descending
 - **Error Frequency chart**: Group by `cr_flowname`, count by day
 - This is optional for initial deployment but recommended for production environments
+
+---
+
+## OneNote Integration Layer (Phase 1)
+
+> **Design Doc**: See [onenote-integration.md](onenote-integration.md) for the full specification including permission model, trust tiers, template syntax, and rollback procedures.
+
+This section describes the Power Automate flow enhancements that write assistant-generated content to OneNote. Phase 1 is **write-only** — the assistant creates and updates OneNote pages but does not read back user annotations. All OneNote operations are gated behind the `cr_onenoteenabled` feature flag and `cr_onenoteoptout` user preference.
+
+### Notebook Structure
+
+The assistant uses a dedicated OneNote notebook provisioned via `scripts/provision-onenote.ps1` in a dedicated M365 Group:
+
+```
+Enterprise Work Assistant (Notebook)
+├── Meetings (Section Group)
+│   ├── This Week (Section)    ← Flow 3 writes here
+│   └── Archive (Section)      ← Monthly archival
+├── Briefings (Section Group)
+│   └── Daily (Section)        ← Flow 6 writes here
+└── Active To-Dos (Section)    ← Flow 6 appends here
+```
+
+Section IDs are stored as Power Automate environment variables (see `provision-onenote.ps1` output).
+
+### Prerequisites
+
+- `provision-onenote.ps1` has been run successfully
+- Environment variables configured: `OneNote_GroupId`, `OneNote_NotebookId`, and all section IDs
+- Azure AD app registration with `Notes.ReadWrite.All` scoped to the dedicated M365 Group
+- `cr_onenoteenabled` set to `true` in the Dataverse config entity
+
+### Flow 3 Enhancement: Meeting Prep Pages
+
+After the existing Dataverse write (step 4d), add a **parallel scope** named `Scope - OneNote Meeting Prep`:
+
+**Step MP-1: Check Feature Flag**
+
+Query the Dataverse config entity for `cr_onenoteenabled`. If `false`, skip the entire scope.
+
+**Step MP-2: Check User Preference**
+
+Query the user's settings for `cr_onenoteoptout`. If `true`, skip.
+
+**Step MP-3: External-Sharing Pre-Check**
+
+```
+GET https://graph.microsoft.com/v1.0/groups/{OneNote_GroupId}/onenote/notebooks/{OneNote_NotebookId}
+```
+
+Verify the notebook is not shared with external (guest) users. If externally shared → log to audit table, skip OneNote step.
+
+**Step MP-4: Idempotency Check**
+
+Query the Dataverse card row for `cr_onenotepageid`. If populated, this card already has a OneNote page.
+
+**Step MP-5a: Create Page** (if no existing page)
+
+```
+POST https://graph.microsoft.com/v1.0/groups/{OneNote_GroupId}/onenote/sections/{OneNote_MeetingsThisWeekSectionId}/pages
+Content-Type: application/xhtml+xml
+
+{HTML from templates/onenote-meeting-prep.html with {{PLACEHOLDER}} values substituted}
+```
+
+All placeholder values must be HTML-entity-encoded using `replace()` expressions before substitution.
+
+**Step MP-5b: Update Page** (if page exists)
+
+```
+PATCH https://graph.microsoft.com/v1.0/groups/{OneNote_GroupId}/onenote/pages/{cr_onenotepageid}/content
+Content-Type: application/json
+
+[
+  {
+    "target": "body",
+    "action": "replace",
+    "content": "{refreshed HTML content}"
+  }
+]
+```
+
+**Step MP-6: Store Page ID**
+
+Update the Dataverse card row:
+- `cr_onenotepageid` = returned page ID
+- `cr_onenotesyncstatus` = `"SYNCED"` (in `cr_fulljson`)
+
+Generate the deep link for the Canvas app:
+```
+onenote:https://graph.microsoft.com/v1.0/groups/{OneNote_GroupId}/onenote/pages/{pageId}
+```
+
+**Error Handling:** The entire scope has **Configure Run After** set to `Has succeeded` only. If the scope fails:
+
+1. Write to `cr_errorlog`: `cr_flowname = "Flow 3: Calendar Scan Ingestion"`, `cr_errordetail = Graph API error`
+2. Set `cr_onenotesyncstatus = "FAILED"` on the card row (Canvas app shows warning badge)
+3. Main pipeline continues unaffected
+
+### Flow 6 Enhancement: Daily Briefing Pages + Active To-Dos
+
+After the briefing card Dataverse write (after step 2h), add a scope named `Scope - OneNote Briefing`:
+
+**Step BR-1 through BR-3:** Same feature flag, user preference, and external-sharing checks as Flow 3.
+
+**Step BR-4: Create Briefing Page**
+
+```
+POST https://graph.microsoft.com/v1.0/groups/{OneNote_GroupId}/onenote/sections/{OneNote_BriefingsDailySectionId}/pages
+Content-Type: application/xhtml+xml
+
+{HTML from templates/onenote-daily-briefing.html with {{PLACEHOLDER}} values substituted}
+```
+
+**Step BR-5: Store Page ID**
+
+Update the briefing card row with `cr_onenotepageid` and sync status.
+
+**Step BR-6: Append to Active To-Dos Page**
+
+Query Dataverse config for the existing Active To-Dos page ID.
+
+If page exists → **append** (never overwrite):
+
+```
+PATCH https://graph.microsoft.com/v1.0/groups/{OneNote_GroupId}/onenote/pages/{todoPageId}/content
+Content-Type: application/json
+If-Match: {ETag from GET}
+
+[
+  {
+    "target": "body",
+    "action": "append",
+    "content": "<h2>{cycle_timestamp} — New Items</h2>{action items HTML}"
+  }
+]
+```
+
+If no page exists → create using `templates/onenote-active-todos.html` and store the page ID in the config entity.
+
+> **Why append-only**: Overwriting destroys user annotations (checkmarks, handwritten notes) and creates race conditions when flows fire in parallel or retry under throttling. The ETag (`If-Match`) header prevents last-write-wins data loss.
+
+**Error Handling:** Same pattern as Flow 3 — fail-safe scope with audit logging.
+
+### Flow 8 Enhancement: Orchestrator Tool Actions
+
+Add two new tool actions to the Orchestrator Agent registration (extending the table in section R-18):
+
+| Tool Action | Implementation | Description |
+|------------|----------------|-------------|
+| **QueryOneNote** | Power Automate flow → Graph API search | Search assistant notebook pages by keyword, section, or title. Returns plaintext content. |
+| **UpdateOneNote** | Power Automate flow → Graph API create/append | Create or append to a OneNote page. Enforces feature flag, user preference, and external-sharing checks. |
+
+These tool actions require dedicated Power Automate flows that:
+1. Accept parameters matching the Orchestrator prompt definitions (see `orchestrator-agent-prompt.md`, tools #7 and #8)
+2. Check `cr_onenoteenabled` and `cr_onenoteoptout` before any Graph API call
+3. Execute the external-sharing pre-check
+4. Return structured JSON matching the documented return types
+
+### Graph API Rate Limiting
+
+OneNote Graph API endpoints are subject to throttling:
+
+| Scenario | Limit |
+|----------|-------|
+| Per-app, per-tenant | 30 requests/second |
+| 429 response | Respect `Retry-After` header |
+
+Power Automate retry policy for all OneNote HTTP actions:
+- **Type**: Exponential
+- **Count**: 3
+- **Interval**: PT10S (10 seconds)
+- **Maximum interval**: PT5M (5 minutes)
+
+If all retries fail → fail-safe (log and continue).
+
+### Canvas App Integration
+
+Cards with a populated `cr_onenotepageid` display an **"Open in OneNote"** button in the PCF dashboard. The button:
+
+1. Checks that `cr_onenotesyncstatus ≠ "FAILED"`
+2. Opens the deep link: `onenote:https://graph.microsoft.com/v1.0/groups/{groupId}/onenote/pages/{pageId}`
+3. If sync status is `"FAILED"`, shows a warning badge instead of the button
+
+> **Note**: Canvas app UI changes (button, badge) are documented here for flow-level context. The PCF component implementation is not part of Phase 1 — the deep link URL is stored in `cr_fulljson` for future PCF rendering.
+
+### Monthly Archival
+
+A scheduled flow (recommended: monthly, first day of month) moves past meeting prep pages:
+
+1. Query Dataverse for cards with `cr_triggertype = CALENDAR` and `createdon` older than 30 days and `cr_onenotepageid` is not null
+2. For each card, move the OneNote page from `Meetings > This Week` to `Meetings > Archive` using:
+   ```
+   PATCH /groups/{groupId}/onenote/pages/{pageId}/parentSection
+   ```
+3. This is optional for initial deployment but helps manage notebook size over time
