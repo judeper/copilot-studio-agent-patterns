@@ -206,48 +206,59 @@ On a fresh install, Step 1 already creates all three tables (including `cr_snooz
 
 If you ran an earlier version of the script that didn't include SnoozedConversation, manually create the table using the Dataverse maker portal following `schemas/snoozed-conversations-table.json`, or use the PAC CLI to add just the table.
 
-### Step 9: Configure Snooze Agent
+### Step 9: Deploy Snooze Flows
 
-1. In Copilot Studio, open the **Email Productivity Agent** created in Step 3
-2. Go to **Topics** → **Add a topic** → **From blank**
-3. Name the topic **"Snooze Auto-Removal"**
-4. Set up **trigger phrases** such as: "snooze check", "evaluate snooze", "check snoozed email"
-5. In the topic editor, add a **Generative answers** node or a **Message** node with the prompt logic
-6. Paste the contents of `prompts/snooze-agent-system-prompt.md` as the topic's instructions
-7. Define input variables for this topic via **Details** → **Inputs** tab (click **Details** in the topic authoring canvas top bar):
+Deploy the 3 snooze flows using the same deploy script from Step 5:
 
-   | Variable Name | Data Type | Description |
-   |---|---|---|
-   | `CONVERSATION_ID` | String | Graph API conversationId of the snoozed thread |
-   | `SNOOZED_SUBJECT` | String | Subject of the original snoozed email |
-   | `NEW_MESSAGE_SENDER` | String | Email address of the person who sent the new reply |
-   | `NEW_MESSAGE_SENDER_NAME` | String | Display name of the person who replied |
-   | `NEW_MESSAGE_SUBJECT` | String | Subject of the new reply |
-   | `NEW_MESSAGE_EXCERPT` | String | Plain text excerpt of the reply (up to 500 chars) |
-   | `SNOOZE_UNTIL` | String | ISO 8601 datetime when snooze expires (or null if indefinite) |
-   | `CURRENT_DATETIME` | String | Current UTC datetime in ISO 8601 format |
-   | `USER_TIMEZONE` | String | IANA timezone identifier (e.g., "America/New_York") |
+```powershell
+cd email-productivity-agent/scripts
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Phase2"
+```
 
-   > **Note:** Input variables are defined via **Topic Details → Inputs tab**, NOT via Settings. See Step 7 (Phase 1) for full details on the generative fill behavior.
+This creates:
+- **Flow 3: Snooze Detection** — Scans the EPA-Snoozed folder every 15 minutes and tracks conversations in Dataverse
+- **Flow 4: Auto-Unsnooze** — Watches Inbox for new emails; if one matches a snoozed conversation, moves the snoozed message back to Inbox and notifies via Teams
+- **Flow 6: Snooze Cleanup** — Weekly purge of unsnoozed records older than 30 days
 
-8. Click **Save** and **Publish** the agent
+**Expected output:** All 3 flows created and running (✓ ON).
 
-> **Note:** The snooze agent is invoked by Flow 4 (Auto-Unsnooze) when a new reply is detected for a snoozed conversation. For MVP, you can skip the agent and always unsnooze — see `docs/snooze-auto-removal-flows.md` Step 4 for details.
+> **POC simplifications vs. production:**
+> - Flow 4 always unsnoozes on match (no Snooze Agent invocation for SUPPRESS/UNSNOOZE decisions)
+> - No working-hours check (production would suppress unsnooze outside 7AM-7PM)
+> - Simple Teams text notification (production would use adaptive card with deeplink)
 
-### Step 10: Build Snooze Flows
+### Step 10: Ensure Mail.ReadWrite Permission
 
-Follow `docs/snooze-auto-removal-flows.md`:
+Flow 3 (create mail folder, list messages) and Flow 4 (move messages) use the **HTTP with Microsoft Entra ID** connector to call Graph API endpoints that require `Mail.ReadWrite`.
 
-1. **Flow 3: Snooze Detection** — Trigger: Every 15 minutes
-2. **Flow 4: Auto-Unsnooze** — Trigger: "When a new email arrives" on Inbox
-3. **Flow 6: Snooze Cleanup** — Trigger: Weekly recurrence
+- The connector uses delegated auth — the connection owner consents at connection-creation time
+- If your tenant requires admin consent for `Mail.ReadWrite`, a **Global Admin** must pre-approve it in **Entra ID** → **Enterprise applications** → the "HTTP with Microsoft Entra ID" service principal → **Permissions** → **Grant admin consent**
+- The same HTTP with Entra ID connection from Phase 1 (Step 4) is reused — no new connection setup needed
 
-### Step 11: Ensure Mail.ReadWrite Permission
+### Step 11: Test the Snooze Workflow
 
-The **HTTP with Microsoft Entra ID** connector uses a delegated auth model — the connection owner consents to permissions at connection-creation time. No separate app registration is needed.
+1. **Trigger Flow 3** — Wait 15 minutes or manually run Flow 3. On first run, it creates the "EPA-Snoozed" mail folder and stores the folder ID in NudgeConfiguration
+2. **Move an email** — In Outlook, drag an email to the "EPA-Snoozed" folder
+3. **Wait for next Flow 3 run** — Verify a row appears in `cr_snoozedconversation` with the email's conversationId
+4. **Send a reply** — Have someone (or yourself from another account) reply to the snoozed email
+5. **Verify Flow 4** — The reply triggers Flow 4, which:
+   - Moves the original snoozed message back to Inbox
+   - Marks `cr_unsnoozedbyagent = true` in Dataverse
+   - Sends a Teams notification: "📬 Unsnoozed: {subject} — reply from {sender}"
 
-- For `Mail.ReadWrite`, if your tenant requires admin consent for this scope, a **Global Admin** must pre-approve it in **Entra ID** → **Enterprise applications** → the "HTTP with Microsoft Entra ID" service principal → **Permissions** → **Grant admin consent**.
-- If you are using a **custom connector** with a registered app instead of the built-in HTTP with Microsoft Entra ID connector, add `Mail.ReadWrite` to the app's **API permissions** in the Entra ID app registration and re-consent.
+### Step 12: Configure Snooze Agent (Optional — Production)
+
+For production deployments, you can add intelligent snooze decisions:
+
+1. In Copilot Studio, add a **"Snooze Auto-Removal"** topic
+2. Paste `prompts/snooze-agent-system-prompt.md` as instructions
+3. Define input variables (CONVERSATION_ID, SNOOZED_SUBJECT, NEW_MESSAGE_SENDER, etc.)
+4. Update Flow 4 to invoke the agent before unsnoozing
+
+See `docs/snooze-auto-removal-flows.md` Step 4 for the agent invocation pattern.
 
 ### Multi-User Deployment Model
 

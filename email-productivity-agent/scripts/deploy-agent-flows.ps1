@@ -8,7 +8,10 @@
       - Flow 1: Sent Items Tracker (event-driven)
       - Flow 2: Response Detection & Nudge Delivery (daily 9 AM)
       - Flow 2b: Card Action Handler (event-driven)
+      - Flow 3: Snooze Detection (every 15 min)
+      - Flow 4: Auto-Unsnooze (event-driven)
       - Flow 5: Data Retention Cleanup (weekly)
+      - Flow 6: Snooze Cleanup (weekly)
 
     The script:
       1. Creates (or reuses) an "EmailProductivityAgent" Dataverse solution
@@ -37,7 +40,8 @@
 
 .PARAMETER FlowsToCreate
     Which flows to create. Default: all.
-    Valid values: "All", "Flow1", "Flow2", "Flow2b", "Flow5"
+    Valid values: "All", "Phase1" (Flow1,2,2b,5), "Phase2" (Flow3,4,6),
+    or individual: "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6"
 
 .EXAMPLE
     .\deploy-agent-flows.ps1 `
@@ -61,7 +65,7 @@ param(
 
     [string]$TimeZone = "Eastern Standard Time",
 
-    [ValidateSet("All", "Flow1", "Flow2", "Flow2b", "Flow5")]
+    [ValidateSet("All", "Phase1", "Phase2", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6")]
     [string]$FlowsToCreate = "All"
 )
 
@@ -91,6 +95,21 @@ $flowMap = [ordered]@{
         File        = "flow-2b-card-action-handler.json"
         DisplayName = "EPA - Flow 2b: Card Action Handler"
         ConnRefs    = @("shared_teams", "shared_commondataserviceforapps")
+    }
+    Flow3  = @{
+        File        = "flow-3-snooze-detection.json"
+        DisplayName = "EPA - Flow 3: Snooze Detection"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents")
+    }
+    Flow4  = @{
+        File        = "flow-4-auto-unsnooze.json"
+        DisplayName = "EPA - Flow 4: Auto-Unsnooze"
+        ConnRefs    = @("shared_office365", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+    }
+    Flow6  = @{
+        File        = "flow-6-snooze-cleanup.json"
+        DisplayName = "EPA - Flow 6: Snooze Cleanup"
+        ConnRefs    = @("shared_commondataserviceforapps")
     }
 }
 
@@ -202,7 +221,12 @@ else {
 # ─────────────────────────────────────
 Write-Host "`n[3/6] Setting up connection references..." -ForegroundColor Cyan
 
-$flowsToProcess = if ($FlowsToCreate -eq "All") { $flowMap.Keys } else { @($FlowsToCreate) }
+$flowsToProcess = switch ($FlowsToCreate) {
+    "All"    { $flowMap.Keys }
+    "Phase1" { @("Flow5", "Flow1", "Flow2", "Flow2b") }
+    "Phase2" { @("Flow6", "Flow3", "Flow4") }
+    default  { @($FlowsToCreate) }
+}
 
 $neededConnectors = @()
 foreach ($flowKey in $flowsToProcess) { $neededConnectors += $flowMap[$flowKey].ConnRefs }
