@@ -27,6 +27,7 @@ interface CardDetailProps {
     onSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
+    onSaveDraft: (cardId: string, editedText: string) => void;
 }
 
 /** Whether the card has a sendable EMAIL draft */
@@ -73,6 +74,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     onSendDraft,
     onCopyDraft,
     onDismissCard,
+    onSaveDraft,
 }) => {
     const [localSendState, setLocalSendState] = React.useState<SendDisplayState>("idle");
     // Sprint 2: Inline editing state
@@ -117,6 +119,24 @@ export const CardDetail: React.FC<CardDetailProps> = ({
         }
     }, [card.card_outcome, localSendState]);
 
+    // Escape key: dismiss edit/confirm panel or navigate back
+    React.useEffect(() => {
+        const handleEscapeKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                if (isEditing) {
+                    setIsEditing(false);
+                    setEditedDraft(card.humanized_draft ?? "");
+                } else if (localSendState === "confirming") {
+                    setLocalSendState("idle");
+                } else {
+                    onBack();
+                }
+            }
+        };
+        document.addEventListener("keydown", handleEscapeKey);
+        return () => document.removeEventListener("keydown", handleEscapeKey);
+    }, [isEditing, localSendState, card.humanized_draft, onBack]);
+
     const handleSendClick = React.useCallback(() => {
         setLocalSendState("confirming");
     }, []);
@@ -148,6 +168,15 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 
     // Sprint 2: Track whether draft has been modified
     const draftIsModified = isEditing && editedDraft !== (card.humanized_draft ?? "");
+
+    // Phase 18: Persist edited draft to Dataverse with 2-second debounce
+    React.useEffect(() => {
+        if (!isEditing || !draftIsModified) return;
+        const timer = setTimeout(() => {
+            onSaveDraft(card.id, editedDraft);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, [isEditing, draftIsModified, editedDraft, card.id, onSaveDraft]);
 
     const handleCopy = React.useCallback(() => {
         onCopyDraft(card.id);

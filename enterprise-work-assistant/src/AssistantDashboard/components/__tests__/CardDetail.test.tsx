@@ -27,6 +27,7 @@ function renderCardDetail(
         onSendDraft: jest.fn(),
         onCopyDraft: jest.fn(),
         onDismissCard: jest.fn(),
+        onSaveDraft: jest.fn(),
     };
     return renderWithProviders(
         <CardDetail {...defaultProps} {...overrides} />

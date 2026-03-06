@@ -87,7 +87,7 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     Write-Host "  .NET SDK: $dotnetVer" -ForegroundColor Green
 }
 
-# Check PAC CLI
+# Check PAC CLI (minimum version: 1.32.x)
 if (-not (Get-Command pac -ErrorAction SilentlyContinue)) {
     Write-Host "  MISSING: PAC CLI" -ForegroundColor Red
     Write-Host "  Install: dotnet tool install --global Microsoft.PowerApps.CLI.Tool" -ForegroundColor Yellow
@@ -95,6 +95,15 @@ if (-not (Get-Command pac -ErrorAction SilentlyContinue)) {
 } else {
     $pacVer = pac --version 2>&1
     Write-Host "  PAC CLI: $pacVer" -ForegroundColor Green
+    $versionMatch = [regex]::Match("$pacVer", '(\d+)\.(\d+)')
+    if ($versionMatch.Success) {
+        $major = [int]$versionMatch.Groups[1].Value
+        $minor = [int]$versionMatch.Groups[2].Value
+        if ($major -lt 1 -or ($major -eq 1 -and $minor -lt 32)) {
+            Write-Host "  WARNING: PAC CLI version 1.32+ recommended" -ForegroundColor Yellow
+            Write-Host "  Update: dotnet tool update --global Microsoft.PowerApps.CLI.Tool" -ForegroundColor Yellow
+        }
+    }
 }
 
 # Check PAC auth (only if pac exists)
@@ -170,6 +179,12 @@ if ($PSCmdlet.ShouldProcess($SolutionPath, "Pack solution (dotnet build)")) {
 
     Push-Location $solutionDir
     try {
+        Write-Host "  Restoring NuGet packages..." -ForegroundColor Gray
+        dotnet restore --verbosity quiet
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "NuGet restore failed. Check internet connectivity and NuGet sources." -ForegroundColor Red
+            exit 2
+        }
         dotnet build
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Solution build failed." -ForegroundColor Red
