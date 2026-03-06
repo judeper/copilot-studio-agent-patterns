@@ -444,6 +444,8 @@ Recipient: Current user (flow connection owner)
 Adaptive Card: See schemas/adaptive-card-nudge.json
 ```
 
+> **MVP Note**: Flow 2 builds the adaptive card inline using Compose actions rather than the template in `schemas/adaptive-card-nudge.json`. This is intentional for the MVP — the inline card omits AI-generated fields (`threadSummary`, `suggestedDraft`) that require Copilot Studio agent integration. When upgrading to the agent-integrated version, replace the inline Compose with template-based rendering using the full schema.
+
 This posts the card but does NOT wait for a response. Button clicks are handled by a separate flow.
 
 Then update Dataverse:
@@ -465,10 +467,12 @@ cr_lastchecked: @{utcNow()}
 > **Logic:**
 > 1. Parse the response body to get `action`, `trackingId`, and other fields
 > 2. Switch on `action`:
->    - `draft_followup` → Invoke the Copilot agent to generate a full draft, post back as a new card
+>    - `draft_followup` → See MVP note below
 >    - `snooze_nudge` → Update Dataverse: `cr_followupdate = addDays(utcNow(), 2)`, `cr_nudgesent = false`
 >    - `dismiss_nudge` → Update Dataverse: `cr_dismissedbyuser = true`
 > 3. Error handling: On failure, post a text message to the user: "Action couldn't be completed. Please try again."
+>
+> **Note (MVP)**: The Draft Follow-Up button is an MVP placeholder. In the current implementation (`flow-2b-card-action-handler.json`), the `draft_followup` action sends a Teams message: *"Draft generation coming soon. For now, compose your follow-up to {recipientEmail} manually."* It does **not** invoke the Copilot agent or create a draft email. Full Copilot-assisted draft generation is planned for a future release.
 >
 > This separation is required because Power Automate's "Post adaptive card" action does not support inline response waiting within a batch processing loop.
 
