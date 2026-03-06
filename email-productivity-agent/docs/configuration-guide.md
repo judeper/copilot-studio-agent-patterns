@@ -130,15 +130,22 @@ Each overdue follow-up generates an individual Adaptive Card notification in Tea
 - Auto-replies and out-of-office responses
 - Calendar invitations and responses
 - Emails to no-reply addresses
-- Emails to distribution lists
 - Emails where you are in the To/CC (self-sends)
 - CC recipients (only To-line recipients are tracked)
+- Emails with only BCC recipients (no To-line recipients) — the agent tracks To-line recipients only. BCC recipients are not visible to the Graph API `toRecipients` property.
 
 ### When Tracking Stops
 A tracking record is resolved (no more nudging) when:
 - ✅ The recipient replies (detected via Graph API)
 - ✖️ You dismiss the nudge
 - 🕐 The record is older than 90 days (auto-cleaned)
+
+---
+
+## Known Limitations
+
+- **Distribution lists**: Emails sent to distribution lists are tracked per recipient on the To-line. The agent cannot distinguish distribution list members from direct recipients without a Graph group membership lookup, which is not implemented.
+- **Holiday exclusion**: Business day calculations do not account for holidays. See Nudge Timeframes above.
 
 ---
 
