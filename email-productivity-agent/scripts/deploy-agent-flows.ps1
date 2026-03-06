@@ -104,7 +104,7 @@ $flowMap = [ordered]@{
     Flow4  = @{
         File        = "flow-4-auto-unsnooze.json"
         DisplayName = "EPA - Flow 4: Auto-Unsnooze"
-        ConnRefs    = @("shared_office365", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
     }
     Flow6  = @{
         File        = "flow-6-snooze-cleanup.json"
