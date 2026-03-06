@@ -170,3 +170,12 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Group-scoped Graph app (not delegated `/me/`) | Least-privilege; doesn't break on connection owner changes |
 | Feature flag + per-user opt-out for OneNote | Instant rollback; respects user preferences |
 | `{{PLACEHOLDER}}` HTML templates for OneNote pages | Separates content from structure; Power Automate handles escaping |
+
+## Known Limitations
+
+| Limitation | Mitigation |
+|------------|------------|
+| No automated data retention — AssistantCards table stores email subjects, sender PII, behavioral profiles, and communication drafts indefinitely with no cleanup flow | For organizations with data retention requirements, implement a scheduled Power Automate flow to delete/archive cards older than N days based on `cr_createdon`. See the Email Productivity Agent's Flow 5 for a 90-day cleanup reference pattern. |
+| English-only UI and prompts — the PCF component ships with only English localization (`1033.resx`) and all agent prompts are written in English | Non-English email and Teams content is processed correctly, but UI labels remain in English. Add additional `.resx` files for other locales and localize prompts as needed. |
+| OneNote Phase 2-3 not implemented — read-back, annotation promotion, and bi-directional sync are planned but not yet available | Phase 1 (write-only) is fully functional. See [`docs/onenote-integration.md`](docs/onenote-integration.md) for the roadmap. |
+| SKIP items not auditable — items triaged as SKIP are not persisted to Dataverse (by design, to reduce storage) so there is no audit trail for why a signal was skipped | If audit requirements apply, extend the Email/Teams agent flows to log SKIP decisions to a separate lightweight Dataverse table or Application Insights before returning. |

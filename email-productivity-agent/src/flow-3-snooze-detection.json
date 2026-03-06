@@ -212,8 +212,7 @@
                     "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
                     "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
                     "item/cr_currentfolder": "@variables('snoozeFolderId')",
-                    "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)",
-                    "item/cr_unsnoozedbyagent": false
+                    "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
                   },
                   "host": {
                     "connectionName": "shared_commondataserviceforapps",
@@ -302,7 +301,7 @@
     ],
     "notes": {
       "folderCreation": "On first run, creates the EPA-Snoozed folder via Graph API and stores its ID in NudgeConfiguration.",
-      "upsertBehavior": "Uses Dataverse UpdateRecord with alternate key (conversationId + owneruserid) for idempotent upsert. cr_unsnoozedbyagent is set to false on every upsert to enable re-snooze of the same conversation. If Flow 4 and Flow 3 race (rare), Flow 4's error handler self-heals on next reply.",
+      "upsertBehavior": "Uses Dataverse UpdateRecord with alternate key (conversationId + owneruserid) for idempotent upsert. cr_unsnoozedbyagent is NOT set by Flow 3 — Dataverse column default (false) handles initial creation, and only Flow 4 sets it to true during auto-unsnooze.",
       "error404": "If the snoozed folder is deleted, clears cr_snoozefolderid so it gets recreated on next run.",
       "scanInterval": "Default 15 minutes. Change recurrence interval to adjust.",
       "prerequisite": "NudgeConfiguration row must exist for the flow owner (created by Flow 1 on first sent email)."
