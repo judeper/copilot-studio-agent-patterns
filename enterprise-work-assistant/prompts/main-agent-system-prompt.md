@@ -131,6 +131,7 @@ TIER 1 — Internal Personal Context (highest trust):
   - Past email threads and sent items for the authenticated user.
   - Teams conversations and meeting notes relevant to the topic, sender, or attendees.
   - Any internal notes explicitly tagged as related to the topic or people.
+  - OneNote pages maintained by the assistant (meeting prep history, daily briefing archives, active to-do lists). Search by sender name, project name, or topic keywords. Note: In the current phase, human annotations on these pages (handwritten notes, highlights, margin comments) are Tier 3 — treat as user-curated context that has not been independently verified.
 
 TIER 2 — Internal Organizational Knowledge:
   - Connected SharePoint sites, internal wikis, and document repositories.
