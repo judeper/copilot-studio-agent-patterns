@@ -448,6 +448,67 @@ After completing all phases, run through this end-to-end test to verify the solu
 
 ---
 
+## Knowledge Source Configuration
+
+The Copilot Studio agent requires knowledge sources to research incoming signals. Configure these after publishing the agent.
+
+### Required Knowledge Sources
+
+| # | Source Type | Content | Purpose |
+|---|-----------|---------|---------|
+| 1 | **SharePoint Site** | Internal company wiki or knowledge base | Tier 2 research — internal documentation lookup |
+| 2 | **Uploaded Documents** | Product/project documentation (PDF, DOCX) | Tier 3 research — domain-specific context |
+| 3 | **Public Website** | Company external site or help center URL | Tier 4 research — public information fallback |
+
+### Configuration Steps
+
+1. **Open Copilot Studio** → Select the Enterprise Work Assistant agent
+2. Navigate to **Knowledge** in the left sidebar
+3. Click **+ Add knowledge**
+4. For each source type:
+   - **SharePoint**: Enter the SharePoint site URL → Select specific document libraries or lists → Click **Add**
+   - **Documents**: Upload PDF/DOCX files directly (max 3 MB per file, 10 files) → Click **Add**
+   - **Website**: Enter the root URL → Set crawl depth (recommended: 2 levels) → Click **Add**
+5. Wait for indexing to complete (status shows "Ready")
+6. **Test**: Use the Test pane to ask a question that requires knowledge lookup
+
+> **Note**: Knowledge sources are environment-specific. When moving between dev/test/prod, reconfigure knowledge sources in each environment.
+
+---
+
+## License and Role Requirements
+
+### Power Platform Licenses
+
+| License | Required For | Notes |
+|---------|-------------|-------|
+| **Power Apps per-user** or **per-app** | Canvas App access | Each user viewing the dashboard needs this |
+| **Copilot Studio capacity** | Agent message processing | Billed per message; PAYGO or prepaid capacity |
+| **Power Automate per-user** or **included** | Flow execution | Included with most Power Apps licenses for standard connectors |
+| **Microsoft 365 E3/E5** or **Exchange Online** | Email/Teams/Calendar triggers | Required for Office 365 Outlook and Teams connectors |
+
+### Dataverse Security Roles
+
+| Role | Assigned To | Permissions |
+|------|------------|-------------|
+| **AssistantCard User** | All dashboard users | Read/Write own `cr_assistantcard` rows (row-level security) |
+| **AssistantCard Admin** | Solution administrators | Full CRUD on all `cr_assistantcard` rows + `cr_briefingschedule` |
+| **System Customizer** | Deployment admin (one-time) | Required for solution import and table creation |
+
+### Connector Permissions
+
+| Connector | Auth Type | Permissions Needed |
+|-----------|----------|-------------------|
+| Office 365 Outlook | Delegated (user) | Mail.Read, Mail.Send |
+| Microsoft Teams | Delegated (user) | Chat.Read |
+| Office 365 Users | Delegated (user) | User.Read |
+| Microsoft Dataverse | Delegated (user) | Entity CRUD (scoped by security role) |
+| Microsoft Copilot Studio | Service | Agent invocation |
+
+> **Minimum viable setup for POC**: Power Apps per-user trial + Copilot Studio trial + M365 E3/E5 license. All trials are available from the Microsoft 365 admin center.
+
+---
+
 ## Troubleshooting
 
 Common errors and their fixes:

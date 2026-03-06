@@ -25,6 +25,7 @@ const AppWrapper: React.FC<{
     onDismissCard: (cardId: string) => void;
     onJumpToCard: (cardId: string) => void;
     onExecuteCommand: (command: string, currentCardId: string | null) => void;
+    onSaveDraft: (cardId: string, editedText: string) => void;
 }> = (props) => {
     // Cast PCF DataSet to the hook's expected interface shape
     const cards: AssistantCard[] = useCardData(
@@ -48,6 +49,7 @@ const AppWrapper: React.FC<{
         onDismissCard: props.onDismissCard,
         onJumpToCard: props.onJumpToCard,
         onExecuteCommand: props.onExecuteCommand,
+        onSaveDraft: props.onSaveDraft,
     });
 };
 
@@ -59,15 +61,18 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private dismissCardAction: string = "";
     private jumpToCardAction: string = "";
     private commandAction: string = "";
+    private saveDraftAction: string = "";
     private datasetVersion: number = 0;
+    private pendingDismissals: Map<string, { attempts: number; timestamp: number }> = new Map();
 
-    // Stable callback references — created once in init, never recreated
+    // Stable callback references— created once in init, never recreated
     private handleSelectCard: (cardId: string) => void;
     private handleSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     private handleCopyDraft: (cardId: string) => void;
     private handleDismissCard: (cardId: string) => void;
     private handleJumpToCard: (cardId: string) => void;
     private handleExecuteCommand: (command: string, currentCardId: string | null) => void;
+    private handleSaveDraft: (cardId: string, editedText: string) => void;
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -93,6 +98,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         };
         this.handleDismissCard = (cardId: string) => {
             this.dismissCardAction = cardId;
+            this.pendingDismissals.set(cardId, { attempts: 1, timestamp: Date.now() });
             this.notifyOutputChanged();
         };
         this.handleJumpToCard = (cardId: string) => {
@@ -103,6 +109,10 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         this.handleExecuteCommand = (command: string, currentCardId: string | null) => {
             // Sprint 3: Command bar — JSON-encode for Canvas app PowerAutomate.Run()
             this.commandAction = JSON.stringify({ command, currentCardId });
+            this.notifyOutputChanged();
+        };
+        this.handleSaveDraft = (cardId: string, editedText: string) => {
+            this.saveDraftAction = JSON.stringify({ cardId, editedText });
             this.notifyOutputChanged();
         };
     }
@@ -116,6 +126,22 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
 
         // Increment version so useMemo in useCardData re-computes
         this.datasetVersion++;
+
+        // Retry pending dismissals that haven't been acknowledged
+        for (const [cardId, info] of this.pendingDismissals) {
+            if (Date.now() - info.timestamp > 5000 && info.attempts < 3) {
+                const sortedIds = dataset.sortedRecordIds;
+                const record = sortedIds.includes(cardId) ? dataset.records[cardId] : null;
+                const outcome = record?.getValue("cr_cardoutcome") as string | null;
+                if (outcome === "DISMISSED") {
+                    this.pendingDismissals.delete(cardId);
+                } else {
+                    this.dismissCardAction = cardId;
+                    this.pendingDismissals.set(cardId, { attempts: info.attempts + 1, timestamp: Date.now() });
+                    this.notifyOutputChanged();
+                }
+            }
+        }
 
         // Read orchestrator response channel properties (F-02)
         const orchestratorResponse = (context.parameters as unknown as Record<string, { raw?: string | boolean | null }>).orchestratorResponse?.raw as string | null ?? null;
@@ -138,6 +164,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             onDismissCard: this.handleDismissCard,
             onJumpToCard: this.handleJumpToCard,
             onExecuteCommand: this.handleExecuteCommand,
+            onSaveDraft: this.handleSaveDraft,
         });
     }
 
@@ -149,6 +176,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             dismissCardAction: this.dismissCardAction,
             jumpToCardAction: this.jumpToCardAction,
             commandAction: this.commandAction,
+            saveDraftAction: this.saveDraftAction,
         };
 
         // Reset action outputs after reading to prevent stale re-fires
@@ -157,6 +185,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         this.dismissCardAction = "";
         this.jumpToCardAction = "";
         this.commandAction = "";
+        this.saveDraftAction = "";
 
         return outputs;
     }

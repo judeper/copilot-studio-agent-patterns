@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.2
-milestone_name: Tech Debt Cleanup
-status: unknown
-last_updated: "2026-03-01T03:26:47.237Z"
+milestone_name: Tech Debt Cleanup (POC Scope)
+status: in_progress
+last_updated: "2026-03-06T18:39:00Z"
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 16
-  completed_plans: 16
+  total_phases: 6
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -18,16 +18,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** v2.2 Tech Debt Cleanup — Phase 16 complete, ready for Phase 17
+**Current focus:** v2.2 Tech Debt Cleanup (POC Scope) — Phases 14-16 complete, implementing POC-scoped Phases 17-19
+**Scope decision:** This is a POC, not a production build. Production-grade items (full a11y, i18n, optimistic concurrency, DataSet paging, capacity planning) removed from scope.
 
 ## Current Position
 
-Phase: 16 complete (third of 6 in v2.2, phases 14-19)
+Phase: 16 complete (Phases 17-19 scoped for POC)
 Plan: 16-02 complete (2/2 plans in phase 16)
-Status: Phase 16 complete, ready for Phase 17
-Last activity: 2026-02-28 — Plan 16-02 complete (CommandBar + App Fluent UI migration, loading spinner, onBack wiring)
+Status: Implementing POC-scoped Phases 17-19 (6 tasks total)
+Last activity: 2026-03-06 — Scope trimmed to POC; 9 production-grade items removed
 
-Progress: [█████░░░░░] 50% (6/12 plans estimated across 6 phases)
+Progress: [████████░░] 75% (POC scope: 3/6 phases complete, 6 tasks remaining)
 
 ## Performance Metrics
 

@@ -87,6 +87,7 @@ export const App: React.FC<AppProps> = ({
     onDismissCard,
     onJumpToCard,
     onExecuteCommand,
+    onSaveDraft,
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery" });
     const prefersDark = usePrefersDarkMode();
@@ -226,6 +227,7 @@ export const App: React.FC<AppProps> = ({
                             onSendDraft={onSendDraft}
                             onCopyDraft={onCopyDraft}
                             onDismissCard={onDismissCard}
+                            onSaveDraft={onSaveDraft}
                         />
                     )}
                 </div>

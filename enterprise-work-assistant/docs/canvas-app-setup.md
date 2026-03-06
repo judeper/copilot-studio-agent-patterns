@@ -230,6 +230,27 @@ If(
 );
 ```
 
+### Save Draft persistence handler
+
+```
+// Phase 18: Handle Save Draft action — persist edited draft to Dataverse
+If(
+    !IsBlank(AssistantDashboard1.saveDraftAction),
+    With(
+        { draftData: ParseJSON(AssistantDashboard1.saveDraftAction) },
+        Patch(
+            'Assistant Cards',
+            LookUp('Assistant Cards', 'Assistant Card' = GUID(Text(draftData.cardId))),
+            { 'Humanized Draft': Text(draftData.editedText) }
+        )
+    )
+);
+```
+
+> **Phase 18 Notes:**
+> - **Draft persistence**: The PCF CardDetail component fires `saveDraftAction` with debounced writes (2-second delay) when the user edits a draft. The Canvas app persists the edited text to `cr_humanizeddraft` so edits survive browser refresh.
+> - The save is automatic — no user action required beyond editing the text.
+
 ### Selected Card tracking
 
 ```

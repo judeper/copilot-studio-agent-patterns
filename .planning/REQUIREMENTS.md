@@ -22,21 +22,21 @@ Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pr
 ### UI / UX / Accessibility
 
 - [x] **UIUX-01**: BriefingCard, ConfidenceCalibration, CommandBar, and App use Fluent UI components instead of plain HTML (F-09 to F-12)
-- [ ] **UIUX-02**: All interactive elements have ARIA labels, roles, and screen reader support (F-17)
+- ~~**UIUX-02**: All interactive elements have ARIA labels, roles, and screen reader support (F-17)~~ — *Removed: POC only, Fluent UI provides baseline a11y*
 - [ ] **UIUX-03**: Escape key closes detail views and panels (F-18)
 - [x] **UIUX-04**: Loading state with Spinner/Shimmer displays while data loads (F-13)
 - [x] **UIUX-05**: BriefingCard detail view has a Back navigation button (F-14)
 - [x] **UIUX-06**: Empty analytics buckets show "No data" instead of misleading 0% (F-19)
-- [ ] **UIUX-07**: DataSet paging implemented for deployments with >100 active cards (F-20/I-32)
-- [ ] **UIUX-08**: Localization/i18n strategy defined with string externalization pattern (I-33)
+- ~~**UIUX-07**: DataSet paging implemented for deployments with >100 active cards (F-20/I-32)~~ — *Removed: POC won't have 100+ cards*
+- ~~**UIUX-08**: Localization/i18n strategy defined with string externalization pattern (I-33)~~ — *Removed: English-only for POC*
 
 ### Operational Resilience
 
-- [ ] **OPER-01**: Power Automate Compose actions use Left() truncation for fields exceeding maxLength (R-34)
-- [ ] **OPER-02**: Outcome tracker flow uses optimistic concurrency to prevent counter drift (I-23)
+- ~~**OPER-01**: Power Automate Compose actions use Left() truncation for fields exceeding maxLength (R-34)~~ — *Removed: Edge case, Power Automate auto-truncates*
+- ~~**OPER-02**: Outcome tracker flow uses optimistic concurrency to prevent counter drift (I-23)~~ — *Removed: Unlikely with <10 demo users*
 - [ ] **OPER-03**: Draft edits persist to Dataverse cr_editeddraft column across sessions (I-28)
 - [ ] **OPER-04**: Dismiss action includes retry logic and error toast on failure (I-29)
-- [ ] **OPER-05**: Dead-letter mechanism evaluated for failed flow runs with documented decision (I-30)
+- ~~**OPER-05**: Dead-letter mechanism evaluated for failed flow runs with documented decision (I-30)~~ — *Removed: Power Automate has built-in failure notifications*
 
 ### Deployment Documentation
 
@@ -44,9 +44,9 @@ Requirements for tech debt cleanup. Each maps to roadmap phases. Source: v2.1 pr
 - [ ] **DOCS-02**: NuGet restore step added to deploy-solution.ps1 (R-20)
 - [ ] **DOCS-03**: Managed vs Unmanaged solution guidance documented for production (R-21)
 - [ ] **DOCS-04**: Knowledge source configuration steps documented (R-23)
-- [ ] **DOCS-05**: Agent timeout tuning guidance documented (R-30)
-- [ ] **DOCS-06**: API rate limit awareness section added (R-31)
-- [ ] **DOCS-07**: Capacity planning section with usage-dependent guidance (R-32)
+- ~~**DOCS-05**: Agent timeout tuning guidance documented (R-30)~~ — *Removed: Use default 120s for POC*
+- ~~**DOCS-06**: API rate limit awareness section added (R-31)~~ — *Removed: Platform limits documented by Microsoft*
+- ~~**DOCS-07**: Capacity planning section with usage-dependent guidance (R-32)~~ — *Removed: No usage data for POC*
 - [ ] **DOCS-08**: License and role requirements matrix documented (R-33)
 
 ### Code Quality
@@ -90,32 +90,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WKFL-02 | Phase 15 | Complete |
 | WKFL-03 | Phase 15 | Complete |
 | UIUX-01 | Phase 16 | Complete |
-| UIUX-02 | Phase 17 | Pending |
+| ~~UIUX-02~~ | ~~Phase 17~~ | Removed (POC) |
 | UIUX-03 | Phase 17 | Pending |
 | UIUX-04 | Phase 16 | Complete |
 | UIUX-05 | Phase 16 | Complete |
 | UIUX-06 | Phase 16 | Complete |
-| UIUX-07 | Phase 18 | Pending |
-| UIUX-08 | Phase 17 | Pending |
-| OPER-01 | Phase 18 | Pending |
-| OPER-02 | Phase 18 | Pending |
+| ~~UIUX-07~~ | ~~Phase 18~~ | Removed (POC) |
+| ~~UIUX-08~~ | ~~Phase 17~~ | Removed (POC) |
+| ~~OPER-01~~ | ~~Phase 18~~ | Removed (POC) |
+| ~~OPER-02~~ | ~~Phase 18~~ | Removed (POC) |
 | OPER-03 | Phase 18 | Pending |
 | OPER-04 | Phase 18 | Pending |
-| OPER-05 | Phase 18 | Pending |
+| ~~OPER-05~~ | ~~Phase 18~~ | Removed (POC) |
 | DOCS-01 | Phase 19 | Pending |
 | DOCS-02 | Phase 19 | Pending |
 | DOCS-03 | Phase 19 | Pending |
 | DOCS-04 | Phase 19 | Pending |
-| DOCS-05 | Phase 19 | Pending |
-| DOCS-06 | Phase 19 | Pending |
-| DOCS-07 | Phase 19 | Pending |
+| ~~DOCS-05~~ | ~~Phase 19~~ | Removed (POC) |
+| ~~DOCS-06~~ | ~~Phase 19~~ | Removed (POC) |
+| ~~DOCS-07~~ | ~~Phase 19~~ | Removed (POC) |
 | DOCS-08 | Phase 19 | Pending |
 | QUAL-01 | Phase 14 | Complete |
 
 **Coverage:**
-- v2.2 requirements: 28 total
-- Mapped to phases: 28
-- Unmapped: 0
+- v2.2 requirements: 28 total (original)
+- In POC scope: 19 (11 complete + 8 pending)
+- Removed from scope: 9 (POC decision — not a production build)
 
 ---
 *Requirements defined: 2026-02-28*
