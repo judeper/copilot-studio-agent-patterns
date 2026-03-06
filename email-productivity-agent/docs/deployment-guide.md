@@ -154,7 +154,7 @@ Set up these Power Automate connections:
 
 ### Step 5: Deploy Power Automate Flows
 
-The deploy script creates all 4 Phase 1 flows via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution.
+The deploy script creates the 4 Phase 1 flows (Flow 1, 2, 2b, 5) via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution.
 
 > **Why the Flow Management API?** Flows must be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity) because only the Flow API properly binds connections at runtime. Dataverse-created flows always fail activation with "connection references need connections" regardless of PAC solution import settings.
 
