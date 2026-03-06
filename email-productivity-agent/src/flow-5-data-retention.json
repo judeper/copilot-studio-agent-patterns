@@ -24,7 +24,7 @@
           "parameters": {
             "entityName": "cr_followuptrackings",
             "$filter": "(cr_responsereceived eq true or cr_dismissedbyuser eq true) and createdon lt @{addDays(utcNow(), -90)}",
-            "$top": 100
+            "$top": 5000
           },
           "host": {
             "connectionName": "shared_commondataserviceforapps",
@@ -72,7 +72,11 @@
           "Terminate_Graceful": {
             "type": "Terminate",
             "inputs": {
-              "runStatus": "Succeeded"
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
             },
             "runAfter": {
               "Compose_ErrorDetails": ["Succeeded"]
@@ -93,7 +97,7 @@
     ],
     "notes": {
       "retentionDays": "Default 90 days. Change the -90 in the filter expression to adjust.",
-      "batchSize": "Processes 100 rows per run. For large backlogs, run manually or increase $top.",
+      "batchSize": "Processes up to 5000 rows per run. For large backlogs, run manually or trigger additional runs.",
       "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions."
     }
   }

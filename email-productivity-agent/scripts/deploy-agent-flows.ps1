@@ -228,6 +228,14 @@ $flowsToProcess = switch ($FlowsToCreate) {
     default  { @($FlowsToCreate) }
 }
 
+# Phase 1 dependency guard: warn if deploying Phase 2 without Phase 1
+if ($FlowsToCreate -eq "Phase2") {
+    $phase1Flows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EPA') and (contains(name,'Flow 1') or contains(name,'Flow 2:') or contains(name,'Flow 5'))&`$select=name,workflowid" -Headers $dvHeaders
+    if ($phase1Flows.value.Count -eq 0) {
+        Write-Warning "Phase 1 flows not found in the solution. Phase 2 depends on Phase 1 tables and flows. Deploy Phase 1 first."
+    }
+}
+
 $neededConnectors = @()
 foreach ($flowKey in $flowsToProcess) { $neededConnectors += $flowMap[$flowKey].ConnRefs }
 $neededConnectors = $neededConnectors | Sort-Object -Unique

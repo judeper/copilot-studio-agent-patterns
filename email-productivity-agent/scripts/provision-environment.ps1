@@ -529,21 +529,24 @@ New-BooleanColumn -EntityId $followUpEntityId `
     -SchemaName "${PublisherPrefix}_responsereceived" `
     -DisplayName "Response Received" `
     -Description "Whether a response has been received from this recipient." `
-    -DefaultValue $false
+    -DefaultValue $false `
+    -Required $true
 
 # Nudge Sent
 New-BooleanColumn -EntityId $followUpEntityId `
     -SchemaName "${PublisherPrefix}_nudgesent" `
     -DisplayName "Nudge Sent" `
     -Description "Whether a nudge reminder has been sent for this follow-up." `
-    -DefaultValue $false
+    -DefaultValue $false `
+    -Required $true
 
 # Dismissed By User
 New-BooleanColumn -EntityId $followUpEntityId `
     -SchemaName "${PublisherPrefix}_dismissedbyuser" `
     -DisplayName "Dismissed By User" `
     -Description "Whether the user dismissed this follow-up tracking." `
-    -DefaultValue $false
+    -DefaultValue $false `
+    -Required $true
 
 # Last Checked
 New-DateTimeColumn -EntityId $followUpEntityId `
@@ -686,35 +689,40 @@ New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_internaldays" `
     -DisplayName "Internal Days" `
     -Description "Number of days to wait before nudging for internal recipients." `
-    -MinValue 1 -MaxValue 30 -DefaultValue 3
+    -MinValue 1 -MaxValue 30 -DefaultValue 3 `
+    -Required $true
 
 # External Days (WholeNumber, default 5)
 New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_externaldays" `
     -DisplayName "External Days" `
     -Description "Number of days to wait before nudging for external recipients." `
-    -MinValue 1 -MaxValue 30 -DefaultValue 5
+    -MinValue 1 -MaxValue 30 -DefaultValue 5 `
+    -Required $true
 
 # Priority Days (WholeNumber, default 1)
 New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_prioritydays" `
     -DisplayName "Priority Days" `
     -Description "Number of days to wait before nudging for priority emails." `
-    -MinValue 1 -MaxValue 30 -DefaultValue 1
+    -MinValue 1 -MaxValue 30 -DefaultValue 1 `
+    -Required $true
 
 # General Days (WholeNumber, default 7)
 New-WholeNumberColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_generaldays" `
     -DisplayName "General Days" `
     -Description "Number of days to wait before nudging for general emails." `
-    -MinValue 1 -MaxValue 30 -DefaultValue 7
+    -MinValue 1 -MaxValue 30 -DefaultValue 7 `
+    -Required $true
 
 # Nudges Enabled (Boolean, default true)
 New-BooleanColumn -EntityId $nudgeEntityId `
     -SchemaName "${PublisherPrefix}_nudgesenabled" `
     -DisplayName "Nudges Enabled" `
     -Description "Whether follow-up nudge reminders are enabled for this user." `
-    -DefaultValue $true
+    -DefaultValue $true `
+    -Required $true
 
 # Snooze Folder ID
 New-TextColumn -EntityId $nudgeEntityId `
@@ -893,7 +901,8 @@ New-BooleanColumn -EntityId $snoozedEntityId `
     -SchemaName "${PublisherPrefix}_unsnoozedbyagent" `
     -DisplayName "Unsnoozed By Agent" `
     -Description "Whether the agent automatically moved this message back to Inbox because a new reply was detected." `
-    -DefaultValue $false
+    -DefaultValue $false `
+    -Required $true
 
 # Unsnoozed Date Time
 New-DateTimeColumn -EntityId $snoozedEntityId `
