@@ -11,6 +11,7 @@ The primary solution is **Enterprise Work Assistant** (`enterprise-work-assistan
 3. **Humanizer Connected Agent** rewrites drafts for FULL-tier items with confidence ≥ 40
 4. **Dataverse** (`AssistantCards` table) persists results with ownership-based row-level security
 5. **Canvas App + PCF React Dashboard** renders a single-pane-of-glass UI
+6. **OneNote Integration** (optional, Phase 1 write-only) syncs meeting prep, daily briefings, and active to-dos to a structured OneNote notebook via Graph API. Gated by feature flag (`cr_onenoteenabled`) and per-user opt-out (`cr_onenoteoptout`). Uses group-scoped app registration, `{{PLACEHOLDER}}` HTML templates, and fail-safe error handling.
 
 The PCF component is a **virtual** React control (shares the platform React tree — does not bundle its own React). It uses a **dataset-type** binding where the Canvas app handles the Dataverse connection and passes pre-filtered records.
 
@@ -91,6 +92,16 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 ### Provisioning Scripts
 
 PowerShell 7+ scripts in `enterprise-work-assistant/scripts/` handle environment setup. They require PAC CLI (`Microsoft.PowerApps.CLI.Tool`).
+
+### OneNote Integration Patterns
+
+- **Write-only (Phase 1)**: The agent writes to OneNote but never reads back annotations. OneNote is a downstream knowledge surface, not a data source.
+- **Feature flag**: `cr_onenoteenabled` (org-level) and `cr_onenoteoptout` (per-user) gate all OneNote operations. Setting the flag to `false` stops all writes immediately.
+- **Group-scoped Graph API**: All OneNote calls use `/groups/{groupId}/onenote/...` with an application permission (`Notes.ReadWrite.All` scoped to a dedicated M365 Group). Never use delegated `/me/` endpoints.
+- **HTML templates**: Stored in `enterprise-work-assistant/templates/` using `{{PLACEHOLDER_NAME}}` syntax. All injected values must be HTML-entity-encoded before substitution.
+- **Fail-safe error handling**: OneNote operations are wrapped in Power Automate Scopes. Failures are logged to `cr_errorlog` and surfaced as `cr_onenotesyncstatus = "FAILED"` on the card — they never block the main pipeline.
+- **External-sharing pre-check**: Before every write, flows verify the notebook is not shared with external users to prevent data leakage.
+- **Idempotency**: `cr_onenotepageid` on the Dataverse card is the dedup key. If a page ID exists, flows PATCH (update); otherwise POST (create).
 
 ### Email Productivity Agent — Flow Deployment
 

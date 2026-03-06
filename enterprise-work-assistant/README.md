@@ -9,6 +9,7 @@ An AI-powered assistant that triages incoming emails, Teams messages, and calend
 - **Scores confidence** (0-100) based on evidence strength and source reliability
 - **Prepares drafts** for emails and Teams replies, calibrated to recipient relationship and tone
 - **Surfaces everything** on a single-pane-of-glass Canvas app dashboard with a Power Apps Component Framework (PCF) React component
+- **Syncs to OneNote** (optional) — meeting prep, daily briefings, and active to-dos are written to a structured OneNote notebook for offline access, annotation, and Microsoft Search indexing
 
 ## Architecture
 
@@ -46,6 +47,12 @@ An AI-powered assistant that triages incoming emails, Teams messages, and calend
 │  ┌─────────────────────────────────────────────────┐        │
 │  │      CANVAS APP + PCF REACT DASHBOARD           │        │
 │  │  Gallery → Detail → Edit & Send                  │        │
+│  └────────────────────┬────────────────────────────┘        │
+│                       │ (optional, feature-flagged)          │
+│                       ▼                                      │
+│  ┌─────────────────────────────────────────────────┐        │
+│  │      ONENOTE INTEGRATION (write-only Phase 1)   │        │
+│  │  Meeting prep · Daily briefings · Active to-dos  │        │
 │  └─────────────────────────────────────────────────┘        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -57,17 +64,30 @@ enterprise-work-assistant/
 ├── docs/
 │   ├── agent-flows.md            # Step-by-step flow building guide
 │   ├── canvas-app-setup.md       # Canvas app + PCF configuration
-│   └── deployment-guide.md       # End-to-end deployment checklist
+│   ├── deployment-guide.md       # End-to-end deployment checklist
+│   └── onenote-integration.md    # OneNote integration design (Phase 1-3)
 ├── prompts/
 │   ├── main-agent-system-prompt.md    # Main agent operating instructions
-│   └── humanizer-agent-prompt.md      # Tone calibration prompt
+│   ├── humanizer-agent-prompt.md      # Tone calibration prompt
+│   ├── daily-briefing-agent-prompt.md # Daily briefing agent instructions
+│   └── orchestrator-agent-prompt.md   # Orchestrator agent instructions
 ├── scripts/
 │   ├── provision-environment.ps1      # Environment + Dataverse setup
 │   ├── create-security-roles.ps1      # Ownership-based RLS
-│   └── deploy-solution.ps1            # PCF build + solution import
+│   ├── deploy-solution.ps1            # PCF build + solution import
+│   ├── provision-onenote.ps1          # OneNote notebook + section provisioning
+│   ├── validate-onenote-integration.ps1 # Verify OneNote integration health
+│   └── audit-table-naming.ps1         # Dataverse table naming audit
 ├── schemas/
 │   ├── output-schema.json             # JSON Schema for agent output
-│   └── dataverse-table.json           # AssistantCards table definition
+│   ├── dataverse-table.json           # AssistantCards table definition
+│   ├── briefing-output-schema.json    # Daily briefing output schema
+│   ├── briefingschedule-table.json    # BriefingSchedule table definition
+│   └── senderprofile-table.json       # SenderProfile table definition
+├── templates/
+│   ├── onenote-meeting-prep.html      # OneNote meeting prep page template
+│   ├── onenote-daily-briefing.html    # OneNote daily briefing page template
+│   └── onenote-active-todos.html      # OneNote active to-dos page template
 └── src/                               # PCF React component
     ├── AssistantDashboard/
     │   ├── ControlManifest.Input.xml  # PCF manifest (virtual, dataset)
@@ -116,6 +136,10 @@ pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 pwsh deploy-solution.ps1 -EnvironmentId "<env-id>"
 
 # 4. Create Canvas app (see canvas-app-setup.md)
+
+# 5. (Optional) Provision OneNote integration
+pwsh provision-onenote.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -GroupId "<m365-group-id>"
+pwsh validate-onenote-integration.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 ```
 
 See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-step checklist.
@@ -133,3 +157,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | SKIP items not persisted to Dataverse | Avoids null primary column conflict; reduces storage noise |
 | SKIP returns minimal JSON | Consistent contract; easier flow error handling |
 | Hybrid data: research_log as text, verified_sources as typed array | Simpler prompt for log; typed array enables clickable links in PCF |
+| OneNote as optional write-only downstream (Phase 1) | Augments but never replaces Dataverse; works identically if OneNote unavailable |
+| Group-scoped Graph app (not delegated `/me/`) | Least-privilege; doesn't break on connection owner changes |
+| Feature flag + per-user opt-out for OneNote | Instant rollback; respects user preferences |
+| `{{PLACEHOLDER}}` HTML templates for OneNote pages | Separates content from structure; Power Automate handles escaping |
