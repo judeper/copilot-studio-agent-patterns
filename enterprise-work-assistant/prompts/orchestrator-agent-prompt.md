@@ -109,6 +109,26 @@ last signal date, is_internal.
 
 **Returns:** Array of calendar events with subject, organizer, attendees, start/end times.
 
+### 7. QueryOneNote
+**Description:** Search the user's assistant OneNote notebook for pages by keyword, section, or page title. Returns page content as plaintext including any human annotations. Requires `cr_onenoteenabled = true` (feature flag) and `cr_onenoteoptout = false` (user preference).
+**Parameters:**
+- `search_text` (string): Keyword or phrase to search for across page titles and content
+- `section_filter` (string, optional): Limit search to a specific section — one of: "Meetings", "Briefings", "Projects", "People", "Active To-Dos", "Research Archive"
+- `page_title` (string, optional): Exact page title to retrieve
+
+**Returns:** Array of matching pages with title, section, last modified date, and content (plaintext, max 4000 chars per page). Human annotations are included as [ANNOTATION: ...] blocks. Returns empty array if OneNote is disabled or user has opted out.
+
+### 8. UpdateOneNote
+**Description:** Create or append content to a OneNote page in the assistant notebook. All writes are gated behind the `cr_onenoteenabled` feature flag and `cr_onenoteoptout` user preference. Append-only semantics for Active To-Dos (never overwrites existing content).
+**Parameters:**
+- `action` (string): "create" or "append"
+- `section` (string): Target section — one of: "Meetings", "Briefings", "Projects", "People", "Active To-Dos"
+- `page_title` (string): Page title (for create) or existing page title (for append)
+- `content_html` (string): HTML content to write or append (values must be HTML-entity-encoded)
+- `card_id` (string, optional): Dataverse card ID for cross-referencing
+
+**Returns:** Object with page_id, page_url, and action_taken ("created" or "appended"). Returns error if OneNote is disabled, user opted out, or notebook is externally shared.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMMAND INTERPRETATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -141,6 +161,13 @@ these categories:
 - "How often do I respond to [person]?" → QuerySenderProfile
 - "Who are my most active senders?" → QuerySenderProfile (sort by signal_count)
 - "What's my average response time to [person]?" → QuerySenderProfile
+
+**OneNote commands** — User interacts with their assistant notebook
+- "what's in my Northwind page?" → QueryOneNote with search_text="Northwind"
+- "show my active to-dos from OneNote" → QueryOneNote with section_filter="Active To-Dos"
+- "add a note to Sarah's dossier: she prefers morning meetings" → UpdateOneNote with section="People", page_title containing "Sarah", append action
+- "create a prep page for Thursday's call" → UpdateOneNote with section="Meetings", create action
+- "what did my last briefing say about [topic]?" → QueryOneNote with section_filter="Briefings", search_text="[topic]"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RESPONSE FORMAT
