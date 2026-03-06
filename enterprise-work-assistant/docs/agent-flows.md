@@ -1674,7 +1674,7 @@ The Orchestrator Agent returns a JSON response with this structure. The Canvas a
 
 ### Orchestrator Tool Action Registration (R-18)
 
-The Orchestrator Agent requires 6 tool actions registered in Copilot Studio. These map the agent's tool calls to actual Power Automate flows or Dataverse connector operations.
+The Orchestrator Agent requires 8 tool actions registered in Copilot Studio. These map the agent's tool calls to actual Power Automate flows or Dataverse connector operations (6 core + 2 OneNote).
 
 **Registration steps:**
 
@@ -1705,7 +1705,7 @@ Trigger (Instant — from Canvas app)
   │   └── Yes → 2a. Get current card from Dataverse
   ├── 3. Get today's briefing (if exists)
   ├── 4. Compose orchestrator input (COMMAND_TEXT, USER_CONTEXT, etc.)
-  ├── 5. Invoke Orchestrator Agent (120s timeout, 6 tool actions available)
+  ├── 5. Invoke Orchestrator Agent (120s timeout, 8 tool actions available)
   ├── 6. Parse JSON response
   └── 7. Return structured response to Canvas app
 ```
@@ -2093,8 +2093,8 @@ Each flow's existing error Scope should be updated to include the two actions ab
 | Flow 4 | "Flow 4: Email Send" |
 | Flow 5 | "Flow 5: Card Outcome Tracker" |
 | Flow 6 | "Flow 6: Daily Briefing" |
-| Flow 7 | "Flow 7: Command Execution" |
-| Flow 8 | "Flow 8: Staleness Monitor" |
+| Flow 7 | "Flow 7: Staleness Monitor" |
+| Flow 8 | "Flow 8: Command Execution" |
 | Flow 9 | "Flow 9: Sender Profile Analyzer" |
 | Flow 10 | "Flow 10: Reminder Firing" |
 

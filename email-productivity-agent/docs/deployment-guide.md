@@ -285,7 +285,7 @@ Each user runs their own set of flows under their own connections:
 
 To disable the Email Productivity Agent without affecting other systems:
 
-1. **Turn off flows**: Disable Flows 1-6 in Power Automate
+1. **Turn off flows**: Disable all 7 flows (1, 2, 2b, 3, 4, 5, 6) in Power Automate
 2. **Disable agent**: Deactivate the Copilot Studio agent
 3. **(Optional) Clean up data**: Delete all rows in `cr_followuptracking` and `cr_snoozedconversation`
 4. **(Optional) Remove folder**: Delete the EPA-Snoozed folder via Graph or Outlook

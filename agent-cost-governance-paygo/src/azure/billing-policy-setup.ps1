@@ -137,7 +137,7 @@ $ppApiResource = "https://api.powerplatform.com"
 
 try {
     $tokenResponse = Get-AzAccessToken -ResourceUrl $ppApiResource
-    $ppToken = $tokenResponse.Token
+    $ppToken = $tokenResponse.Token | ConvertFrom-SecureString -AsPlainText
     Write-Host "Token acquired successfully." -ForegroundColor Green
 } catch {
     Write-Error @"
