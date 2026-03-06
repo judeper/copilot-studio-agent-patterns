@@ -2,6 +2,12 @@
 
 This document provides detailed specifications for building the Power Automate flows that power the Follow-Up Nudge system. Each flow is described with its trigger, actions, expressions, and error handling patterns.
 
+> **Automated deployment:** These flows can be deployed automatically using the deploy script:
+> ```powershell
+> pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase1"
+> ```
+> The specifications below are provided as reference for customization and troubleshooting.
+
 ---
 
 ## Flow 1: Sent Items Tracker
