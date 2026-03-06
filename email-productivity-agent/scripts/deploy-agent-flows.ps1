@@ -1,22 +1,29 @@
 <#
 .SYNOPSIS
-    Deploys Power Automate flows for the Email Productivity Agent via the Power Automate Management API.
+    Deploys Power Automate flows for the Email Productivity Agent as solution-aware components.
 
 .DESCRIPTION
-    Creates all agent flows programmatically:
+    Creates all agent flows programmatically via the Dataverse Web API:
       - Flow 1: Sent Items Tracker (event-driven)
       - Flow 2: Response Detection & Nudge Delivery (daily 9 AM)
       - Flow 2b: Card Action Handler (event-driven)
       - Flow 5: Data Retention Cleanup (weekly)
 
-    Uses the Power Automate Management API to create flows with proper connection bindings.
-    Flows are created in the target environment and can be associated with a Copilot Studio agent.
+    Flows are created inside a Dataverse solution with proper connection references,
+    making them compatible with the new Power Automate designer and ALM (solution export/import).
 
-.PARAMETER EnvironmentId
-    Power Platform Environment ID (GUID). Find via: pac env list
+    The script:
+      1. Creates (or reuses) an "EmailProductivityAgent" solution
+      2. Creates 5 connection references in the solution
+      3. Reads flow JSON definitions from ../src/
+      4. Injects required $connections/$authentication parameters for API compatibility
+      5. Creates each flow as a solution-aware workflow via the Dataverse API
 
 .PARAMETER OrgUrl
     Dataverse organization URL (e.g., https://emailproductivityagent.crm.dynamics.com)
+
+.PARAMETER PublisherPrefix
+    Dataverse publisher prefix. Default: "cr"
 
 .PARAMETER TimeZone
     Time zone for scheduled triggers. Default: "Eastern Standard Time"
@@ -27,18 +34,17 @@
     Valid values: "All", "Flow1", "Flow2", "Flow2b", "Flow5"
 
 .EXAMPLE
-    .\deploy-agent-flows.ps1 -EnvironmentId "fd0c6bc5-17f6-eb9d-9620-f7ea65f9c11d" -OrgUrl "https://emailproductivityagent.crm.dynamics.com"
+    .\deploy-agent-flows.ps1 -OrgUrl "https://emailproductivityagent.crm.dynamics.com"
 
 .EXAMPLE
-    .\deploy-agent-flows.ps1 -EnvironmentId "fd0c6bc5-..." -OrgUrl "https://..." -FlowsToCreate "Flow1"
+    .\deploy-agent-flows.ps1 -OrgUrl "https://..." -FlowsToCreate "Flow1" -TimeZone "Pacific Standard Time"
 #>
 
 param(
     [Parameter(Mandatory = $true)]
-    [string]$EnvironmentId,
-
-    [Parameter(Mandatory = $true)]
     [string]$OrgUrl,
+
+    [string]$PublisherPrefix = "cr",
 
     [string]$TimeZone = "Eastern Standard Time",
 
@@ -56,34 +62,32 @@ $flowMap = @{
     Flow1  = @{
         File        = "flow-1-sent-items-tracker.json"
         DisplayName = "EPA - Flow 1: Sent Items Tracker"
-        Connections = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps")
     }
     Flow2  = @{
         File        = "flow-2-response-detection.json"
         DisplayName = "EPA - Flow 2: Response Detection & Nudge Delivery"
-        Connections = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
     }
     Flow2b = @{
         File        = "flow-2b-card-action-handler.json"
         DisplayName = "EPA - Flow 2b: Card Action Handler"
-        Connections = @("shared_teams", "shared_commondataserviceforapps")
+        ConnRefs    = @("shared_teams", "shared_commondataserviceforapps")
     }
     Flow5  = @{
         File        = "flow-5-data-retention.json"
         DisplayName = "EPA - Flow 5: Data Retention Cleanup"
-        Connections = @("shared_commondataserviceforapps")
+        ConnRefs    = @("shared_commondataserviceforapps")
     }
 }
 
-# ─────────────────────────────────────
-# Connector display names (for user messaging)
-# ─────────────────────────────────────
-$connectorNames = @{
-    shared_office365                 = "Office 365 Outlook"
-    shared_office365users            = "Office 365 Users"
-    shared_commondataserviceforapps  = "Microsoft Dataverse"
-    shared_webcontents               = "HTTP with Microsoft Entra ID (preauthorized)"
-    shared_teams                     = "Microsoft Teams"
+# Connection reference definitions
+$connRefDefs = @{
+    shared_office365                = @{ LogicalName = "${PublisherPrefix}_sharedoffice365";      DisplayName = "EPA - Office 365 Outlook" }
+    shared_office365users           = @{ LogicalName = "${PublisherPrefix}_sharedoffice365users"; DisplayName = "EPA - Office 365 Users" }
+    shared_commondataserviceforapps = @{ LogicalName = "${PublisherPrefix}_shareddataverse";      DisplayName = "EPA - Microsoft Dataverse" }
+    shared_teams                    = @{ LogicalName = "${PublisherPrefix}_sharedteams";          DisplayName = "EPA - Microsoft Teams" }
+    shared_webcontents              = @{ LogicalName = "${PublisherPrefix}_sharedhttpentra";      DisplayName = "EPA - HTTP with Microsoft Entra ID" }
 }
 
 # ─────────────────────────────────────
@@ -103,211 +107,167 @@ if (-not (Test-Path $srcDir)) {
 }
 
 # ─────────────────────────────────────
-# 1. Acquire Tokens
+# 1. Acquire Dataverse Token
 # ─────────────────────────────────────
-Write-Host "[1/5] Acquiring API tokens..." -ForegroundColor Cyan
+Write-Host "[1/5] Acquiring Dataverse token..." -ForegroundColor Cyan
 
-# Token for Power Automate Management API
-try {
-    $flowToken = az account get-access-token --resource "https://service.flow.microsoft.com/" --query accessToken -o tsv 2>$null
-    if (-not $flowToken) { throw "Empty token" }
-    Write-Host "  ✓ Power Automate API token acquired" -ForegroundColor Green
-}
-catch {
-    Write-Host "  ⚠ Power Automate API token failed. Trying alternate resource..." -ForegroundColor Yellow
-    try {
-        $flowToken = az account get-access-token --resource "https://api.flow.microsoft.com" --query accessToken -o tsv 2>$null
-        if (-not $flowToken) { throw "Empty token" }
-        Write-Host "  ✓ Power Automate API token acquired (alternate)" -ForegroundColor Green
-    }
-    catch {
-        throw "Cannot acquire Power Automate API token. Ensure you are logged in: az login --tenant <tenantId>"
-    }
-}
-
-# Token for Dataverse (for connection discovery fallback)
 try {
     $dvToken = az account get-access-token --resource "$OrgUrl" --query accessToken -o tsv 2>$null
     if (-not $dvToken) { throw "Empty token" }
-    Write-Host "  ✓ Dataverse API token acquired" -ForegroundColor Green
+    Write-Host "  ✓ Dataverse token acquired" -ForegroundColor Green
 }
 catch {
-    Write-Host "  ⚠ Dataverse token not available — connection discovery may be limited" -ForegroundColor Yellow
-    $dvToken = $null
+    throw "Cannot acquire Dataverse token. Run: az login --tenant <tenantId>"
 }
 
-$flowHeaders = @{
-    "Authorization" = "Bearer $flowToken"
-    "Content-Type"  = "application/json"
+$dvHeaders = @{
+    "Authorization"  = "Bearer $dvToken"
+    "Content-Type"   = "application/json"
+    "OData-MaxVersion" = "4.0"
+    "OData-Version"  = "4.0"
+}
+
+$solutionHeaders = $dvHeaders.Clone()
+$solutionHeaders["MSCRM.SolutionUniqueName"] = "EmailProductivityAgent"
+
+# ─────────────────────────────────────
+# 2. Create or Find Solution
+# ─────────────────────────────────────
+Write-Host "`n[2/5] Setting up solution..." -ForegroundColor Cyan
+
+# Find publisher
+$pubs = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/publishers?`$filter=customizationprefix eq '$PublisherPrefix'&`$select=publisherid,friendlyname" -Headers $dvHeaders
+if ($pubs.value.Count -eq 0) { throw "No publisher found with prefix '$PublisherPrefix'" }
+$publisherId = $pubs.value[0].publisherid
+Write-Host "  Publisher: $($pubs.value[0].friendlyname)" -ForegroundColor Gray
+
+# Check if solution exists
+$solCheck = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/solutions?`$filter=uniquename eq 'EmailProductivityAgent'&`$select=solutionid" -Headers $dvHeaders
+if ($solCheck.value.Count -gt 0) {
+    $solutionId = $solCheck.value[0].solutionid
+    Write-Host "  ✓ Solution exists: $solutionId" -ForegroundColor Green
+}
+else {
+    $solBody = @{
+        uniquename   = "EmailProductivityAgent"
+        friendlyname = "Email Productivity Agent"
+        description  = "Email Productivity Agent - flows, connection references, and components"
+        version      = "1.0.0.0"
+        "publisherid@odata.bind" = "/publishers($publisherId)"
+    } | ConvertTo-Json
+    Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/solutions" -Headers $dvHeaders -Method Post -Body $solBody | Out-Null
+    $solCheck = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/solutions?`$filter=uniquename eq 'EmailProductivityAgent'&`$select=solutionid" -Headers $dvHeaders
+    $solutionId = $solCheck.value[0].solutionid
+    Write-Host "  ✓ Solution created: $solutionId" -ForegroundColor Green
 }
 
 # ─────────────────────────────────────
-# 2. Discover Existing Connections
+# 3. Create Connection References
 # ─────────────────────────────────────
-Write-Host "`n[2/5] Discovering connections in environment..." -ForegroundColor Cyan
+Write-Host "`n[3/5] Creating connection references..." -ForegroundColor Cyan
 
-$connectionsUrl = "https://api.flow.microsoft.com/providers/Microsoft.ProcessSimple/environments/$EnvironmentId/connections?api-version=2016-11-01&`$top=100"
-try {
-    $connectionsResponse = Invoke-RestMethod -Uri $connectionsUrl -Headers $flowHeaders -Method Get
-    $connections = $connectionsResponse.value
-    Write-Host "  Found $($connections.Count) connection(s)" -ForegroundColor Green
-}
-catch {
-    Write-Host "  ⚠ Could not list connections via Flow API (HTTP $($_.Exception.Response.StatusCode.value__))." -ForegroundColor Yellow
-    Write-Host "    Will create flows without connection bindings — you must configure connections in the Power Automate designer." -ForegroundColor Yellow
-    $connections = @()
-}
-
-# Map connector API IDs to connection names
-$connectionMap = @{}
-foreach ($conn in $connections) {
-    $apiId = $conn.properties.apiId
-    # Extract the connector name from the apiId path
-    $connectorKey = ($apiId -split '/')[-1]
-    if (-not $connectionMap.ContainsKey($connectorKey)) {
-        $connectionMap[$connectorKey] = $conn.name
-        $status = if ($conn.properties.statuses -and $conn.properties.statuses[0].status -eq "Connected") { "Connected" } else { "Unknown" }
-        Write-Host "  ✓ $connectorKey → $($conn.name) [$status]" -ForegroundColor Green
-    }
-}
-
-# Check for missing connections
-$allNeededConnectors = @()
 $flowsToProcess = if ($FlowsToCreate -eq "All") { $flowMap.Keys } else { @($FlowsToCreate) }
-foreach ($flowKey in $flowsToProcess) {
-    $allNeededConnectors += $flowMap[$flowKey].Connections
-}
-$allNeededConnectors = $allNeededConnectors | Sort-Object -Unique
 
-$missingConnectors = @()
-foreach ($connector in $allNeededConnectors) {
-    if (-not $connectionMap.ContainsKey($connector)) {
-        $missingConnectors += $connector
-        $displayName = $connectorNames[$connector]
-        Write-Host "  ✗ $connector ($displayName) — NOT FOUND" -ForegroundColor Red
+# Collect all needed connectors
+$neededConnectors = @()
+foreach ($flowKey in $flowsToProcess) { $neededConnectors += $flowMap[$flowKey].ConnRefs }
+$neededConnectors = $neededConnectors | Sort-Object -Unique
+
+foreach ($connKey in $neededConnectors) {
+    $def = $connRefDefs[$connKey]
+    $logicalName = $def.LogicalName
+
+    # Check if already exists
+    $existing = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/connectionreferences?`$filter=connectionreferencelogicalname eq '$logicalName'&`$select=connectionreferenceid" -Headers $dvHeaders
+    if ($existing.value.Count -gt 0) {
+        Write-Host "  ✓ $($def.DisplayName) (exists)" -ForegroundColor Green
+        continue
+    }
+
+    $crBody = @{
+        connectionreferencelogicalname = $logicalName
+        connectionreferencedisplayname = $def.DisplayName
+        connectorid = "/providers/Microsoft.PowerApps/apis/$connKey"
+        statecode = 0; statuscode = 1
+    } | ConvertTo-Json
+
+    try {
+        Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/connectionreferences" -Headers $solutionHeaders -Method Post -Body $crBody | Out-Null
+        Write-Host "  ✓ $($def.DisplayName)" -ForegroundColor Green
+    }
+    catch {
+        $err = $_.ErrorDetails.Message
+        Write-Host "  ⚠ $($def.DisplayName): $err" -ForegroundColor Yellow
     }
 }
 
-if ($missingConnectors.Count -gt 0) {
-    Write-Host "`n  Missing connections detected. Flows will be created but may need manual connection setup." -ForegroundColor Yellow
-    Write-Host "  Create missing connections in Power Automate → Connections before activating flows.`n" -ForegroundColor Yellow
-}
-
 # ─────────────────────────────────────
-# 3. Build Connection References
+# 4. Helper Functions
 # ─────────────────────────────────────
-function Build-ConnectionReferences {
-    param([string[]]$RequiredConnectors)
 
-    $refs = @{}
-    foreach ($connector in $RequiredConnectors) {
-        $ref = @{
-            id     = "/providers/Microsoft.PowerApps/apis/$connector"
-            source = "Invoker"
-            tier   = "NotSpecified"
+# Recursively add authentication to all OpenApiConnection actions
+function Add-AuthToActions([object]$Actions) {
+    if (-not $Actions) { return }
+    foreach ($n in @($Actions.PSObject.Properties.Name)) {
+        $a = $Actions.$n
+        if ($a.type -in @("OpenApiConnection", "OpenApiConnectionNotification") -and $a.inputs -and -not $a.inputs.authentication) {
+            $a.inputs | Add-Member -NotePropertyName "authentication" -NotePropertyValue "@parameters('`$authentication')" -Force
         }
-        if ($connectionMap.ContainsKey($connector)) {
-            $ref["connectionName"] = $connectionMap[$connector]
-        }
-        $refs[$connector] = $ref
+        if ($a.actions) { Add-AuthToActions $a.actions }
+        if ($a.else -and $a.else.actions) { Add-AuthToActions $a.else.actions }
+        if ($a.cases) { foreach ($cn in @($a.cases.PSObject.Properties.Name)) { if ($a.cases.$cn.actions) { Add-AuthToActions $a.cases.$cn.actions } } }
+        if ($a.default -and $a.default.actions) { Add-AuthToActions $a.default.actions }
     }
-    return $refs
 }
 
-# ─────────────────────────────────────
-# 4. Patch Definition for API Compatibility
-# ─────────────────────────────────────
-
-# The Power Automate Management API requires:
-#   - $connections + $authentication parameters in the definition
-#   - "authentication": "@parameters('$authentication')" in each OpenApiConnection input
-# This function injects those if missing, so the source JSON files stay readable.
-
-function Patch-DefinitionForApi {
-    param([object]$Definition)
-
-    # Ensure parameters section exists with $connections and $authentication
+function Prepare-FlowDefinition([object]$Definition) {
+    # Add $connections and $authentication parameters
     if (-not $Definition.parameters) {
         $Definition | Add-Member -NotePropertyName "parameters" -NotePropertyValue ([PSCustomObject]@{}) -Force
     }
-    $params = $Definition.parameters
-    if (-not $params.'$connections') {
-        $params | Add-Member -NotePropertyName '$connections' -NotePropertyValue ([PSCustomObject]@{
-            defaultValue = [PSCustomObject]@{}
-            type         = "Object"
+    if (-not $Definition.parameters.'$connections') {
+        $Definition.parameters | Add-Member -NotePropertyName '$connections' -NotePropertyValue ([PSCustomObject]@{
+            defaultValue = [PSCustomObject]@{}; type = "Object"
         }) -Force
     }
-    if (-not $params.'$authentication') {
-        $params | Add-Member -NotePropertyName '$authentication' -NotePropertyValue ([PSCustomObject]@{
-            defaultValue = [PSCustomObject]@{}
-            type         = "SecureObject"
+    if (-not $Definition.parameters.'$authentication') {
+        $Definition.parameters | Add-Member -NotePropertyName '$authentication' -NotePropertyValue ([PSCustomObject]@{
+            defaultValue = [PSCustomObject]@{}; type = "SecureObject"
         }) -Force
     }
 
-    # Add authentication to every OpenApiConnection / OpenApiConnectionNotification action
-    function Add-AuthToActions {
-        param([object]$Actions)
-        if (-not $Actions) { return }
-
-        foreach ($actionName in $Actions.PSObject.Properties.Name) {
-            $action = $Actions.$actionName
-            $actionType = $action.type
-
-            # Add authentication to OpenApiConnection actions
-            if ($actionType -in @("OpenApiConnection", "OpenApiConnectionNotification")) {
-                if ($action.inputs -and -not $action.inputs.authentication) {
-                    $action.inputs | Add-Member -NotePropertyName "authentication" -NotePropertyValue "@parameters('`$authentication')" -Force
-                }
-            }
-
-            # Recurse into nested structures
-            if ($action.actions) { Add-AuthToActions -Actions $action.actions }
-            if ($action.else -and $action.else.actions) { Add-AuthToActions -Actions $action.else.actions }
-            if ($action.cases) {
-                foreach ($caseName in $action.cases.PSObject.Properties.Name) {
-                    $case = $action.cases.$caseName
-                    if ($case.actions) { Add-AuthToActions -Actions $case.actions }
-                }
-            }
-            if ($action.default -and $action.default.actions) { Add-AuthToActions -Actions $action.default.actions }
+    # Add auth to triggers
+    foreach ($tName in $Definition.triggers.PSObject.Properties.Name) {
+        $t = $Definition.triggers.$tName
+        if ($t.type -in @("OpenApiConnectionNotification", "OpenApiConnection") -and $t.inputs -and -not $t.inputs.authentication) {
+            $t.inputs | Add-Member -NotePropertyName "authentication" -NotePropertyValue "@parameters('`$authentication')" -Force
+        }
+        # Patch time zone
+        if ($t.recurrence -and $t.recurrence.timeZone) {
+            $t.recurrence.timeZone = $TimeZone
         }
     }
 
-    # Add authentication to trigger if it's an OpenApiConnection type
-    foreach ($triggerName in $Definition.triggers.PSObject.Properties.Name) {
-        $trigger = $Definition.triggers.$triggerName
-        if ($trigger.type -in @("OpenApiConnectionNotification", "OpenApiConnection")) {
-            if ($trigger.inputs -and -not $trigger.inputs.authentication) {
-                $trigger.inputs | Add-Member -NotePropertyName "authentication" -NotePropertyValue "@parameters('`$authentication')" -Force
-            }
-        }
-    }
+    # Add auth to all actions
+    Add-AuthToActions $Definition.actions
 
-    Add-AuthToActions -Actions $Definition.actions
-
-    return $Definition
-}
-
-function Set-FlowTimeZone {
-    param([object]$Definition, [string]$TargetTimeZone)
-
-    foreach ($triggerName in $Definition.triggers.PSObject.Properties.Name) {
-        $trigger = $Definition.triggers.$triggerName
-        if ($trigger.recurrence -and $trigger.recurrence.timeZone) {
-            $trigger.recurrence.timeZone = $TargetTimeZone
-        }
-    }
     return $Definition
 }
 
 # ─────────────────────────────────────
 # 5. Create Flows
 # ─────────────────────────────────────
-Write-Host "`n[3/5] Creating flows..." -ForegroundColor Cyan
+Write-Host "`n[4/5] Creating solution-aware flows..." -ForegroundColor Cyan
 
-$createUrl = "https://api.flow.microsoft.com/providers/Microsoft.ProcessSimple/environments/$EnvironmentId/flows?api-version=2016-11-01"
 $createdFlows = @()
 $failedFlows = @()
+
+# Pre-load all existing EPA flows to avoid per-flow OData queries with special characters
+$existingFlows = @{}
+try {
+    $epaFlows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EPA')&`$select=name,workflowid" -Headers $dvHeaders
+    foreach ($ef in $epaFlows.value) { $existingFlows[$ef.name] = $ef.workflowid }
+} catch {}
 
 foreach ($flowKey in $flowsToProcess) {
     $flow = $flowMap[$flowKey]
@@ -319,62 +279,68 @@ foreach ($flowKey in $flowsToProcess) {
         continue
     }
 
+    # Check if flow already exists
+    if ($existingFlows.ContainsKey($flow.DisplayName)) {
+        $existId = $existingFlows[$flow.DisplayName]
+        Write-Host "  ⊘ $($flow.DisplayName) — already exists [$existId]" -ForegroundColor Yellow
+        $createdFlows += [PSCustomObject]@{ Key = $flowKey; DisplayName = $flow.DisplayName; FlowId = $existId; Status = "Existing" }
+        continue
+    }
+
     Write-Host "  Creating: $($flow.DisplayName)..." -ForegroundColor White
 
-    # Read and parse flow definition
+    # Read, parse, and prepare definition
     $flowJson = Get-Content $filePath -Raw | ConvertFrom-Json
-    $definition = $flowJson.definition
+    $definition = Prepare-FlowDefinition $flowJson.definition
 
-    # Patch for API compatibility (inject $connections, $authentication, auth on each action)
-    $definition = Patch-DefinitionForApi -Definition $definition
-
-    # Patch time zone
-    $definition = Set-FlowTimeZone -Definition $definition -TargetTimeZone $TimeZone
-
-    # Build connection references
-    $connRefs = Build-ConnectionReferences -RequiredConnectors $flow.Connections
-
-    # Build API payload
-    $payload = @{
-        properties = @{
-            displayName          = $flow.DisplayName
-            definition           = $definition
-            connectionReferences = $connRefs
-            state                = "Stopped"
+    # Build connection references for clientdata
+    $connRefs = @{}
+    foreach ($connKey in $flow.ConnRefs) {
+        $connRefs[$connKey] = @{
+            connectionReferenceLogicalName = $connRefDefs[$connKey].LogicalName
+            id = "/providers/Microsoft.PowerApps/apis/$connKey"
         }
     }
 
-    $payloadJson = $payload | ConvertTo-Json -Depth 50 -Compress
+    # Build clientdata with schemaVersion (required by Dataverse workflow API)
+    $clientData = @{
+        schemaVersion = "1.0.0.0"
+        properties = @{
+            definition = $definition
+            connectionReferences = $connRefs
+        }
+    } | ConvertTo-Json -Depth 50 -Compress
+
+    # Create workflow in solution
+    $body = @{
+        name         = $flow.DisplayName
+        type         = 1
+        category     = 5
+        primaryentity = "none"
+        statecode    = 0
+        statuscode   = 1
+        clientdata   = $clientData
+    } | ConvertTo-Json -Depth 5
 
     try {
-        $result = Invoke-RestMethod -Method Post -Uri $createUrl -Headers $flowHeaders -Body $payloadJson -ErrorAction Stop
-        $flowId = $result.name
-        $state = $result.properties.state
+        Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows" -Headers $solutionHeaders -Method Post -Body $body -ErrorAction Stop | Out-Null
+
+        # Get the workflow ID
+        $created = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=name eq '$($flow.DisplayName)'&`$select=workflowid" -Headers $dvHeaders
+        $flowId = $created.value[0].workflowid
+
         Write-Host "  ✓ $($flow.DisplayName)" -ForegroundColor Green
         Write-Host "    Flow ID: $flowId" -ForegroundColor Gray
-        Write-Host "    State:   $state" -ForegroundColor Gray
-        $createdFlows += [PSCustomObject]@{
-            Key         = $flowKey
-            DisplayName = $flow.DisplayName
-            FlowId      = $flowId
-            State       = $state
-        }
+        $createdFlows += [PSCustomObject]@{ Key = $flowKey; DisplayName = $flow.DisplayName; FlowId = $flowId; Status = "Created" }
     }
     catch {
         $errMsg = $_.ErrorDetails.Message
         Write-Host "  ✗ $($flow.DisplayName)" -ForegroundColor Red
         if ($errMsg) {
-            try {
-                $errorObj = $errMsg | ConvertFrom-Json
-                Write-Host "    Error: $($errorObj.error.message)" -ForegroundColor Red
-            }
-            catch {
-                Write-Host "    Error: $errMsg" -ForegroundColor Red
-            }
+            try { Write-Host "    Error: $(($errMsg | ConvertFrom-Json).error.message)" -ForegroundColor Red }
+            catch { Write-Host "    Error: $($errMsg.Substring(0, [Math]::Min($errMsg.Length, 400)))" -ForegroundColor Red }
         }
-        else {
-            Write-Host "    Error: $($_.Exception.Message)" -ForegroundColor Red
-        }
+        else { Write-Host "    Error: $($_.Exception.Message)" -ForegroundColor Red }
         $failedFlows += $flowKey
     }
 }
@@ -382,13 +348,13 @@ foreach ($flowKey in $flowsToProcess) {
 # ─────────────────────────────────────
 # 6. Summary
 # ─────────────────────────────────────
-Write-Host "`n[4/5] Deployment Summary" -ForegroundColor Cyan
+Write-Host "`n[5/5] Deployment Summary" -ForegroundColor Cyan
 Write-Host "  ─────────────────────────────────────" -ForegroundColor Gray
 
 if ($createdFlows.Count -gt 0) {
-    Write-Host "  ✓ Created: $($createdFlows.Count) flow(s)" -ForegroundColor Green
+    Write-Host "  ✓ Ready: $($createdFlows.Count) flow(s)" -ForegroundColor Green
     foreach ($f in $createdFlows) {
-        Write-Host "    • $($f.DisplayName) [$($f.State)]" -ForegroundColor Green
+        Write-Host "    • $($f.DisplayName) [$($f.Status)]" -ForegroundColor Green
         Write-Host "      ID: $($f.FlowId)" -ForegroundColor Gray
     }
 }
@@ -400,41 +366,18 @@ if ($failedFlows.Count -gt 0) {
     }
 }
 
-# ─────────────────────────────────────
-# 7. Post-Deployment Instructions
-# ─────────────────────────────────────
-Write-Host "`n[5/5] Next Steps" -ForegroundColor Cyan
-
-if ($missingConnectors.Count -gt 0) {
-    Write-Host "  1. Create missing connections in Power Automate → Connections:" -ForegroundColor Yellow
-    foreach ($mc in $missingConnectors) {
-        Write-Host "     • $($connectorNames[$mc]) ($mc)" -ForegroundColor Yellow
-    }
-    Write-Host "  2. Open each flow in Power Automate and update connection references" -ForegroundColor Yellow
-}
-
 Write-Host @"
 
-  To associate flows with your Copilot Studio agent:
-    1. Open Copilot Studio → your agent → Settings → Flows
-    2. Click "Add a flow" for each created flow
-    3. Publish the agent
-
-  To verify flows are running:
-    1. Power Automate → My flows → check status is "On"
-    2. Send a test email to trigger Flow 1
-    3. Check Dataverse table for new row
+  Next steps:
+    1. Open Power Automate → Solutions → Email Productivity Agent
+    2. For each flow, click Edit → configure connection references
+       (map each EPA connection reference to an actual connection)
+    3. Turn on each flow
+    4. To associate with Copilot Studio: agent → Settings → Flows → Add
 
   Environment: $OrgUrl
-  Flows created at: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+  Solution: EmailProductivityAgent
+  Deployed at: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 "@ -ForegroundColor Gray
 
-# Output flow IDs for scripting
-if ($createdFlows.Count -gt 0) {
-    Write-Host "`n  Flow IDs (for reference):" -ForegroundColor Cyan
-    $createdFlows | ForEach-Object {
-        Write-Host "    $($_.Key)=$($_.FlowId)" -ForegroundColor Gray
-    }
-}
-
-Write-Host "`n✅ Flow deployment complete.`n" -ForegroundColor Green
+Write-Host "✅ Flow deployment complete.`n" -ForegroundColor Green
