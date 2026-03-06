@@ -85,7 +85,7 @@
         "inputs": {
           "parameters": {
             "entityName": "cr_followuptrackings",
-            "$filter": "cr_responsereceived eq false and cr_nudgesent eq false and cr_dismissedbyuser eq false and cr_followupdate le @{utcNow()}",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_responsereceived eq false and cr_nudgesent eq false and cr_dismissedbyuser eq false and cr_followupdate le @{utcNow()}",
             "$orderby": "cr_followupdate asc",
             "$top": 50
           },
