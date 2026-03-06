@@ -1,0 +1,232 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_new_email_arrives_(V3)": {
+        "type": "OpenApiConnectionNotification",
+        "inputs": {
+          "parameters": {
+            "folderPath": "Inbox",
+            "importance": "Any",
+            "fetchOnlyWithAttachment": false,
+            "includeAttachments": false,
+            "subjectFilter": ""
+          },
+          "host": {
+            "connectionName": "shared_office365",
+            "operationId": "OnNewEmailV3",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+          }
+        },
+        "splitOn": "@triggerOutputs()?['body/value']"
+      }
+    },
+    "actions": {
+      "Compose_newConversationId": {
+        "type": "Compose",
+        "inputs": "@triggerOutputs()?['body/conversationId']",
+        "runAfter": {}
+      },
+      "List_Matching_Snoozed": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_snoozedconversations",
+            "$filter": "cr_conversationid eq '@{outputs('Compose_newConversationId')}' and cr_unsnoozedbyagent eq false",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Compose_newConversationId": ["Succeeded"]
+        }
+      },
+      "Condition_No_Match": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@length(outputs('List_Matching_Snoozed')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_No_Match": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded"
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_Matching_Snoozed": ["Succeeded"]
+        }
+      },
+      "Compose_snoozedRow": {
+        "type": "Compose",
+        "inputs": "@first(outputs('List_Matching_Snoozed')?['body/value'])",
+        "runAfter": {
+          "Condition_No_Match": ["Succeeded"]
+        }
+      },
+      "Scope_Auto_Unsnooze": {
+        "type": "Scope",
+        "actions": {
+          "HTTP_Move_To_Inbox": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "POST",
+                "request/url": "/v1.0/me/messages/@{outputs('Compose_snoozedRow')?['cr_originalmessageid']}/move",
+                "request/body": {
+                  "destinationId": "inbox"
+                }
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            }
+          },
+          "Compose_newMessageId": {
+            "type": "Compose",
+            "inputs": "@body('HTTP_Move_To_Inbox')?['id']",
+            "runAfter": {
+              "HTTP_Move_To_Inbox": ["Succeeded"]
+            }
+          },
+          "Update_SnoozedConversation": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_snoozedconversations",
+                "recordId": "@outputs('Compose_snoozedRow')?['cr_snoozedconversationid']",
+                "item/cr_unsnoozedbyagent": true,
+                "item/cr_unsnoozeddatetime": "@utcNow()",
+                "item/cr_originalmessageid": "@outputs('Compose_newMessageId')",
+                "item/cr_currentfolder": "inbox"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_newMessageId": ["Succeeded"]
+            }
+          },
+          "Post_Unsnooze_Notification": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "body": {
+                  "recipient": {
+                    "to": "@triggerOutputs()?['body/toRecipients'][0]?['emailAddress']?['address']"
+                  },
+                  "messageBody": "<p>\uD83D\uDCEC <strong>Unsnoozed:</strong> @{outputs('Compose_snoozedRow')?['cr_originalsubject']}<br/>New reply from @{triggerOutputs()?['body/from']?['emailAddress']?['name']} (@{triggerOutputs()?['body/from']?['emailAddress']?['address']})</p>"
+                }
+              },
+              "host": {
+                "connectionName": "shared_teams",
+                "operationId": "PostMessageToConversation",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+              }
+            },
+            "runAfter": {
+              "Update_SnoozedConversation": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Compose_snoozedRow": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 4 auto-unsnooze error: @{result('Scope_Auto_Unsnooze')}"
+          },
+          "Condition_Move_404": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "contains": [
+                    "@string(result('Scope_Auto_Unsnooze'))",
+                    "404"
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Mark_As_Handled": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_snoozedconversations",
+                    "recordId": "@outputs('Compose_snoozedRow')?['cr_snoozedconversationid']",
+                    "item/cr_unsnoozedbyagent": true
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded"
+            },
+            "runAfter": {
+              "Condition_Move_404": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Auto_Unsnooze": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 4: Auto-Unsnooze",
+    "description": "Event-driven: when a new email arrives in Inbox, checks if it matches a snoozed conversation and moves the snoozed message back to Inbox.",
+    "requiredConnections": [
+      "shared_office365 (Office 365 Outlook)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "pocSimplification": "This POC version always unsnoozes on match. Production version would invoke the Snooze Agent for SUPPRESS/UNSNOOZE decision and working-hours check.",
+      "messageIdInvalidation": "CRITICAL: Graph move operation invalidates the original message ID. The new ID from the response MUST be captured and stored in Dataverse.",
+      "error404Handling": "If the snoozed message no longer exists (manually moved/deleted), marks the Dataverse row as handled to prevent infinite retries.",
+      "teamsNotification": "Simple text message notification. Production version would use an adaptive card with deeplink to the email."
+    }
+  }
+}
