@@ -13,9 +13,8 @@ Step-by-step checklist for deploying the Email Productivity Agent to a Power Pla
 | **PowerShell 7+** | Required for provisioning scripts |
 | **Power Platform Environment** | With Copilot Studio capacity allocated |
 | **Microsoft 365 License** | E3/E5 or Business Premium (for Graph API access) |
-| **Power Automate Premium** | Required for Dataverse connector and HTTP with Microsoft Entra ID connector |
 | **Power Apps Premium** | Required for Canvas App accessing custom Dataverse tables |
-| **Copilot Studio License** | Required for agent invocations (consumed per call) |
+| **Copilot Studio License** | Required for agent invocations; premium connectors (Dataverse, HTTP/Entra ID) are covered by Copilot Studio license |
 
 ### DLP Policy Check
 
@@ -151,24 +150,36 @@ Set up these Power Automate connections:
   - **Base Resource URL:** `https://graph.microsoft.com`
   - **Azure AD Resource URI:** `https://graph.microsoft.com`
 
-### Step 5: Build Agent Flows (inside Copilot Studio)
+### Step 5: Deploy Power Automate Flows
 
-> **Architecture choice:** We use **Agent Flows** (Copilot Studio) instead of Power Automate Cloud Flows. This avoids requiring Power Automate Premium licenses — premium connectors (Dataverse, HTTP/Entra ID) are covered by the Copilot Studio license and consume Copilot Credits instead.
->
-> ⚠️ **Maker credentials:** Agent Flows authenticate as the agent maker/publisher, not the end user. For single-user or small pilot deployments this is fine. For multi-user (50+), consider a service account model with application-level Graph permissions.
+The deploy script creates all 4 flows via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution.
 
-**Creating Agent Flows in Copilot Studio:**
-1. Open Copilot Studio → left nav → **Flows**
-2. Click **+ New agent flow**
-3. Delete the default "Run a flow from Copilot" trigger
-4. Click **+ Add a trigger** → search for the appropriate trigger type
-5. Build the flow actions, then **Save** → **Publish**
+> **Why the Flow Management API?** Flows must be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity) because only the Flow API properly binds connections at runtime. Dataverse-created flows always fail activation with "connection references need connections" regardless of PAC solution import settings.
 
-Build these 3 flows following `docs/follow-up-nudge-flows.md`:
+**Prerequisites:**
+- All connections from Step 4 must exist and be in "Connected" status
+- `az login` must be active (the script acquires 3 tokens: Dataverse, Flow API, PowerApps API)
 
-1. **Flow 1: Sent Items Tracker** — Trigger: "When a new email arrives (V3)" → Folder: SentItems
-2. **Flow 2: Response Detection & Nudge Delivery** — Trigger: Recurrence → Daily at 9 AM
-3. **Flow 5: Data Retention Cleanup** — Trigger: Recurrence → Weekly
+```powershell
+cd email-productivity-agent/scripts
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>"
+```
+
+The script will:
+1. Create/reuse the `EmailProductivityAgent` solution
+2. Create 5 connection references in the solution
+3. Auto-discover connections in the environment and map them to connectors
+4. Create all 4 flows via the Flow Management API with `state=Started`
+5. Add flows to the solution
+
+**Expected output:** All 4 flows created and running (✓ ON).
+
+> **Troubleshooting — Flow API validation errors:**
+> - `WorkflowOperationParametersExtraParameter`: A dynamic parameter (e.g., `body/recipient/to`) is in flattened format. Convert to nested: `"body": { "recipient": { "to": "..." } }`
+> - `WorkflowOperationInputsApiOperationNotFound`: The operationId doesn't exist in the connector. Check with the PowerApps connector API.
+> - `DynamicParameterInputInvalid`: The trigger requires design-time parameters. For Teams `TeamsCardTrigger`, provide `inputsAdaptiveCard` and `CardTypeId`.
 
 ### Step 6: Teams Admin Policy Check
 

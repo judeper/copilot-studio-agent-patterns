@@ -113,7 +113,9 @@ pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 # 2. Configure Copilot Studio agent (see docs/deployment-guide.md Step 3)
 
 # 3. Deploy all Power Automate flows
-pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -OrgUrl "https://<org>.crm.dynamics.com"
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<org>.crm.dynamics.com" `
+    -EnvironmentId "<env-id>"
 
 # 4. (Phase 2) Build snooze flows (see docs/snooze-auto-removal-flows.md)
 ```
