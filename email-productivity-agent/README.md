@@ -88,7 +88,10 @@ email-productivity-agent/
 │   ├── flow-1-sent-items-tracker.json           # Flow 1: event-driven sent email tracker
 │   ├── flow-2-response-detection.json           # Flow 2: daily reply check + Teams nudge
 │   ├── flow-2b-card-action-handler.json         # Flow 2b: adaptive card button handler
-│   └── flow-5-data-retention.json               # Flow 5: weekly 90-day cleanup
+│   ├── flow-3-snooze-detection.json             # Flow 3: scheduled EPA-Snoozed folder scanner
+│   ├── flow-4-auto-unsnooze.json                # Flow 4: event-driven auto-unsnooze on reply
+│   ├── flow-5-data-retention.json               # Flow 5: weekly 90-day cleanup
+│   └── flow-6-snooze-cleanup.json               # Flow 6: weekly 30-day snooze cleanup
 ```
 
 ## Quick Start
@@ -117,7 +120,11 @@ pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<org>.crm.dynamics.com" `
     -EnvironmentId "<env-id>"
 
-# 4. (Phase 2) Build snooze flows (see docs/snooze-auto-removal-flows.md)
+# 4. (Phase 2) Deploy snooze flows
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<org>.crm.dynamics.com" `
+    -EnvironmentId "<env-id>" `
+    -FlowsToCreate "Phase2"
 ```
 
 See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-step checklist.
@@ -145,6 +152,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 |------|---------|---------|
 | Flow 1: Sent Items Tracker | When a new email is sent | Log to FollowUpTracking (one row per To-line recipient) |
 | Flow 2: Response Detection | Daily at 9 AM | Check Graph for replies, deliver nudge Adaptive Cards |
+| Flow 2b: Card Action Handler | When someone responds to an adaptive card | Handle Draft / Snooze / Dismiss button clicks |
 | Flow 3: Snooze Detection | Every 15 minutes | Scan EPA-Snoozed folder, upsert to SnoozedConversations |
 | Flow 4: Auto-Unsnooze | When a new email arrives (Inbox) | Match against snoozed conversations, move back to Inbox |
 | Flow 5: Nudge Cleanup | Weekly (Sunday 2 AM) | Delete resolved FollowUpTracking rows older than 90 days |
