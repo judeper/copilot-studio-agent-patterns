@@ -172,7 +172,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | `{{PLACEHOLDER}}` HTML templates for OneNote pages | Separates content from structure; Power Automate handles escaping |
 | Draft persistence via `saveDraftAction` output | Debounced (2s) writes to Dataverse ensure edited drafts survive browser refresh |
 | Dismiss retry with `pendingDismissals` map | Up to 3 automatic retries prevent silent failures on network issues |
-| Escape key closes overlays | Standard keyboard UX: Escape exits edit mode, confirmation, detail view, and command bar |
+| Escape key closes overlays and restores focus | Standard keyboard UX: Escape exits edit mode, confirmation, detail view (including BriefingCard), and command bar, then returns focus to the invoking control |
 
 ## Known Limitations
 

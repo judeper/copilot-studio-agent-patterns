@@ -27,6 +27,21 @@ interface ConversationEntry {
     timestamp: Date;
 }
 
+type FocusableButtonElement = HTMLButtonElement | HTMLAnchorElement;
+
+type FocusRestoreTarget =
+    | { type: "input" }
+    | { type: "send" }
+    | { type: "quickAction"; label: string };
+
+function focusAfterRender(callback: () => void): void {
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(callback);
+        return;
+    }
+    setTimeout(callback, 0);
+}
+
 export const CommandBar: React.FC<CommandBarProps> = ({
     currentCardId,
     onExecuteCommand,
@@ -38,6 +53,41 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     const [conversation, setConversation] = useState<ConversationEntry[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
     const responseRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const sendButtonRef = useRef<FocusableButtonElement>(null);
+    const quickActionRefs = useRef(new Map<string, FocusableButtonElement>());
+    const focusRestoreTargetRef = useRef<FocusRestoreTarget | null>(null);
+
+    const setQuickActionRef = useCallback((label: string, element: FocusableButtonElement | null) => {
+        if (element) {
+            quickActionRefs.current.set(label, element);
+            return;
+        }
+        quickActionRefs.current.delete(label);
+    }, []);
+
+    const restoreFocus = useCallback(() => {
+        const target = focusRestoreTargetRef.current;
+        if (!target) return;
+        focusAfterRender(() => {
+            const element =
+                target.type === "input"
+                    ? inputRef.current
+                    : target.type === "send"
+                      ? sendButtonRef.current
+                      : quickActionRefs.current.get(target.label) ?? null;
+            element?.focus();
+        });
+        focusRestoreTargetRef.current = null;
+    }, []);
+
+    const rememberSubmitFocusTarget = useCallback(() => {
+        if (typeof document === "undefined" || document.activeElement !== sendButtonRef.current) {
+            focusRestoreTargetRef.current = { type: "input" };
+            return;
+        }
+        focusRestoreTargetRef.current = { type: "send" };
+    }, []);
 
     // When a new response arrives, add it to conversation history
     useEffect(() => {
@@ -71,10 +121,31 @@ export const CommandBar: React.FC<CommandBarProps> = ({
         }
     }, [conversation]);
 
+    useEffect(() => {
+        if (!isExpanded) {
+            restoreFocus();
+            return;
+        }
+        focusAfterRender(() => inputRef.current?.focus());
+    }, [isExpanded, restoreFocus]);
+
+    useEffect(() => {
+        if (!isExpanded) return;
+        const handleEscapeKey = (e: KeyboardEvent) => {
+            if (e.defaultPrevented || e.key !== "Escape") return;
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExpanded(false);
+        };
+        document.addEventListener("keydown", handleEscapeKey, true);
+        return () => document.removeEventListener("keydown", handleEscapeKey, true);
+    }, [isExpanded]);
+
     const handleSubmit = useCallback(() => {
         const trimmed = inputText.trim();
         if (!trimmed || isProcessing) return;
 
+        rememberSubmitFocusTarget();
         setConversation((prev) => [
             ...prev,
             { role: "user", text: trimmed, timestamp: new Date() },
@@ -82,22 +153,21 @@ export const CommandBar: React.FC<CommandBarProps> = ({
         setInputText("");
         setIsExpanded(true);
         onExecuteCommand(trimmed, currentCardId);
-    }, [inputText, isProcessing, currentCardId, onExecuteCommand]);
+    }, [inputText, isProcessing, currentCardId, onExecuteCommand, rememberSubmitFocusTarget]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit();
-            } else if (e.key === "Escape" && isExpanded) {
-                setIsExpanded(false);
             }
         },
-        [handleSubmit, isExpanded],
+        [handleSubmit],
     );
 
     const handleQuickAction = useCallback(
-        (command: string) => {
+        (label: string, command: string) => {
+            focusRestoreTargetRef.current = { type: "quickAction", label };
             setConversation((prev) => [
                 ...prev,
                 { role: "user", text: command, timestamp: new Date() },
@@ -109,6 +179,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     );
 
     const handleClear = useCallback(() => {
+        focusRestoreTargetRef.current = null;
         setConversation([]);
         setIsExpanded(false);
     }, []);
@@ -157,6 +228,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             <div className="command-input-row">
                 <Input
                     className="command-input"
+                    ref={inputRef}
                     placeholder={
                         currentCardId
                             ? "Ask about this card or type a command..."
@@ -171,6 +243,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                     appearance="primary"
                     icon={<SendRegular />}
                     onClick={handleSubmit}
+                    ref={sendButtonRef}
                     disabled={!inputText.trim() || isProcessing}
                     size="small"
                 >
@@ -194,8 +267,9 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                         <Button
                             key={qa.label}
                             appearance="outline"
+                            ref={(element) => setQuickActionRef(qa.label, element)}
                             size="small"
-                            onClick={() => handleQuickAction(qa.command)}
+                            onClick={() => handleQuickAction(qa.label, qa.command)}
                         >
                             {qa.label}
                         </Button>

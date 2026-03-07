@@ -42,18 +42,13 @@ Every artifact in the solution must be correct and consistent — schemas match 
 
 ## Current Milestone: v2.2 Tech Debt Cleanup
 
-**Goal:** Resolve all 16 deferred tech debt items from the v2.1 pre-deployment audit, bringing the solution to a clean state with no known outstanding issues.
+**Goal:** Finish the remaining POC-scoped v2.2 tech debt items after shipping Phase 17 keyboard accessibility, leaving only operational resilience and deployment documentation work.
 
 **Target features:**
-- Complete Sprint 4 sender intelligence (pass SENDER_PROFILE to agent, add reminder firing flow)
-- Add deployment-time configuration (Canvas App Timer for staleness, connection reference management)
-- Replace plain HTML with Fluent UI components in 4 PCF components (accessibility/theming)
-- Harden operational resilience (security role cleanup, pagination, retry logic, card archival)
-- Fix race conditions in sender profile upsert and outcome tracker concurrent updates
-- Add infrastructure documentation (firewall/SMTP policy, performance testing baseline)
-- Implement BriefingCard schedule configuration UI
-- Conduct accessibility audit (keyboard navigation, screen readers)
-- Define localization/i18n strategy for non-English deployments
+- Harden operational resilience around draft persistence verification, dismiss retries, and user-visible failure handling
+- Add deployment documentation for PAC CLI minimums, knowledge source setup, and the license/role matrix
+- Preserve the Phase 17 keyboard-navigation baseline (Escape closes overlays and restores focus)
+- Keep removed production-only items explicit: full a11y audit, i18n, optimistic concurrency, DataSet paging, and capacity planning remain out of scope
 
 ### Out of Scope
 
@@ -107,4 +102,4 @@ Shipped v2.0 with ~59k LOC TypeScript/CSS (handwritten) across the reference pat
 | Confidence score modifiers (+10/-10/+5) | Temporal urgency, edit distance penalty, engagement bonus add relational context | ✓ Good — meaningful signal adjustments |
 
 ---
-*Last updated: 2026-02-28 after v2.2 milestone start*
+*Last updated: 2026-03-07 after Phase 17 accessibility completion*

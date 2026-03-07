@@ -67,6 +67,15 @@ function renderKeyFindings(keyFindings: string): React.ReactElement {
  * combined with local optimistic state.
  */
 type SendDisplayState = "idle" | "confirming" | "sending" | "sent";
+type FocusableButtonElement = HTMLButtonElement | HTMLAnchorElement;
+
+function focusAfterRender(callback: () => void): void {
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(callback);
+        return;
+    }
+    setTimeout(callback, 0);
+}
 
 export const CardDetail: React.FC<CardDetailProps> = ({
     card,
@@ -80,6 +89,39 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     // Sprint 2: Inline editing state
     const [isEditing, setIsEditing] = React.useState(false);
     const [editedDraft, setEditedDraft] = React.useState(card.humanized_draft ?? "");
+    const editButtonRef = React.useRef<FocusableButtonElement>(null);
+    const sendButtonRef = React.useRef<FocusableButtonElement>(null);
+    const draftTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+    const confirmSendButtonRef = React.useRef<FocusableButtonElement>(null);
+
+    const focusEditButton = React.useCallback(() => {
+        focusAfterRender(() => editButtonRef.current?.focus());
+    }, []);
+
+    const focusSendButton = React.useCallback(() => {
+        focusAfterRender(() => sendButtonRef.current?.focus());
+    }, []);
+
+    const closeEditMode = React.useCallback(
+        (restoreFocus: boolean) => {
+            setIsEditing(false);
+            setEditedDraft(card.humanized_draft ?? "");
+            if (restoreFocus) {
+                focusEditButton();
+            }
+        },
+        [card.humanized_draft, focusEditButton],
+    );
+
+    const closeConfirmPanel = React.useCallback(
+        (restoreFocus: boolean) => {
+            setLocalSendState("idle");
+            if (restoreFocus) {
+                focusSendButton();
+            }
+        },
+        [focusSendButton],
+    );
 
     // Derive effective send state: Dataverse outcome is authoritative over local state
     const effectiveSendState: SendDisplayState = React.useMemo(() => {
@@ -122,20 +164,31 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     // Escape key: dismiss edit/confirm panel or navigate back
     React.useEffect(() => {
         const handleEscapeKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                if (isEditing) {
-                    setIsEditing(false);
-                    setEditedDraft(card.humanized_draft ?? "");
-                } else if (localSendState === "confirming") {
-                    setLocalSendState("idle");
-                } else {
-                    onBack();
-                }
+            if (e.defaultPrevented || e.key !== "Escape") return;
+            e.preventDefault();
+            if (isEditing) {
+                closeEditMode(true);
+            } else if (localSendState === "confirming") {
+                closeConfirmPanel(true);
+            } else {
+                onBack();
             }
         };
         document.addEventListener("keydown", handleEscapeKey);
         return () => document.removeEventListener("keydown", handleEscapeKey);
-    }, [isEditing, localSendState, card.humanized_draft, onBack]);
+    }, [closeConfirmPanel, closeEditMode, isEditing, localSendState, onBack]);
+
+    React.useEffect(() => {
+        if (isEditing) {
+            focusAfterRender(() => draftTextareaRef.current?.focus());
+        }
+    }, [isEditing]);
+
+    React.useEffect(() => {
+        if (effectiveSendState === "confirming") {
+            focusAfterRender(() => confirmSendButtonRef.current?.focus());
+        }
+    }, [effectiveSendState]);
 
     const handleSendClick = React.useCallback(() => {
         setLocalSendState("confirming");
@@ -151,8 +204,8 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     }, [card.id, card.humanized_draft, editedDraft, isEditing, onSendDraft]);
 
     const handleCancelSend = React.useCallback(() => {
-        setLocalSendState("idle");
-    }, []);
+        closeConfirmPanel(true);
+    }, [closeConfirmPanel]);
 
     // Sprint 2: Enter edit mode
     const handleEditClick = React.useCallback(() => {
@@ -162,9 +215,8 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 
     // Sprint 2: Cancel editing, revert to original
     const handleCancelEdit = React.useCallback(() => {
-        setIsEditing(false);
-        setEditedDraft(card.humanized_draft ?? "");
-    }, [card.humanized_draft]);
+        closeEditMode(true);
+    }, [closeEditMode]);
 
     // Sprint 2: Track whether draft has been modified
     const draftIsModified = isEditing && editedDraft !== (card.humanized_draft ?? "");
@@ -327,6 +379,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                                     ) : (
                                         <Button
                                             appearance="subtle"
+                                            ref={editButtonRef}
                                             size="small"
                                             onClick={handleEditClick}
                                         >
@@ -337,6 +390,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                             )}
                             <Textarea
                                 className={`card-detail-draft ${isEditing ? "card-detail-draft-editable" : ""}`}
+                                ref={draftTextareaRef}
                                 value={isEditing ? editedDraft : card.humanized_draft}
                                 resize="vertical"
                                 readOnly={!isEditing}
@@ -390,6 +444,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                             appearance="primary"
                             icon={<SendRegular />}
                             onClick={handleConfirmSend}
+                            ref={confirmSendButtonRef}
                         >
                             Confirm & Send
                         </Button>
@@ -418,6 +473,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         appearance="primary"
                         icon={<SendRegular />}
                         onClick={handleSendClick}
+                        ref={sendButtonRef}
                         disabled={effectiveSendState !== "idle"}
                     >
                         Send

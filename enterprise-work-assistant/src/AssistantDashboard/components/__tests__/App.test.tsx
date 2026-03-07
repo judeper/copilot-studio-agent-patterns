@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../App';
 import {
@@ -183,6 +183,36 @@ describe('App view state navigation', () => {
 
         // Should show loading spinner (empty cards + no filters = initial load state)
         expect(screen.getByText('Loading cards...')).toBeInTheDocument();
+    });
+
+    it('restores focus to the selected card when Escape closes detail view', async () => {
+        const { container } = renderApp({
+            cards: [tier3FullItem],
+        });
+
+        const card = container.querySelector(
+            `[data-card-id="${tier3FullItem.id}"]`,
+        ) as HTMLElement;
+        expect(card).toBeTruthy();
+
+        card.focus();
+        expect(card).toHaveFocus();
+
+        await userEvent.click(screen.getByText(tier3FullItem.item_summary));
+        expect(screen.getByText('Back')).toBeInTheDocument();
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+
+        await waitFor(() => {
+            expect(screen.getByText(tier3FullItem.item_summary)).toBeInTheDocument();
+        });
+
+        await waitFor(() => {
+            const restoredCard = container.querySelector(
+                `[data-card-id="${tier3FullItem.id}"]`,
+            ) as HTMLElement;
+            expect(restoredCard).toHaveFocus();
+        });
     });
 });
 

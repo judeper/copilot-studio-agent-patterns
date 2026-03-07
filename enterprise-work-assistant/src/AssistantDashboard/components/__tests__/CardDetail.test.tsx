@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CardDetail } from '../CardDetail';
 import { renderWithProviders } from '../../../test/helpers/renderWithProviders';
@@ -330,6 +330,49 @@ describe('CardDetail', () => {
         expect(screen.getByText(/Editing/)).toBeInTheDocument();
         fireEvent.click(screen.getByText('Revert to original'));
         expect(screen.queryByText(/Editing/)).not.toBeInTheDocument();
+    });
+
+    it('closes edit mode on Escape and restores focus to the Edit draft button', async () => {
+        renderCardDetail(tier3FullItem);
+
+        const editButton = screen.getByText('Edit draft');
+        editButton.focus();
+        expect(editButton).toHaveFocus();
+
+        await userEvent.click(editButton);
+        const textarea = screen.getByDisplayValue(tier3FullItem.humanized_draft!);
+
+        await waitFor(() => {
+            expect(textarea).toHaveFocus();
+        });
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+
+        await waitFor(() => {
+            expect(screen.queryByText(/Editing/)).not.toBeInTheDocument();
+            expect(screen.getByText('Edit draft')).toHaveFocus();
+        });
+    });
+
+    it('closes the confirmation panel on Escape and restores focus to Send', async () => {
+        renderCardDetail(tier3FullItem);
+
+        const sendButton = screen.getByText('Send');
+        sendButton.focus();
+        expect(sendButton).toHaveFocus();
+
+        await userEvent.click(sendButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Confirm & Send')).toHaveFocus();
+        });
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+
+        await waitFor(() => {
+            expect(screen.queryByText(/Confirm send/)).not.toBeInTheDocument();
+            expect(screen.getByText('Send')).toHaveFocus();
+        });
     });
 
     it('confirmation panel shows "(edited)" when draft is modified', () => {

@@ -63,6 +63,7 @@ function ActionItem({
                         <Button
                             key={id}
                             appearance="transparent"
+                            data-focus-return={`briefing-action-${id}`}
                             size="small"
                             icon={<ArrowRightRegular />}
                             iconPosition="after"
@@ -120,6 +121,7 @@ function StaleAlert({
                 </Text>
                 <Button
                     appearance="transparent"
+                    data-focus-return={`briefing-stale-${alert.card_id}`}
                     size="small"
                     icon={<ArrowRightRegular />}
                     iconPosition="after"
@@ -144,6 +146,17 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
 }) => {
     const [fyiExpanded, setFyiExpanded] = useState(false);
     const briefing = parseBriefing(card);
+
+    React.useEffect(() => {
+        if (!onBack) return;
+        const handleEscapeKey = (e: KeyboardEvent) => {
+            if (e.defaultPrevented || e.key !== "Escape") return;
+            e.preventDefault();
+            onBack();
+        };
+        document.addEventListener("keydown", handleEscapeKey);
+        return () => document.removeEventListener("keydown", handleEscapeKey);
+    }, [onBack]);
 
     if (!briefing) {
         return (
