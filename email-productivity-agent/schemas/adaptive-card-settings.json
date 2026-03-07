@@ -1,0 +1,234 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "metadata": {
+    "description": "Settings card for the Email Productivity Agent. Lets users configure their nudge timeframes and enable/disable nudges directly from Teams."
+  },
+  "body": [
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "Image",
+              "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Gear/3D/gear_3d.png",
+              "size": "Small",
+              "altText": "Settings gear icon"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "Nudge Settings",
+              "weight": "Bolder",
+              "size": "Medium",
+              "color": "Accent"
+            },
+            {
+              "type": "TextBlock",
+              "text": "Configure how many business days to wait before nudging you about unreplied emails",
+              "size": "Small",
+              "isSubtle": true,
+              "spacing": "None",
+              "wrap": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "separator": true,
+      "spacing": "Medium",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "Follow-Up Timeframes (business days)",
+          "weight": "Bolder",
+          "size": "Small",
+          "spacing": "Small"
+        },
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "👥 Internal (colleagues)",
+                  "size": "Small",
+                  "wrap": true
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "80px",
+              "items": [
+                {
+                  "type": "Input.Number",
+                  "id": "internalDays",
+                  "min": 1,
+                  "max": 30,
+                  "value": "${internalDays}",
+                  "placeholder": "3"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "🌐 External (clients/vendors)",
+                  "size": "Small",
+                  "wrap": true
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "80px",
+              "items": [
+                {
+                  "type": "Input.Number",
+                  "id": "externalDays",
+                  "min": 1,
+                  "max": 30,
+                  "value": "${externalDays}",
+                  "placeholder": "5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "⭐ Priority (VIP contacts)",
+                  "size": "Small",
+                  "wrap": true
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "80px",
+              "items": [
+                {
+                  "type": "Input.Number",
+                  "id": "priorityDays",
+                  "min": 1,
+                  "max": 30,
+                  "value": "${priorityDays}",
+                  "placeholder": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "📋 General (default)",
+                  "size": "Small",
+                  "wrap": true
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "80px",
+              "items": [
+                {
+                  "type": "Input.Number",
+                  "id": "generalDays",
+                  "min": 1,
+                  "max": 30,
+                  "value": "${generalDays}",
+                  "placeholder": "7"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "separator": true,
+      "spacing": "Medium",
+      "items": [
+        {
+          "type": "Input.Toggle",
+          "id": "nudgesEnabled",
+          "title": "Enable nudge notifications",
+          "value": "${nudgesEnabled}",
+          "valueOn": "true",
+          "valueOff": "false"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "💾 Save Settings",
+      "data": {
+        "action": "save_settings"
+      },
+      "style": "positive"
+    },
+    {
+      "type": "Action.Submit",
+      "title": "↩️ Restore Defaults",
+      "data": {
+        "action": "restore_defaults",
+        "internalDays": 3,
+        "externalDays": 5,
+        "priorityDays": 1,
+        "generalDays": 7,
+        "nudgesEnabled": "true"
+      }
+    }
+  ],
+  "_notes": {
+    "templateVariables": {
+      "internalDays": "Current cr_internaldays value (default: 3)",
+      "externalDays": "Current cr_externaldays value (default: 5)",
+      "priorityDays": "Current cr_prioritydays value (default: 1)",
+      "generalDays": "Current cr_generaldays value (default: 7)",
+      "nudgesEnabled": "Current cr_nudgesenabled as 'true'/'false' string"
+    },
+    "compositionPattern": "Flow 7 reads the user's NudgeConfiguration row, substitutes ${...} placeholders with current values, and posts the card. Flow 7b handles the Action.Submit response.",
+    "CardTypeId": "epa_settings_card"
+  }
+}

@@ -1,0 +1,198 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_someone_responds_to_settings_card": {
+        "type": "OpenApiConnectionWebhook",
+        "inputs": {
+          "parameters": {
+            "inputsAdaptiveCard": "{}",
+            "CardTypeId": "epa_settings_card"
+          },
+          "host": {
+            "connectionName": "shared_teams",
+            "operationId": "TeamsCardTrigger",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+          }
+        }
+      }
+    },
+    "actions": {
+      "Parse_Settings_Response": {
+        "type": "ParseJson",
+        "inputs": {
+          "content": "@triggerOutputs()?['body/data']",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string" },
+              "internalDays": { "type": ["number", "string"] },
+              "externalDays": { "type": ["number", "string"] },
+              "priorityDays": { "type": ["number", "string"] },
+              "generalDays": { "type": ["number", "string"] },
+              "nudgesEnabled": { "type": "string" }
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Get_Responder_Profile": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {
+          "Parse_Settings_Response": ["Succeeded"]
+        }
+      },
+      "Compose_Validated_Values": {
+        "type": "Compose",
+        "inputs": {
+          "internalDays": "@min(30, max(1, int(coalesce(body('Parse_Settings_Response')?['internalDays'], '3'))))",
+          "externalDays": "@min(30, max(1, int(coalesce(body('Parse_Settings_Response')?['externalDays'], '5'))))",
+          "priorityDays": "@min(30, max(1, int(coalesce(body('Parse_Settings_Response')?['priorityDays'], '1'))))",
+          "generalDays": "@min(30, max(1, int(coalesce(body('Parse_Settings_Response')?['generalDays'], '7'))))",
+          "nudgesEnabled": "@equals(coalesce(body('Parse_Settings_Response')?['nudgesEnabled'], 'true'), 'true')"
+        },
+        "runAfter": {
+          "Get_Responder_Profile": ["Succeeded"]
+        }
+      },
+      "Condition_Is_Restore": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@body('Parse_Settings_Response')?['action']",
+                "restore_defaults"
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Compose_Default_Values": {
+            "type": "Compose",
+            "inputs": {
+              "internalDays": 3,
+              "externalDays": 5,
+              "priorityDays": 1,
+              "generalDays": 7,
+              "nudgesEnabled": true
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Compose_Validated_Values": ["Succeeded"]
+        }
+      },
+      "Upsert_NudgeConfiguration": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeconfigurations",
+            "recordId": "@outputs('Get_Responder_Profile')?['body/id']",
+            "item/cr_configlabel": "@{outputs('Get_Responder_Profile')?['body/displayName']} Nudge Config",
+            "item/cr_owneruserid": "@{outputs('Get_Responder_Profile')?['body/id']}",
+            "item/cr_internaldays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 3, outputs('Compose_Validated_Values')?['internalDays'])",
+            "item/cr_externaldays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 5, outputs('Compose_Validated_Values')?['externalDays'])",
+            "item/cr_prioritydays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 1, outputs('Compose_Validated_Values')?['priorityDays'])",
+            "item/cr_generaldays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 7, outputs('Compose_Validated_Values')?['generalDays'])",
+            "item/cr_nudgesenabled": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), true, outputs('Compose_Validated_Values')?['nudgesEnabled'])"
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "UpdateRecord",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Condition_Is_Restore": ["Succeeded"]
+        }
+      },
+      "Compose_Confirmation": {
+        "type": "Compose",
+        "inputs": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '✅ Settings restored to defaults (Internal: 3, External: 5, Priority: 1, General: 7 days, Nudges: ON)', concat('✅ Settings saved — Internal: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '3', outputs('Compose_Validated_Values')?['internalDays']), ', External: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '5', outputs('Compose_Validated_Values')?['externalDays']), ', Priority: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '1', outputs('Compose_Validated_Values')?['priorityDays']), ', General: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '7', outputs('Compose_Validated_Values')?['generalDays']), ' days, Nudges: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 'ON', if(outputs('Compose_Validated_Values')?['nudgesEnabled'], 'ON', 'OFF'))))",
+        "runAfter": {
+          "Upsert_NudgeConfiguration": ["Succeeded"]
+        }
+      },
+      "Reply_Confirmation": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "poster": "Flow bot",
+            "location": "Chat with Flow bot",
+            "body": {
+              "recipient": {
+                "to": "@outputs('Get_Responder_Profile')?['body/id']"
+              },
+              "messageBody": "@{outputs('Compose_Confirmation')}"
+            }
+          },
+          "host": {
+            "connectionName": "shared_teams",
+            "operationId": "PostMessageToConversation",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+          }
+        },
+        "runAfter": {
+          "Compose_Confirmation": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_Error": {
+            "type": "Compose",
+            "inputs": "EPA Settings update failed. Please try again or contact your admin."
+          },
+          "Reply_Error": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "poster": "Flow bot",
+                "location": "Chat with Flow bot",
+                "body": {
+                  "recipient": {
+                    "to": "@triggerOutputs()?['body/responder/objectId']"
+                  },
+                  "messageBody": "@{outputs('Compose_Error')}"
+                }
+              },
+              "host": {
+                "connectionName": "shared_teams",
+                "operationId": "PostMessageToConversation",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+              }
+            },
+            "runAfter": {
+              "Compose_Error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Reply_Confirmation": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 7b: Settings Card Handler",
+    "description": "Handles user responses to the EPA Settings Adaptive Card. Validates input values (clamped 1-30), upserts NudgeConfiguration in Dataverse, and confirms via Teams message.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_teams (Microsoft Teams)"
+    ]
+  }
+}
