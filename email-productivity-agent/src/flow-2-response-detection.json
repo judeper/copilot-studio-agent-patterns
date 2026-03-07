@@ -153,7 +153,7 @@
                     "type": "Query",
                     "inputs": {
                       "from": "@body('HTTP_Check_Replies')?['value']",
-                      "where": "@equals(toLower(item()?['from']?['emailAddress']?['address']), toLower(items('Apply_to_each')?['cr_recipientemail']))"
+                      "where": "@equals(toLower(coalesce(item()?['from']?['emailAddress']?['address'], '')), toLower(coalesce(items('Apply_to_each')?['cr_recipientemail'], '')))"
                     }
                   },
                   "Filter_Exclude_AutoReplies": {
@@ -270,7 +270,7 @@
                             },
                             "Compose_DaysSinceSent": {
                               "type": "Compose",
-                              "inputs": "@div(sub(ticks(utcNow()), ticks(items('Apply_to_each')?['cr_sentdatetime'])), 864000000000)",
+                              "inputs": "@if(empty(items('Apply_to_each')?['cr_sentdatetime']), 0, div(sub(ticks(utcNow()), ticks(items('Apply_to_each')?['cr_sentdatetime'])), 864000000000))",
                               "runAfter": {
                                 "Compose_ThreadExcerpt": [
                                   "Succeeded"
@@ -464,7 +464,7 @@
                                                 },
                                                 {
                                                   "title": "Sent",
-                                                  "value": "@{formatDateTime(items('Apply_to_each')?['cr_sentdatetime'], 'MMM dd, yyyy')}"
+                                                  "value": "@{if(empty(items('Apply_to_each')?['cr_sentdatetime']), 'N/A', formatDateTime(items('Apply_to_each')?['cr_sentdatetime'], 'MMM dd, yyyy'))}"
                                                 },
                                                 {
                                                   "title": "Waiting",
