@@ -56,6 +56,14 @@ export interface DailyBriefing {
     fyi_items?: BriefingFyiItem[];
     stale_alerts?: BriefingStaleAlert[];
 }
+
+export interface BriefingScheduleConfig {
+    hour: number;       // 0-23
+    minute: number;     // 0-59
+    days: string[];     // ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    timezone: string;   // IANA timezone like "America/New_York"
+    enabled: boolean;
+}
 export type RecipientRelationship = "Internal colleague" | "External client" | "Leadership" | "Unknown";
 export type InferredTone = "formal" | "semi-formal" | "direct" | "collaborative";
 export type DraftType = "EMAIL" | "TEAMS_MESSAGE";
@@ -119,4 +127,5 @@ export interface AppProps {
     onJumpToCard: (cardId: string) => void; // Sprint 2: navigate to a specific card from briefing
     onExecuteCommand: (command: string, currentCardId: string | null) => void; // Sprint 3: command bar
     onSaveDraft: (cardId: string, editedText: string) => void; // Phase 18: persist draft edits
+    onUpdateSchedule: (config: BriefingScheduleConfig) => void;
 }

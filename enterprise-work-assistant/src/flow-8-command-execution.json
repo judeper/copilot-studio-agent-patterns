@@ -1,0 +1,325 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Button",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commandText": {
+                "type": "string",
+                "description": "Natural language command from command bar"
+              },
+              "userId": {
+                "type": "string",
+                "description": "AAD object ID of the user"
+              },
+              "currentCardId": {
+                "type": "string",
+                "description": "ID of currently expanded card, or empty string"
+              }
+            },
+            "required": [
+              "commandText",
+              "userId"
+            ]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Scope_Command_Execution": {
+        "type": "Scope",
+        "actions": {
+          "Get_my_profile_(V2)": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {},
+              "host": {
+                "connectionName": "shared_office365users",
+                "operationId": "MyProfile_V2",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+              }
+            },
+            "runAfter": {}
+          },
+          "Condition_Has_Card": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@triggerBody()?['currentCardId']",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@triggerBody()?['currentCardId']",
+                      null
+                    ]
+                  }
+                }
+              ]
+            },
+            "actions": {
+              "Get_Current_Card": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_assistantcards",
+                    "recordId": "@triggerBody()?['currentCardId']"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "GetItem",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {}
+              },
+              "Compose_CardJSON_Found": {
+                "type": "Compose",
+                "inputs": "@string(outputs('Get_Current_Card')?['body'])",
+                "runAfter": {
+                  "Get_Current_Card": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Compose_CardJSON_Null": {
+                  "type": "Compose",
+                  "inputs": "null",
+                  "runAfter": {}
+                }
+              }
+            },
+            "runAfter": {
+              "Get_my_profile_(V2)": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_CardJSON": {
+            "type": "Compose",
+            "inputs": "@coalesce(outputs('Compose_CardJSON_Found'), outputs('Compose_CardJSON_Null'))",
+            "runAfter": {
+              "Condition_Has_Card": [
+                "Succeeded"
+              ]
+            }
+          },
+          "List_Recent_Briefing": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_triggertype eq 100000003 and _ownerid_value eq '@{triggerBody()?['userId']}' and createdon ge @{formatDateTime(utcNow(), 'yyyy-MM-dd')}",
+                "$orderby": "createdon desc",
+                "$top": 1
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_CardJSON": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_BriefingJSON": {
+            "type": "Compose",
+            "inputs": "@if(greater(length(outputs('List_Recent_Briefing')?['body/value']), 0), string(first(outputs('List_Recent_Briefing')?['body/value'])), 'null')",
+            "runAfter": {
+              "List_Recent_Briefing": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_OrchestratorInput": {
+            "type": "Compose",
+            "inputs": {
+              "COMMAND_TEXT": "@{triggerBody()?['commandText']}",
+              "USER_CONTEXT": {
+                "userId": "@{triggerBody()?['userId']}",
+                "displayName": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}",
+                "mail": "@{outputs('Get_my_profile_(V2)')?['body/mail']}"
+              },
+              "CURRENT_CARD_JSON": "@outputs('Compose_CardJSON')",
+              "RECENT_BRIEFING": "@outputs('Compose_BriefingJSON')",
+              "CURRENT_DATETIME": "@{utcNow()}"
+            },
+            "runAfter": {
+              "Compose_BriefingJSON": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Execute_Orchestrator_Agent": {
+            "type": "OpenApiConnectionWebhook",
+            "inputs": {
+              "parameters": {
+                "Copilot": "Enterprise Work Assistant"
+              },
+              "body": {
+                "text": "@{string(outputs('Compose_OrchestratorInput'))}",
+                "inputVariables": {
+                  "COMMAND_TEXT": "@{triggerBody()?['commandText']}",
+                  "USER_DISPLAY_NAME": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}",
+                  "CURRENT_CARD_JSON": "@{outputs('Compose_CardJSON')}",
+                  "RECENT_BRIEFING": "@{outputs('Compose_BriefingJSON')}",
+                  "CURRENT_DATETIME": "@{utcNow()}"
+                }
+              },
+              "host": {
+                "connectionName": "shared_microsoftcopilotstudio",
+                "operationId": "ExecuteCopilotAsyncV2",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+              }
+            },
+            "runAfter": {
+              "Compose_OrchestratorInput": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_AgentResponseJSON": {
+            "type": "Compose",
+            "inputs": "@coalesce(body('Execute_Orchestrator_Agent')?['AgentResponseJSON'], body('Execute_Orchestrator_Agent')?['lastResponse'])",
+            "runAfter": {
+              "Execute_Orchestrator_Agent": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Parse_Orchestrator_Response": {
+            "type": "ParseJson",
+            "inputs": {
+              "content": "@json(outputs('Compose_AgentResponseJSON'))",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "response_text": {
+                    "type": "string"
+                  },
+                  "card_links": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "cardId": {
+                          "type": "string"
+                        },
+                        "summary": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "detail": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "response_text"
+                ]
+              }
+            },
+            "runAfter": {
+              "Compose_AgentResponseJSON": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Response": {
+            "type": "Response",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "response_text": "@{body('Parse_Orchestrator_Response')?['response_text']}",
+                "card_links": "@{body('Parse_Orchestrator_Response')?['card_links']}",
+                "side_effects": "@{body('Parse_Orchestrator_Response')?['side_effects']}"
+              }
+            },
+            "runAfter": {
+              "Parse_Orchestrator_Response": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 8 error: @{result('Scope_Command_Execution')}"
+          },
+          "Response_Error": {
+            "type": "Response",
+            "inputs": {
+              "statusCode": 500,
+              "body": {
+                "response_text": "An error occurred processing your command. Please try again.",
+                "card_links": [],
+                "side_effects": [],
+                "error": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Command_Execution": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EWA - Flow 8: Command Execution",
+    "description": "Instant/manual trigger invoked from Canvas app command bar. Accepts natural language commands, resolves current card context and recent briefing, invokes the orchestrator agent, and returns structured response.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_microsoftcopilotstudio (Microsoft Copilot Studio)"
+    ],
+    "notes": {
+      "trigger": "Instant (Button) — called via PowerAutomate.Run from the Canvas app.",
+      "agentInvocation": "Invokes the Enterprise Work Assistant orchestrator agent with command text, user context, current card JSON, recent briefing, and current datetime. Coalesces AgentResponseJSON/lastResponse.",
+      "errorHandling": "Scope_Handle_Errors returns HTTP 500 with error details if the main scope fails or times out."
+    }
+  }
+}

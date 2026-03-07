@@ -2,6 +2,8 @@
 
 This guide walks through building the ten Power Automate flows that drive the Enterprise Work Assistant. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-10 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, sender analytics, and reminder firing.
 
+> **Agent tool flow artifacts:** The 5 research tools (`src/tool-search-*.json`) and 5 orchestrator tools (`src/tool-query-*.json`, `src/tool-update-card.json`, `src/tool-create-card.json`, `src/tool-refine-draft.json`) are deployed via `scripts/deploy-agent-flows.ps1`. These flows use the "When an agent calls the flow" trigger and are automatically registered as agent actions for generative orchestration.
+
 ## Prerequisites
 
 - Enterprise Work Assistant agent **published** in Copilot Studio with JSON output mode enabled (see [deployment-guide.md](deployment-guide.md), Phase 2)
@@ -83,6 +85,8 @@ For each flow, place steps 4–10 inside a **Scope** action named "Process Signa
 ---
 
 ## Flow 1 — EMAIL Trigger
+
+> **Code artifact:** [`src/flow-1-email-trigger.json`](../src/flow-1-email-trigger.json)
 
 ### Trigger
 
@@ -378,6 +382,8 @@ Compare the sender's email domain to the user's email domain:
 
 ## Flow 2 — TEAMS_MESSAGE Trigger
 
+> **Code artifact:** [`src/flow-2-teams-trigger.json`](../src/flow-2-teams-trigger.json)
+
 ### Trigger
 
 **When someone is mentioned** — Microsoft Teams connector (preferred for targeted processing)
@@ -464,6 +470,8 @@ Use the returned `mail` property as the sender email for the Upsert. If the "Get
 ---
 
 ## Flow 3 — CALENDAR_SCAN Trigger
+
+> **Code artifact:** [`src/flow-3-calendar-trigger.json`](../src/flow-3-calendar-trigger.json)
 
 ### Trigger
 
@@ -607,6 +615,8 @@ These values match the definitions in `schemas/dataverse-table.json` and the pro
 ---
 
 ## Flow 4 — Send Email (Sprint 1A)
+
+> **Code artifact:** [`src/flow-4-send-email.json`](../src/flow-4-send-email.json)
 
 ### Overview
 
@@ -796,6 +806,8 @@ Trigger (Canvas app)
 ---
 
 ## Flow 5 — Card Outcome Tracker (Sprint 1B)
+
+> **Code artifact:** [`src/flow-5-card-outcome-tracker.json`](../src/flow-5-card-outcome-tracker.json)
 
 ### Overview
 
@@ -1049,6 +1061,8 @@ Trigger (cr_cardoutcome changed, non-PENDING)
 ---
 
 ## Flow 6 — Daily Briefing *(Sprint 2)*
+
+> **Code artifact:** [`src/flow-6-daily-briefing.json`](../src/flow-6-daily-briefing.json)
 
 ### Overview
 
@@ -1349,6 +1363,8 @@ Trigger (Recurrence -- every 15 minutes)
 
 ## Flow 7 — Staleness Monitor *(Sprint 2)*
 
+> **Code artifact:** [`src/flow-7-staleness-monitor.json`](../src/flow-7-staleness-monitor.json)
+
 ### Overview
 
 Runs every 4 hours on weekdays. Performs two tasks:
@@ -1506,6 +1522,8 @@ Trigger (Recurrence — weekday every 4h)
 ---
 
 ## Flow 8 — Command Execution *(Sprint 3)*
+
+> **Code artifact:** [`src/flow-8-command-execution.json`](../src/flow-8-command-execution.json)
 
 ### Overview
 
@@ -1731,6 +1749,8 @@ Trigger (Instant — from Canvas app)
 
 ## Flow 9 — Sender Profile Analyzer *(Sprint 4)*
 
+> **Code artifact:** [`src/flow-9-sender-profile-analyzer.json`](../src/flow-9-sender-profile-analyzer.json)
+
 ### Overview
 
 Runs weekly (Sunday evening). Analyzes card outcome data from the past 30 days to compute sender-level statistics and auto-categorize senders by engagement level. Respects user overrides — senders with `cr_sendercategory = USER_OVERRIDE` are never recategorized.
@@ -1895,6 +1915,8 @@ Trigger (Recurrence — Sunday 8 PM)
 ---
 
 ## Flow 10 — Reminder Firing *(Phase 15)*
+
+> **Code artifact:** [`src/flow-10-reminder-firing.json`](../src/flow-10-reminder-firing.json)
 
 ### Overview
 

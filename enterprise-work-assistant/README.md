@@ -75,6 +75,8 @@ enterprise-work-assistant/
 │   ├── provision-environment.ps1      # Environment + Dataverse setup
 │   ├── create-security-roles.ps1      # Ownership-based RLS
 │   ├── deploy-solution.ps1            # PCF build + solution import
+│   ├── deploy-agent-flows.ps1         # Deploy 20 flows via Flow Management API
+│   ├── provision-copilot.ps1          # Create Copilot Studio agent via PAC CLI
 │   ├── provision-onenote.ps1          # OneNote notebook + section provisioning
 │   ├── validate-onenote-integration.ps1 # Verify OneNote integration health
 │   └── audit-table-naming.ps1         # Dataverse table naming audit
@@ -88,7 +90,7 @@ enterprise-work-assistant/
 │   ├── onenote-meeting-prep.html      # OneNote meeting prep page template
 │   ├── onenote-daily-briefing.html    # OneNote daily briefing page template
 │   └── onenote-active-todos.html      # OneNote active to-dos page template
-└── src/                               # PCF React component
+└── src/                               # PCF React component + flow/topic definitions
     ├── AssistantDashboard/
     │   ├── ControlManifest.Input.xml  # PCF manifest (virtual, dataset)
     │   ├── index.ts                   # PCF lifecycle entry point
@@ -97,7 +99,7 @@ enterprise-work-assistant/
     │   │   ├── CardGallery.tsx        # Scrollable card list
     │   │   ├── CardItem.tsx           # Collapsed card (priority, icon, summary)
     │   │   ├── CardDetail.tsx         # Expanded card view (research, draft, sources)
-    │   │   ├── BriefingCard.tsx       # Daily briefing card (action items, FYI, stale alerts)
+    │   │   ├── BriefingCard.tsx       # Daily briefing card (action items, FYI, stale alerts, schedule config)
     │   │   ├── CommandBar.tsx         # Command input & execution
     │   │   ├── ConfidenceCalibration.tsx # Low confidence warning badge
     │   │   ├── FilterBar.tsx          # Active filter status bar
@@ -113,6 +115,32 @@ enterprise-work-assistant/
     │   │   └── AssistantDashboard.css
     │   └── strings/
     │       └── AssistantDashboard.1033.resx  # Localization strings
+    ├── flow-1-email-trigger.json       # Flow 1: Email arrival → triage agent → Dataverse
+    ├── flow-2-teams-trigger.json       # Flow 2: Teams mention → triage agent → Dataverse
+    ├── flow-3-calendar-trigger.json    # Flow 3: Daily calendar scan → triage agent → Dataverse
+    ├── flow-4-send-email.json          # Flow 4: Send email from Canvas app
+    ├── flow-5-card-outcome-tracker.json # Flow 5: Card outcome → sender profile upsert
+    ├── flow-6-daily-briefing.json      # Flow 6: Per-user daily briefing generation
+    ├── flow-7-staleness-monitor.json   # Flow 7: Nudge overdue cards, expire abandoned
+    ├── flow-8-command-execution.json   # Flow 8: Command bar → orchestrator agent
+    ├── flow-9-sender-profile-analyzer.json # Flow 9: Weekly sender categorization
+    ├── flow-10-reminder-firing.json    # Flow 10: Fire due SELF_REMINDER cards via Teams
+    ├── tool-search-user-email.json     # Agent tool: Search Outlook inbox (Tier 1)
+    ├── tool-search-sent-items.json     # Agent tool: Search sent items (Tier 1)
+    ├── tool-search-teams-messages.json # Agent tool: Search Teams messages (Tier 1)
+    ├── tool-search-sharepoint.json     # Agent tool: Search SharePoint (Tier 2)
+    ├── tool-search-planner-tasks.json  # Agent tool: Search Planner tasks (Tier 3)
+    ├── tool-query-cards.json           # Agent tool: Query assistant cards (Orchestrator)
+    ├── tool-query-sender-profile.json  # Agent tool: Look up sender profile (Orchestrator)
+    ├── tool-update-card.json           # Agent tool: Modify card properties (Orchestrator)
+    ├── tool-create-card.json           # Agent tool: Create new card/reminder (Orchestrator)
+    ├── tool-refine-draft.json          # Agent tool: Refine draft via Humanizer (Orchestrator)
+    ├── triage-topic.yaml               # Copilot Studio topic: Main triage (5 inputs → JSON)
+    ├── humanizer-topic.yaml            # Copilot Studio topic: Humanizer connected agent
+    ├── briefing-topic.yaml             # Copilot Studio topic: Daily briefing generation
+    ├── orchestrator-topic.yaml         # Copilot Studio topic: Command execution + tool actions
+    ├── copilot-base-template.yaml      # Copilot Studio base agent template (system topics)
+    ├── kickStartTemplate-1.0.0.json    # PAC CLI kickstart template for agent creation
     ├── Solutions/
     │   └── Solution.cdsproj           # Solution packaging project
     ├── AssistantDashboard.pcfproj     # PCF project file

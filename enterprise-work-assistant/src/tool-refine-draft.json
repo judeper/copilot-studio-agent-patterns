@@ -1,0 +1,115 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "draft_text": {
+                "type": "string",
+                "description": "The raw draft text to refine"
+              },
+              "modification_instructions": {
+                "type": "string",
+                "description": "Instructions for tone or content adjustments (e.g. 'make it more formal', 'shorten to 3 sentences')"
+              },
+              "target_channel": {
+                "type": "string",
+                "description": "Target delivery channel: EMAIL or TEAMS_MESSAGE"
+              }
+            },
+            "required": ["draft_text", "modification_instructions", "target_channel"]
+          }
+        },
+        "description": "Pass a draft through the Humanizer agent with optional modification instructions for tone or content adjustments."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Compose_HumanizerInput": {
+            "type": "Compose",
+            "inputs": {
+              "DRAFT_PAYLOAD": {
+                "raw_draft": "@{triggerBody()?['draft_text']}",
+                "modification_instructions": "@{triggerBody()?['modification_instructions']}"
+              },
+              "TARGET_CHANNEL": "@{triggerBody()?['target_channel']}",
+              "RECIPIENT_CONTEXT": "@{triggerBody()?['modification_instructions']}"
+            }
+          },
+          "Execute_Humanizer_Agent": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "botId": "<humanizer-agent-schema-name>",
+                "message": "@{string(outputs('Compose_HumanizerInput'))}"
+              },
+              "host": {
+                "connectionName": "shared_microsoftcopilotstudio",
+                "operationId": "ExecuteAgentAndWait",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+              }
+            },
+            "runAfter": {
+              "Compose_HumanizerInput": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "refined_text": "@{outputs('Execute_Humanizer_Agent')?['body/lastResponse']}"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refined_text": {
+                    "type": "string",
+                    "description": "The humanizer-refined draft text"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Execute_Humanizer_Agent": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Tool error: @{result('Scope_Main')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "ToolError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

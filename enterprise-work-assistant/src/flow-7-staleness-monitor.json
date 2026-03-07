@@ -1,0 +1,236 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Day",
+          "interval": 1,
+          "schedule": {
+            "hours": [
+              "8",
+              "12",
+              "16",
+              "20"
+            ],
+            "minutes": [
+              "0"
+            ],
+            "weekDays": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ]
+          },
+          "timeZone": "Eastern Standard Time"
+        }
+      }
+    },
+    "actions": {
+      "Scope_Create_Nudges": {
+        "type": "Scope",
+        "actions": {
+          "List_Overdue_Cards": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addHours(utcNow(), -24)}"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {}
+          },
+          "Apply_to_each_overdue": {
+            "type": "Foreach",
+            "foreach": "@body('List_Overdue_Cards')?['value']",
+            "actions": {
+              "Compose_NudgeSignalId": {
+                "type": "Compose",
+                "inputs": "NUDGE:@{items('Apply_to_each_overdue')?['cr_assistantcardid']}",
+                "runAfter": {}
+              },
+              "List_Existing_Nudge": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_assistantcards",
+                    "$filter": "cr_sourcesignalid eq '@{outputs('Compose_NudgeSignalId')}'"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "ListRecords",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {
+                  "Compose_NudgeSignalId": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Condition_No_Existing_Nudge": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@length(body('List_Existing_Nudge')?['value'])",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Create_Nudge_Card": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "item/cr_itemsummary": "⏰ Overdue: @{items('Apply_to_each_overdue')?['cr_itemsummary']}",
+                        "item/cr_triggertype": 100000000,
+                        "item/cr_triagetier": 100000002,
+                        "item/cr_cardstatus": 100000004,
+                        "item/cr_cardoutcome": 100000000,
+                        "item/cr_priority": 100000000,
+                        "item/cr_sourcesignalid": "@outputs('Compose_NudgeSignalId')",
+                        "item/cr_originalsenderemail": "@items('Apply_to_each_overdue')?['cr_originalsenderemail']",
+                        "item/cr_originalsenderdisplay": "@items('Apply_to_each_overdue')?['cr_originalsenderdisplay']",
+                        "item/cr_originalsubject": "@items('Apply_to_each_overdue')?['cr_originalsubject']",
+                        "item@odata.bind": "systemusers(@{items('Apply_to_each_overdue')?['_ownerid_value']})"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "CreateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "Update_Original_Status": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "recordId": "@items('Apply_to_each_overdue')?['cr_assistantcardid']",
+                        "item/cr_cardstatus": 100000004
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {
+                      "Create_Nudge_Card": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "List_Existing_Nudge": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "List_Overdue_Cards": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Expire_Abandoned": {
+        "type": "Scope",
+        "actions": {
+          "List_Abandoned_Cards": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_cardoutcome eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addDays(utcNow(), -7)}"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {}
+          },
+          "Apply_to_each_abandoned": {
+            "type": "Foreach",
+            "foreach": "@body('List_Abandoned_Cards')?['value']",
+            "actions": {
+              "Expire_Card": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_assistantcards",
+                    "recordId": "@items('Apply_to_each_abandoned')?['cr_assistantcardid']",
+                    "item/cr_cardoutcome": 100000004
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "List_Abandoned_Cards": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Create_Nudges": [
+            "Succeeded",
+            "Failed",
+            "Skipped"
+          ]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Terminate_Failed": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "500",
+                "message": "Staleness monitor failed unexpectedly"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Scope_Expire_Abandoned": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  }
+}

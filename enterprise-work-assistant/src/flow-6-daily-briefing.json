@@ -1,0 +1,333 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 15
+        }
+      }
+    },
+    "actions": {
+      "Scope_Daily_Briefing": {
+        "type": "Scope",
+        "actions": {
+          "List_BriefingSchedules": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_briefingschedules",
+                "$filter": "cr_isenabled eq true"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {}
+          },
+          "Apply_to_each_schedule": {
+            "type": "Foreach",
+            "foreach": "@body('List_BriefingSchedules')?['value']",
+            "actions": {
+              "Compose_UserLocalTime": {
+                "type": "Compose",
+                "inputs": "@convertTimeZone(utcNow(), 'UTC', items('Apply_to_each_schedule')?['cr_timezone'])",
+                "runAfter": {}
+              },
+              "Compose_CurrentHour": {
+                "type": "Compose",
+                "inputs": "@int(formatDateTime(outputs('Compose_UserLocalTime'), 'HH'))",
+                "runAfter": {
+                  "Compose_UserLocalTime": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Compose_CurrentDay": {
+                "type": "Compose",
+                "inputs": "@formatDateTime(outputs('Compose_UserLocalTime'), 'dddd')",
+                "runAfter": {
+                  "Compose_UserLocalTime": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Condition_Time_Matches": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@outputs('Compose_CurrentHour')",
+                        "@items('Apply_to_each_schedule')?['cr_schedulehour']"
+                      ]
+                    },
+                    {
+                      "contains": [
+                        "@items('Apply_to_each_schedule')?['cr_scheduledays']",
+                        "@outputs('Compose_CurrentDay')"
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "List_Existing_Briefing": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "$filter": "cr_triggertype eq 100000003 and _ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and createdon ge @{addHours(utcNow(), -20)}"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "ListRecords",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "Condition_No_Duplicate": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@length(body('List_Existing_Briefing')?['value'])",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Get_User_Profile": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "id": "@items('Apply_to_each_schedule')?['_cr_userid_value']"
+                          },
+                          "host": {
+                            "connectionName": "shared_office365users",
+                            "operationId": "UserProfile_V2",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+                          }
+                        },
+                        "runAfter": {}
+                      },
+                      "List_Open_Cards": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_assistantcards",
+                            "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and cr_cardoutcome eq 100000000",
+                            "$top": 50,
+                            "$orderby": "createdon desc"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "ListRecords",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        },
+                        "runAfter": {}
+                      },
+                      "List_Stale_Cards": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_assistantcards",
+                            "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and cr_cardoutcome eq 100000000 and cr_priority ne 100000003 and createdon lt @{addHours(utcNow(), -24)}"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "ListRecords",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        },
+                        "runAfter": {}
+                      },
+                      "Get_Today_Calendar": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "calendarId": "Calendar",
+                            "startDateTimeUtc": "@startOfDay(outputs('Compose_UserLocalTime'))",
+                            "endDateTimeUtc": "@addDays(startOfDay(outputs('Compose_UserLocalTime')), 1)",
+                            "$top": 50
+                          },
+                          "host": {
+                            "connectionName": "shared_office365",
+                            "operationId": "CalendarGetOnNewItemsV3",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                          }
+                        },
+                        "runAfter": {}
+                      },
+                      "List_SenderProfiles": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_senderprofiles",
+                            "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}'"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "ListRecords",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        },
+                        "runAfter": {}
+                      },
+                      "Compose_BriefingInput": {
+                        "type": "Compose",
+                        "inputs": {
+                          "open_cards": "@body('List_Open_Cards')?['value']",
+                          "stale_cards": "@body('List_Stale_Cards')?['value']",
+                          "today_calendar": "@body('Get_Today_Calendar')?['value']",
+                          "sender_profiles": "@body('List_SenderProfiles')?['value']",
+                          "user_context": {
+                            "display_name": "@outputs('Get_User_Profile')?['body/displayName']",
+                            "email": "@outputs('Get_User_Profile')?['body/mail']",
+                            "timezone": "@items('Apply_to_each_schedule')?['cr_timezone']"
+                          },
+                          "current_datetime": "@utcNow()"
+                        },
+                        "runAfter": {
+                          "Get_User_Profile": [
+                            "Succeeded"
+                          ],
+                          "List_Open_Cards": [
+                            "Succeeded"
+                          ],
+                          "List_Stale_Cards": [
+                            "Succeeded"
+                          ],
+                          "Get_Today_Calendar": [
+                            "Succeeded"
+                          ],
+                          "List_SenderProfiles": [
+                            "Succeeded"
+                          ]
+                        }
+                      },
+                      "Execute_Briefing_Agent": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "botId": "@parameters('BriefingAgentBotId')",
+                            "message": "@{string(outputs('Compose_BriefingInput'))}"
+                          },
+                          "host": {
+                            "connectionName": "shared_microsoftcopilotforagents",
+                            "operationId": "ExecuteAgentAndWait",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotforagents"
+                          }
+                        },
+                        "runAfter": {
+                          "Compose_BriefingInput": [
+                            "Succeeded"
+                          ]
+                        }
+                      },
+                      "Compose_OutputEnvelope": {
+                        "type": "Compose",
+                        "inputs": {
+                          "triage_tier": "FULL",
+                          "trigger_type": "DAILY_BRIEFING",
+                          "confidence_score": 100,
+                          "draft_payload": "@{string(body('Execute_Briefing_Agent'))}"
+                        },
+                        "runAfter": {
+                          "Execute_Briefing_Agent": [
+                            "Succeeded"
+                          ]
+                        }
+                      },
+                      "Create_BriefingCard": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_assistantcards",
+                            "item/cr_triggertype": 100000003,
+                            "item/cr_triagetier": 100000002,
+                            "item/cr_cardstatus": 100000000,
+                            "item/cr_cardoutcome": 100000000,
+                            "item/cr_fulljson": "@{string(outputs('Compose_OutputEnvelope'))}",
+                            "item/cr_itemsummary": "Daily Briefing",
+                            "item/cr_confidencescore": 100,
+                            "item@odata.bind": "systemusers(@{items('Apply_to_each_schedule')?['_cr_userid_value']})"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "CreateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        },
+                        "runAfter": {
+                          "Compose_OutputEnvelope": [
+                            "Succeeded"
+                          ]
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "runAfter": {
+                      "List_Existing_Briefing": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "Compose_CurrentHour": [
+                    "Succeeded"
+                  ],
+                  "Compose_CurrentDay": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "List_BriefingSchedules": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Error": {
+        "type": "Scope",
+        "actions": {
+          "Terminate_Failed": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "500",
+                "message": "Daily briefing flow failed unexpectedly"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Scope_Daily_Briefing": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  }
+}
