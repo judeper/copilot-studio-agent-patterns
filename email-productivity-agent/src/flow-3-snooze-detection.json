@@ -212,7 +212,7 @@
           },
           "Apply_to_each_message": {
             "type": "Foreach",
-            "foreach": "@body('HTTP_List_Snoozed_Messages')?['value']",
+            "foreach": "@coalesce(body('HTTP_List_Snoozed_Messages')?['value'], json('[]'))",
             "actions": {
               "Upsert_SnoozedConversation": {
                 "type": "OpenApiConnection",
