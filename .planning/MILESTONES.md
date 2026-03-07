@@ -85,8 +85,8 @@
 
 ## v2.2 Tech Debt Cleanup (In Progress)
 
-**Phases completed so far:** 3/6 (14-16 complete, 17-19 pending)
-**Requirements:** 11/28 satisfied
+**Phases completed so far:** 4/6 (14-17 complete, 18-19 pending)
+**Requirements:** 12/28 satisfied (12/19 POC-scoped)
 **Timeline:** Started 2026-03-01
 
 **Delivered (completed phases):**
@@ -111,8 +111,13 @@
 - ErrorBoundary migrated to Fluent UI Button — zero plain HTML interactive elements in dashboard
 - 166 tests passing across 12 test suites
 
+### Phase 17: Accessibility (POC Scope) (2026-03-07)
+- Escape closes CardDetail edit mode, confirmation, and detail navigation in priority order
+- Escape closes BriefingCard detail view and the expanded CommandBar overlay
+- Focus returns to the previously active card or command trigger after overlay dismissal
+- 172 tests passing across 12 test suites
+
 **Remaining phases:**
-- Phase 17: Accessibility and Internationalization (UIUX-02, UIUX-03, UIUX-08)
-- Phase 18: Operational Resilience (UIUX-07, OPER-01 to OPER-05)
-- Phase 19: Deployment Documentation (DOCS-01 to DOCS-08)
+- Phase 18: Operational Resilience (OPER-03, OPER-04)
+- Phase 19: Deployment Documentation (DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-08)
 

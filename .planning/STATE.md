@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Tech Debt Cleanup (POC Scope)
 status: in_progress
-last_updated: "2026-03-06T18:39:00Z"
+last_updated: "2026-03-07T00:25:56Z"
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 6
   completed_plans: 6
 ---
@@ -15,20 +15,20 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-28)
+See: .planning/PROJECT.md (updated 2026-03-07)
 
 **Core value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run.
-**Current focus:** v2.2 Tech Debt Cleanup (POC Scope) — Phases 14-16 complete, implementing POC-scoped Phases 17-19
+**Current focus:** v2.2 Tech Debt Cleanup (POC Scope) — Phases 14-17 complete, implementing POC-scoped Phases 18-19
 **Scope decision:** This is a POC, not a production build. Production-grade items (full a11y, i18n, optimistic concurrency, DataSet paging, capacity planning) removed from scope.
 
 ## Current Position
 
-Phase: 16 complete (Phases 17-19 scoped for POC)
-Plan: 16-02 complete (2/2 plans in phase 16)
-Status: Implementing POC-scoped Phases 17-19 (6 tasks total)
-Last activity: 2026-03-06 — Scope trimmed to POC; 9 production-grade items removed
+Phase: 17 complete (Phases 18-19 scoped for POC)
+Plan: Phase 17 implemented directly (no dedicated repo plan file)
+Status: Phase 17 verified complete; Phases 18-19 remain
+Last activity: 2026-03-07 — Completed Phase 17 accessibility with Escape-key focus restoration
 
-Progress: [████████░░] 75% (POC scope: 3/6 phases complete, 6 tasks remaining)
+Progress: [███████░░░] 67% (POC scope: 4/6 phases complete, 2 phases remaining)
 
 ## Performance Metrics
 
@@ -82,10 +82,12 @@ Progress: [████████░░] 75% (POC scope: 3/6 phases complete, 
 - Fluent UI Input onChange uses (_e, data) => data.value pattern (not e.target.value)
 - Loading spinner shows only when cards empty AND no filters active (distinguishes initial load from empty filter results)
 - Kept div wrappers for CommandBar conversation panel (Fluent Card not semantically appropriate for scrollable log)
+- Escape-key dismissals restore focus to the previously active card or command trigger for consistent keyboard navigation
 
 ### Pending Todos
 
-1. **Research Copilot Outlook catchup feature for OOO agent** — Evaluate Copilot in Outlook's "Catch Up" OOO summary feature as a potential new agent pattern
+1. **Phase 18: Operational resilience** — Finish dismiss retry/error surfacing and confirm draft persistence behavior end to end
+2. **Phase 19: Deployment documentation** — Document PAC CLI minimums, knowledge source setup, and the license/role matrix
 
 ### Blockers/Concerns
 
@@ -93,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed 16-02-PLAN.md (Phase 16 complete)
-Resume file: .planning/phases/16-fluent-ui-migration-ux-polish/16-02-SUMMARY.md
+Last session: 2026-03-07
+Stopped at: Completed Phase 17 accessibility updates and synced milestone state
+Resume file: .planning/ROADMAP.md

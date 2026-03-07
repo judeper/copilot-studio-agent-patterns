@@ -15,6 +15,41 @@ type ViewState =
     | { mode: "detail"; cardId: string }
     | { mode: "calibration" };
 
+type FocusRestoreTarget =
+    | { type: "card"; cardId: string }
+    | { type: "selector"; selector: string }
+    | { type: "element"; element: HTMLElement };
+
+function escapeAttributeValue(value: string): string {
+    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function focusAfterRender(callback: () => void): void {
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(callback);
+        return;
+    }
+    setTimeout(callback, 0);
+}
+
+function getActiveFocusRestoreTarget(): FocusRestoreTarget | null {
+    if (typeof document === "undefined") return null;
+    const activeElement = document.activeElement;
+    if (!(activeElement instanceof HTMLElement)) return null;
+    const focusReturnId = activeElement.getAttribute("data-focus-return");
+    if (focusReturnId) {
+        return {
+            type: "selector",
+            selector: `[data-focus-return="${escapeAttributeValue(focusReturnId)}"]`,
+        };
+    }
+    const cardId = activeElement.getAttribute("data-card-id");
+    if (cardId) {
+        return { type: "card", cardId };
+    }
+    return { type: "element", element: activeElement };
+}
+
 function applyFilters(
     cards: AssistantCard[],
     triggerType: string,
@@ -91,6 +126,31 @@ export const App: React.FC<AppProps> = ({
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery" });
     const prefersDark = usePrefersDarkMode();
+    const focusRestoreTargetRef = React.useRef<FocusRestoreTarget | null>(null);
+    const previousModeRef = React.useRef<ViewState["mode"]>(viewState.mode);
+
+    const restoreFocus = React.useCallback(() => {
+        const target = focusRestoreTargetRef.current;
+        if (!target || typeof document === "undefined") return;
+        focusAfterRender(() => {
+            let element: HTMLElement | null = null;
+            switch (target.type) {
+                case "card":
+                    element = document.querySelector(
+                        `[data-card-id="${escapeAttributeValue(target.cardId)}"]`,
+                    ) as HTMLElement | null;
+                    break;
+                case "selector":
+                    element = document.querySelector(target.selector) as HTMLElement | null;
+                    break;
+                case "element":
+                    element = target.element.isConnected ? target.element : null;
+                    break;
+            }
+            element?.focus();
+        });
+        focusRestoreTargetRef.current = null;
+    }, []);
 
     const filteredCards = React.useMemo(
         () => applyFilters(cards, filterTriggerType, filterPriority, filterCardStatus, filterTemporalHorizon),
@@ -116,10 +176,19 @@ export const App: React.FC<AppProps> = ({
         }
     }, [viewState, selectedCard]);
 
+    React.useEffect(() => {
+        const previousMode = previousModeRef.current;
+        if (viewState.mode === "gallery" && previousMode !== "gallery") {
+            restoreFocus();
+        }
+        previousModeRef.current = viewState.mode;
+    }, [viewState.mode, restoreFocus]);
+
     const handleSelectCard = React.useCallback(
         (cardId: string) => {
             const card = cards.find((c) => c.id === cardId);
             if (card) {
+                focusRestoreTargetRef.current = { type: "card", cardId };
                 setViewState({ mode: "detail", cardId });
                 onSelectCard(cardId);
             }
@@ -132,6 +201,7 @@ export const App: React.FC<AppProps> = ({
         (cardId: string) => {
             const card = cards.find((c) => c.id === cardId);
             if (card) {
+                focusRestoreTargetRef.current = getActiveFocusRestoreTarget();
                 setViewState({ mode: "detail", cardId });
                 onJumpToCard(cardId);
             }
@@ -148,6 +218,7 @@ export const App: React.FC<AppProps> = ({
 
     // Sprint 4: Navigate to calibration dashboard
     const handleShowCalibration = React.useCallback(() => {
+        focusRestoreTargetRef.current = getActiveFocusRestoreTarget();
         setViewState({ mode: "calibration" });
     }, []);
 
@@ -191,6 +262,7 @@ export const App: React.FC<AppProps> = ({
                                     {/* Sprint 4: Agent Performance link — UIUX-01 Fluent UI Button */}
                                     <Button
                                         appearance="transparent"
+                                        data-focus-return="agent-performance"
                                         icon={<SettingsRegular />}
                                         onClick={handleShowCalibration}
                                         size="small"

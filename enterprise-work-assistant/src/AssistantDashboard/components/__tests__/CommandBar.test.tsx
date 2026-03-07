@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../../test/helpers/renderWithProviders';
 import { CommandBar } from '../CommandBar';
@@ -189,5 +189,59 @@ describe('CommandBar', () => {
 
         await userEvent.click(screen.getByText('Test card →'));
         expect(mockJump).toHaveBeenCalledWith('card-abc');
+    });
+
+    it('collapses the overlay on Escape and restores focus to the triggering quick action', async () => {
+        renderWithProviders(<CommandBar {...defaultProps} />);
+
+        const quickAction = screen.getByText('My day');
+        quickAction.focus();
+        expect(quickAction).toHaveFocus();
+
+        await userEvent.click(quickAction);
+
+        await waitFor(() => {
+            expect(
+                screen.getByPlaceholderText('Type a command...'),
+            ).toHaveFocus();
+        });
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+
+        await waitFor(() => {
+            expect(screen.queryByText('What should I focus on today?')).not.toBeInTheDocument();
+            expect(screen.getByText('My day')).toHaveFocus();
+        });
+    });
+
+    it('handles Escape while focus is on a response card link', async () => {
+        const response: OrchestratorResponse = {
+            response_text: 'Found it.',
+            card_links: [{ card_id: 'card-abc', label: 'Test card' }],
+            side_effects: [],
+        };
+
+        const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
+
+        await userEvent.click(screen.getByText("What's urgent?"));
+
+        rerender(
+            <CommandBar
+                {...defaultProps}
+                lastResponse={response}
+                isProcessing={false}
+            />,
+        );
+
+        const cardLink = screen.getByText('Test card →');
+        cardLink.focus();
+        expect(cardLink).toHaveFocus();
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+
+        await waitFor(() => {
+            expect(screen.queryByText('Test card →')).not.toBeInTheDocument();
+            expect(screen.getByText("What's urgent?")).toHaveFocus();
+        });
     });
 });
