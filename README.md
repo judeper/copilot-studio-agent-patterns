@@ -6,7 +6,7 @@ A collection of production-ready patterns for building autonomous agents on the 
 
 | Solution | Description | Components |
 |----------|-------------|------------|
-| [Enterprise Work Assistant](enterprise-work-assistant/) | AI assistant that triages emails, Teams messages, and calendar events — conducting research, preparing briefings and drafts, and optionally syncing to OneNote for offline access | Copilot Studio agent, Power Automate flows, Dataverse, Power Apps Component Framework (PCF) React dashboard, Canvas app, OneNote (optional) |
+| [Enterprise Work Assistant](enterprise-work-assistant/) | AI assistant that triages emails, Teams messages, and calendar events — conducting research, preparing briefings and drafts, and optionally syncing to OneNote for offline access | Copilot Studio agent (4 topics), 20 Power Automate flows (10 main + 10 agent tools), Dataverse (4 tables), PCF React dashboard, Canvas app, OneNote (optional) |
 | [Email Productivity Agent](email-productivity-agent/) | Gmail-like follow-up nudges and smart snooze for Outlook — automatically reminds you to follow up on unreplied emails and unsnoozes threads when new replies arrive | Copilot Studio agent, Power Automate flows, Dataverse, Teams Adaptive Cards |
 | [Agent Cost Governance — PAYGO](agent-cost-governance-paygo/) | Leadership-quality PAYGO cost visibility for Copilot Studio agents — budget dashboards, alerts, and FSI regulatory alignment using Azure Cost Management + Power BI | Azure Cost Management, Power BI, PowerShell provisioning, ARM templates, FSI governance artifacts |
 
@@ -27,7 +27,8 @@ Each solution lives in its own top-level folder with a consistent structure:
 ├── prompts/       # Agent system prompts
 ├── scripts/       # Provisioning and deployment PowerShell scripts
 ├── schemas/       # JSON schemas and table definitions
-└── src/           # Code components (PCF, custom connectors, etc.)
+├── templates/     # HTML templates (e.g., OneNote page templates)
+└── src/           # Code components, flow definitions, and topic YAMLs
 ```
 
 ## Getting Started
