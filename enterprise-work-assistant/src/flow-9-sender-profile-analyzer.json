@@ -1,0 +1,172 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Weekly_Sunday_3AM": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Week",
+          "interval": 1,
+          "schedule": {
+            "hours": [
+              "3"
+            ],
+            "minutes": [
+              "0"
+            ],
+            "weekDays": [
+              "Sunday"
+            ]
+          },
+          "timeZone": "Eastern Standard Time"
+        }
+      }
+    },
+    "actions": {
+      "Scope_Profile_Analysis": {
+        "type": "Scope",
+        "actions": {
+          "List_Eligible_Profiles": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_senderprofiles",
+                "$filter": "cr_signalcount ge 5"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {}
+          },
+          "Apply_to_each_profile": {
+            "type": "Foreach",
+            "foreach": "@outputs('List_Eligible_Profiles')?['body/value']",
+            "actions": {
+              "Condition_Skip_UserOverride": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@items('Apply_to_each_profile')?['cr_sendercategory']",
+                        100000003
+                      ]
+                    }
+                  ]
+                },
+                "actions": {},
+                "else": {
+                  "actions": {
+                    "Compose_ResponseRate": {
+                      "type": "Compose",
+                      "inputs": "@if(equals(float(items('Apply_to_each_profile')?['cr_signalcount']), 0), 0, div(float(items('Apply_to_each_profile')?['cr_responsecount']), float(items('Apply_to_each_profile')?['cr_signalcount'])))",
+                      "runAfter": {}
+                    },
+                    "Compose_DismissRate": {
+                      "type": "Compose",
+                      "inputs": "@if(equals(float(items('Apply_to_each_profile')?['cr_signalcount']), 0), 0, div(float(items('Apply_to_each_profile')?['cr_dismisscount']), float(items('Apply_to_each_profile')?['cr_signalcount'])))",
+                      "runAfter": {
+                        "Compose_ResponseRate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Compose_Category": {
+                      "type": "Compose",
+                      "inputs": "@if(and(greaterOrEquals(outputs('Compose_ResponseRate'), 0.8), less(float(items('Apply_to_each_profile')?['cr_avgresponsehours']), 8)), 100000000, if(greaterOrEquals(outputs('Compose_ResponseRate'), 0.4), 100000001, 100000002))",
+                      "runAfter": {
+                        "Compose_DismissRate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Update_Profile": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "entityName": "cr_senderprofiles",
+                          "recordId": "@items('Apply_to_each_profile')?['cr_senderprofileid']",
+                          "item/cr_sendercategory": "@outputs('Compose_Category')",
+                          "item/cr_responserate": "@outputs('Compose_ResponseRate')",
+                          "item/cr_dismissrate": "@outputs('Compose_DismissRate')"
+                        },
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        }
+                      },
+                      "runAfter": {
+                        "Compose_Category": [
+                          "Succeeded"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "runAfter": {}
+              }
+            },
+            "runAfter": {
+              "List_Eligible_Profiles": [
+                "Succeeded"
+              ]
+            },
+            "runtimeConfiguration": {
+              "concurrency": {
+                "repetitions": 10
+              }
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 9 error: @{result('Scope_Profile_Analysis')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Profile_Analysis": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EWA - Flow 9: Sender Profile Analyzer",
+    "description": "Weekly recurrence (Sunday 3 AM ET). Recalculates response rates, dismiss rates, and auto-categorization for all sender profiles with >= 5 signals. Skips USER_OVERRIDE profiles.",
+    "requiredConnections": [
+      "shared_commondataserviceforapps (Microsoft Dataverse)"
+    ],
+    "notes": {
+      "categoryLogic": "AUTO_HIGH (100000000): response_rate >= 0.8 AND avg_response_hours < 8. AUTO_MEDIUM (100000001): response_rate >= 0.4. AUTO_LOW (100000002): response_rate < 0.4 OR dismiss_rate >= 0.6. USER_OVERRIDE (100000003) profiles are never recategorized.",
+      "divByZero": "Signal count of 0 is guarded by the cr_signalcount >= 5 filter. Additional if-guard in Compose expressions for safety.",
+      "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions."
+    }
+  }
+}

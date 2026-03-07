@@ -1,0 +1,81 @@
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: TRIGGER_TYPE
+    description: "Signal type: EMAIL, TEAMS_MESSAGE, or CALENDAR_SCAN"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: PAYLOAD
+    description: JSON string containing the full signal content (email body, Teams message, or calendar event metadata)
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_CONTEXT
+    description: "Comma-separated string: display name, job title, department"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_DATETIME
+    description: Current UTC date/time in ISO 8601 format
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SENDER_PROFILE
+    description: JSON string with sender intelligence (signal count, response rate, category) or null for first-time senders
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Triage
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: <main-triage-model-guid>
+
+    - kind: SetVariable
+      id: setVariable_TriageResponse
+      variable: Topic.AgentResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Triage
+
+inputType:
+  properties:
+    TRIGGER_TYPE:
+      displayName: TRIGGER_TYPE
+      description: "Signal type: EMAIL, TEAMS_MESSAGE, or CALENDAR_SCAN"
+      type: String
+
+    PAYLOAD:
+      displayName: PAYLOAD
+      description: JSON string containing the full signal content (email body, Teams message, or calendar event metadata)
+      type: String
+
+    USER_CONTEXT:
+      displayName: USER_CONTEXT
+      description: "Comma-separated string: display name, job title, department"
+      type: String
+
+    CURRENT_DATETIME:
+      displayName: CURRENT_DATETIME
+      description: Current UTC date/time in ISO 8601 format
+      type: String
+
+    SENDER_PROFILE:
+      displayName: SENDER_PROFILE
+      description: JSON string with sender intelligence (signal count, response rate, category) or null for first-time senders
+      type: String
+
+outputType:
+  properties:
+    AgentResponseJSON:
+      displayName: AgentResponseJSON
+      description: Structured JSON conforming to output-schema.json with triage_tier, item_summary, priority, confidence_score, research_log, key_findings, verified_sources, draft_payload, and card_status
+      type: String

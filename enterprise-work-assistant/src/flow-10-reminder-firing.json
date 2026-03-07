@@ -1,0 +1,176 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Every_10_Minutes": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 10
+        }
+      }
+    },
+    "actions": {
+      "Scope_Reminder_Processing": {
+        "type": "Scope",
+        "actions": {
+          "List_Due_Reminders": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_triggertype eq 100000004 and cr_cardoutcome eq 100000000 and cr_reminderdue le @{utcNow()}"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {}
+          },
+          "Condition_Has_Reminders": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('List_Due_Reminders')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Apply_to_each_reminder": {
+                "type": "Foreach",
+                "foreach": "@outputs('List_Due_Reminders')?['body/value']",
+                "actions": {
+                  "Get_Card_Owner": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "id": "@items('Apply_to_each_reminder')?['_ownerid_value']"
+                      },
+                      "host": {
+                        "connectionName": "shared_office365users",
+                        "operationId": "UserProfile_V2",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "Post_Teams_Notification": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "poster": "Flow bot",
+                        "location": "Chat with Flow bot",
+                        "body": {
+                          "recipient": {
+                            "to": "@items('Apply_to_each_reminder')?['_ownerid_value']"
+                          },
+                          "messageBody": "<p>⏰ <strong>Reminder:</strong> @{items('Apply_to_each_reminder')?['cr_itemsummary']}</p>"
+                        }
+                      },
+                      "host": {
+                        "connectionName": "shared_teams",
+                        "operationId": "PostMessageToConversation",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                      }
+                    },
+                    "runAfter": {
+                      "Get_Card_Owner": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Update_Reminder_Outcome": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "recordId": "@items('Apply_to_each_reminder')?['cr_assistantcardid']",
+                        "item/cr_cardoutcome": 100000001,
+                        "item/cr_outcometimestamp": "@utcNow()"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {
+                      "Post_Teams_Notification": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                },
+                "runtimeConfiguration": {
+                  "concurrency": {
+                    "repetitions": 5
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "List_Due_Reminders": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 10 error: @{result('Scope_Reminder_Processing')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Reminder_Processing": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EWA - Flow 10: Reminder Firing",
+    "description": "Recurrence every 10 minutes. Queries cr_assistantcards for SELF_REMINDER items with PENDING outcome whose cr_reminderdue has passed, posts Teams chat notifications to owners, and marks outcome as SENT_AS_IS.",
+    "requiredConnections": [
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_office365users (Office 365 Users)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "outcomeReuse": "cr_cardoutcome = SENT_AS_IS (100000001) is reused for 'reminder delivered' since reminders do not have a separate outcome value.",
+      "concurrency": "Apply_to_each_reminder runs with concurrency of 5 to balance throughput and API throttling.",
+      "teamsDelivery": "Posts via PostMessageToConversation to 'Chat with Flow bot' using the card owner's AAD object ID as recipient."
+    }
+  }
+}
