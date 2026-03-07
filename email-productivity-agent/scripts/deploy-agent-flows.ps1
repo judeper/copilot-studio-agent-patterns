@@ -65,7 +65,7 @@ param(
 
     [string]$TimeZone = "Eastern Standard Time",
 
-    [ValidateSet("All", "Phase1", "Phase2", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6")]
+    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b")]
     [string]$FlowsToCreate = "All"
 )
 
@@ -89,7 +89,7 @@ $flowMap = [ordered]@{
     Flow2  = @{
         File        = "flow-2-response-detection.json"
         DisplayName = "EPA - Flow 2: Response Detection"
-        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_microsoftcopilotstudio", "shared_teams")
     }
     Flow2b = @{
         File        = "flow-2b-card-action-handler.json"
@@ -104,12 +104,22 @@ $flowMap = [ordered]@{
     Flow4  = @{
         File        = "flow-4-auto-unsnooze.json"
         DisplayName = "EPA - Flow 4: Auto-Unsnooze"
-        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_microsoftcopilotstudio", "shared_teams")
     }
     Flow6  = @{
         File        = "flow-6-snooze-cleanup.json"
         DisplayName = "EPA - Flow 6: Snooze Cleanup"
         ConnRefs    = @("shared_commondataserviceforapps")
+    }
+    Flow7  = @{
+        File        = "flow-7-settings-card.json"
+        DisplayName = "EPA - Flow 7: Settings Card"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_teams")
+    }
+    Flow7b = @{
+        File        = "flow-7b-settings-handler.json"
+        DisplayName = "EPA - Flow 7b: Settings Card Handler"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_teams")
     }
 }
 
@@ -120,6 +130,7 @@ $connRefDefs = @{
     shared_commondataserviceforapps = @{ LogicalName = "${PublisherPrefix}_shareddataverse";      DisplayName = "EPA - Microsoft Dataverse" }
     shared_teams                    = @{ LogicalName = "${PublisherPrefix}_sharedteams";          DisplayName = "EPA - Microsoft Teams" }
     shared_webcontents              = @{ LogicalName = "${PublisherPrefix}_sharedhttpentra";      DisplayName = "EPA - HTTP with Microsoft Entra ID" }
+    shared_microsoftcopilotstudio   = @{ LogicalName = "${PublisherPrefix}_sharedcopilotstudio"; DisplayName = "EPA - Microsoft Copilot Studio" }
 }
 
 # ─────────────────────────────────────
@@ -225,6 +236,7 @@ $flowsToProcess = switch ($FlowsToCreate) {
     "All"    { $flowMap.Keys }
     "Phase1" { @("Flow5", "Flow1", "Flow2", "Flow2b") }
     "Phase2" { @("Flow6", "Flow3", "Flow4") }
+    "Phase3" { @("Flow7", "Flow7b") }
     default  { @($FlowsToCreate) }
 }
 

@@ -1,0 +1,272 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Button",
+        "inputs": {
+          "schema": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "List_My_NudgeConfig": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeconfigurations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": ["Succeeded"]
+        }
+      },
+      "Condition_Config_Exists": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@length(outputs('List_My_NudgeConfig')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Compose_Current_Config": {
+            "type": "Compose",
+            "inputs": "@first(outputs('List_My_NudgeConfig')?['body/value'])"
+          }
+        },
+        "else": {
+          "actions": {
+            "Create_Default_Config": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "entityName": "cr_nudgeconfigurations",
+                  "item/cr_configlabel": "@{outputs('Get_my_profile_(V2)')?['body/displayName']} Nudge Config",
+                  "item/cr_owneruserid": "@{outputs('Get_my_profile_(V2)')?['body/id']}",
+                  "item/cr_internaldays": 3,
+                  "item/cr_externaldays": 5,
+                  "item/cr_prioritydays": 1,
+                  "item/cr_generaldays": 7,
+                  "item/cr_nudgesenabled": true
+                },
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                }
+              }
+            },
+            "Compose_New_Config": {
+              "type": "Compose",
+              "inputs": {
+                "cr_internaldays": 3,
+                "cr_externaldays": 5,
+                "cr_prioritydays": 1,
+                "cr_generaldays": 7,
+                "cr_nudgesenabled": true
+              },
+              "runAfter": {
+                "Create_Default_Config": ["Succeeded"]
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "List_My_NudgeConfig": ["Succeeded"]
+        }
+      },
+      "Compose_Settings_Card": {
+        "type": "Compose",
+        "inputs": {
+          "type": "AdaptiveCard",
+          "version": "1.4",
+          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+          "body": [
+            {
+              "type": "ColumnSet",
+              "columns": [
+                {
+                  "type": "Column",
+                  "width": "auto",
+                  "items": [
+                    {
+                      "type": "Image",
+                      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Gear/3D/gear_3d.png",
+                      "size": "Small",
+                      "altText": "Settings gear icon"
+                    }
+                  ]
+                },
+                {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                    {
+                      "type": "TextBlock",
+                      "text": "Nudge Settings",
+                      "weight": "Bolder",
+                      "size": "Medium",
+                      "color": "Accent"
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "Configure how many business days to wait before nudging you about unreplied emails",
+                      "size": "Small",
+                      "isSubtle": true,
+                      "spacing": "None",
+                      "wrap": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "separator": true,
+              "spacing": "Medium",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "Follow-Up Timeframes (business days)",
+                  "weight": "Bolder",
+                  "size": "Small",
+                  "spacing": "Small"
+                },
+                {
+                  "type": "ColumnSet",
+                  "columns": [
+                    {"type": "Column", "width": "stretch", "items": [{"type": "TextBlock", "text": "👥 Internal (colleagues)", "size": "Small", "wrap": true}]},
+                    {"type": "Column", "width": "80px", "items": [{"type": "Input.Number", "id": "internalDays", "min": 1, "max": 30, "value": "@{coalesce(outputs('Compose_Current_Config')?['cr_internaldays'], outputs('Compose_New_Config')?['cr_internaldays'], 3)}", "placeholder": "3"}]}
+                  ]
+                },
+                {
+                  "type": "ColumnSet",
+                  "columns": [
+                    {"type": "Column", "width": "stretch", "items": [{"type": "TextBlock", "text": "🌐 External (clients/vendors)", "size": "Small", "wrap": true}]},
+                    {"type": "Column", "width": "80px", "items": [{"type": "Input.Number", "id": "externalDays", "min": 1, "max": 30, "value": "@{coalesce(outputs('Compose_Current_Config')?['cr_externaldays'], outputs('Compose_New_Config')?['cr_externaldays'], 5)}", "placeholder": "5"}]}
+                  ]
+                },
+                {
+                  "type": "ColumnSet",
+                  "columns": [
+                    {"type": "Column", "width": "stretch", "items": [{"type": "TextBlock", "text": "⭐ Priority (VIP contacts)", "size": "Small", "wrap": true}]},
+                    {"type": "Column", "width": "80px", "items": [{"type": "Input.Number", "id": "priorityDays", "min": 1, "max": 30, "value": "@{coalesce(outputs('Compose_Current_Config')?['cr_prioritydays'], outputs('Compose_New_Config')?['cr_prioritydays'], 1)}", "placeholder": "1"}]}
+                  ]
+                },
+                {
+                  "type": "ColumnSet",
+                  "columns": [
+                    {"type": "Column", "width": "stretch", "items": [{"type": "TextBlock", "text": "📋 General (default)", "size": "Small", "wrap": true}]},
+                    {"type": "Column", "width": "80px", "items": [{"type": "Input.Number", "id": "generalDays", "min": 1, "max": 30, "value": "@{coalesce(outputs('Compose_Current_Config')?['cr_generaldays'], outputs('Compose_New_Config')?['cr_generaldays'], 7)}", "placeholder": "7"}]}
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "separator": true,
+              "spacing": "Medium",
+              "items": [
+                {
+                  "type": "Input.Toggle",
+                  "id": "nudgesEnabled",
+                  "title": "Enable nudge notifications",
+                  "value": "@{if(coalesce(outputs('Compose_Current_Config')?['cr_nudgesenabled'], outputs('Compose_New_Config')?['cr_nudgesenabled'], true), 'true', 'false')}",
+                  "valueOn": "true",
+                  "valueOff": "false"
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "type": "Action.Submit",
+              "title": "💾 Save Settings",
+              "data": {
+                "action": "save_settings",
+                "CardTypeId": "epa_settings_card"
+              },
+              "style": "positive"
+            },
+            {
+              "type": "Action.Submit",
+              "title": "↩️ Restore Defaults",
+              "data": {
+                "action": "restore_defaults",
+                "internalDays": 3,
+                "externalDays": 5,
+                "priorityDays": 1,
+                "generalDays": 7,
+                "nudgesEnabled": "true",
+                "CardTypeId": "epa_settings_card"
+              }
+            }
+          ]
+        },
+        "runAfter": {
+          "Condition_Config_Exists": ["Succeeded"]
+        }
+      },
+      "Post_Settings_Card_To_Teams": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "poster": "Flow bot",
+            "location": "Chat with Flow bot",
+            "body": {
+              "recipient": {
+                "to": "@outputs('Get_my_profile_(V2)')?['body/id']"
+              },
+              "messageBody": "@{outputs('Compose_Settings_Card')}"
+            }
+          },
+          "host": {
+            "connectionName": "shared_teams",
+            "operationId": "PostCardToConversation",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+          }
+        },
+        "runAfter": {
+          "Compose_Settings_Card": ["Succeeded"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 7: Settings Card",
+    "description": "Delivers a pre-filled nudge settings Adaptive Card to the user's Teams chat with the Flow bot. Reads current NudgeConfiguration from Dataverse (auto-creates with defaults if first time). Manually triggered.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_teams (Microsoft Teams)"
+    ]
+  }
+}
