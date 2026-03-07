@@ -225,7 +225,7 @@
                       "NEW_MESSAGE_SENDER": "@{triggerOutputs()?['body/from']?['emailAddress']?['address']}",
                       "NEW_MESSAGE_SENDER_NAME": "@{triggerOutputs()?['body/from']?['emailAddress']?['name']}",
                       "NEW_MESSAGE_SUBJECT": "@{triggerOutputs()?['body/subject']}",
-                      "NEW_MESSAGE_EXCERPT": "@{take(triggerOutputs()?['body/bodyPreview'], 500)}",
+                      "NEW_MESSAGE_EXCERPT": "@{take(coalesce(triggerOutputs()?['body/bodyPreview'], ''), 500)}",
                       "SNOOZED_SUBJECT": "@{outputs('Compose_snoozedRow')?['cr_originalsubject']}",
                       "SNOOZE_UNTIL": "@{outputs('Compose_snoozedRow')?['cr_snoozeuntil']}",
                       "USER_TIMEZONE": "@{variables('userTimeZone')}",

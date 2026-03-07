@@ -57,7 +57,7 @@
           "and": [
             {
               "startsWith": [
-                "@outputs('Get_email_(V2)')?['body/itemClass']",
+                "@coalesce(outputs('Get_email_(V2)')?['body/itemClass'], '')",
                 "IPM.Schedule"
               ]
             }
@@ -127,7 +127,7 @@
             {
               "name": "userDomain",
               "type": "string",
-              "value": "@split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]"
+              "value": "@split(coalesce(outputs('Get_my_profile_(V2)')?['body/mail'], 'unknown@unknown'), '@')[1]"
             }
           ]
         },
@@ -196,7 +196,7 @@
       },
       "Compose_normalizedStartDate": {
         "type": "Compose",
-        "inputs": "@if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 0), addDays(triggerOutputs()?['body/sentDateTime'], 1), if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 6), addDays(triggerOutputs()?['body/sentDateTime'], 2), triggerOutputs()?['body/sentDateTime']))",
+        "inputs": "@if(empty(triggerOutputs()?['body/sentDateTime']), utcNow(), if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 0), addDays(triggerOutputs()?['body/sentDateTime'], 1), if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 6), addDays(triggerOutputs()?['body/sentDateTime'], 2), triggerOutputs()?['body/sentDateTime'])))",
         "runAfter": {
           "Condition_Config_Exists": ["Succeeded"]
         }
@@ -204,13 +204,17 @@
       "Scope_Track_Recipients": {
         "type": "Scope",
         "actions": {
+          "Compose_safeToRecipients": {
+            "type": "Compose",
+            "inputs": "@if(empty(outputs('Get_email_(V2)')?['body/toRecipients']), json('[]'), if(equals(outputs('Get_email_(V2)')?['body/toRecipients'], string(outputs('Get_email_(V2)')?['body/toRecipients'])), json(outputs('Get_email_(V2)')?['body/toRecipients']), outputs('Get_email_(V2)')?['body/toRecipients']))"
+          },
           "Apply_to_each_recipient": {
             "type": "Foreach",
-            "foreach": "@outputs('Get_email_(V2)')?['body/toRecipients']",
+            "foreach": "@outputs('Compose_safeToRecipients')",
             "actions": {
               "Compose_recipientDomain": {
                 "type": "Compose",
-                "inputs": "@split(items('Apply_to_each_recipient')?['emailAddress']?['address'], '@')[1]"
+                "inputs": "@split(coalesce(items('Apply_to_each_recipient')?['emailAddress']?['address'], 'unknown@unknown'), '@')[1]"
               },
               "Set_recipientType": {
                 "type": "SetVariable",
@@ -263,6 +267,9 @@
                   "Compose_followUpDate": ["Succeeded"]
                 }
               }
+            },
+            "runAfter": {
+              "Compose_safeToRecipients": ["Succeeded"]
             }
           }
         },
