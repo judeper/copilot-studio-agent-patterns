@@ -6,12 +6,19 @@ This repo contains production-ready patterns for building autonomous agents on t
 
 The primary solution is **Enterprise Work Assistant** (`enterprise-work-assistant/`), an AI assistant that triages emails, Teams messages, and calendar events. The data flow is:
 
-1. **Power Automate Agent Flows** (3 triggers: Email, Teams, Calendar) intercept signals, extract payloads, and invoke the Copilot Studio agent
-2. **Copilot Studio Agent** triages (SKIP/LIGHT/FULL), researches across 5 tiers, scores confidence, and returns structured JSON
-3. **Humanizer Connected Agent** rewrites drafts for FULL-tier items with confidence ≥ 40
-4. **Dataverse** (`AssistantCards` table) persists results with ownership-based row-level security
-5. **Canvas App + PCF React Dashboard** renders a single-pane-of-glass UI
-6. **OneNote Integration** (optional, Phase 1 write-only) syncs meeting prep, daily briefings, and active to-dos to a structured OneNote notebook via Graph API. Gated by feature flag (`cr_onenoteenabled`) and per-user opt-out (`cr_onenoteoptout`). Uses group-scoped app registration, `{{PLACEHOLDER}}` HTML templates, and fail-safe error handling.
+1. **Power Automate Agent Flows** (10 main flows + 10 agent tool flows, deployed via `scripts/deploy-agent-flows.ps1`):
+   - Signal triggers: Flow 1 (Email), Flow 2 (Teams), Flow 3 (Calendar) intercept signals, invoke the Copilot Studio agent via `ExecuteAgentAndWait` (Microsoft Copilot Studio connector), and write results to Dataverse
+   - Operations: Flow 4 (Send Email), Flow 5 (Card Outcome Tracker), Flow 6 (Daily Briefing), Flow 7 (Staleness Monitor), Flow 8 (Command Execution), Flow 9 (Sender Profile Analyzer), Flow 10 (Reminder Firing)
+   - Research tools: 5 agent tool flows (SearchUserEmail, SearchSentItems, SearchTeamsMessages, SearchSharePoint, SearchPlannerTasks) using "When an agent calls the flow" trigger for Tier 1-3 research
+   - Orchestrator tools: 5 agent tool flows (QueryCards, QuerySenderProfile, UpdateCard, CreateCard, RefineDraft) for command bar actions
+2. **Copilot Studio Agent** (provisioned via `scripts/provision-copilot.ps1`) with 4 topics:
+   - Main Triage (`triage-topic.yaml`): triages SKIP/LIGHT/FULL, researches across 5 tiers, scores confidence, returns structured JSON
+   - Humanizer (`humanizer-topic.yaml`): Connected Agent that rewrites drafts for FULL-tier items with confidence ≥ 40
+   - Daily Briefing (`briefing-topic.yaml`): generates personalized daily work briefings with action items, FYI, and stale alerts
+   - Orchestrator (`orchestrator-topic.yaml`): processes natural language commands with 5 tool actions
+3. **Dataverse** (`AssistantCards`, `SenderProfile`, `BriefingSchedule`, `ErrorLog` tables) persists results with ownership-based row-level security
+4. **Canvas App + PCF React Dashboard** renders a single-pane-of-glass UI with schedule configuration
+5. **OneNote Integration** (optional, Phase 1 write-only) syncs meeting prep, daily briefings, and active to-dos to a structured OneNote notebook via Graph API. Gated by feature flag (`cr_onenoteenabled`) and per-user opt-out (`cr_onenoteoptout`). Uses group-scoped app registration, `{{PLACEHOLDER}}` HTML templates, and fail-safe error handling.
 
 The PCF component is a **virtual** React control (shares the platform React tree — does not bundle its own React). It uses a **dataset-type** binding where the Canvas app handles the Dataverse connection and passes pre-filtered records. The PCF emits output actions (send draft, dismiss, save draft, etc.) that the Canvas app handles via OnChange formulas.
 
@@ -44,6 +51,16 @@ npx jest --config test/jest.config.ts AssistantDashboard/components/__tests__/Ca
 
 # Deploy solution (from enterprise-work-assistant/scripts/):
 pwsh deploy-solution.ps1 -EnvironmentId "<env-id>"
+
+# Deploy Copilot Studio agent (from enterprise-work-assistant/scripts/):
+pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
+
+# Deploy all 20 flows (from enterprise-work-assistant/scripts/):
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>"
+
+# Or deploy in phases:
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate ToolFlows   # tool flows first
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate MainFlows   # then main flows
 ```
 
 ## Provision and Deploy (Email Productivity Agent)
@@ -71,13 +88,22 @@ Requires: PowerShell 7+, PAC CLI, Azure CLI (`az login` for token acquisition).
 
 The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`), TypeScript types (`src/AssistantDashboard/components/types.ts`), and Dataverse table definitions (`schemas/dataverse-table.json`) must all stay in sync. When changing a field, update all four locations.
 
+### Flow & Topic Artifacts
+
+- **Flow definitions** (`src/flow-*.json`): ARM Logic Apps JSON schema with `connectionName` bindings. Deployed via Flow Management API in `scripts/deploy-agent-flows.ps1`.
+- **Agent tool flows** (`src/tool-*.json`): Use `PowerVirtualAgents` trigger (`When an agent calls the flow`) and `PowerVirtualAgentsResponseV2` response. "Asynchronous response" must be OFF.
+- **Topic definitions** (`src/*-topic.yaml`): Copilot Studio Adaptive Dialog YAML. Use `InvokeAIBuilderModelAction` for AI prompts (referenced by `aIModelId` GUID — environment-specific). Use `InvokeFlowAction` for tool actions (referenced by `flowId` GUID — environment-specific).
+- **Agent invocation**: Flows invoke Copilot Studio agents via `shared_microsoftcopilotstudio` connector with `ExecuteAgentAndWait` action. Input is JSON-serialized into the `message` parameter. Response is read from `body/lastResponse`.
+- **6 connectors required**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized), Microsoft Copilot Studio.
+- **MCP servers** (Tier 4-5: Bing WebSearch, Microsoft Learn): UI-only configuration in Copilot Studio — cannot be automated via scripts.
+
 ### PCF Component Patterns
 
 - **Platform React**: The control uses `<platform-library name="React">` and `<platform-library name="Fluent">` — never add React or Fluent UI to `dependencies` in package.json (they belong in `devDependencies` only for types/testing).
 - **Fluent UI v9**: All UI uses `@fluentui/react-components` (v9) and `@fluentui/react-icons`. Use Fluent tokens (`tokens.*`) for colors, not hardcoded values.
 - **Stable callbacks**: The PCF `index.ts` creates callback references once in `init()`, not in `updateView()`, to avoid unnecessary re-renders.
 - **Action outputs reset after read**: `getOutputs()` returns action strings then immediately clears them to prevent stale re-fires by the Canvas app.
-- **Output properties**: `selectedCardId`, `sendDraftAction`, `copyDraftAction`, `dismissCardAction`, `jumpToCardAction`, `commandAction`, `saveDraftAction` — each fires a JSON payload to the Canvas app.
+- **Output properties**: `selectedCardId`, `sendDraftAction`, `copyDraftAction`, `dismissCardAction`, `jumpToCardAction`, `commandAction`, `saveDraftAction`, `updateScheduleAction` — each fires a JSON payload to the Canvas app.
 - **Draft persistence**: `saveDraftAction` fires with a 2-second debounce when the user edits a draft in CardDetail, persisting the edited text to Dataverse `cr_humanizeddraft` via the Canvas app handler.
 - **Dismiss retry**: `pendingDismissals` map in index.ts re-fires dismiss actions up to 3 times (5-second intervals) if the card outcome doesn't change to DISMISSED.
 - **Escape key handling**: CardDetail closes edit mode → confirmation panel → detail view on Escape with focus restoration. BriefingCard detail view closes on Escape, and CommandBar collapses the response panel on Escape while returning focus to the invoking control.
@@ -97,7 +123,15 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 
 ### Provisioning Scripts
 
-PowerShell 7+ scripts in `enterprise-work-assistant/scripts/` handle environment setup. They require PAC CLI (`Microsoft.PowerApps.CLI.Tool`) version 1.32 or later. The deploy script (`deploy-solution.ps1`) validates PAC CLI version and runs NuGet restore before building the solution.
+PowerShell 7+ scripts in `enterprise-work-assistant/scripts/` handle environment setup. They require PAC CLI (`Microsoft.PowerApps.CLI.Tool`) version 1.32 or later:
+- `provision-environment.ps1` — Creates Power Platform environment and Dataverse tables
+- `create-security-roles.ps1` — Configures ownership-based row-level security
+- `deploy-solution.ps1` — Builds PCF component and imports solution (validates PAC CLI version, runs NuGet restore)
+- `provision-copilot.ps1` — Creates Copilot Studio agent with 4 topics via PAC CLI
+- `deploy-agent-flows.ps1` — Deploys 20 flows via Flow Management API (supports phased deployment with `-FlowsToCreate`)
+- `provision-onenote.ps1` — Provisions OneNote notebook and sections
+- `validate-onenote-integration.ps1` — Verifies OneNote integration health
+- `audit-table-naming.ps1` — Audits Dataverse table naming consistency
 
 ### OneNote Integration Patterns
 
