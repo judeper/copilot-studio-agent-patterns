@@ -48,11 +48,23 @@ const statusColor: Record<string, "success" | "warning" | "informative" | "subtl
 
 export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
     const borderColor = card.priority ? PRIORITY_COLORS[card.priority] : undefined;
+    const handleKeyDown = React.useCallback(
+        (event: React.KeyboardEvent) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onClick(card.id);
+            }
+        },
+        [card.id, onClick],
+    );
 
     return (
         <Card
             className="assistant-card-item"
+            data-card-id={card.id}
+            onKeyDown={handleKeyDown}
             style={borderColor ? { borderLeft: `4px solid ${borderColor}` } : undefined}
+            tabIndex={0}
             onClick={() => onClick(card.id)}
         >
             <div className="card-item-header">

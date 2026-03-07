@@ -203,4 +203,19 @@ describe('BriefingCard', () => {
         );
         expect(screen.queryByText('Back')).toBeNull();
     });
+
+    it('calls onBack when Escape is pressed in detail view', () => {
+        const mockBack = jest.fn();
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+                onBack={mockBack}
+            />,
+        );
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(mockBack).toHaveBeenCalledTimes(1);
+    });
 });

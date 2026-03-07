@@ -5,7 +5,7 @@
 - ✅ **v1.0 Production Readiness** — Phases 1-9 (shipped 2026-02-22)
 - ✅ **v2.0 Second Brain Evolution** — Sprints 1A-4 (shipped 2026-02-28)
 - ✅ **v2.1 Pre-Deployment Audit** — Phases 10-13 (shipped 2026-03-01)
-- ✅ **v2.2 Tech Debt Cleanup (POC Scope)** — Phases 14-19 (POC complete)
+- 🚧 **v2.2 Tech Debt Cleanup (POC Scope)** — Phases 14-19 (Phases 14-17 complete; 18-19 remaining)
 
 ## Phases
 
@@ -52,14 +52,14 @@ Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
 
 </details>
 
-### ✅ v2.2 Tech Debt Cleanup — POC Scope (Phases 14-19)
+### 🚧 v2.2 Tech Debt Cleanup — POC Scope (Phases 14-19)
 
 **Milestone Goal:** Resolve high-value tech debt from the v2.1 audit for POC readiness. Production-grade items (full a11y audit, i18n, optimistic concurrency, DataSet paging, capacity planning) are out of scope — this is a POC, not a production build.
 
 - [x] **Phase 14: Sender Intelligence Completion** - Wire SENDER_PROFILE to agent, fix race conditions, and add full edit distance tracking (completed 2026-03-01)
 - [x] **Phase 15: Workflow Completeness** - Add reminder firing flow, briefing schedule configuration, and complete trigger type coverage (completed 2026-03-01)
 - [x] **Phase 16: Fluent UI Migration and UX Polish** - Replace plain HTML with Fluent UI components and fix UX gaps (loading, navigation, empty states) (completed 2026-03-01)
-- [ ] **Phase 17: Accessibility (POC scope)** - Escape key closes overlays (ARIA/screen reader audit and i18n deferred — POC only)
+- [x] **Phase 17: Accessibility (POC scope)** - Escape key closes overlays and restores focus (completed 2026-03-07; ARIA/screen reader audit and i18n deferred — POC only)
 - [ ] **Phase 18: Operational Resilience (POC scope)** - Draft edit persistence and basic retry on dismiss (optimistic concurrency, field truncation, DataSet paging deferred — POC only)
 - [ ] **Phase 19: Deployment Documentation (POC scope)** - PAC CLI versioning, knowledge source setup, license/role matrix (timeout tuning, capacity planning deferred — POC only)
 
@@ -182,7 +182,9 @@ Plans:
 **POC Scope Note**: Full ARIA/screen reader audit (UIUX-02) and i18n strategy (UIUX-08) are out of scope — this is a POC, not a production build. Fluent UI v9 components already provide baseline accessibility.
 **Success Criteria** (what must be TRUE):
   1. Pressing Escape closes any open detail panel, edit panel, or command bar overlay, returning focus to the previously active element
-**Plans**: TBD
+**Status**: Complete (implemented 2026-03-07)
+**Verification**: `npm run lint`, `npm run build`, and `npm test` passed after wiring Escape handling and focus restoration across App, CardDetail, BriefingCard, CommandBar, and gallery cards.
+**Plans**: Implemented directly (no dedicated repo phase plan file)
 
 ### Phase 18: Operational Resilience (POC Scope)
 **Goal**: Draft edits persist across sessions and dismiss actions don't silently fail
@@ -245,6 +247,6 @@ Phases execute in numeric order: 14 -> 15 -> 16 -> 17 -> 18 -> 19
 | 14. Sender Intelligence Completion | v2.2 | 2/2 | Complete | 2026-03-01 |
 | 15. Workflow Completeness | v2.2 | 2/2 | Complete | 2026-03-01 |
 | 16. Fluent UI Migration and UX Polish | v2.2 | 2/2 | Complete | 2026-03-01 |
-| 17. Accessibility (POC scope) | v2.2 | 0/TBD | Not started | - |
+| 17. Accessibility (POC scope) | v2.2 | 1/direct | Complete | 2026-03-07 |
 | 18. Operational Resilience (POC scope) | v2.2 | 0/TBD | Not started | - |
 | 19. Deployment Documentation (POC scope) | v2.2 | 0/TBD | Not started | - |

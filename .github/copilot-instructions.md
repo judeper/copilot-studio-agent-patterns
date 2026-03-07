@@ -80,7 +80,7 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 - **Output properties**: `selectedCardId`, `sendDraftAction`, `copyDraftAction`, `dismissCardAction`, `jumpToCardAction`, `commandAction`, `saveDraftAction` — each fires a JSON payload to the Canvas app.
 - **Draft persistence**: `saveDraftAction` fires with a 2-second debounce when the user edits a draft in CardDetail, persisting the edited text to Dataverse `cr_humanizeddraft` via the Canvas app handler.
 - **Dismiss retry**: `pendingDismissals` map in index.ts re-fires dismiss actions up to 3 times (5-second intervals) if the card outcome doesn't change to DISMISSED.
-- **Escape key handling**: CardDetail closes edit mode → confirmation panel → detail view on Escape. CommandBar collapses the response panel on Escape.
+- **Escape key handling**: CardDetail closes edit mode → confirmation panel → detail view on Escape with focus restoration. BriefingCard detail view closes on Escape, and CommandBar collapses the response panel on Escape while returning focus to the invoking control.
 
 ### Testing
 
