@@ -1,0 +1,61 @@
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: DRAFT_PAYLOAD
+    description: "JSON string containing the raw draft with fields: draft_type, raw_draft, research_summary, recipient_relationship, inferred_tone, confidence_score, user_context"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: TARGET_CHANNEL
+    description: "Output channel: EMAIL or TEAMS_MESSAGE"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: RECIPIENT_CONTEXT
+    description: Brief context about the recipient for tone calibration including relationship type and communication history
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnToolSelected
+  id: main
+  description: Rewrites a raw draft message into natural, human-sounding language calibrated to the recipient relationship and communication channel
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Humanizer
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: <humanizer-model-guid>
+
+    - kind: SetVariable
+      id: setVariable_HumanizedText
+      variable: Topic.HumanizedText
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Humanizer
+
+inputType:
+  properties:
+    DRAFT_PAYLOAD:
+      displayName: DRAFT_PAYLOAD
+      description: "JSON string containing the raw draft with fields: draft_type, raw_draft, research_summary, recipient_relationship, inferred_tone, confidence_score, user_context"
+      type: String
+
+    TARGET_CHANNEL:
+      displayName: TARGET_CHANNEL
+      description: "Output channel: EMAIL or TEAMS_MESSAGE"
+      type: String
+
+    RECIPIENT_CONTEXT:
+      displayName: RECIPIENT_CONTEXT
+      description: Brief context about the recipient for tone calibration including relationship type and communication history
+      type: String
+
+outputType:
+  properties:
+    HumanizedText:
+      displayName: HumanizedText
+      description: Plain text humanized draft ready for user review. No JSON wrapping, no preamble.
+      type: String

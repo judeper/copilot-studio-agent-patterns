@@ -1,13 +1,14 @@
 import * as React from "react";
 import { useState } from "react";
-import { Button, Text, Badge, Card } from "@fluentui/react-components";
+import { Button, Text, Badge, Card, Select, Checkbox, Switch } from "@fluentui/react-components";
 import { ArrowLeftRegular, DismissRegular, ChevronDownRegular, ChevronRightRegular, CalendarRegular, ArrowRightRegular } from "@fluentui/react-icons";
-import type { AssistantCard, DailyBriefing, BriefingActionItem, BriefingFyiItem, BriefingStaleAlert } from "./types";
+import type { AssistantCard, DailyBriefing, BriefingActionItem, BriefingFyiItem, BriefingStaleAlert, BriefingScheduleConfig } from "./types";
 
 interface BriefingCardProps {
     card: AssistantCard;
     onJumpToCard: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
+    onUpdateSchedule?: (config: BriefingScheduleConfig) => void;
     onBack?: () => void;
 }
 
@@ -134,14 +135,97 @@ function StaleAlert({
     );
 }
 
-// TODO: Schedule configuration deferred to post-v2.1 milestone
-// The Daily Briefing flow (Flow 6) uses a fixed Power Automate recurrence trigger.
-// User-configurable scheduling requires a dedicated Dataverse table and UI.
+const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+const DEFAULT_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+function formatHour(hour: number): string {
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const display = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${display}:00 ${suffix}`;
+}
+
+function ScheduleSettings({
+    onUpdateSchedule,
+}: {
+    onUpdateSchedule: (config: BriefingScheduleConfig) => void;
+}) {
+    const [expanded, setExpanded] = useState(false);
+    const [hour, setHour] = useState(7);
+    const [days, setDays] = useState<string[]>([...DEFAULT_DAYS]);
+    const [enabled, setEnabled] = useState(true);
+
+    const toggleDay = (day: string) => {
+        setDays((prev) =>
+            prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+        );
+    };
+
+    const handleSave = () => {
+        onUpdateSchedule({
+            hour,
+            minute: 0,
+            days,
+            timezone: "America/New_York",
+            enabled,
+        });
+    };
+
+    return (
+        <div className="briefing-schedule-settings">
+            <Button
+                appearance="transparent"
+                icon={<CalendarRegular />}
+                onClick={() => setExpanded(!expanded)}
+                size="small"
+            >
+                Schedule Settings
+            </Button>
+            {expanded && (
+                <div className="briefing-schedule-panel" style={{ padding: "8px 0" }}>
+                    <div style={{ marginBottom: 8 }}>
+                        <Text size={200} weight="semibold" block>Delivery time</Text>
+                        <Select
+                            value={String(hour)}
+                            onChange={(_e, data) => setHour(Number(data.value))}
+                            size="small"
+                        >
+                            {Array.from({ length: 18 }, (_, i) => i + 5).map((h) => (
+                                <option key={h} value={String(h)}>{formatHour(h)}</option>
+                            ))}
+                        </Select>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                        <Text size={200} weight="semibold" block>Days</Text>
+                        {ALL_DAYS.map((day) => (
+                            <Checkbox
+                                key={day}
+                                label={day.substring(0, 3)}
+                                checked={days.includes(day)}
+                                onChange={() => toggleDay(day)}
+                            />
+                        ))}
+                    </div>
+                    <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                        <Switch
+                            checked={enabled}
+                            onChange={(_e, data) => setEnabled(data.checked)}
+                            label="Enabled"
+                        />
+                    </div>
+                    <Button appearance="primary" size="small" onClick={handleSave}>
+                        Save
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export const BriefingCard: React.FC<BriefingCardProps> = ({
     card,
     onJumpToCard,
     onDismissCard,
+    onUpdateSchedule,
     onBack,
 }) => {
     const [fyiExpanded, setFyiExpanded] = useState(false);
@@ -254,6 +338,11 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
                 <div className="briefing-empty">
                     <Text block>Your inbox is clear. No pending items need attention today.</Text>
                 </div>
+            )}
+
+            {/* Schedule Settings */}
+            {onUpdateSchedule && (
+                <ScheduleSettings onUpdateSchedule={onUpdateSchedule} />
             )}
 
             {/* Dismiss briefing */}

@@ -1,0 +1,136 @@
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: COMMAND_TEXT
+    description: Natural language command from the user's command bar input
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_CONTEXT
+    description: "Comma-separated string: display name, job title, department"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_CARD_JSON
+    description: Full JSON of the currently expanded assistant card, or null if no card is selected
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: RECENT_BRIEFING
+    description: Most recent daily briefing summary JSON, or null if no briefing generated today
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_DATETIME
+    description: Current UTC date/time in ISO 8601 format
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Orchestrator
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: <orchestrator-model-guid>
+
+    - kind: InvokeFlowAction
+      id: invokeFlowAction_QueryCards
+      flowId: <flow-guid-for-QueryCards>
+      input:
+        binding:
+          user_aad_id: Topic.UserAadId
+          filter_expression: Topic.FilterExpression
+      output:
+        binding:
+          cards_json: Topic.CardsJSON
+
+    - kind: InvokeFlowAction
+      id: invokeFlowAction_QuerySenderProfile
+      flowId: <flow-guid-for-QuerySenderProfile>
+      input:
+        binding:
+          sender_email: Topic.SenderEmail
+      output:
+        binding:
+          profile_json: Topic.ProfileJSON
+
+    - kind: InvokeFlowAction
+      id: invokeFlowAction_UpdateCard
+      flowId: <flow-guid-for-UpdateCard>
+      input:
+        binding:
+          card_id: Topic.CardId
+          update_json: Topic.UpdateJSON
+      output:
+        binding:
+          success: Topic.UpdateSuccess
+
+    - kind: InvokeFlowAction
+      id: invokeFlowAction_CreateCard
+      flowId: <flow-guid-for-CreateCard>
+      input:
+        binding:
+          user_aad_id: Topic.UserAadId
+          card_json: Topic.CardJSON
+      output:
+        binding:
+          new_card_id: Topic.NewCardId
+
+    - kind: InvokeFlowAction
+      id: invokeFlowAction_RefineDraft
+      flowId: <flow-guid-for-RefineDraft>
+      input:
+        binding:
+          draft_text: Topic.DraftText
+          modification_instructions: Topic.ModificationInstructions
+          target_channel: Topic.TargetChannel
+      output:
+        binding:
+          refined_text: Topic.RefinedText
+
+    - kind: SetVariable
+      id: setVariable_OrchestratorResponse
+      variable: Topic.OrchestratorResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Orchestrator
+
+inputType:
+  properties:
+    COMMAND_TEXT:
+      displayName: COMMAND_TEXT
+      description: Natural language command from the user's command bar input
+      type: String
+
+    USER_CONTEXT:
+      displayName: USER_CONTEXT
+      description: "Comma-separated string: display name, job title, department"
+      type: String
+
+    CURRENT_CARD_JSON:
+      displayName: CURRENT_CARD_JSON
+      description: Full JSON of the currently expanded assistant card, or null if no card is selected
+      type: String
+
+    RECENT_BRIEFING:
+      displayName: RECENT_BRIEFING
+      description: Most recent daily briefing summary JSON, or null if no briefing generated today
+      type: String
+
+    CURRENT_DATETIME:
+      displayName: CURRENT_DATETIME
+      description: Current UTC date/time in ISO 8601 format
+      type: String
+
+outputType:
+  properties:
+    OrchestratorResponseJSON:
+      displayName: OrchestratorResponseJSON
+      description: Structured JSON with response_text, card_links array, and side_effects array
+      type: String

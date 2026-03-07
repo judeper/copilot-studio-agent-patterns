@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "_version.comment": "{locked}",
+  "metadata": {
+    "templateName": "kickStartTemplate",
+    "_templateName.comment": "{locked}",
+    "templateVersion": "1.0.0",
+    "_templateVersion.comment": "{locked}",
+    "name": "Enterprise Work Assistant",
+    "description": "Enterprise Work Assistant — AI-powered triage, research, and draft generation for emails, Teams messages, and calendar events.",
+    "source": "CopilotStudio",
+    "_source.comment": "{locked}",
+    "quality": "PrivatePreview",
+    "_quality.comment": "{locked}",
+    "iconBase64": null,
+    "_iconBase64.comment": "{locked}",
+    "iconAltText": null,
+    "isGpt": false,
+    "_isGpt.comment": "{locked}",
+    "documentationUri": null,
+    "_documentationUri.comment": "{locked}",
+    "supportedLanguages": [],
+    "_supportedLanguages.comment": "{locked}",
+    "industries": [],
+    "categories": []
+  },
+  "content": {
+    "displayName": "Enterprise Work Assistant",
+    "description": "Triages incoming emails, Teams messages, and calendar events — conducting automated research and preparing briefings and draft responses.",
+    "instructions": "You are the Enterprise Work Assistant. When invoked by automated flows, parse the input as JSON and return structured JSON only. When invoked interactively via the command bar, respond conversationally using your registered tool actions.",
+    "conversationStarters": []
+  },
+  "customizations": {
+    "schema": {
+      "type": "object",
+      "_type.comment": "{locked}",
+      "properties": {}
+    }
+  },
+  "spec": {
+    "connectors": []
+  }
+}

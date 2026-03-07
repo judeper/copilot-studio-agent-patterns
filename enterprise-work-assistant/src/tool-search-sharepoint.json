@@ -1,0 +1,176 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "user_aad_id": {
+                "type": "string",
+                "description": "Azure AD object ID of the user performing the SharePoint search"
+              },
+              "query": {
+                "type": "string",
+                "description": "Search query to find documents, files, or pages in SharePoint"
+              },
+              "max_results": {
+                "type": "integer",
+                "description": "Maximum number of results to return (default 10)"
+              }
+            },
+            "required": [
+              "user_aad_id",
+              "query"
+            ]
+          }
+        },
+        "description": "Search SharePoint document libraries and pages. Use for finding files, documents, reports, or wiki content."
+      }
+    },
+    "actions": {
+      "Scope_Search": {
+        "type": "Scope",
+        "actions": {
+          "Search_SharePoint": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "POST",
+                "request/url": "https://graph.microsoft.com/v1.0/search/query",
+                "request/body": {
+                  "requests": [
+                    {
+                      "entityTypes": [
+                        "driveItem",
+                        "listItem"
+                      ],
+                      "query": {
+                        "queryString": "@{triggerBody()?['query']}"
+                      },
+                      "from": 0,
+                      "size": "@coalesce(triggerBody()?['max_results'], 10)"
+                    }
+                  ]
+                }
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "runAfter": {}
+          },
+          "Compose_Results": {
+            "type": "Compose",
+            "inputs": {
+              "results": "@body('Search_SharePoint')?['value']?[0]?['hitsContainers']?[0]?['hits']",
+              "count": "@coalesce(body('Search_SharePoint')?['value']?[0]?['hitsContainers']?[0]?['total'], 0)"
+            },
+            "runAfter": {
+              "Search_SharePoint": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "results_json": "@{string(coalesce(outputs('Compose_Results')?['results'], json('[]')))}",
+                "result_count": "@outputs('Compose_Results')?['count']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "results_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Results": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Search_SharePoint failed",
+              "flow": "tool-search-sharepoint",
+              "query": "@triggerBody()?['query']",
+              "timestamp": "@utcNow()"
+            },
+            "runAfter": {}
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "results_json": "[]",
+                "result_count": 0
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "results_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "SearchFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Search": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  }
+}

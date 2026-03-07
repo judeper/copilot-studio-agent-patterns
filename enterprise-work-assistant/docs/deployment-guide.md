@@ -269,6 +269,35 @@ Then pack and import the solution via PAC CLI.
 
 > **Note**: The solution is packaged as **Unmanaged**, which is appropriate for development and testing. For production deployment, change `SolutionPackageType` to `Managed` in `src/Solutions/Solution.cdsproj` before building.
 
+### Step 3a: Deploy Copilot Studio Agent
+
+```bash
+cd scripts
+pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
+```
+
+This creates the Enterprise Work Assistant copilot with 4 topics (Main Triage, Humanizer, Daily Briefing, Orchestrator) and publishes it.
+
+**Manual steps after provisioning:**
+1. In Copilot Studio → Tools → Add MCP server for Bing WebSearch (Streamable transport)
+2. In Copilot Studio → Tools → Add MCP server for Microsoft Learn (Streamable transport)
+3. In Humanizer Agent → Settings → Enable "Let other agents connect to and use this one"
+
+### Step 3b: Deploy Agent Flows
+
+```bash
+# Deploy tool flows first (agents need these registered)
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate ToolFlows
+
+# Then deploy main flows
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate MainFlows
+
+# Or deploy all at once
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>"
+```
+
+This deploys 20 Power Automate flows (10 agent tool flows + 10 main flows) via the Flow Management API. Required connectors: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio.
+
 ---
 
 ## Phase 6 — Canvas App
