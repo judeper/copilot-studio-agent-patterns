@@ -180,7 +180,7 @@ The script will:
 **Expected output:** All 4 Phase 1 flows created and running (✓ ON).
 
 > **Troubleshooting — Flow API validation errors:**
-> - `WorkflowOperationParametersExtraParameter`: A dynamic parameter (e.g., `body/recipient/to`) is in flattened format. Convert to nested: `"body": { "recipient": { "to": "..." } }`
+> - `WorkflowOperationParametersExtraParameter`: The Teams payload shape does not match the selected posting location. For `PostCardToConversation` with `location = "Chat with Flow bot"`, use `body/recipient = "user@example.com"` and `body/messageBody = "{...}"`. Do **not** use `body/recipient/to` for chat posts.
 > - `WorkflowOperationInputsApiOperationNotFound`: The operationId doesn't exist in the connector. Check with the PowerApps connector API.
 > - `DynamicParameterInputInvalid`: The trigger requires design-time parameters. For Teams `TeamsCardTrigger`, provide `inputsAdaptiveCard` and `CardTypeId`.
 
@@ -198,6 +198,25 @@ Verify the Power Automate flow bot is allowed in your Teams environment:
 3. Default timeframes: Internal 3 days, External 5 days, Priority 1 day, General 7 days
 4. Monitor flow run history for errors
 5. Collect feedback on nudge timing and relevance
+
+### Optional: Deploy Flow 8 Test Harness
+
+Use the Flow 8 harness when you need to re-run Flow 2 logic on a single `cr_followuptracking` row without waiting for the daily recurrence.
+
+```powershell
+cd email-productivity-agent/scripts
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow8"
+
+pwsh invoke-followup-test-harness.ps1 `
+    -EnvironmentId "<environment-guid>" `
+    -TrackingId "<cr_followuptrackingid-guid>" `
+    -ForceNudge
+```
+
+The helper script resolves the HTTP callback URL automatically, triggers the harness, and waits for the run status so you can debug Flow 2 from the CLI. The current harness keeps the agent response mocked so you can isolate reply detection, Dataverse updates, and Teams delivery before reintroducing the live Copilot step. Use `-ForceNudge` when you need to replay the Teams-card branch even if the row is already marked replied, dismissed, or nudged.
 
 ---
 

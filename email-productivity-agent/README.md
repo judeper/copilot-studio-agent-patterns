@@ -82,7 +82,8 @@ email-productivity-agent/
 │   ├── provision-environment.ps1                # Environment + Dataverse table setup
 │   ├── create-security-roles.ps1                # Ownership-based RLS
 │   ├── assign-security-role.ps1                 # Assign role to users
-│   └── deploy-agent-flows.ps1                   # Deploy all Power Automate flows via API
+│   ├── deploy-agent-flows.ps1                   # Deploy all Power Automate flows via API
+│   └── invoke-followup-test-harness.ps1         # Trigger Flow 8 by trackingId and wait for run status
 ├── src/
 │   ├── nudge-topic.yaml                         # Copilot Studio topic YAML (paste into code editor)
 │   ├── flow-1-sent-items-tracker.json           # Flow 1: event-driven sent email tracker
@@ -91,7 +92,10 @@ email-productivity-agent/
 │   ├── flow-3-snooze-detection.json             # Flow 3: scheduled EPA-Snoozed folder scanner
 │   ├── flow-4-auto-unsnooze.json                # Flow 4: event-driven auto-unsnooze on reply
 │   ├── flow-5-data-retention.json               # Flow 5: weekly 90-day cleanup
-│   └── flow-6-snooze-cleanup.json               # Flow 6: weekly 30-day snooze cleanup
+│   ├── flow-6-snooze-cleanup.json               # Flow 6: weekly 30-day snooze cleanup
+│   ├── flow-7-settings-card.json                # Flow 7: send settings card to Teams
+│   ├── flow-7b-settings-handler.json            # Flow 7b: handle settings card submissions
+│   └── flow-8-followup-test-harness.json        # Flow 8: HTTP-triggered Flow 2 test harness
 ```
 
 ## Quick Start
@@ -126,6 +130,23 @@ pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<org>.crm.dynamics.com" `
     -EnvironmentId "<env-id>" `
     -FlowsToCreate "Phase2"
+
+# 5. (Phase 3) Deploy settings flows
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<org>.crm.dynamics.com" `
+    -EnvironmentId "<env-id>" `
+    -FlowsToCreate "Phase3"
+
+# 6. (Optional) Deploy Flow 8 test harness for CLI-driven Flow 2 testing
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<org>.crm.dynamics.com" `
+    -EnvironmentId "<env-id>" `
+    -FlowsToCreate "Flow8"
+
+pwsh invoke-followup-test-harness.ps1 `
+    -EnvironmentId "<env-id>" `
+    -TrackingId "<cr_followuptrackingid-guid>" `
+    -ForceNudge
 ```
 
 See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-step checklist.
@@ -158,6 +179,9 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Flow 4: Auto-Unsnooze | When a new email arrives (Inbox) | Match against snoozed conversations, move back to Inbox |
 | Flow 5: Data Retention Cleanup | Weekly (Sunday 2 AM) | Delete resolved FollowUpTracking rows older than 90 days |
 | Flow 6: Snooze Cleanup | Weekly (Sunday 2:30 AM) | Delete resolved SnoozedConversation rows older than 30 days |
+| Flow 7: Settings Card | Manual/request | Post a Teams settings card so users can review their nudge configuration |
+| Flow 7b: Settings Card Handler | Adaptive card response | Persist settings card updates back to Dataverse |
+| Flow 8: Follow-Up Test Harness (optional) | HTTP request | Run one Flow 2 candidate by `trackingId`; `-ForceNudge` replays the Teams card path with a mocked agent response |
 
 ## Dataverse Tables
 

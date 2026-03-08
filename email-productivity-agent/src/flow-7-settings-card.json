@@ -241,12 +241,8 @@
           "parameters": {
             "poster": "Flow bot",
             "location": "Chat with Flow bot",
-            "body": {
-              "recipient": {
-                "to": "@outputs('Get_my_profile_(V2)')?['body/id']"
-              },
-              "messageBody": "@{outputs('Compose_Settings_Card')}"
-            }
+            "body/recipient": "@{coalesce(outputs('Get_my_profile_(V2)')?['body/mail'], outputs('Get_my_profile_(V2)')?['body/userPrincipalName'])}",
+            "body/messageBody": "@{outputs('Compose_Settings_Card')}"
           },
           "host": {
             "connectionName": "shared_teams",
