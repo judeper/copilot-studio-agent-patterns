@@ -125,7 +125,7 @@ email-productivity-agent/
 │       ├── auth.py                              # MSAL + Azure CLI token management
 │       ├── config.py                            # Interactive config collection
 │       ├── requirements.txt                     # Python dependencies (rich, requests, msal)
-│       └── phases/                              # 9 deployment phases
+│       └── phases/                              # Deployment phase modules (8 files, 9 wizard steps)
 ```
 
 ## Quick Start

@@ -44,7 +44,7 @@
       "displayName": "Snooze Until",
       "type": "DateTime",
       "required": false,
-      "description": "When the snooze should expire and the message should return to Inbox automatically. Null if the user snoozed indefinitely (only auto-unsnooze on reply)."
+      "description": "Reserved for v2 time-based unsnooze. When set, the message should return to Inbox at this timestamp. Null means indefinite snooze (auto-unsnooze only on reply). Not implemented in the current POC — Flow 4 always unsnoozes on reply regardless of this value."
     },
     {
       "logicalName": "cr_currentfolder",

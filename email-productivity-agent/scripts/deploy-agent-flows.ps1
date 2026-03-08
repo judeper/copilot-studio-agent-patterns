@@ -25,6 +25,10 @@
     definition but connections never bind at the Flow runtime level, making flows
     impossible to activate without manual designer interaction.
 
+    NOTE: The shared_microsoftcopilotstudio connection reference is created by
+    the script but not used by any flow in the current POC deployment. It must
+    be manually connected before re-enabling live Copilot agent steps in Flow 2/4.
+
 .PARAMETER OrgUrl
     Dataverse organization URL (e.g., https://emailproductivityagent.crm.dynamics.com)
 
