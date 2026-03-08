@@ -151,12 +151,8 @@ def main() -> None:
     # --- Configuration ---------------------------------------------------
     config = load_config()
     if config:
-        console.print(f"[green]✅ Loaded existing configuration[/green]")
-        from rich.prompt import Confirm as _Confirm
-        if not _Confirm.ask("  Use existing configuration?", default=True):
-            config = collect_config()
-    else:
-        config = collect_config()
+        console.print(f"[green]✅ Found saved configuration[/green]")
+    config = collect_config()
 
     # --- Auth ------------------------------------------------------------
     auth = TokenManager(
