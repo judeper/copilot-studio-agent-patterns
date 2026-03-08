@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "work-queue-item.schema.json",
+  "title": "WorkQueueItem",
+  "description": "A single prioritised work item in the user's queue.",
+  "type": "object",
+  "required": [
+    "id",
+    "itemType",
+    "title",
+    "source",
+    "priority",
+    "state",
+    "reason",
+    "expectedOutcome",
+    "action",
+    "governance",
+    "updatedAtUtc",
+    "producedBy"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "itemType": {
+      "type": "string",
+      "description": "Discriminator for the kind of work item (e.g. message_decision, briefing, task)."
+    },
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "source": {
+      "$ref": "shared-defs.schema.json#/$defs/SourceSystem"
+    },
+    "priority": {
+      "$ref": "shared-defs.schema.json#/$defs/PriorityLevel"
+    },
+    "state": {
+      "$ref": "shared-defs.schema.json#/$defs/WorkItemState"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Agent-generated explanation of why this item was surfaced."
+    },
+    "expectedOutcome": {
+      "type": "string",
+      "description": "What completing this item will achieve."
+    },
+    "action": {
+      "$ref": "shared-defs.schema.json#/$defs/PrimaryAction"
+    },
+    "secondaryActions": {
+      "type": "array",
+      "items": {
+        "$ref": "shared-defs.schema.json#/$defs/SecondaryAction"
+      }
+    },
+    "governance": {
+      "$ref": "shared-defs.schema.json#/$defs/GovernanceState"
+    },
+    "sourceContext": {
+      "$ref": "shared-defs.schema.json#/$defs/SourceContextRef"
+    },
+    "relatedEntities": {
+      "type": "array",
+      "items": {
+        "$ref": "shared-defs.schema.json#/$defs/RelatedEntityRef"
+      }
+    },
+    "producedBy": {
+      "$ref": "shared-defs.schema.json#/$defs/AgentProducerRef"
+    },
+    "visibleFromMoment": {
+      "type": "string",
+      "enum": ["morning_briefing", "protected_focus", "triage_interruption", "meeting_briefing", "end_of_day_review"],
+      "description": "Scenario moment at which this item becomes visible."
+    },
+    "updatedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}
