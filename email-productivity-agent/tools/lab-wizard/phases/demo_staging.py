@@ -99,23 +99,20 @@ def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
 
     console.print("  [dim]Requesting device code…[/dim]\n")
 
-    # Stream stderr to show the device code as it appears
-    proc = subprocess.Popen(
-        [az_path, "login", "--use-device-code", "--allow-no-subscriptions"],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-    )
+    # Let az print directly to terminal so user sees the code and Ctrl+C works
+    try:
+        result = subprocess.run(
+            [az_path, "login", "--use-device-code", "--allow-no-subscriptions"],
+            timeout=300,
+        )
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Cancelled.[/yellow]")
+        return None
+    except subprocess.TimeoutExpired:
+        console.print("[red]Sign-in timed out.[/red]")
+        return None
 
-    # az prints the device code instruction to stderr
-    while True:
-        line = proc.stderr.readline()
-        if not line and proc.poll() is not None:
-            break
-        if line.strip():
-            console.print(f"  [bold yellow]{line.strip()}[/bold yellow]")
-
-    proc.wait(timeout=180)
-
-    if proc.returncode != 0:
+    if result.returncode != 0:
         console.print("[red]az login failed.[/red]")
         return None
 
