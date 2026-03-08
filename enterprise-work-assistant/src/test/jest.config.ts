@@ -12,8 +12,11 @@ const config: Config = {
         }],
     },
 
-    // Match test files in __tests__ directories under AssistantDashboard
-    testMatch: ['<rootDir>/AssistantDashboard/**/__tests__/**/*.test.ts?(x)'],
+    // Match test files in __tests__ directories under AssistantDashboard and models
+    testMatch: [
+        '<rootDir>/AssistantDashboard/**/__tests__/**/*.test.ts?(x)',
+        '<rootDir>/models/__tests__/**/*.test.ts?(x)',
+    ],
 
     // Setup files — jest-dom matchers and matchMedia mock
     setupFilesAfterEnv: ['<rootDir>/test/jest.setup.ts'],
