@@ -9,8 +9,12 @@
           "frequency": "Day",
           "interval": 1,
           "schedule": {
-            "hours": ["7"],
-            "minutes": ["0"]
+            "hours": [
+              "7"
+            ],
+            "minutes": [
+              0
+            ]
           },
           "timeZone": "Eastern Standard Time"
         }
@@ -23,12 +27,22 @@
           "Get_my_profile_(V2)": {
             "type": "OpenApiConnection",
             "inputs": {
-              "parameters": {},
+              "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                }
+              },
               "host": {
-                "connectionName": "shared_office365users",
                 "operationId": "MyProfile_V2",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                "connectionName": "shared_office365users"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -36,33 +50,48 @@
             "type": "Compose",
             "inputs": "@formatDateTime(utcNow(), 'yyyy-MM-ddTHH:mm:ssZ')",
             "runAfter": {
-              "Get_my_profile_(V2)": ["Succeeded"]
+              "Get_my_profile_(V2)": [
+                "Succeeded"
+              ]
             }
           },
           "Compose_EndDate": {
             "type": "Compose",
             "inputs": "@formatDateTime(addDays(utcNow(), 14), 'yyyy-MM-ddTHH:mm:ssZ')",
             "runAfter": {
-              "Compose_StartDate": ["Succeeded"]
+              "Compose_StartDate": [
+                "Succeeded"
+              ]
             }
           },
           "Get_Events": {
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "calendarId": "Calendar",
                 "startDateTimeUtc": "@outputs('Compose_StartDate')",
                 "endDateTimeUtc": "@outputs('Compose_EndDate')",
                 "$top": 200
               },
               "host": {
-                "connectionName": "shared_office365",
                 "operationId": "GetEventsCalendarViewV3",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                "connectionName": "shared_office365"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {
-              "Compose_EndDate": ["Succeeded"]
+              "Compose_EndDate": [
+                "Succeeded"
+              ]
             }
           },
           "Filter_Events": {
@@ -72,7 +101,9 @@
               "where": "@and(not(contains(toLower(coalesce(item()?['subject'], '')), 'focus time')), not(contains(toLower(coalesce(item()?['subject'], '')), 'lunch')), not(contains(toLower(coalesce(item()?['subject'], '')), 'ooo')), not(contains(toLower(coalesce(item()?['subject'], '')), 'hold')), not(contains(toLower(coalesce(item()?['subject'], '')), 'holiday')), not(contains(toLower(coalesce(item()?['subject'], '')), 'personal')), not(contains(toLower(coalesce(item()?['subject'], '')), 'private')), not(equals(item()?['showAs'], 'free')))"
             },
             "runAfter": {
-              "Get_Events": ["Succeeded"]
+              "Get_Events": [
+                "Succeeded"
+              ]
             }
           },
           "Apply_to_each_event": {
@@ -88,39 +119,56 @@
                 "type": "Compose",
                 "inputs": "@if(not(equals(coalesce(items('Apply_to_each_event')?['seriesMasterId'], ''), '')), items('Apply_to_each_event')?['seriesMasterId'], concat(replace(toLower(coalesce(items('Apply_to_each_event')?['subject'], '')), ' ', '_'), '|', toLower(coalesce(items('Apply_to_each_event')?['organizer']?['emailAddress']?['address'], ''))))",
                 "runAfter": {
-                  "Compose_OrganizerEmail": ["Succeeded"]
+                  "Compose_OrganizerEmail": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Compose_TemporalHorizon": {
                 "type": "Compose",
                 "inputs": "@if(lessOrEquals(ticks(items('Apply_to_each_event')?['start']?['dateTime']), ticks(addDays(utcNow(), 1))), 'TODAY', if(lessOrEquals(ticks(items('Apply_to_each_event')?['start']?['dateTime']), ticks(addDays(utcNow(), 7))), 'THIS_WEEK', if(lessOrEquals(ticks(items('Apply_to_each_event')?['start']?['dateTime']), ticks(addDays(utcNow(), 14))), 'NEXT_WEEK', 'BEYOND')))",
                 "runAfter": {
-                  "Compose_ClusterId": ["Succeeded"]
+                  "Compose_ClusterId": [
+                    "Succeeded"
+                  ]
                 }
               },
               "List_SenderProfile": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
+                    "$connections": {
+                      "defaultValue": {},
+                      "type": "Object"
+                    },
+                    "$authentication": {
+                      "defaultValue": {},
+                      "type": "SecureObject"
+                    },
                     "entityName": "cr_senderprofiles",
                     "$filter": "cr_senderemail eq '@{outputs('Compose_OrganizerEmail')}'",
                     "$top": 1
                   },
                   "host": {
-                    "connectionName": "shared_commondataserviceforapps",
                     "operationId": "ListRecords",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                  }
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "authentication": "@parameters('$authentication')"
                 },
                 "runAfter": {
-                  "Compose_TemporalHorizon": ["Succeeded"]
+                  "Compose_TemporalHorizon": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Compose_SenderProfile": {
                 "type": "Compose",
                 "inputs": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), string(first(outputs('List_SenderProfile')?['body/value'])), 'null')",
                 "runAfter": {
-                  "List_SenderProfile": ["Succeeded"]
+                  "List_SenderProfile": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Compose_AgentPayload": {
@@ -152,29 +200,42 @@
                   "SENDER_PROFILE": "@outputs('Compose_SenderProfile')"
                 },
                 "runAfter": {
-                  "Compose_SenderProfile": ["Succeeded"]
+                  "Compose_SenderProfile": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Execute_EWA_Agent": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
+                    "$connections": {
+                      "defaultValue": {},
+                      "type": "Object"
+                    },
+                    "$authentication": {
+                      "defaultValue": {},
+                      "type": "SecureObject"
+                    },
                     "botId": "<ewa-agent-schema-name>",
                     "message": "@{string(outputs('Compose_AgentPayload'))}"
                   },
                   "host": {
-                    "connectionName": "shared_microsoftcopilotstudio",
                     "operationId": "ExecuteAgentAndWait",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
+                    "connectionName": "shared_microsoftcopilotstudio"
                   },
                   "retryPolicy": {
                     "type": "exponential",
                     "count": 2,
                     "interval": "PT15S"
-                  }
+                  },
+                  "authentication": "@parameters('$authentication')"
                 },
                 "runAfter": {
-                  "Compose_AgentPayload": ["Succeeded"]
+                  "Compose_AgentPayload": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Parse_Agent_Response": {
@@ -184,25 +245,55 @@
                   "schema": {
                     "type": "object",
                     "properties": {
-                      "triage_tier": { "type": "string" },
-                      "item_summary": { "type": "string" },
-                      "priority": { "type": "string" },
-                      "temporal_horizon": { "type": "string" },
-                      "confidence_score": { "type": "integer" },
-                      "card_status": { "type": "string" },
-                      "trigger_type": { "type": "string" },
-                      "original_sender_email": { "type": "string" },
-                      "original_sender_display": { "type": "string" },
-                      "original_subject": { "type": "string" },
-                      "conversation_cluster_id": { "type": "string" },
-                      "source_signal_id": { "type": "string" },
-                      "full_json": { "type": "string" },
-                      "draft_payload": { "type": "object" }
+                      "triage_tier": {
+                        "type": "string"
+                      },
+                      "item_summary": {
+                        "type": "string"
+                      },
+                      "priority": {
+                        "type": "string"
+                      },
+                      "temporal_horizon": {
+                        "type": "string"
+                      },
+                      "confidence_score": {
+                        "type": "integer"
+                      },
+                      "card_status": {
+                        "type": "string"
+                      },
+                      "trigger_type": {
+                        "type": "string"
+                      },
+                      "original_sender_email": {
+                        "type": "string"
+                      },
+                      "original_sender_display": {
+                        "type": "string"
+                      },
+                      "original_subject": {
+                        "type": "string"
+                      },
+                      "conversation_cluster_id": {
+                        "type": "string"
+                      },
+                      "source_signal_id": {
+                        "type": "string"
+                      },
+                      "full_json": {
+                        "type": "string"
+                      },
+                      "draft_payload": {
+                        "type": "object"
+                      }
                     }
                   }
                 },
                 "runAfter": {
-                  "Execute_EWA_Agent": ["Succeeded"]
+                  "Execute_EWA_Agent": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Condition_Not_Skip": {
@@ -224,6 +315,14 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_assistantcards",
                         "item/cr_itemsummary": "@take(coalesce(body('Parse_Agent_Response')?['item_summary'], ''), 300)",
                         "item/cr_triagetier": "@if(equals(body('Parse_Agent_Response')?['triage_tier'], 'FULL'), 100000002, if(equals(body('Parse_Agent_Response')?['triage_tier'], 'LIGHT'), 100000001, 100000000))",
@@ -242,10 +341,11 @@
                         "item/ownerid": "@outputs('Get_my_profile_(V2)')?['body/id']"
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "CreateRecord",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {}
                   },
@@ -283,40 +383,62 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "botId": "<humanizer-agent-schema-name>",
                             "message": "@{string(outputs('Compose_HumanizerInput'))}"
                           },
                           "host": {
-                            "connectionName": "shared_microsoftcopilotstudio",
                             "operationId": "ExecuteAgentAndWait",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
+                            "connectionName": "shared_microsoftcopilotstudio"
                           },
                           "retryPolicy": {
                             "type": "exponential",
                             "count": 2,
                             "interval": "PT15S"
-                          }
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {
-                          "Compose_HumanizerInput": ["Succeeded"]
+                          "Compose_HumanizerInput": [
+                            "Succeeded"
+                          ]
                         }
                       },
                       "Update_Card_Humanized": {
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_assistantcards",
                             "recordId": "@outputs('Create_AssistantCard')?['body/cr_assistantcardid']",
                             "item/cr_humanizeddraft": "@outputs('Execute_Humanizer_Agent')?['body/lastResponse']"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "UpdateRecord",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {
-                          "Execute_Humanizer_Agent": ["Succeeded"]
+                          "Execute_Humanizer_Agent": [
+                            "Succeeded"
+                          ]
                         }
                       }
                     },
@@ -324,7 +446,9 @@
                       "actions": {}
                     },
                     "runAfter": {
-                      "Create_AssistantCard": ["Succeeded"]
+                      "Create_AssistantCard": [
+                        "Succeeded"
+                      ]
                     }
                   }
                 },
@@ -332,13 +456,23 @@
                   "actions": {}
                 },
                 "runAfter": {
-                  "Parse_Agent_Response": ["Succeeded"]
+                  "Parse_Agent_Response": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Upsert_SenderProfile": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
+                    "$connections": {
+                      "defaultValue": {},
+                      "type": "Object"
+                    },
+                    "$authentication": {
+                      "defaultValue": {},
+                      "type": "SecureObject"
+                    },
                     "entityName": "cr_senderprofiles",
                     "recordId": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), first(outputs('List_SenderProfile')?['body/value'])?['cr_senderprofileid'], null)",
                     "item/cr_senderemail": "@outputs('Compose_OrganizerEmail')",
@@ -348,13 +482,16 @@
                     "item/cr_isinternal": "@contains(toLower(coalesce(outputs('Compose_OrganizerEmail'), '')), toLower(split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]))"
                   },
                   "host": {
-                    "connectionName": "shared_commondataserviceforapps",
                     "operationId": "UpdateRecord",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                  }
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "authentication": "@parameters('$authentication')"
                 },
                 "runAfter": {
-                  "Condition_Not_Skip": ["Succeeded"]
+                  "Condition_Not_Skip": [
+                    "Succeeded"
+                  ]
                 }
               },
               "Delay_Rate_Limit": {
@@ -366,12 +503,16 @@
                   }
                 },
                 "runAfter": {
-                  "Upsert_SenderProfile": ["Succeeded"]
+                  "Upsert_SenderProfile": [
+                    "Succeeded"
+                  ]
                 }
               }
             },
             "runAfter": {
-              "Filter_Events": ["Succeeded"]
+              "Filter_Events": [
+                "Succeeded"
+              ]
             }
           }
         },
@@ -391,7 +532,10 @@
           }
         },
         "runAfter": {
-          "Scope_Process_Calendar": ["Failed", "TimedOut"]
+          "Scope_Process_Calendar": [
+            "Failed",
+            "TimedOut"
+          ]
         }
       }
     }

@@ -19,14 +19,23 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_assistantcards",
                 "$filter": "cr_triggertype eq 100000004 and cr_cardoutcome eq 100000000 and cr_reminderdue le @{utcNow()}"
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "ListRecords",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -51,13 +60,22 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "id": "@items('Apply_to_each_reminder')?['_ownerid_value']"
                       },
                       "host": {
-                        "connectionName": "shared_office365users",
                         "operationId": "UserProfile_V2",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                        "connectionName": "shared_office365users"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {}
                   },
@@ -65,6 +83,14 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "poster": "Flow bot",
                         "location": "Chat with Flow bot",
                         "body": {
@@ -75,10 +101,11 @@
                         }
                       },
                       "host": {
-                        "connectionName": "shared_teams",
                         "operationId": "PostMessageToConversation",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                        "connectionName": "shared_teams"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {
                       "Get_Card_Owner": [
@@ -90,16 +117,25 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_assistantcards",
                         "recordId": "@items('Apply_to_each_reminder')?['cr_assistantcardid']",
                         "item/cr_cardoutcome": 100000001,
                         "item/cr_outcometimestamp": "@utcNow()"
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "UpdateRecord",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {
                       "Post_Teams_Notification": [
