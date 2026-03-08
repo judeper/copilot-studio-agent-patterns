@@ -215,6 +215,18 @@ Builds the 7-field JSON object the agent prompt expects, or null for first-time 
 
 > **Note**: Uses `coalesce()` to handle null fields on partially-populated profiles. The `sender_category` field maps the Choice integer back to a label -- if the Dataverse connector returns the label string, use it directly; if it returns the integer value, add a nested `if()` chain to map 100000000->"AUTO_HIGH", 100000001->"AUTO_MEDIUM", 100000002->"AUTO_LOW", 100000003->"USER_OVERRIDE".
 
+**3c. Compose Memory Context** *(Phase 2: Memory Injection)*
+
+Queries the three-tier memory system and composes a context block for the agent. This step executes after the sender profile lookup and before agent invocation. See the [Memory Injection Pattern (Flows 1-3)](#memory-injection-pattern-flows-1-3) section for full implementation details.
+
+1. **Query User Persona** — Dataverse → `cr_userpersona`: returns 1 record for the current user (communication style, priority preferences, working hours, custom preferences)
+2. **Query Semantic Knowledge** — Dataverse → `cr_semanticknowledge`: returns top 10 active facts sorted by `cr_confidencescore desc`
+3. **Query Episodic Memory** — Dataverse → `cr_episodicmemory`: returns top 5 most recent records for the current sender (`cr_senderemail eq '@{outputs('Compose_SENDER_EMAIL')}'`), sorted by `cr_createdon desc`
+
+**3d. Inject into Agent Inputs** *(Phase 2)*
+
+Compose the memory context block into three agent input parameters: `PERSONA_PREFERENCES`, `SEMANTIC_KNOWLEDGE`, `EPISODIC_CONTEXT`. Apply the token budget overflow strategy if the composed block exceeds 8,000 characters (~2,000 tokens). See [Token Budget Management](#token-budget-management) for capacity limits and truncation order.
+
 **4. Invoke the agent**
 
 Add the **Microsoft Copilot Studio** connector (search for "Microsoft Copilot Studio" in the connector list — do NOT use the AI Builder connector). Select the **"Execute Agent and wait"** action. Choose the **Enterprise Work Assistant** agent.
@@ -230,6 +242,9 @@ Add the **Microsoft Copilot Studio** connector (search for "Microsoft Copilot St
 | USER_CONTEXT | `@{outputs('Compose_USER_CONTEXT')}` |
 | CURRENT_DATETIME | `@{utcNow()}` |
 | SENDER_PROFILE | `@{outputs('Compose_SENDER_PROFILE')}` |
+| PERSONA_PREFERENCES | `@{outputs('Compose_PERSONA_PREFERENCES')}` *(Phase 2)* |
+| SEMANTIC_KNOWLEDGE | `@{outputs('Compose_SEMANTIC_KNOWLEDGE')}` *(Phase 2)* |
+| EPISODIC_CONTEXT | `@{outputs('Compose_EPISODIC_CONTEXT')}` *(Phase 2)* |
 
 **5. Parse JSON** — Parse the agent's response
 
@@ -461,6 +476,8 @@ Use the returned `mail` property as the sender email for the Upsert. If the "Get
 
 **Sender profile passthrough** *(Phase 14)*: Before the agent invocation, add steps 3a (List sender profile) and 3b (Compose SENDER_PROFILE) using the same pattern as Flow 1. Use the Teams sender's resolved email as the lookup key. Add `SENDER_PROFILE` to the agent invocation input variables alongside `TRIGGER_TYPE = "TEAMS_MESSAGE"`.
 
+**Memory injection** *(Phase 2)*: After the sender profile steps and before agent invocation, add steps 3c (Compose Memory Context) and 3d (Inject into Agent Inputs) using the same pattern as Flow 1. Query `cr_userpersona` (1 record), `cr_semanticknowledge` (top 10 active by confidence), and `cr_episodicmemory` (top 5 by recency for the Teams sender's resolved email). Pass `PERSONA_PREFERENCES`, `SEMANTIC_KNOWLEDGE`, and `EPISODIC_CONTEXT` as additional agent input variables. See [Memory Injection Pattern (Flows 1-3)](#memory-injection-pattern-flows-1-3) and [Token Budget Management](#token-budget-management) for implementation details.
+
 ---
 
 ## Flow 3 — CALENDAR_SCAN Trigger
@@ -531,9 +548,12 @@ Skip events matching low-value patterns (case-insensitive):
   "attendees": "@{items('Apply_to_each')?['attendees']}",
   "isRecurring": "@{items('Apply_to_each')?['recurrence']}",
   "onlineMeetingUrl": "@{items('Apply_to_each')?['onlineMeetingUrl']}",
-  "importance": "@{items('Apply_to_each')?['importance']}"
+  "importance": "@{items('Apply_to_each')?['importance']}",
+  "joinUrl": "@{items('Apply_to_each')?['onlineMeeting/joinUrl']}"
 }
 ```
+
+> **Meeting Join URL**: The `joinUrl` field extracts `onlineMeeting.joinUrl` from the Graph API calendar event response. This is stored in `cr_assistantcard` as part of the card payload so the PCF component can render a "Join Meeting" button for upcoming events with online meetings attached.
 
 **4c. Invoke agent** with `TRIGGER_TYPE = "CALENDAR_SCAN"`
 
@@ -577,6 +597,8 @@ Use `seriesMasterId` for recurring events (correctly groups all instances of the
 Same Upsert pattern as Flow 1 step 11, using the Dataverse **"Update or add rows (V2)"** action with alternate key `cr_senderemail_key`. Uses the organizer's email address (`items('Apply_to_each')?['organizer/emailAddress/address']`) as the key column and display name (`items('Apply_to_each')?['organizer/emailAddress/name']`).
 
 **Sender profile passthrough** *(Phase 14)*: Before step 4c (Invoke agent), add steps for sender profile lookup and SENDER_PROFILE compose using the same pattern as Flow 1 steps 3a-3b. Use the organizer's email address as the lookup key. Add `SENDER_PROFILE` to the agent invocation input variables alongside `TRIGGER_TYPE = "CALENDAR_SCAN"`.
+
+**Memory injection** *(Phase 2)*: After the sender profile steps and before step 4c (Invoke agent), add steps 3c (Compose Memory Context) and 3d (Inject into Agent Inputs) using the same pattern as Flow 1. Query `cr_userpersona` (1 record), `cr_semanticknowledge` (top 10 active by confidence), and `cr_episodicmemory` (top 5 by recency for the organizer's email address). Pass `PERSONA_PREFERENCES`, `SEMANTIC_KNOWLEDGE`, and `EPISODIC_CONTEXT` as additional agent input variables. See [Memory Injection Pattern (Flows 1-3)](#memory-injection-pattern-flows-1-3) and [Token Budget Management](#token-budget-management) for implementation details.
 
 > **Performance note:** The Apply to each loop already has a 5-second delay between iterations. The sender Upsert is a single action (replacing the previous 2-3 action List-then-Condition-then-Add/Update pattern). For a 14-day calendar scan that might process 30-50 events, the flow will take 3-5 minutes total. This is acceptable for a daily batch flow.
 
@@ -628,10 +650,13 @@ User-initiated flow called from the Canvas app when the user confirms sending a 
 
 Inputs (passed from Canvas app via `PowerAutomate.Run()`):
 
-| Input | Type | Description |
-|-------|------|-------------|
-| CardId | Text | Dataverse row GUID of the card |
-| FinalDraftText | Text | The draft text to send as email body |
+| Input | Type | Required | Description |
+|-------|------|----------|-------------|
+| CardId | Text | Yes | Dataverse row GUID of the card |
+| FinalDraftText | Text | Yes | The draft text to send as email body |
+| forward_to | Text | No | Comma-separated email addresses for forwarding instead of replying. When set, the flow sends a new email to these addresses rather than replying to the original sender. |
+| reply_all | Yes/No | No | When `true`, uses Reply All instead of Reply — includes all original recipients. Defaults to `false`. |
+| cc_recipients | Text | No | Comma-separated email addresses to add as CC recipients on the outgoing email. |
 
 ### Connection Configuration
 
@@ -1013,6 +1038,91 @@ Uses Dataverse Upsert with alternate key `cr_senderemail_key` to atomically upda
 
 > **Design note**: Upsert writes only outcome-specific fields per user decision. SENT_AS_IS updates response count + avg response hours. SENT_EDITED also updates avg edit distance. Fields not specified in the Upsert are left unchanged.
 
+### Episodic Memory Write *(Phase 2)*
+
+After the sender profile update completes (all branches except EXPIRED), Flow 5 writes an episodic memory record to `cr_episodicmemory`. This captures per-interaction behavioral data that feeds the Weekly Reflection flow (Flow 15) for semantic promotion.
+
+> **Prerequisite**: Memory tables must be provisioned before enabling this section (run `scripts/provision-memory-tables.ps1`).
+
+**5. Compose — OUTCOME_LABEL**
+
+Map the numeric outcome to a string label for the episodic record:
+
+```
+@{if(
+    equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000001), 'SENT_AS_IS',
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000002), 'SENT_EDITED',
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000003), 'DISMISSED',
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000004), 'DELEGATED',
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000005), 'TRIAGE_OVERRIDDEN',
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000006), 'DRAFT_REFINED',
+    'UNKNOWN'))))))}
+```
+
+**6. Compose — TRIGGER_TYPE_LABEL**
+
+Resolve the card's trigger type for the episodic record:
+
+```
+@{if(
+    equals(outputs('Get_the_modified_card_row')?['body/cr_triggertype'], 100000000), 'EMAIL',
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_triggertype'], 100000001), 'TEAMS_MESSAGE',
+    if(equals(outputs('Get_the_modified_card_row')?['body/cr_triggertype'], 100000002), 'CALENDAR_SCAN',
+    'OTHER')))}
+```
+
+**7. Add episodic memory row** — Dataverse connector → Add a new row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory (`cr_episodicmemory`) |
+| Sender Email | `@{outputs('Get_the_modified_card_row')?['body/cr_originalsenderemail']}` |
+| Event Type | `@{outputs('Compose_TRIGGER_TYPE_LABEL')}` |
+| Outcome Pattern | `@{outputs('Compose_OUTCOME_LABEL')}` |
+| Edit Distance Ratio | `@{coalesce(outputs('Get_the_modified_card_row')?['body/cr_editdistanceratio'], null)}` |
+| Context Summary | `@{outputs('Get_the_modified_card_row')?['body/cr_itemsummary']}` |
+| **Owner** | `@{outputs('Get_the_modified_card_row')?['body/_ownerid_value']}` |
+
+> The episodic record captures the **outcome** (what the user did), the **trigger type** (which signal channel), the **sender**, and the **edit distance** (if applicable). This row is the raw behavioral event that Flow 15 (Weekly Reflection) aggregates into semantic knowledge.
+
+**8. Condition — Is SENT_EDITED? (Edit Analysis)**
+
+```
+@equals(outputs('Get_the_modified_card_row')?['body/cr_cardoutcome'], 100000002)
+```
+
+**If Yes:**
+
+**8a. Invoke Edit Analyzer Agent** — Microsoft Copilot Studio → Execute Agent and wait
+
+Invokes the Edit Analyzer Agent (`prompts/edit-analyzer-agent-prompt.md`) to classify the differences between the original agent draft and the user's edited version.
+
+| Input Variable | Value |
+|---------------|-------|
+| ORIGINAL_DRAFT | `@{outputs('Get_the_modified_card_row')?['body/cr_humanizeddraft']}` |
+| EDITED_DRAFT | `@{outputs('Get_the_modified_card_row')?['body/cr_sentdraft']}` |
+| SENDER_PROFILE | `@{outputs('Compose_SENDER_PROFILE')}` *(reuse from Branch A step 3a, or query fresh)* |
+| TRIGGER_TYPE | `@{outputs('Compose_TRIGGER_TYPE_LABEL')}` |
+
+> The Edit Analyzer classifies changes into types (TONE_CHANGE, CONTENT_ADDED, GREETING_CHANGED, etc.) and produces a structured `overall_pattern` summary. See `prompts/edit-analyzer-agent-prompt.md` for the full output schema.
+
+**8b. Parse Edit Analysis** — Parse JSON
+
+Parse the Edit Analyzer Agent's response using the edit analysis output schema.
+
+**8c. Update episodic memory row — Store edit analysis** — Dataverse connector → Update a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory (`cr_episodicmemory`) |
+| Row ID | Row ID from step 7 |
+| Outcome Pattern | `@{body('Parse_Edit_Analysis')?['overall_pattern']}` |
+| Edit Analysis JSON | `@{body('Execute_Edit_Analyzer_Agent')?['lastResponse']}` |
+
+> The `cr_outcomepattern` is overwritten with the Edit Analyzer's `overall_pattern` (a richer description than the raw "SENT_EDITED" label). The full edit analysis JSON is stored in `cr_editanalysisjson` for detailed auditing. This enriched pattern is what Flow 15 uses for semantic promotion — e.g., "User consistently shifts to informal tone with Sarah Chen" becomes a promotable fact.
+
+**If No:** No edit analysis needed. The raw outcome label from step 5 is sufficient.
+
 ### Flow Diagram
 
 ```
@@ -1033,6 +1143,16 @@ Trigger (cr_cardoutcome changed, non-PENDING)
       |   +-- 2b-2. Upsert sender profile (dismiss count)
       |
       +-- Branch C: EXPIRED -> Terminate
+      |
+  +-- 5. Compose OUTCOME_LABEL (map outcome int → string)
+  +-- 6. Compose TRIGGER_TYPE_LABEL (map trigger type int → string)
+  +-- 7. Add cr_episodicmemory row (sender, event type, outcome, edit distance)
+  +-- 8. Is SENT_EDITED?
+      +-- Yes:
+      |   +-- 8a. Invoke Edit Analyzer Agent (original vs. edited draft)
+      |   +-- 8b. Parse edit analysis response
+      |   +-- 8c. Update episodic memory row with enriched pattern + analysis JSON
+      +-- No: Done
 ```
 
 ### Deployment Checklist
@@ -1045,6 +1165,12 @@ Trigger (cr_cardoutcome changed, non-PENDING)
 - [ ] Test: Send two cards from same sender → Verify running average calculation
 - [ ] Test: Sender profile missing → Flow logs warning, does not error
 - [ ] Verify flow does not re-trigger itself (no infinite loop)
+- [ ] Test: SENT_AS_IS outcome → episodic memory row created with outcome = "SENT_AS_IS"
+- [ ] Test: SENT_EDITED outcome → episodic memory row created, Edit Analyzer invoked, `cr_outcomepattern` enriched
+- [ ] Test: DISMISSED outcome → episodic memory row created with outcome = "DISMISSED"
+- [ ] Test: EXPIRED outcome → NO episodic memory row created
+- [ ] Test: Edit Analyzer failure → episodic row retains raw "SENT_EDITED" pattern, flow continues
+- [ ] Verify `cr_episodicmemory` table and `cr_editanalysisjson` column provisioned
 
 ---
 
@@ -1727,6 +1853,24 @@ Trigger (Instant — from Canvas app)
 - [ ] Test: Invalid command → Graceful error response
 - [ ] Test: Canvas app receives structured response and triggers gallery refresh on side_effects
 
+### AVAILABLE_SKILLS Composition
+
+The Orchestrator Agent has two skill-related tool actions — **QuerySkills** and **ExecuteSkill** — that enable extensible agent capabilities via the `cr_skillregistry` Dataverse table.
+
+When Flow 8 invokes the Orchestrator Agent, the available skills are loaded from `cr_skillregistry` using this filter:
+
+```
+_ownerid_value eq '{userId}' or cr_isshared eq true
+```
+
+This returns:
+- **User-owned skills**: Custom skills created by the current user (private, UserOwned RLS)
+- **Shared skills**: Admin-published skills where `cr_isshared = true` (visible to all users)
+
+Only enabled skills (`cr_isenabled = true`) are included. The resulting rows are serialized as an `AVAILABLE_SKILLS` JSON array and passed into the Orchestrator Agent prompt context. Each skill entry includes `cr_skillname`, `cr_skilldescription`, `cr_skilltype`, and `cr_parameterschema` — giving the agent enough information to select and invoke the right skill at runtime.
+
+> **Schema reference**: See `schemas/skillregistry-table.json` for the full column definitions. The `cr_isshared` column (Boolean) controls visibility — skills with `cr_isshared = true` appear in every user's available skill list regardless of ownership.
+
 ---
 
 ## Flow 9 — Sender Profile Analyzer *(Sprint 4)*
@@ -1986,6 +2130,44 @@ Trigger (Recurrence — every 15 minutes)
 - [ ] Test: Create SELF_REMINDER card with cr_reminderdue 1 minute in the future, wait for flow run, verify card status changes to NUDGE
 - [ ] Test: SELF_REMINDER card with future cr_reminderdue is NOT nudged
 - [ ] Test: Already-nudged SELF_REMINDER card is NOT re-nudged
+
+---
+
+## MARL Pipeline Architecture (Planned Transition)
+
+> **Status**: Design phase. Flows 1-3 currently use a monolithic Main Agent invocation. This section documents the planned transition to a Multi-Agent Reasoning Loop (MARL) pipeline where each stage is a specialized agent.
+
+### Overview
+
+The current architecture invokes a single Main Agent that handles triage, research, confidence scoring, and draft generation in one prompt. The MARL pipeline decomposes this into a sequential chain of specialized agents, each invoked via the **"Execute Agent and wait"** Copilot Studio connector action.
+
+### Pipeline Stages
+
+Flows 1-3 (Email, Teams, Calendar) will transition to the following sequential agent invocation pattern:
+
+```
+Signal Payload
+  → Triage Agent         (classifies SKIP / LIGHT / FULL)
+  → Research Agent       (5-tier research for LIGHT and FULL items)
+  → Confidence Scorer    (scores 0-100 based on evidence strength)
+  → Draft Generator      (produces structured JSON output with draft)
+  → Humanizer Agent      (rewrites draft — FULL-tier only, confidence ≥ 40)
+```
+
+Each agent is invoked via the **"Execute Agent and wait"** action in Power Automate. Flow **Compose** actions carry state between pipeline stages — each stage receives the compressed output of the previous stage as input context.
+
+### State Management
+
+- **Full agent outputs** are stored in Dataverse (the complete JSON from each stage is preserved in `cr_fulljson` for auditability)
+- **Compressed summaries** are passed between pipeline stages to stay within prompt token limits
+- The Humanizer Agent is only invoked for **FULL-tier** items with a confidence score **≥ 40** (same gate as the current architecture)
+
+### Benefits
+
+- **Independent versioning**: Each agent's prompt can be updated without affecting other stages
+- **Selective execution**: SKIP items exit after the Triage Agent; LIGHT items skip the Humanizer
+- **Observability**: Each stage writes its output, enabling per-stage performance analysis
+- **Parallel development**: Teams can work on different agents concurrently
 
 ---
 
@@ -2300,3 +2482,806 @@ A scheduled flow (recommended: monthly, first day of month) moves past meeting p
    PATCH /groups/{groupId}/onenote/pages/{pageId}/parentSection
    ```
 3. This is optional for initial deployment but helps manage notebook size over time
+
+---
+
+## Flow 12 — Teams Reply *(Sprint 3)*
+
+### Overview
+
+User-initiated flow called from the PCF dashboard when the user sends a draft reply to a Teams message. Triggered when the PCF component emits an `onSendDraft` output action where `trigger_type = TEAMS_MESSAGE`.
+
+### Trigger
+
+**Instant — When a flow is called from a Canvas app** (Power Apps V2 trigger)
+
+Inputs:
+
+| Input | Type | Required | Description |
+|-------|------|----------|-------------|
+| channel_id | Text | Yes | The Teams channel ID where the original message was posted |
+| message_id | Text | Yes | The Teams message ID to reply to |
+| reply_content | Text | Yes | The draft reply text to post |
+
+### Actions
+
+**1. Reply to a message** — Microsoft Teams connector ("Reply to message" action)
+
+| Setting | Value |
+|---------|-------|
+| Team | *(derived from channel_id)* |
+| Channel | `channel_id` input from trigger |
+| Message ID | `message_id` input from trigger |
+| Message | `reply_content` input from trigger |
+
+**2. Respond to a PowerApp or flow** — Success response
+
+| Output | Value |
+|--------|-------|
+| success | `true` |
+| errorMessage | *(empty)* |
+
+### Error Handling
+
+If step 1 (Reply to message) fails, log the error to `cr_errorlog`:
+
+| Column | Value |
+|--------|-------|
+| cr_flowname | `Flow 12 — Teams Reply` |
+| cr_errormessage | `@{actions('Reply_to_a_message')?['error']?['message']}` |
+| cr_errorcode | `@{actions('Reply_to_a_message')?['statusCode']}` |
+| cr_createdon | `@{utcNow()}` |
+
+Then respond with failure:
+
+| Output | Value |
+|--------|-------|
+| success | `false` |
+| errorMessage | `Failed to reply to Teams message. Check channel permissions and try again.` |
+
+### Flow Diagram
+
+```
+Trigger (PCF onSendDraft, trigger_type = TEAMS_MESSAGE)
+  │
+  ├── 1. Reply to message (Teams connector)
+  ├── 2. Respond: success
+  │
+  └── (on failure)
+      ├── Log error to cr_errorlog
+      └── Respond: failure
+```
+
+### Deployment Checklist
+
+- [ ] Flow created with Microsoft Teams connector configured
+- [ ] DLP policy reviewed: Teams connector now used for WRITE operations
+- [ ] Test: Reply to a Teams message from the PCF dashboard, verify reply appears in channel
+- [ ] Test: Attempt reply with invalid channel_id — should return failure and log to cr_errorlog
+- [ ] Canvas app OnChange handler updated to route `TEAMS_MESSAGE` trigger types to Flow 12
+
+---
+
+## Learning System Flows (Phase 2)
+
+The learning system builds a three-tier memory architecture (persona, semantic, episodic) that personalizes agent behavior over time. These flows manage memory lifecycle — from heartbeat-driven workspace assessments to episodic retention, semantic promotion, and confidence decay. Memory data is injected into the signal processing pipeline (Flows 1-3) at invocation time.
+
+> **Prerequisite**: Phase 1 memory tables must be provisioned before deploying these flows. Run `scripts/provision-memory-tables.ps1` to create `cr_userpersona`, `cr_semanticknowledge`, `cr_episodicmemory`, `cr_semanticepisodic`, `cr_briefingschedule`, and `cr_errorlog` (if not already present).
+
+---
+
+## Flow 11 — Heartbeat Assessment *(Phase 2)*
+
+### Overview
+
+Scheduled flow that performs a background assessment of the user's workspace — scanning for unread emails, pending calendar prep, and stale cards. Creates assessment cards so the user sees a proactive summary of items that need attention, even when no new signal has arrived.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Hour |
+| Interval | 1 |
+
+> **Design note**: The recurrence fires hourly as a ceiling. The flow itself gates execution against the user's configured frequency in `cr_briefingschedule.cr_heartbeatfrequency`, so the actual assessment rate is user-controlled. The trigger interval should be ≤ the minimum allowed heartbeat frequency.
+
+### Actions
+
+**1. Get my profile (V2)** — Office 365 Users connector
+
+**2. Check heartbeat enablement** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Briefing Schedule (`cr_briefingschedule`) |
+| Filter rows | `_ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_heartbeatenabled eq true` |
+| Row count | `1` |
+
+**3. Condition — Heartbeat enabled**
+
+```
+@not(empty(outputs('Check_heartbeat_enablement')?['body/value']))
+```
+
+**If No:** Terminate (heartbeat disabled for this user).
+
+**If Yes:**
+
+**4. Compose — Apply jitter to frequency**
+
+```
+@addMinutes(
+  outputs('Check_heartbeat_enablement')?['body/value'][0]?['cr_lastheartbeattimestamp'],
+  mul(
+    outputs('Check_heartbeat_enablement')?['body/value'][0]?['cr_heartbeatfrequency'],
+    add(0.85, mul(rand(0, 30), 0.01))
+  )
+)
+```
+
+> **Jitter**: Applies ±15% randomization to the heartbeat interval. This prevents a "thundering herd" when many users have the same frequency — without jitter, all heartbeats for users on the same schedule would fire simultaneously, creating a Dataverse API spike.
+
+**5. Condition — Within frequency window**
+
+```
+@greaterOrEquals(utcNow(), outputs('Apply_jitter_to_frequency'))
+```
+
+**If No:** Terminate (too soon since last heartbeat).
+
+**If Yes:**
+
+**Scope: Heartbeat Assessment**
+
+**6. Compose — Workspace snapshot**
+
+Gather current workspace state:
+- Unread email count (Office 365 Outlook → Get emails, filter `isRead eq false`, count)
+- Pending calendar events in next 4 hours (Office 365 Outlook → Get calendar view)
+- Stale cards count (Dataverse → List rows, filter `cr_cardoutcome eq 100000000 and createdon lt @{addHours(utcNow(), -24)}`)
+
+**7. Invoke Heartbeat Agent** — Microsoft Copilot Studio connector → Execute Agent and wait
+
+| Setting | Value |
+|---------|-------|
+| Agent | Enterprise Work Assistant |
+| Input | Workspace snapshot JSON from step 6 |
+
+**8. Parse JSON** — Parse agent response using simplified output schema (see [Parse JSON Schema](#important-parse-json-schema) section)
+
+**9. Condition — Has actionable assessments**
+
+```
+@greater(length(body('Parse_JSON')?['assessments']), 0)
+```
+
+**If No:** Skip card creation.
+
+**If Yes:**
+
+**10. Apply to each** — Loop over assessments (limit: `cr_maxcardsperrun`)
+
+| Setting | Value |
+|---------|-------|
+| Loop source | `@{take(body('Parse_JSON')?['assessments'], outputs('Check_heartbeat_enablement')?['body/value'][0]?['cr_maxcardsperrun'])}` |
+
+**10a. Add a new row** — Dataverse connector
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Owner | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
+| Trigger Type | `100000005` *(HEARTBEAT)* |
+| Item Summary | `@{items('Apply_to_each')?['item_summary']}` |
+| Priority | `@{items('Apply_to_each')?['priority']}` |
+| Card Status | `100000000` *(PENDING)* |
+
+**11. Update heartbeat timestamp** — Dataverse connector → Update a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Briefing Schedule (`cr_briefingschedule`) |
+| Row ID | `@{outputs('Check_heartbeat_enablement')?['body/value'][0]?['cr_briefingscheduleid']}` |
+| Last Heartbeat Timestamp | `@{utcNow()}` |
+
+### Error Handling
+
+Wrap steps 6-11 in a **Scope** with a parallel "Run after: has failed" branch:
+
+1. Log the error to `cr_errorlog` with `cr_flowname = 'Flow 11 — Heartbeat'`, `cr_severity = 'ERROR'`, and the error message from the failed action
+2. Do **not** create partial cards — if the scope fails, no cards are committed (the Scope acts as a transaction boundary)
+3. Do **not** update `cr_lastheartbeattimestamp` on failure — the next run will retry
+
+### Frequency Gating
+
+| Rule | Enforcement |
+|------|-------------|
+| User-configured frequency | `cr_briefingschedule.cr_heartbeatfrequency` (minutes) checked in step 5 |
+| Hard ceiling | Never exceed 1 heartbeat per hour (trigger interval = 1 hour) |
+| Jitter | ±15% of configured interval to prevent thundering herd |
+| Disabled users | `cr_heartbeatenabled = false` → terminate at step 3 |
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — every 1 hour)
+  │
+  ├── 1. Get my profile
+  ├── 2. Check cr_briefingschedule for heartbeat enablement
+  ├── 3. Heartbeat enabled?
+  │   ├── No → Terminate
+  │   └── Yes
+  │       ├── 4. Apply jitter to frequency
+  │       ├── 5. Within frequency window?
+  │       │   ├── No → Terminate
+  │       │   └── Yes → Scope: Heartbeat Assessment
+  │       │       ├── 6. Compose workspace snapshot
+  │       │       ├── 7. Invoke Heartbeat Agent
+  │       │       ├── 8. Parse JSON
+  │       │       ├── 9. Has assessments?
+  │       │       │   ├── No → Skip
+  │       │       │   └── Yes → 10. Apply to each (max cr_maxcardsperrun)
+  │       │       │       └── 10a. Add card to Dataverse
+  │       │       └── 11. Update cr_lastheartbeattimestamp
+  │       └── (on failure) → Log to cr_errorlog, no partial cards
+```
+
+### Deployment Checklist
+
+- [ ] `cr_briefingschedule` table provisioned with `cr_heartbeatenabled`, `cr_heartbeatfrequency`, `cr_lastheartbeattimestamp`, `cr_maxcardsperrun` columns
+- [ ] Flow created with 1-hour recurrence trigger
+- [ ] Jitter calculation verified (±15% of interval)
+- [ ] Frequency gating prevents runs within configured window
+- [ ] Hard ceiling enforced: maximum 1 heartbeat per hour
+- [ ] Cards created with correct Owner for row-level security
+- [ ] Error scope logs to `cr_errorlog` and does not create partial cards
+- [ ] Test: Disabled heartbeat (`cr_heartbeatenabled = false`) → flow terminates without action
+- [ ] Test: Recent heartbeat within frequency window → flow terminates without action
+- [ ] Test: Workspace with unread emails and stale cards → assessment cards created
+
+### Heartbeat Card → AssistantCard Field Mapping
+
+The Heartbeat Agent outputs `assessment_cards[]` objects conforming to `heartbeat-output-schema.json`. Flow 11 step 10a maps each assessment card to a row in the `cr_assistantcard` Dataverse table. The mapping is:
+
+| Heartbeat Output Field | Dataverse Column | Mapping Notes |
+|------------------------|------------------|---------------|
+| `card_type` | `cr_triagetier` | Enum translation: `PREP_REQUIRED` → `FULL` (100000002), `STALE_TASK` → `LIGHT` (100000001), `FOLLOW_UP_NEEDED` → `FULL` (100000002), `PATTERN_ALERT` → `LIGHT` (100000001). Cards requiring research/draft map to FULL; informational cards map to LIGHT. |
+| `priority` | `cr_priority` | Direct label match: `"High"` → 100000000, `"Medium"` → 100000001, `"Low"` → 100000002, `"N/A"` → 100000003. |
+| `item_summary` | `cr_itemsummary` | Copied verbatim (max 300 chars enforced by both schemas). |
+| `source_ref` | `cr_sourcesignalid` | Calendar event title, task name, or sender email used as the signal identifier. Prefixed with `heartbeat:` to distinguish from standard signal IDs (e.g., `heartbeat:Q4 Budget Review`). |
+| `rationale` | `cr_fulljson` | Stored inside the full JSON blob — no discrete column. Rendered by the PCF component via `ParseJSON()`. |
+| `suggested_action` | `cr_fulljson` | Stored inside the full JSON blob — no discrete column. Rendered by the PCF component via `ParseJSON()`. |
+| *(not in heartbeat output)* | `cr_triggertype` | Hard-coded to `100000005` (HEARTBEAT) for all heartbeat-sourced cards. |
+| *(not in heartbeat output)* | `cr_cardstatus` | Hard-coded to `100000000` (READY) for heartbeat cards that pass validation. |
+| *(not in heartbeat output)* | `cr_confidencescore` | Set to `null` — heartbeat cards do not go through the confidence scoring pipeline. |
+| `assessment_timestamp` | `createdon` | Not explicitly mapped; Dataverse auto-populates `createdon` at row insertion time. The assessment timestamp is preserved in `cr_fulljson`. |
+
+> **Design note**: The `cr_fulljson` column stores the complete heartbeat assessment card object as-is, preserving `rationale`, `suggested_action`, and `card_type` for client-side rendering. Only fields needed for server-side filtering (`cr_triagetier`, `cr_priority`, `cr_itemsummary`, `cr_sourcesignalid`) are broken out into discrete columns.
+
+---
+
+## Flow 14 — Episodic Retention Cleanup *(Phase 2)*
+
+### Overview
+
+Scheduled weekly flow that purges episodic memory records older than 90 days and cleans up orphaned junction records in `cr_semanticepisodic`. This prevents unbounded memory growth and ensures the episodic memory table remains performant for real-time queries during signal processing.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| Days | Sunday |
+| At These Hours | 2 |
+| At These Minutes | 0 |
+| Time Zone | UTC |
+
+> **Design note**: Runs at 2:00 AM UTC Sunday to minimize impact on weekday signal processing. The 90-day retention window is a balance between keeping enough history for weekly reflection (Flow 15) and bounding storage costs.
+
+### Actions
+
+**1. List expired episodic records** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory (`cr_episodicmemory`) |
+| Filter rows | `cr_createdon lt @{addDays(utcNow(), -90)}` |
+| Select columns | `cr_episodicmemoryid` |
+| Row count | `5000` |
+
+> Fetches up to 5000 expired records per run. If more exist, subsequent weekly runs will catch them.
+
+**2. Condition — Has expired records**
+
+```
+@greater(length(outputs('List_expired_episodic_records')?['body/value']), 0)
+```
+
+**If No:** Log info message and terminate.
+
+**If Yes:**
+
+**Scope: Retention Cleanup**
+
+**3. Apply to each** — Loop over expired episodic records
+
+**3a. Delete junction records first** — Dataverse connector → List rows + Delete
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic-Episodic Junction (`cr_semanticepisodic`) |
+| Filter rows | `cr_episodicmemoryid eq '@{items('Apply_to_each')?['cr_episodicmemoryid']}'` |
+
+For each junction record found → **Delete a row** from `cr_semanticepisodic`.
+
+> **Dependency-safe ordering**: Junction records reference both `cr_semanticknowledge` and `cr_episodicmemory`. Deleting the episodic record first would orphan junction rows and potentially violate referential integrity. Always delete junction records before the parent episodic record.
+
+**3b. Delete episodic record** — Dataverse connector → Delete a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory (`cr_episodicmemory`) |
+| Row ID | `@{items('Apply_to_each')?['cr_episodicmemoryid']}` |
+
+**4. Log deletion count** — Dataverse connector → Add a new row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Error Log (`cr_errorlog`) |
+| Flow Name | `Flow 14 — Episodic Retention` |
+| Severity | `INFO` |
+| Message | `Purged @{length(outputs('List_expired_episodic_records')?['body/value'])} episodic records older than 90 days` |
+
+### Error Handling
+
+Wrap steps 3-4 in a **Scope** with a parallel "Run after: has failed" branch. Log the error to `cr_errorlog` with `cr_severity = 'ERROR'`. If a single record deletion fails, the loop continues with remaining records (Power Automate's default Apply-to-each behavior).
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — weekly, Sunday 2:00 AM UTC)
+  │
+  ├── 1. List episodic records WHERE cr_createdon < (now - 90 days)
+  ├── 2. Has expired records?
+  │   ├── No → Log info + Terminate
+  │   └── Yes → Scope: Retention Cleanup
+  │       └── 3. Apply to each expired record
+  │           ├── 3a. Delete cr_semanticepisodic junction records (dependency-safe)
+  │           └── 3b. Delete cr_episodicmemory record
+  ├── 4. Log deletion count to cr_errorlog (INFO)
+  └── (on failure) → Log to cr_errorlog (ERROR)
+```
+
+### Deployment Checklist
+
+- [ ] `cr_episodicmemory` and `cr_semanticepisodic` tables provisioned
+- [ ] Flow created with weekly Sunday 2:00 AM UTC recurrence
+- [ ] Junction records deleted before parent episodic records (dependency-safe order)
+- [ ] Deletion count logged to `cr_errorlog` with INFO severity
+- [ ] Error scope configured for failure logging
+- [ ] Test: Insert episodic record with `cr_createdon` > 90 days ago + junction record → both deleted
+- [ ] Test: Episodic record with `cr_createdon` < 90 days ago → not deleted
+- [ ] Test: No expired records → info log entry, no errors
+
+---
+
+## Flow 15 — Weekly Reflection (Semantic Promotion) *(Phase 2)*
+
+### Overview
+
+Scheduled weekly flow that analyzes episodic memory patterns and promotes recurring behavioral facts to semantic knowledge. This is how the assistant "learns" — by observing that a user consistently edits greetings to be informal, or always prioritizes emails from a specific sender, and codifying those patterns as reusable semantic facts.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| Days | Sunday |
+| At These Hours | 23 |
+| At These Minutes | 0 |
+| Time Zone | UTC |
+
+> **Design note**: Runs Sunday night (23:00 UTC) so promoted facts are available for Monday morning signal processing. Runs after Flow 14 (Episodic Retention Cleanup at 02:00) to analyze only non-expired records.
+
+### Actions
+
+**1. List recent episodic events** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory (`cr_episodicmemory`) |
+| Filter rows | `cr_createdon ge @{addDays(utcNow(), -30)}` |
+| Select columns | `cr_episodicmemoryid,cr_senderemail,cr_outcomepattern,cr_eventtype,cr_createdon` |
+| Sort by | `cr_senderemail asc, cr_outcomepattern asc` |
+| Row count | `5000` |
+
+**Scope: Semantic Promotion**
+
+**2. Compose — Group by sender + outcome pattern**
+
+```
+@{
+  // Group episodic events by cr_senderemail + cr_outcomepattern
+  // Count occurrences of each unique combination
+  // Filter to groups with >= 5 occurrences
+}
+```
+
+> **Implementation note**: Power Automate lacks native GROUP BY. Use a Select + Filter array approach: (1) Select unique `cr_senderemail|cr_outcomepattern` pairs, (2) for each pair, filter the full array and count matches, (3) filter to pairs with count ≥ 5. Alternatively, use an inline Power Fx expression or a child flow with Dataverse FetchXML aggregation.
+
+**3. Apply to each** — Loop over patterns with ≥ 5 occurrences
+
+**3a. Check existing semantic fact** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic Knowledge (`cr_semanticknowledge`) |
+| Filter rows | `cr_senderemail eq '@{items('Apply_to_each')?['sender']}' and cr_outcomepattern eq '@{items('Apply_to_each')?['pattern']}' and cr_isactive eq true` |
+| Row count | `1` |
+
+**3b. Condition — Semantic fact exists**
+
+```
+@greater(length(outputs('Check_existing_semantic_fact')?['body/value']), 0)
+```
+
+**If Yes — Reinforce existing fact:**
+
+**3c. Update confidence** — Dataverse connector → Update a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic Knowledge (`cr_semanticknowledge`) |
+| Row ID | `@{outputs('Check_existing_semantic_fact')?['body/value'][0]?['cr_semanticknowledgeid']}` |
+| Confidence Score | `@{min(1.0, add(float(outputs('Check_existing_semantic_fact')?['body/value'][0]?['cr_confidencescore']), 0.1))}` |
+| Last Reinforced On | `@{utcNow()}` |
+
+> **Confidence cap**: Confidence is capped at 1.0 using `min()`. Each weekly reinforcement adds 0.1, so a consistently reinforced fact reaches maximum confidence in ~5 weeks.
+
+**If No — Create new semantic fact:**
+
+**3d. Add a new row** — Dataverse connector
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic Knowledge (`cr_semanticknowledge`) |
+| Sender Email | `@{items('Apply_to_each')?['sender']}` |
+| Outcome Pattern | `@{items('Apply_to_each')?['pattern']}` |
+| Confidence Score | `0.5` |
+| Source | `INFERRED` |
+| Is Active | `true` |
+| Last Reinforced On | `@{utcNow()}` |
+
+> **Initial confidence**: New inferred facts start at 0.5 (moderate confidence). This is high enough to influence triage decisions but low enough to be overridden by explicit user corrections. The `INFERRED` source distinguishes machine-learned facts from user-supplied facts (source = `EXPLICIT`).
+
+**3e. Create junction record** — Dataverse connector → Add a new row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic-Episodic Junction (`cr_semanticepisodic`) |
+| Semantic Knowledge | Row ID from step 3c or 3d |
+| Episodic Memory | Most recent episodic record for this pattern |
+
+**4. Log promotion statistics** — Dataverse connector → Add a new row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Error Log (`cr_errorlog`) |
+| Flow Name | `Flow 15 — Weekly Reflection` |
+| Severity | `INFO` |
+| Message | `Promoted @{variables('newFactCount')} new facts, reinforced @{variables('reinforcedCount')} existing facts` |
+
+### Promotion Examples
+
+| Episodic Pattern | Semantic Fact Created |
+|-----------------|----------------------|
+| Alice always edits greeting to informal (5+ occurrences) | Tone preference: informal greetings for Alice |
+| User dismisses all newsletter emails from Contoso (5+ occurrences) | Triage hint: SKIP newsletters from Contoso |
+| User always sends edited reply within 1 hour to VP messages (5+ occurrences) | Priority boost: VP messages are high-priority |
+
+### Error Handling
+
+Wrap steps 2-4 in a **Scope** with a parallel "Run after: has failed" branch. Log to `cr_errorlog` with `cr_severity = 'ERROR'`. Partial promotion is acceptable — if some patterns fail to promote, successfully promoted facts are retained.
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — weekly, Sunday 23:00 UTC)
+  │
+  ├── 1. List episodic events from last 30 days
+  ├── Scope: Semantic Promotion
+  │   ├── 2. Group by sender + outcome pattern, filter to ≥ 5 occurrences
+  │   └── 3. Apply to each qualifying pattern
+  │       ├── 3a. Check if semantic fact already exists
+  │       ├── 3b. Fact exists?
+  │       │   ├── Yes → 3c. Reinforce confidence (min(1.0, current + 0.1))
+  │       │   └── No  → 3d. Create new fact (confidence = 0.5, source = INFERRED)
+  │       └── 3e. Create/update junction record
+  ├── 4. Log promotion statistics to cr_errorlog (INFO)
+  └── (on failure) → Log to cr_errorlog (ERROR)
+```
+
+### Deployment Checklist
+
+- [ ] `cr_semanticknowledge`, `cr_episodicmemory`, and `cr_semanticepisodic` tables provisioned
+- [ ] Flow created with weekly Sunday 23:00 UTC recurrence
+- [ ] Grouping logic correctly identifies patterns with ≥ 5 occurrences in 30 days
+- [ ] Existing facts reinforced with `min(1.0, current + 0.1)` — never exceeds 1.0
+- [ ] New facts created with confidence = 0.5, source = `INFERRED`, `cr_isactive = true`
+- [ ] Junction records link semantic facts to source episodic events
+- [ ] Promotion statistics logged to `cr_errorlog` with INFO severity
+- [ ] Test: 5+ episodic events with same sender + pattern → new semantic fact created at 0.5
+- [ ] Test: Existing fact + 5 more events → confidence increases by 0.1
+- [ ] Test: Fact at confidence 0.95 + reinforcement → capped at 1.0
+- [ ] Test: Pattern with < 5 occurrences → no promotion
+
+---
+
+## Flow 16 — Confidence Decay *(Phase 2)*
+
+### Overview
+
+Scheduled weekly flow that decays unreinforced semantic knowledge to prevent stale facts from influencing agent behavior. Facts that haven't been reinforced by recent episodic evidence lose confidence over time, and facts below the minimum threshold are deactivated.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| Days | Monday |
+| At These Hours | 1 |
+| At These Minutes | 0 |
+| Time Zone | UTC |
+
+> **Design note**: Runs Monday 1:00 AM UTC, after Sunday's Weekly Reflection (Flow 15) has reinforced active patterns. This ordering ensures that recently-reinforced facts are not immediately decayed.
+
+### Actions
+
+**1. List unreinforced facts** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic Knowledge (`cr_semanticknowledge`) |
+| Filter rows | `cr_lastreinforcedon lt @{addDays(utcNow(), -60)} and cr_confidencescore gt 0.2 and cr_isactive eq true` |
+| Select columns | `cr_semanticknowledgeid,cr_confidencescore,cr_lastreinforcedon,cr_outcomepattern` |
+| Row count | `5000` |
+
+> Targets facts that are active, have confidence above the deactivation threshold (0.2), and haven't been reinforced in 60+ days. Facts at or below 0.2 are handled by the deactivation step.
+
+**2. Condition — Has unreinforced facts**
+
+```
+@greater(length(outputs('List_unreinforced_facts')?['body/value']), 0)
+```
+
+**If No:** Log info message and terminate.
+
+**If Yes:**
+
+**Scope: Confidence Decay**
+
+**3. Initialize variables**
+
+| Variable | Type | Value |
+|----------|------|-------|
+| decayedCount | Integer | `0` |
+| deactivatedCount | Integer | `0` |
+
+**4. Apply to each** — Loop over unreinforced facts
+
+**4a. Compose — Calculate decayed confidence**
+
+```
+@mul(float(items('Apply_to_each')?['cr_confidencescore']), 0.5)
+```
+
+> **Decay rate**: Halving (`× 0.5`) per decay cycle. A fact starting at confidence 1.0 decays to 0.5 → 0.25 → 0.125 (deactivated) over three consecutive unreinforced cycles (3 × 60 days = ~6 months to full decay from maximum confidence).
+
+**4b. Condition — Below deactivation threshold**
+
+```
+@less(outputs('Calculate_decayed_confidence'), 0.2)
+```
+
+**If Yes — Deactivate:**
+
+**4c. Update row — Deactivate fact** — Dataverse connector → Update a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic Knowledge (`cr_semanticknowledge`) |
+| Row ID | `@{items('Apply_to_each')?['cr_semanticknowledgeid']}` |
+| Confidence Score | `@{outputs('Calculate_decayed_confidence')}` |
+| Is Active | `false` |
+
+Increment `deactivatedCount`.
+
+**If No — Decay only:**
+
+**4d. Update row — Decay confidence** — Dataverse connector → Update a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic Knowledge (`cr_semanticknowledge`) |
+| Row ID | `@{items('Apply_to_each')?['cr_semanticknowledgeid']}` |
+| Confidence Score | `@{outputs('Calculate_decayed_confidence')}` |
+
+Increment `decayedCount`.
+
+**5. Log decay statistics** — Dataverse connector → Add a new row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Error Log (`cr_errorlog`) |
+| Flow Name | `Flow 16 — Confidence Decay` |
+| Severity | `INFO` |
+| Message | `Decayed @{variables('decayedCount')} facts, deactivated @{variables('deactivatedCount')} facts below 0.2 threshold` |
+
+### Error Handling
+
+Wrap steps 3-5 in a **Scope** with a parallel "Run after: has failed" branch. Log to `cr_errorlog` with `cr_severity = 'ERROR'`. Partial decay is acceptable — if some updates fail, successfully decayed facts are retained.
+
+### Flow Diagram
+
+```
+Trigger (Recurrence — weekly, Monday 1:00 AM UTC)
+  │
+  ├── 1. List facts WHERE cr_lastreinforcedon < (now - 60 days)
+  │      AND cr_confidencescore > 0.2 AND cr_isactive = true
+  ├── 2. Has unreinforced facts?
+  │   ├── No → Log info + Terminate
+  │   └── Yes → Scope: Confidence Decay
+  │       ├── 3. Initialize counters
+  │       └── 4. Apply to each unreinforced fact
+  │           ├── 4a. Calculate decayed confidence (× 0.5)
+  │           ├── 4b. Below 0.2 threshold?
+  │           │   ├── Yes → 4c. Deactivate (cr_isactive = false)
+  │           │   └── No  → 4d. Update confidence score
+  │           └── Increment counters
+  ├── 5. Log decay statistics to cr_errorlog (INFO)
+  └── (on failure) → Log to cr_errorlog (ERROR)
+```
+
+### Deployment Checklist
+
+- [ ] `cr_semanticknowledge` table provisioned with `cr_confidencescore`, `cr_lastreinforcedon`, `cr_isactive` columns
+- [ ] Flow created with weekly Monday 1:00 AM UTC recurrence
+- [ ] Decay formula correctly halves confidence (`× 0.5`)
+- [ ] Facts below 0.2 are deactivated (`cr_isactive = false`)
+- [ ] Decay statistics logged to `cr_errorlog` with INFO severity
+- [ ] Test: Fact with `cr_lastreinforcedon` > 60 days ago at confidence 0.8 → decayed to 0.4
+- [ ] Test: Fact with `cr_lastreinforcedon` > 60 days ago at confidence 0.3 → decayed to 0.15, deactivated
+- [ ] Test: Fact with `cr_lastreinforcedon` < 60 days ago → not touched
+- [ ] Test: Already-deactivated fact (`cr_isactive = false`) → not processed
+- [ ] Test: Runs after Flow 15 (Weekly Reflection) — recently reinforced facts are not decayed
+
+---
+
+## Memory Injection Pattern (Flows 1-3)
+
+This section documents how learning data from the three-tier memory system is injected into the signal processing pipeline at invocation time. Each run of Flows 1, 2, or 3 queries the memory tables and composes a context block that is passed alongside the signal payload to the pipeline agents.
+
+### Query Sequence
+
+Memory injection occurs after the signal payload is extracted and before the agent is invoked. The following queries execute in sequence:
+
+**Step M1. Query User Persona** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | User Persona (`cr_userpersona`) |
+| Filter rows | `_ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Row count | `1` |
+| Select columns | `cr_communicationstyle,cr_prioritypreferences,cr_workinghoursprofile,cr_custompreferences` |
+
+> Returns at most 1 record per user. If no persona exists, the memory context omits the PERSONA_PREFERENCES block.
+
+**Step M2. Query Semantic Knowledge** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Semantic Knowledge (`cr_semanticknowledge`) |
+| Filter rows | `cr_isactive eq true and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Sort by | `cr_confidencescore desc` |
+| Row count | `10` |
+| Select columns | `cr_outcomepattern,cr_senderemail,cr_confidencescore,cr_source` |
+
+> Returns the top 10 highest-confidence active facts. Ordering by confidence ensures the most reliable learned facts are included when the token budget is tight.
+
+**Step M3. Query Episodic Memory** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory (`cr_episodicmemory`) |
+| Filter rows | `cr_senderemail eq '@{triggerOutputs()?['body/from']}' and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'` |
+| Sort by | `cr_createdon desc` |
+| Row count | `5` |
+| Select columns | `cr_eventtype,cr_outcomepattern,cr_createdon,cr_contextsummary` |
+
+> Filters to episodic events for the **current signal's sender**, returning the 5 most recent interactions. This provides sender-specific behavioral history to the agent (e.g., "last 3 emails from Alice were edited to informal tone").
+
+### Compose Memory Context
+
+**Step M4. Compose — Memory context block** — Power Automate Compose action
+
+```
+PERSONA_PREFERENCES:
+@{if(empty(outputs('Query_User_Persona')?['body/value']), 'No persona configured.', concat(
+  'Communication style: ', outputs('Query_User_Persona')?['body/value'][0]?['cr_communicationstyle'],
+  ' | Priorities: ', outputs('Query_User_Persona')?['body/value'][0]?['cr_prioritypreferences']
+))}
+
+SEMANTIC_KNOWLEDGE:
+@{if(empty(outputs('Query_Semantic_Knowledge')?['body/value']), 'No learned facts.', join(
+  // For each fact: "[confidence] pattern (sender)"
+  // e.g., "[0.9] informal greeting preference (alice@example.com)"
+))}
+
+EPISODIC_CONTEXT:
+@{if(empty(outputs('Query_Episodic_Memory')?['body/value']), 'No prior interactions with this sender.', join(
+  // For each event: "eventType: pattern (date)"
+  // e.g., "EDIT: changed greeting to informal (2026-01-15)"
+))}
+```
+
+> This Compose action is the **Memory Curator** — it is a Power Automate Compose step, not a separate agent. It formats memory data into a structured text block that fits within the ~2000 token budget.
+
+### Agent Invocation with Memory
+
+The memory context block from step M4 is passed as additional inputs to the pipeline agent invocation:
+
+| Input Parameter | Source |
+|----------------|--------|
+| `PERSONA_PREFERENCES` | Persona section from M4 Compose |
+| `SEMANTIC_KNOWLEDGE` | Semantic section from M4 Compose |
+| `EPISODIC_CONTEXT` | Episodic section from M4 Compose |
+
+These inputs are appended to the standard signal payload (email body, Teams message, calendar event) in the agent's system prompt context window.
+
+---
+
+## Token Budget Management
+
+The memory context injected into each agent invocation is constrained to approximately 2000 tokens to avoid crowding out the signal payload and agent instructions in the context window.
+
+### Budget Allocation
+
+| Component | Token Budget | Records | Per-Record Budget |
+|-----------|-------------|---------|-------------------|
+| Persona preferences | ~200 tokens | 1 | 200 |
+| Semantic facts | ~1,200 tokens | 10 (max) | ~120 per fact |
+| Episodic events | ~600 tokens | 5 (max) | ~120 per event |
+| **Total** | **~2,000 tokens** | — | — |
+
+### Overflow Strategy
+
+When the composed memory context exceeds the ~2000 token budget, truncation follows this priority order (lowest-value content removed first):
+
+1. **Truncate oldest episodic events** — Remove the oldest episodic events first (they are least relevant to the current interaction). Reduce from 5 → 4 → 3 events until within budget.
+2. **Truncate lowest-confidence semantic facts** — Remove semantic facts with the lowest confidence scores. Reduce from 10 → 9 → 8 facts until within budget.
+3. **Persona is never truncated** — The persona block (~200 tokens) is always included in full, as it represents the user's explicit preferences.
+
+### Implementation Note
+
+The Memory Curator is a **Power Automate Compose step**, not a separate agent. Token counting is approximate — Power Automate does not have a native token counter. Use `length()` on the composed string as a proxy (1 token ≈ 4 characters for English text). The Compose action checks:
+
+```
+@if(greater(length(outputs('Memory_context_block')), 8000),
+  // Truncation logic: rebuild with fewer records
+  outputs('Truncated_memory_context'),
+  outputs('Memory_context_block')
+)
+```
+
+> The 8000-character threshold (≈ 2000 tokens) triggers the overflow strategy. The truncated version is composed by re-querying with reduced row counts and re-composing.

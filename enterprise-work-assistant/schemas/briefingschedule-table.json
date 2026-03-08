@@ -74,7 +74,8 @@
       "type": "TwoOption",
       "required": false,
       "default": false,
-      "description": "Whether heartbeat proactive scanning is enabled for this user. Separate from daily briefing enable."
+      "description": "Whether heartbeat proactive scanning is enabled for this user. Separate from daily briefing enable.",
+      "_naming_note": "Recommended name: cr_isheartbeatenabled (cr_is* prefix convention). Not renamed to avoid breaking existing flow references in Flow 11."
     },
     {
       "logicalName": "cr_lastheartbeattimestamp",

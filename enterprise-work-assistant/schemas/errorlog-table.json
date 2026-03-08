@@ -5,7 +5,7 @@
   "pluralName": "Error Logs",
   "description": "Stores error records from Power Automate agent flows for monitoring and diagnostics. Each row represents one flow error occurrence.",
   "primaryColumn": "cr_flowname",
-  "ownershipType": "Organization",
+  "ownershipType": "UserOwned",
   "columns": [
     {
       "logicalName": "cr_errorid",
@@ -59,12 +59,13 @@
       "type": "Boolean",
       "required": false,
       "default": false,
-      "description": "Whether this error has been investigated and resolved by an admin."
+      "description": "Whether this error has been investigated and resolved by an admin.",
+      "_naming_note": "Recommended name: cr_isresolved (cr_is* prefix convention). Not renamed to avoid breaking existing flow and dashboard references."
     }
   ],
   "notes": {
-    "design_rationale": "Organization-owned table so all admins can view and manage error records regardless of which user's flow run generated the error.",
-    "security": "Table uses Organization ownership type. All users with the security role can see all error log rows — appropriate for admin-level monitoring data.",
+    "design_rationale": "UserOwned table for row-level security consistency with all other tables in the solution. Admin visibility is granted via security roles rather than Organization ownership.",
+    "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role, consistent with the rest of the solution. Admin security roles grant broad read access for monitoring.",
     "system_columns": "Standard Dataverse system columns (createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
   }
 }

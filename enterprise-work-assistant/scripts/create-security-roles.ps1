@@ -97,13 +97,13 @@ try {
 # ─────────────────────────────────────
 Write-Host "Configuring privileges on AssistantCards table..." -ForegroundColor Cyan
 
-# Get the entity metadata to find the object type code
-$entityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_assistantcard')?`$select=ObjectTypeCode" -Headers $headers
+# Get the entity metadata to find the object type code and actual SchemaName
+$entityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_assistantcard')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
 $objectTypeCode = $entityMeta.ObjectTypeCode
 
 # Privilege names follow the pattern: prv{Action}{EntitySchemaName}
-# IMPORTANT: Dataverse privileges use the entity SchemaName (PascalCase), not LogicalName (lowercase)
-$entitySchemaName = "${PublisherPrefix}_AssistantCard"
+# Query the actual SchemaName from metadata rather than hardcoding case
+$entitySchemaName = $entityMeta.SchemaName
 $privilegeNames = @(
     "prvCreate${entitySchemaName}",
     "prvRead${entitySchemaName}",
@@ -147,13 +147,11 @@ foreach ($privName in $privilegeNames) {
 Write-Host "Configuring privileges on SenderProfile table..." -ForegroundColor Cyan
 
 $senderLogicalName = "${PublisherPrefix}_senderprofile"
-# IMPORTANT: Dataverse privileges use the entity SchemaName (PascalCase), not LogicalName (lowercase)
-$senderSchemaName = "${PublisherPrefix}_SenderProfile"
-
-# Check if table exists before configuring privileges
+# Query actual SchemaName from metadata for correct privilege naming
 try {
-    $senderEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$senderLogicalName')?`$select=ObjectTypeCode" -Headers $headers
+    $senderEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$senderLogicalName')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
     $senderObjectTypeCode = $senderEntityMeta.ObjectTypeCode
+    $senderSchemaName = $senderEntityMeta.SchemaName
 
     $senderPrivilegeNames = @(
         "prvCreate${senderSchemaName}",
@@ -196,13 +194,12 @@ try {
 Write-Host "Configuring privileges on BriefingSchedule table..." -ForegroundColor Cyan
 
 $briefingLogicalName = "${PublisherPrefix}_briefingschedule"
-# IMPORTANT: Dataverse privileges use the entity SchemaName (PascalCase), not LogicalName (lowercase)
-$briefingSchemaName = "${PublisherPrefix}_BriefingSchedule"
 
 # Check if table exists before configuring privileges
 try {
-    $briefingEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$briefingLogicalName')?`$select=ObjectTypeCode" -Headers $headers
+    $briefingEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$briefingLogicalName')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
     $briefingObjectTypeCode = $briefingEntityMeta.ObjectTypeCode
+    $briefingSchemaName = $briefingEntityMeta.SchemaName
 
     $briefingPrivilegeNames = @(
         "prvCreate${briefingSchemaName}",
@@ -240,7 +237,247 @@ try {
 }
 
 # ─────────────────────────────────────
-# 7. Summary
+# 7. Add Privileges for EpisodicMemory
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on EpisodicMemory table..." -ForegroundColor Cyan
+
+$episodicLogicalName = "${PublisherPrefix}_episodicmemory"
+
+# Check if table exists before configuring privileges
+try {
+    $episodicEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$episodicLogicalName')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
+    $episodicObjectTypeCode = $episodicEntityMeta.ObjectTypeCode
+    $episodicSchemaName = $episodicEntityMeta.SchemaName
+
+    $episodicPrivilegeNames = @(
+        "prvCreate${episodicSchemaName}",
+        "prvRead${episodicSchemaName}",
+        "prvWrite${episodicSchemaName}",
+        "prvDelete${episodicSchemaName}",
+        "prvAppend${episodicSchemaName}",
+        "prvAppendTo${episodicSchemaName}"
+    )
+
+    foreach ($privName in $episodicPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{
+                        Depth = "Basic"
+                        PrivilegeId = $privId
+                        BusinessUnitId = $rootBuId
+                    })
+                } | ConvertTo-Json -Depth 5)
+
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  EpisodicMemory table not found — skipping. Run provision-environment.ps1 to create it."
+}
+
+# ─────────────────────────────────────
+# 8. Add Privileges for SemanticKnowledge
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on SemanticKnowledge table..." -ForegroundColor Cyan
+
+$semanticLogicalName = "${PublisherPrefix}_semanticknowledge"
+
+# Check if table exists before configuring privileges
+try {
+    $semanticEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$semanticLogicalName')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
+    $semanticObjectTypeCode = $semanticEntityMeta.ObjectTypeCode
+    $semanticSchemaName = $semanticEntityMeta.SchemaName
+
+    $semanticPrivilegeNames = @(
+        "prvCreate${semanticSchemaName}",
+        "prvRead${semanticSchemaName}",
+        "prvWrite${semanticSchemaName}",
+        "prvDelete${semanticSchemaName}",
+        "prvAppend${semanticSchemaName}",
+        "prvAppendTo${semanticSchemaName}"
+    )
+
+    foreach ($privName in $semanticPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{
+                        Depth = "Basic"
+                        PrivilegeId = $privId
+                        BusinessUnitId = $rootBuId
+                    })
+                } | ConvertTo-Json -Depth 5)
+
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  SemanticKnowledge table not found — skipping. Run provision-environment.ps1 to create it."
+}
+
+# ─────────────────────────────────────
+# 9. Add Privileges for UserPersona
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on UserPersona table..." -ForegroundColor Cyan
+
+$personaLogicalName = "${PublisherPrefix}_userpersona"
+
+# Check if table exists before configuring privileges
+try {
+    $personaEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$personaLogicalName')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
+    $personaObjectTypeCode = $personaEntityMeta.ObjectTypeCode
+    $personaSchemaName = $personaEntityMeta.SchemaName
+
+    $personaPrivilegeNames = @(
+        "prvCreate${personaSchemaName}",
+        "prvRead${personaSchemaName}",
+        "prvWrite${personaSchemaName}",
+        "prvDelete${personaSchemaName}",
+        "prvAppend${personaSchemaName}",
+        "prvAppendTo${personaSchemaName}"
+    )
+
+    foreach ($privName in $personaPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{
+                        Depth = "Basic"
+                        PrivilegeId = $privId
+                        BusinessUnitId = $rootBuId
+                    })
+                } | ConvertTo-Json -Depth 5)
+
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  UserPersona table not found — skipping. Run provision-environment.ps1 to create it."
+}
+
+# ─────────────────────────────────────
+# 10. Add Privileges for SkillRegistry
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on SkillRegistry table..." -ForegroundColor Cyan
+
+$skillLogicalName = "${PublisherPrefix}_skillregistry"
+
+# Check if table exists before configuring privileges
+try {
+    $skillEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$skillLogicalName')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
+    $skillObjectTypeCode = $skillEntityMeta.ObjectTypeCode
+    $skillSchemaName = $skillEntityMeta.SchemaName
+
+    $skillPrivilegeNames = @(
+        "prvCreate${skillSchemaName}",
+        "prvRead${skillSchemaName}",
+        "prvWrite${skillSchemaName}",
+        "prvDelete${skillSchemaName}",
+        "prvAppend${skillSchemaName}",
+        "prvAppendTo${skillSchemaName}"
+    )
+
+    foreach ($privName in $skillPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{
+                        Depth = "Basic"
+                        PrivilegeId = $privId
+                        BusinessUnitId = $rootBuId
+                    })
+                } | ConvertTo-Json -Depth 5)
+
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  SkillRegistry table not found — skipping. Run provision-environment.ps1 to create it."
+}
+
+# ─────────────────────────────────────
+# 11. Add Privileges for ErrorLog
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on ErrorLog table..." -ForegroundColor Cyan
+
+$errorLogLogicalName = "${PublisherPrefix}_errorlog"
+
+# Check if table exists before configuring privileges
+try {
+    $errorLogEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$errorLogLogicalName')?`$select=ObjectTypeCode,SchemaName" -Headers $headers
+    $errorLogObjectTypeCode = $errorLogEntityMeta.ObjectTypeCode
+    $errorLogSchemaName = $errorLogEntityMeta.SchemaName
+
+    $errorLogPrivilegeNames = @(
+        "prvCreate${errorLogSchemaName}",
+        "prvRead${errorLogSchemaName}",
+        "prvWrite${errorLogSchemaName}",
+        "prvDelete${errorLogSchemaName}",
+        "prvAppend${errorLogSchemaName}",
+        "prvAppendTo${errorLogSchemaName}"
+    )
+
+    foreach ($privName in $errorLogPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{
+                        Depth = "Basic"
+                        PrivilegeId = $privId
+                        BusinessUnitId = $rootBuId
+                    })
+                } | ConvertTo-Json -Depth 5)
+
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  ErrorLog table not found — skipping. Run provision-environment.ps1 to create it."
+}
+
+# ─────────────────────────────────────
+# 12. Summary
 # ─────────────────────────────────────
 Write-Host ""
 Write-Host "═══════════════════════════════════════════" -ForegroundColor Cyan
@@ -252,6 +489,11 @@ Write-Host "Tables:" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_assistantcard (Assistant Cards)" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_senderprofile (Sender Profiles) — if provisioned" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_briefingschedule (Briefing Schedules) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_episodicmemory (Episodic Memory) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_semanticknowledge (Semantic Knowledge) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_userpersona (User Persona) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_skillregistry (Skill Registry) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_errorlog (Error Log) — if provisioned" -ForegroundColor White
 Write-Host "Depth: Basic (User-level) — each user sees only their own rows" -ForegroundColor White
 Write-Host ""
 Write-Host "NEXT STEP:" -ForegroundColor Yellow

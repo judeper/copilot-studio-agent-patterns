@@ -28,6 +28,9 @@ TEAMS_MESSAGE) from the DRAFT TYPE RULES section below.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RUNTIME INPUTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{{SENDER_PROFILE}}       : JSON object with sender intelligence (or null for first-time senders)
+                           Fields: name, email, relationship, avg_response_hours,
+                           response_rate, sender_category, preferences
 {{PERSONA_PREFERENCES}}  : JSON object from cr_userpersona (or null if not configured)
                            Fields: preferred_tone, signature_preference, formatting_style, custom_rules
 {{SEMANTIC_KNOWLEDGE}}   : JSON array of active semantic facts relevant to tone/style (or null)
@@ -127,3 +130,38 @@ OUTPUT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Return plain text only. No JSON wrapper. No explanation. No markdown formatting.
 Just the humanized draft ready for the user to review, edit, and send.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEW-SHOT EXAMPLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Input (EMAIL, direct tone):**
+
+```json
+{
+  "draft_type": "EMAIL",
+  "raw_draft": "Hi Sarah,\n\nI've reviewed the updated Q3 budget. The $2.4M allocation for Project Atlas looks aligned with the revised scope. The $300K increase over the original $2.1M estimate is accounted for in the expanded vendor integration phase.\n\nI'll provide formal sign-off by end of day Thursday.\n\nLet me know if you need anything else.",
+  "research_summary": "Found original Q3 budget at $2.1M in SharePoint. Prior email thread from Feb 20 contained draft v1. Increase tied to vendor integration scope change.",
+  "recipient_relationship": "Internal colleague",
+  "inferred_tone": "direct",
+  "confidence_score": 95,
+  "user_context": "Alex Kim, Senior PM, Operations"
+}
+```
+
+SENDER_PROFILE: {"name": "Sarah Chen", "email": "sarah.chen@example.com", "relationship": "Internal colleague", "sender_category": "AUTO_HIGH"}
+PERSONA_PREFERENCES: null
+SEMANTIC_KNOWLEDGE: null
+
+**Output:**
+
+Re: Q3 Budget Revision
+
+Hi Sarah,
+
+Reviewed the updated Q3 budget — the $2.4M allocation for Project Atlas tracks with the revised scope. The $300K bump over the original $2.1M covers the expanded vendor integration phase, so no concerns on my end.
+
+I'll have formal sign-off to you by end of day Thursday so you've got a buffer before Friday's deadline. Let me know if you need anything before then.
+
+Thanks,
+Alex

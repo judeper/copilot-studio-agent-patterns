@@ -64,6 +64,7 @@ enterprise-work-assistant/
 ├── docs/
 │   ├── agent-flows.md            # Step-by-step flow building guide
 │   ├── canvas-app-setup.md       # Canvas app + PCF configuration
+│   ├── data-governance.md        # Data retention policies, PII handling, GDPR/CCPA erasure procedures
 │   ├── deployment-guide.md       # End-to-end deployment checklist
 │   └── onenote-integration.md    # OneNote integration design (Phase 1-3)
 ├── prompts/
@@ -77,13 +78,20 @@ enterprise-work-assistant/
 │   ├── deploy-solution.ps1            # PCF build + solution import
 │   ├── provision-onenote.ps1          # OneNote notebook + section provisioning
 │   ├── validate-onenote-integration.ps1 # Verify OneNote integration health
-│   └── audit-table-naming.ps1         # Dataverse table naming audit
+│   ├── audit-table-naming.ps1         # Dataverse table naming audit
+│   └── user-data-erasure.ps1          # Right-to-erasure PowerShell script with OneNote cleanup
 ├── schemas/
 │   ├── output-schema.json             # JSON Schema for agent output
 │   ├── dataverse-table.json           # AssistantCards table definition
 │   ├── briefing-output-schema.json    # Daily briefing output schema
 │   ├── briefingschedule-table.json    # BriefingSchedule table definition
-│   └── senderprofile-table.json       # SenderProfile table definition
+│   ├── episodicmemory-table.json      # Episodic Memory table definition (decision log)
+│   ├── errorlog-table.json            # Error Log table definition (flow error monitoring)
+│   ├── heartbeat-output-schema.json   # Heartbeat/Background Assessment output schema
+│   ├── semanticknowledge-table.json   # Semantic Knowledge table definition (knowledge graph)
+│   ├── senderprofile-table.json       # SenderProfile table definition
+│   ├── skillregistry-table.json       # Skill Registry table definition (extensible agent skills)
+│   └── userpersona-table.json         # User Persona table definition (communication preferences)
 ├── templates/
 │   ├── onenote-meeting-prep.html      # OneNote meeting prep page template
 │   ├── onenote-daily-briefing.html    # OneNote daily briefing page template
@@ -99,7 +107,8 @@ enterprise-work-assistant/
     │   │   ├── CardDetail.tsx         # Expanded card view (research, draft, sources)
     │   │   ├── BriefingCard.tsx       # Daily briefing card (action items, FYI, stale alerts)
     │   │   ├── CommandBar.tsx         # Command input & execution
-    │   │   ├── ConfidenceCalibration.tsx # Low confidence warning badge
+    │   │   ├── StatusBar.tsx          # Work Assistant branding bar with action count and memory status
+    │   │   ├── ConfidenceCalibration.tsx # Low confidence warning badge with calibration indicator
     │   │   ├── FilterBar.tsx          # Active filter status bar
     │   │   ├── ErrorBoundary.tsx      # React error boundary
     │   │   ├── types.ts              # TypeScript interfaces from schema

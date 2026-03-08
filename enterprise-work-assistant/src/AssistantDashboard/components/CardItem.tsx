@@ -107,6 +107,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
         <Card
             className={classNames}
             data-card-id={card.id}
+            {...(isHeartbeat ? { "data-card-type": "heartbeat" as string } : {})}
             role="button"
             tabIndex={0}
             aria-label={ariaLabel}

@@ -10,7 +10,7 @@
       "maxItems": 10,
       "items": {
         "type": "object",
-        "required": ["card_type", "item_summary", "priority", "rationale", "suggested_action"],
+        "required": ["card_type", "item_summary", "priority", "rationale", "source_ref", "suggested_action"],
         "properties": {
           "card_type": {
             "type": "string",
@@ -24,7 +24,7 @@
           },
           "priority": {
             "type": "string",
-            "enum": ["High", "Medium", "Low"]
+            "enum": ["High", "Medium", "Low", "N/A"]
           },
           "rationale": {
             "type": "string",

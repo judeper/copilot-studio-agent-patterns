@@ -12,9 +12,9 @@ Each table has a defined retention period. Enforcement is via the **Data Retenti
 
 | Table | Logical Name | Retention | Deletion Strategy | Notes |
 |-------|-------------|-----------|-------------------|-------|
-| Assistant Cards | `cr_assistantcards` | **90 days** | Hard delete after 90d from `createdon` | Primary card table. Cards with `cr_outcome = EXPIRED` are eligible immediately. |
+| Assistant Cards | `cr_assistantcards` | **90 days** | Hard delete after 90d from `createdon` | Primary card table. Cards with `cr_cardoutcome = EXPIRED` are eligible immediately. |
 | Sender Profiles | `cr_senderprofiles` | **365 days** | Hard delete after 365d of inactivity (`modifiedon`) | Retained longer because aggregate sender intelligence improves triage accuracy over time. |
-| Error Logs | `cr_errorlogs` | **90 days** | Hard delete after 90d from `cr_errortimestamp` | Org-owned table — not user-scoped. Contains no PII beyond the affected card ID reference. |
+| Error Logs | `cr_errorlogs` | **90 days** | Hard delete after 90d from `cr_occurredon` | Org-owned table — not user-scoped. Contains no PII beyond the affected card ID reference. |
 | Episodic Memories | `cr_episodicmemories` | **90 days** | Hard delete after 90d from `createdon` | Decision history entries. High-frequency table — monitor row counts. |
 | Semantic Knowledge | `cr_semanticknowledges` | **365 days** | **Soft delete** (set `statecode = 1`) after 365d, hard delete after 730d | Long-term knowledge graph. Soft delete allows recovery during the grace period. |
 | Semantic-Episodic Junctions | `cr_semanticepisodic` | Follows parent | Cascade delete when either parent is deleted | Junction table — no independent retention policy. |
@@ -99,7 +99,7 @@ If OneNote integration is enabled (`cr_onenoteenabled = true`), the script autom
 
 | Table | PII Fields | Sensitivity | Notes |
 |-------|-----------|-------------|-------|
-| **Assistant Cards** | Sender email (`cr_senderemail`), subject lines, communication drafts (`cr_fulljson`), user decisions (outcome) | **High** | Drafts may contain business-confidential content. `cr_fulljson` contains the full agent response including recommended actions. |
+| **Assistant Cards** | Sender email (`cr_originalsenderemail`), subject lines, communication drafts (`cr_fulljson`), user decisions (outcome) | **High** | Drafts may contain business-confidential content. `cr_fulljson` contains the full agent response including recommended actions. |
 | **Sender Profiles** | Sender email (`cr_senderemail`), behavioral metrics (response rate, dismiss rate, avg response hours) | **High** | Behavioral profiling data — constitutes a user profile under GDPR Article 22. The `cr_sendercategory` field classifies senders (VIP, AUTO_LOW, etc.) based on interaction patterns. |
 | **Episodic Memories** | User decisions, timestamps, context of agent interactions | **Medium** | Decision log entries. Contain what the user chose to do (send, dismiss, edit) and why. |
 | **Semantic Knowledge** | Extracted knowledge from processed signals, topic associations | **Medium** | May contain names, project references, and organizational context derived from emails/messages. |
