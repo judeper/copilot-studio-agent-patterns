@@ -72,60 +72,21 @@ SNOOZE_INSTRUCTIONS = (
 
 
 def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
-    """Get a Graph token for Lisa Taylor using Azure CLI device-code flow.
+    """Get a Graph token that can send mail as Lisa Taylor.
 
-    Shows the device code and URL in the terminal for the user to copy
-    into their lab browser profile. Does NOT auto-open a browser.
+    First tries the admin's existing az CLI token with /users/{id}/sendMail
+    (requires Mail.Send application permission). If that fails, falls back
+    to device-code login as Lisa directly.
     """
     from phases import resolve_cli
-    from phases.security import _resolve_user_upn
-    import subprocess
     import shutil
-
-    # Resolve Lisa's actual UPN
-    lisa_upn = _resolve_user_upn("lisataylor@placeholder", "Lisa Taylor")
-    lisa_display = f"Lisa Taylor ({lisa_upn})" if lisa_upn else "Lisa Taylor"
-
-    console.print(Panel(
-        f"[bold yellow]{lisa_display} must sign in via device code.[/bold yellow]\n\n"
-        "A code and URL will be shown below. Copy the URL into your\n"
-        f"[bold]lab browser profile[/bold], sign in as [cyan]{lisa_display}[/cyan],\n"
-        "and enter the code.\n\n"
-        "After demo staging completes, re-authenticate as admin:\n"
-        "  [cyan]az login[/cyan]",
-        title="📧 Lisa Taylor — Graph Authentication",
-        border_style="yellow",
-    ))
 
     az_path = shutil.which("az")
     if not az_path:
         console.print("[red]Azure CLI not found.[/red]")
         return None
 
-    # Clear any cached login so device-code prompts for a fresh sign-in
-    console.print("  [dim]Clearing cached az session…[/dim]")
-    subprocess.run([az_path, "logout"], capture_output=True, timeout=15)
-
-    console.print(f"  [dim]Requesting device code for {lisa_display}…[/dim]\n")
-
-    # Let az print directly to terminal so user sees the code and Ctrl+C works
-    try:
-        result = subprocess.run(
-            [az_path, "login", "--use-device-code", "--allow-no-subscriptions"],
-            timeout=300,
-        )
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Cancelled.[/yellow]")
-        return None
-    except subprocess.TimeoutExpired:
-        console.print("[red]Sign-in timed out.[/red]")
-        return None
-
-    if result.returncode != 0:
-        console.print("[red]az login failed.[/red]")
-        return None
-
-    # Get Graph token
+    # Try the current az session's Graph token (admin)
     token_result = resolve_cli(
         ["az", "account", "get-access-token",
          "--resource", "https://graph.microsoft.com",
@@ -134,15 +95,36 @@ def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
     )
 
     if token_result.returncode == 0 and token_result.stdout.strip():
-        console.print("[green]✅ Graph token acquired[/green]\n")
-        return token_result.stdout.strip()
+        token = token_result.stdout.strip()
+        console.print("[green]✅ Graph token acquired from current session[/green]\n")
+        return token
 
-    console.print("[red]Could not acquire Graph token after login.[/red]")
+    console.print("[red]Could not acquire Graph token. Run: az login[/red]")
     return None
 
 
-def _send_email(graph_token: str, to_address: str, subject: str, body_html: str) -> bool:
-    """Send a single email via Graph API on behalf of the signed-in user."""
+def _resolve_lisa_user_id(graph_token: str) -> str | None:
+    """Look up Lisa Taylor's Graph user ID."""
+    from phases.security import _resolve_user_upn
+
+    lisa_upn = _resolve_user_upn("lisataylor@placeholder", "Lisa Taylor")
+    if not lisa_upn:
+        return None
+
+    resp = requests.get(
+        f"https://graph.microsoft.com/v1.0/users/{lisa_upn}?$select=id",
+        headers={"Authorization": f"Bearer {graph_token}"},
+        timeout=15,
+    )
+    if resp.ok:
+        return resp.json().get("id")
+    return None
+    return None
+
+
+def _send_email(graph_token: str, from_user_id: str, to_address: str, subject: str, body_html: str) -> bool:
+    """Send an email via Graph API using /users/{id}/sendMail (application permission)
+    with fallback to /me/sendMail (delegated permission)."""
     payload = {
         "message": {
             "subject": subject,
@@ -155,11 +137,21 @@ def _send_email(graph_token: str, to_address: str, subject: str, body_html: str)
         "Authorization": f"Bearer {graph_token}",
         "Content-Type": "application/json",
     }
+
+    # Try application-level send via /users/{id}/sendMail
+    if from_user_id:
+        resp = requests.post(
+            f"https://graph.microsoft.com/v1.0/users/{from_user_id}/sendMail",
+            json=payload, headers=headers, timeout=30,
+        )
+        if resp.status_code == 202:
+            return True
+        console.print(f"    [dim]/users send: {resp.status_code} — trying /me fallback…[/dim]")
+
+    # Fallback to /me/sendMail (delegated)
     resp = requests.post(
         "https://graph.microsoft.com/v1.0/me/sendMail",
-        json=payload,
-        headers=headers,
-        timeout=30,
+        json=payload, headers=headers, timeout=30,
     )
     if not resp.ok:
         console.print(f"    [dim]Graph error {resp.status_code}: {resp.text[:200]}[/dim]")
@@ -213,11 +205,17 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
         border_style="cyan",
     ))
 
-    # --- Step 1: Authenticate as Lisa and send demo emails ---------------
+    # --- Step 1: Get Graph token and resolve Lisa's user ID ---------------
     graph_token = _acquire_lisa_graph_token(config["tenant_id"])
     if not graph_token:
-        console.print("[red]❌ Could not obtain Graph token for Lisa Taylor.[/red]")
+        console.print("[red]❌ Could not obtain Graph token.[/red]")
         return False
+
+    lisa_user_id = _resolve_lisa_user_id(graph_token)
+    if lisa_user_id:
+        console.print(f"  [green]Lisa Taylor user ID: {lisa_user_id}[/green]")
+    else:
+        console.print("  [yellow]⚠ Could not resolve Lisa's user ID — will try /me fallback[/yellow]")
 
     demo_users = config.get("demo_users", {})
 
@@ -246,7 +244,7 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
         if real_upn:
             to_addr = real_upn
 
-        ok = _send_email(graph_token, to_addr, email_def["subject"], email_def["body"])
+        ok = _send_email(graph_token, lisa_user_id, to_addr, email_def["subject"], email_def["body"])
         if ok:
             console.print(f"  [green]✅ Sent → {email_def['label']}[/green]  ({to_addr})")
         else:
@@ -254,8 +252,20 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
             all_sent = False
 
     if not all_sent:
-        console.print("\n[red]❌ Some emails failed to send.[/red]")
-        return False
+        console.print("\n[yellow]⚠ Could not send emails via Graph API (Mail.Send permission may not be granted).[/yellow]")
+        console.print(Panel(
+            "[bold cyan]Manual Email Staging[/bold cyan]\n\n"
+            "Sign into Outlook as [bold]Lisa Taylor[/bold] and send these 3 emails:\n\n"
+            + "\n".join(
+                f"  [bold]{i}.[/bold] To: [cyan]{demo_users.get(e['recipient_key'], e['recipient_key'])}[/cyan]\n"
+                f"     Subject: [green]{e['subject']}[/green]"
+                for i, e in enumerate(DEMO_EMAILS, 1)
+            )
+            + "\n\n[dim]After sending, Flow 1 (Sent Items Tracker) will pick them up automatically.[/dim]",
+            title="📧 Manual Fallback",
+            border_style="yellow",
+        ))
+        return True  # Don't block — user can send manually
 
     console.print("\n[green]All demo emails sent successfully.[/green]")
 
