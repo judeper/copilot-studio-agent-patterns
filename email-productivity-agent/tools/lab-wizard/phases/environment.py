@@ -45,6 +45,13 @@ def _table_definitions(prefix: str) -> list[dict]:
             "display": "Follow Up Tracking",
             "display_plural": "Follow Up Trackings",
             "description": "Tracks sent emails awaiting follow-up",
+            "primary_name": {
+                "schema": f"{P}_originalsubject",
+                "logical": f"{prefix}_originalsubject",
+                "label": "Original Subject",
+                "max_length": 400,
+                "required": True,
+            },
             "columns": [
                 _string_col(P, "sourcesignalid", "Source Signal ID", 200),
                 _memo_col(P, "conversationid", "Conversation ID"),
@@ -73,6 +80,13 @@ def _table_definitions(prefix: str) -> list[dict]:
             "display": "Nudge Configuration",
             "display_plural": "Nudge Configurations",
             "description": "Per-user nudge timing and preferences",
+            "primary_name": {
+                "schema": f"{P}_configlabel",
+                "logical": f"{prefix}_configlabel",
+                "label": "Config Label",
+                "max_length": 100,
+                "required": True,
+            },
             "columns": [
                 _string_col(P, "owneruserid", "Owner User ID", 50),
                 _integer_col(P, "internaldays", "Internal Days", 3),
@@ -96,6 +110,13 @@ def _table_definitions(prefix: str) -> list[dict]:
             "display": "Snoozed Conversation",
             "display_plural": "Snoozed Conversations",
             "description": "Conversations snoozed by the user",
+            "primary_name": {
+                "schema": f"{P}_originalsubject",
+                "logical": f"{prefix}_originalsubject",
+                "label": "Original Subject",
+                "max_length": 400,
+                "required": False,
+            },
             "columns": [
                 _memo_col(P, "conversationid", "Conversation ID"),
                 _string_col(P, "owneruserid", "Owner User ID", 50),
@@ -399,6 +420,19 @@ def _create_tables(auth: Any, org_url: str, prefix: str):
         if _table_exists(auth, org_url, logical):
             console.print(f"    [dim]Table already exists — skipping creation[/dim]")
         else:
+            pn = tdef["primary_name"]
+            primary_attr = {
+                "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata",
+                "IsPrimaryName": True,
+                "SchemaName": pn["schema"],
+                "DisplayName": _label(pn["label"]),
+                "RequiredLevel": {
+                    "Value": "ApplicationRequired" if pn["required"] else "None",
+                    "CanBeChanged": True,
+                },
+                "MaxLength": pn["max_length"],
+                "FormatName": {"Value": "Text"},
+            }
             body = {
                 "SchemaName": tdef["schema"],
                 "DisplayName": _label(tdef["display"]),
@@ -408,6 +442,8 @@ def _create_tables(auth: Any, org_url: str, prefix: str):
                 "HasActivities": False,
                 "IsActivity": False,
                 "HasNotes": False,
+                "PrimaryNameAttribute": pn["logical"],
+                "Attributes": [primary_attr],
             }
             resp = _dv_post(auth, org_url, "EntityDefinitions", body, solution_header)
             if resp.status_code in (201, 204):
