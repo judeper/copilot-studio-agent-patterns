@@ -78,6 +78,18 @@ Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
 
 **Key artifacts:** 48 files changed, +7,273 lines | Build passes, 201 tests (15 suites) | Environment "EWA-DryRun-v3" provisioned | 3 new design docs
 
+### ✅ v3.0 UX Psychology-Driven Redesign (2026-03-08)
+
+**Milestone Goal:** Apply cognitive science research to redesign the PCF dashboard UX — 16 items across 5 phases, grounded in 8 research areas (Cowan's 4±1 attention slots, Gloria Mark's 23-min interruption cost, Zeigarnik Effect, arXiv 2024 AI trust miscalibration, PMC visual fatigue, and more).
+
+- [x] **Phase A: Card Intelligence** — Three-state confidence display (HIGH/MEDIUM/LOW, not percentages), composite sort algorithm, Zeigarnik-aware pending indicators
+- [x] **Phase B: Attention Protection** — 5-item focused queue (Cowan's 4±1 limit), quiet mode for deep focus protection (Gloria Mark's 23-min interruption cost)
+- [x] **Phase C: Briefing Variants** — Morning/EOD/meeting briefing variants via new DayGlance.tsx component
+- [x] **Phase D: Contextual Intelligence** — Trust-calibrated confidence presentation based on arXiv 2024 AI trust miscalibration research
+- [x] **Phase E: Visual Sustainability** — Warm-gray palette for 8-hour sustained use (PMC visual fatigue research), `prefers-reduced-motion` media query support
+
+**Key artifacts:** 21 files changed, +1,162 lines | Build passes, 213 tests (16 suites) | New component: DayGlance.tsx
+
 ## Phase Details
 
 <details>
@@ -272,3 +284,4 @@ Phases execute in numeric order: 14 -> 15 -> 16 -> 17 -> 18 -> 19
 | v3.0 Phase 5: Architecture Enhancements | v3.0 | ✓ | Complete | 2026-03-08 |
 | v3.0 Phase 6: Learning System | v3.0 | ✓ | Complete | 2026-03-08 |
 | v3.0 Phase 7: UX Enhancements | v3.0 | ✓ | Complete | 2026-03-08 |
+| v3.0 UX Psychology-Driven Redesign | v3.0 | 16/16 | Complete | 2026-03-08 |

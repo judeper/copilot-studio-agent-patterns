@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 Phase: All 7 v3.0 phases complete (90/90 items done)
 Plan: All implementation items verified
-Status: v3.0 complete — build passes, 201 tests pass (15 suites)
-Last activity: 2026-03-08 — Completed v3.0 AI Council Enhancement Implementation
+Status: v3.0 + UX redesign complete — build passes, 213 tests pass (16 suites)
+Last activity: 2026-03-08 — Completed UX Psychology-Driven Redesign (16 items, 5 phases)
 
 Progress: [██████████] 100% (7/7 phases complete, 90/90 items done)
 
@@ -101,6 +101,15 @@ Progress: [██████████] 100% (7/7 phases complete, 90/90 item
 - Architecture, learning, and UX enhancement design docs
 - Environment "EWA-DryRun-v3" provisioned with all 9 tables and security roles
 
+**v3.0 UX Psychology-Driven Redesign (16 items, 5 phases):**
+- Phase A — Card Intelligence: three-state confidence (HIGH/MEDIUM/LOW, not percentages), composite sort, Zeigarnik-aware pending indicators
+- Phase B — Attention Protection: 5-item focused queue (Cowan's 4±1), quiet mode for focus protection (Gloria Mark's 23-min cost)
+- Phase C — Briefing Variants: morning/EOD/meeting variants via DayGlance.tsx component
+- Phase D — Contextual Intelligence: research-grounded trust calibration (arXiv 2024 AI trust miscalibration)
+- Phase E — Visual Sustainability: warm-gray palette for 8-hour sustained use (PMC visual fatigue), `prefers-reduced-motion` support
+- Research basis: 8 cognitive science areas applied across all 5 phases
+- Test result: 213 tests pass across 16 suites
+
 ### Pending Todos
 
 None — v3.0 complete.
@@ -112,5 +121,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-08
-Stopped at: Completed v3.0 AI Council Enhancement Implementation — all 7 phases, 90 items
+Stopped at: Completed v3.0 AI Council Enhancement Implementation + UX Psychology-Driven Redesign — 16 UX items, 5 phases, 213 tests
 Resume file: .planning/ROADMAP.md

@@ -126,14 +126,15 @@ enterprise-work-assistant/
     │   ├── index.ts                   # PCF lifecycle entry point
     │   ├── components/
     │   │   ├── App.tsx                # Root component (gallery/detail router)
-    │   │   ├── CardGallery.tsx        # Scrollable card list
-    │   │   ├── CardItem.tsx           # Collapsed card (priority, icon, summary)
-    │   │   ├── CardDetail.tsx         # Expanded card view (research, draft, sources)
-    │   │   ├── BriefingCard.tsx       # Daily briefing card (action items, FYI, stale alerts, schedule config)
-    │   │   ├── CommandBar.tsx         # Command input & execution
-    │   │   ├── StatusBar.tsx          # Work Assistant branding bar with action count and memory status
+    │   │   ├── CardGallery.tsx        # Focused 5-item queue with composite sort (urgency×confidence)
+    │   │   ├── CardItem.tsx           # Collapsed card with urgency rationale and three-state confidence signal
+    │   │   ├── CardDetail.tsx         # Expanded card view with draft ownership framing and learning feedback
+    │   │   ├── BriefingCard.tsx       # Morning, end-of-day, and meeting prep briefing variants
+    │   │   ├── CommandBar.tsx         # Context-aware prompts and agent activity feed
+    │   │   ├── StatusBar.tsx          # Day metrics bar (decisions ready, focus status, drafts ready, next meeting)
     │   │   ├── ConfidenceCalibration.tsx # Low confidence warning badge with calibration indicator
-    │   │   ├── FilterBar.tsx          # Active filter status bar
+    │   │   ├── DayGlance.tsx          # Compact today-at-a-glance calendar with meeting prep status
+    │   │   ├── FilterBar.tsx          # Active filter status bar with quiet mode toggle for focus protection
     │   │   ├── ErrorBoundary.tsx      # React error boundary
     │   │   ├── types.ts              # TypeScript interfaces from schema
     │   │   └── constants.ts          # UI constants (colors, timings)
@@ -231,6 +232,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | `{{PLACEHOLDER}}` HTML templates for OneNote pages | Separates content from structure; Power Automate handles escaping |
 | Draft persistence via `saveDraftAction` output | Debounced (2s) writes to Dataverse ensure edited drafts survive browser refresh |
 | Dismiss retry with `pendingDismissals` map | Up to 3 automatic retries prevent silent failures on network issues |
+| UX redesign grounded in cognitive research | Card intelligence (Cowan 4±1 queue cap, Zeigarnik draft ownership), attention protection (Gloria Mark 23-min recovery), three-state confidence (arXiv 2024 AI trust calibration), visual sustainability (PMC visual fatigue) |
 | Escape key closes overlays and restores focus | Standard keyboard UX: Escape exits edit mode, confirmation, detail view (including BriefingCard), and command bar, then returns focus to the invoking control |
 
 ## Known Limitations
