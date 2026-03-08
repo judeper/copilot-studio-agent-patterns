@@ -2,7 +2,7 @@ import type { FocusLaneModel } from "../models/review";
 
 export const mockFocusLane: FocusLaneModel = {
   id: "focus-blueprint-session",
-  title: "Finalize Enterprise Work Assistant product blueprint",
+  title: "Finalize Intelligent Work Layer product blueprint",
   summary: "Open decisions, repository context, and the next three steps are already staged so you can resume without reconstructing the work.",
   focusWindow: "09:00 AM - 10:30 AM",
   interruptionsHeldCount: 3,

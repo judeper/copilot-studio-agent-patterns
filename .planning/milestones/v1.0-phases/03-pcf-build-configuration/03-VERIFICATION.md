@@ -26,7 +26,7 @@ re_verification: false
 | 3 | @fluentui/react-components is pinned at ^9.46.0 in package.json | VERIFIED | `package.json` line 15: `"@fluentui/react-components": "^9.46.0"` |
 | 4 | bun install followed by bun run build completes with zero errors and zero warnings | VERIFIED | `bun run build` exits code 0; output ends with `[build] Succeeded`; zero error or warning lines in build output (BABEL "Note" lines are internal perf informational, not warnings) |
 | 5 | bun run lint completes with zero warnings | VERIFIED | `bun run lint` exits code 0 with empty stdout — zero lint warnings or errors |
-| 6 | bun.lock is committed to the repository | VERIFIED | `git ls-files enterprise-work-assistant/src/bun.lock` confirms file is git-tracked (text format; Bun 1.3.8 default) |
+| 6 | bun.lock is committed to the repository | VERIFIED | `git ls-files intelligent-work-layer/src/bun.lock` confirms file is git-tracked (text format; Bun 1.3.8 default) |
 
 **Score:** 6/6 truths verified
 
@@ -36,15 +36,15 @@ re_verification: false
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/src/AssistantDashboard/ControlManifest.Input.xml` | platform-library version="9.46.2" | VERIFIED | Contains exact string `platform-library name="Fluent" version="9.46.2"` at line 64 |
-| `enterprise-work-assistant/src/AssistantDashboard/components/FilterBar.tsx` | Consolidated Fluent UI imports, tokens from react-components | VERIFIED | Line 2: `import { Badge, Text, tokens } from "@fluentui/react-components";` — single import block, no react-theme reference |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CardGallery.tsx` | Consolidated Fluent UI imports, tokens from react-components | VERIFIED | Line 2: `import { Text, tokens } from "@fluentui/react-components";` — single import block, no react-theme reference |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx` | Single consolidated import block including tokens | VERIFIED | Lines 2-7: single `@fluentui/react-components` import block containing `Card, Badge, Text, tokens` |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` | Single consolidated import block including tokens | VERIFIED | Lines 2-12: single `@fluentui/react-components` import block containing all components + `tokens` |
-| `enterprise-work-assistant/src/.eslintrc.json` | no-console rule allows console.warn | VERIFIED | Line 11: `"no-console": ["warn", { "allow": ["warn"] }]` |
-| `enterprise-work-assistant/src/bun.lock` | Deterministic Bun lockfile | VERIFIED | File exists (1322 lines), git-tracked in commit 4d0b3a2 |
-| `enterprise-work-assistant/src/scripts/patch-manifest-schema.js` | Postinstall schema patch for pcf-scripts | VERIFIED | 62-line script that patches ManifestSchema.json to add platform-library property definition |
-| `enterprise-work-assistant/src/package.json` | postinstall script + @types/powerapps-component-framework | VERIFIED | postinstall: "node scripts/patch-manifest-schema.js"; devDeps include `@types/powerapps-component-framework: ^1.3.18` |
+| `intelligent-work-layer/src/AssistantDashboard/ControlManifest.Input.xml` | platform-library version="9.46.2" | VERIFIED | Contains exact string `platform-library name="Fluent" version="9.46.2"` at line 64 |
+| `intelligent-work-layer/src/AssistantDashboard/components/FilterBar.tsx` | Consolidated Fluent UI imports, tokens from react-components | VERIFIED | Line 2: `import { Badge, Text, tokens } from "@fluentui/react-components";` — single import block, no react-theme reference |
+| `intelligent-work-layer/src/AssistantDashboard/components/CardGallery.tsx` | Consolidated Fluent UI imports, tokens from react-components | VERIFIED | Line 2: `import { Text, tokens } from "@fluentui/react-components";` — single import block, no react-theme reference |
+| `intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx` | Single consolidated import block including tokens | VERIFIED | Lines 2-7: single `@fluentui/react-components` import block containing `Card, Badge, Text, tokens` |
+| `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` | Single consolidated import block including tokens | VERIFIED | Lines 2-12: single `@fluentui/react-components` import block containing all components + `tokens` |
+| `intelligent-work-layer/src/.eslintrc.json` | no-console rule allows console.warn | VERIFIED | Line 11: `"no-console": ["warn", { "allow": ["warn"] }]` |
+| `intelligent-work-layer/src/bun.lock` | Deterministic Bun lockfile | VERIFIED | File exists (1322 lines), git-tracked in commit 4d0b3a2 |
+| `intelligent-work-layer/src/scripts/patch-manifest-schema.js` | Postinstall schema patch for pcf-scripts | VERIFIED | 62-line script that patches ManifestSchema.json to add platform-library property definition |
+| `intelligent-work-layer/src/package.json` | postinstall script + @types/powerapps-component-framework | VERIFIED | postinstall: "node scripts/patch-manifest-schema.js"; devDeps include `@types/powerapps-component-framework: ^1.3.18` |
 
 ---
 

@@ -371,11 +371,11 @@ export interface AssistantCard {
 ## Sources
 
 ### Primary (HIGH confidence)
-- `/enterprise-work-assistant/schemas/output-schema.json` -- current schema definition, directly examined
-- `/enterprise-work-assistant/src/AssistantDashboard/components/types.ts` -- current TypeScript interfaces, directly examined
-- `/enterprise-work-assistant/prompts/main-agent-system-prompt.md` -- current prompt with 4 examples, directly examined
-- `/enterprise-work-assistant/prompts/humanizer-agent-prompt.md` -- current humanizer input contract, directly examined
-- `/enterprise-work-assistant/schemas/dataverse-table.json` -- current Dataverse table definition, directly examined
+- `/intelligent-work-layer/schemas/output-schema.json` -- current schema definition, directly examined
+- `/intelligent-work-layer/src/AssistantDashboard/components/types.ts` -- current TypeScript interfaces, directly examined
+- `/intelligent-work-layer/prompts/main-agent-system-prompt.md` -- current prompt with 4 examples, directly examined
+- `/intelligent-work-layer/prompts/humanizer-agent-prompt.md` -- current humanizer input contract, directly examined
+- `/intelligent-work-layer/schemas/dataverse-table.json` -- current Dataverse table definition, directly examined
 - `.planning/phases/01-output-schema-contract/01-CONTEXT.md` -- user-locked decisions
 
 ### Secondary (MEDIUM confidence)

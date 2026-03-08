@@ -7,7 +7,7 @@
 
 ### System Overview
 
-The Enterprise Work Assistant is a five-layer architecture where each layer has a single responsibility and communicates with adjacent layers through well-defined contracts.
+The Intelligent Work Layer is a five-layer architecture where each layer has a single responsibility and communicates with adjacent layers through well-defined contracts.
 
 ```
 [Signal Sources]  -->  [Power Automate Flows]  -->  [Copilot Studio Agents]

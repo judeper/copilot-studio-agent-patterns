@@ -27,12 +27,12 @@ tech-stack:
 
 key-files:
   created:
-    - "enterprise-work-assistant/schemas/briefingschedule-table.json"
+    - "intelligent-work-layer/schemas/briefingschedule-table.json"
   modified:
-    - "enterprise-work-assistant/docs/agent-flows.md"
-    - "enterprise-work-assistant/docs/canvas-app-setup.md"
-    - "enterprise-work-assistant/docs/deployment-guide.md"
-    - "enterprise-work-assistant/scripts/provision-environment.ps1"
+    - "intelligent-work-layer/docs/agent-flows.md"
+    - "intelligent-work-layer/docs/canvas-app-setup.md"
+    - "intelligent-work-layer/docs/deployment-guide.md"
+    - "intelligent-work-layer/scripts/provision-environment.ps1"
 
 key-decisions:
   - "15-minute polling interval for Flow 6 balances timeliness vs Power Automate run quota"
@@ -77,11 +77,11 @@ Each task was committed atomically:
 2. **Task 2: Update Flow 6 to read schedule from Dataverse and add Canvas App UI instructions** - `4059e20` (feat)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/schemas/briefingschedule-table.json` - BriefingSchedule Dataverse table definition with 6 columns
-- `enterprise-work-assistant/scripts/provision-environment.ps1` - Added BriefingSchedule table creation (section 4b) and cr_reminderdue column (section 3e)
-- `enterprise-work-assistant/docs/deployment-guide.md` - Replaced BriefingScheduleTime cron var with BriefingSchedule table reference
-- `enterprise-work-assistant/docs/agent-flows.md` - Rewrote Flow 6 trigger, added schedule-aware loop (steps 1-2e), renumbered existing steps (3-13), updated flow diagram and deployment checklist
-- `enterprise-work-assistant/docs/canvas-app-setup.md` - Added section 11 with BriefingSchedule data source, schedule controls, Patch upsert formula, and existing schedule loading
+- `intelligent-work-layer/schemas/briefingschedule-table.json` - BriefingSchedule Dataverse table definition with 6 columns
+- `intelligent-work-layer/scripts/provision-environment.ps1` - Added BriefingSchedule table creation (section 4b) and cr_reminderdue column (section 3e)
+- `intelligent-work-layer/docs/deployment-guide.md` - Replaced BriefingScheduleTime cron var with BriefingSchedule table reference
+- `intelligent-work-layer/docs/agent-flows.md` - Rewrote Flow 6 trigger, added schedule-aware loop (steps 1-2e), renumbered existing steps (3-13), updated flow diagram and deployment checklist
+- `intelligent-work-layer/docs/canvas-app-setup.md` - Added section 11 with BriefingSchedule data source, schedule controls, Patch upsert formula, and existing schedule loading
 
 ## Decisions Made
 - 15-minute polling interval for Flow 6 (same rationale as Flow 10 Reminder Firing -- balances timeliness vs run quota)
@@ -97,7 +97,7 @@ Each task was committed atomically:
 - **Found during:** Task 1 (provisioning script update)
 - **Issue:** The cr_reminderdue column was defined in dataverse-table.json and referenced in agent-flows.md (Flow 10) but missing from provision-environment.ps1. Plan mentioned adding it but it needed the full Dataverse Web API column creation pattern.
 - **Fix:** Added section 3e with DateTimeAttributeMetadata definition for cr_reminderdue on the AssistantCards table
-- **Files modified:** enterprise-work-assistant/scripts/provision-environment.ps1
+- **Files modified:** intelligent-work-layer/scripts/provision-environment.ps1
 - **Verification:** grep confirms cr_reminderdue present in script
 - **Committed in:** 7cf1ccf (Task 1 commit)
 

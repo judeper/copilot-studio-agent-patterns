@@ -2,7 +2,7 @@
 
 **Domain:** Power Platform reference pattern (PCF control + Copilot Studio agent + Power Automate flows + deployment automation)
 **Researched:** 2026-02-20
-**Context:** Remediation pass on an existing Enterprise Work Assistant solution -- assessing what "production-ready" and "complete" means for each component type in a reference pattern that others will clone and follow.
+**Context:** Remediation pass on an existing Intelligent Work Layer solution -- assessing what "production-ready" and "complete" means for each component type in a reference pattern that others will clone and follow.
 
 ---
 
@@ -77,7 +77,7 @@ Features users (developers cloning this pattern) expect. Missing = the reference
 |---------|--------------|------------|-------|
 | **End-to-end deployment guide** | A reference pattern must be deployable by following a single guide from zero to working solution. | Med | deployment-guide.md covers 7 phases with a verification checklist. This is solid. |
 | **Canvas app setup guide** | The Canvas app is not code -- it must be configured manually. Step-by-step with exact Power Fx formulas. | Med | canvas-app-setup.md is comprehensive with formulas, property bindings, and testing checklist. |
-| **Architecture README** | The top-level README must explain what the pattern does, its components, and how they fit together. | Low | README.md and enterprise-work-assistant/README.md exist. Verify they accurately describe the current architecture. |
+| **Architecture README** | The top-level README must explain what the pattern does, its components, and how they fit together. | Low | README.md and intelligent-work-layer/README.md exist. Verify they accurately describe the current architecture. |
 | **Verification checklist** | After deployment, users need a way to confirm everything works. A checklist with specific things to test. | Low | deployment-guide.md has a verification checklist at the bottom. |
 
 ---

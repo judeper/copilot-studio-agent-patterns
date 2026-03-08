@@ -20,7 +20,7 @@ tech-stack:
 
 key-files:
   created:
-    - enterprise-work-assistant/scripts/audit-table-naming.ps1
+    - intelligent-work-layer/scripts/audit-table-naming.ps1
   modified: []
 
 key-decisions:
@@ -65,7 +65,7 @@ Each task was committed atomically:
 2. **Task 2: Run audit and fix any violations discovered** - No commit (zero violations found, no file changes)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/scripts/audit-table-naming.ps1` - Reusable naming convention audit script with context-sensitive classification
+- `intelligent-work-layer/scripts/audit-table-naming.ps1` - Reusable naming convention audit script with context-sensitive classification
 
 ## Decisions Made
 - **Self-exclusion approach:** The audit script excludes itself by filename match rather than trying to classify its own pattern-definition strings. This is simpler and more reliable than trying to parse string literals vs. functional references within the script itself.
@@ -89,7 +89,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-- FOUND: enterprise-work-assistant/scripts/audit-table-naming.ps1
+- FOUND: intelligent-work-layer/scripts/audit-table-naming.ps1
 - FOUND: 02-01-SUMMARY.md
 - FOUND: commit 3a7e477
 

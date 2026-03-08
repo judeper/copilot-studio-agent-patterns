@@ -15,13 +15,13 @@ Key prompt design patterns observed:
 - **Per-item structure**: Title, what happened (1 sentence), why it matters (1 sentence), required action or "No action needed", urgency level
 - **Guidelines**: Prioritize immediate actions first, de-dupe threads across emails, synthesize insights (don't list raw activity), full context fast with minimal noise
 
-This is worth researching as a potential new agent pattern for the Enterprise Work Assistant's single-pane-of-glass canvas. A dedicated "Catch Up" or "Return from OOO" agent could complement the existing work assistant by providing a synthesized re-entry summary when users return from time away.
+This is worth researching as a potential new agent pattern for the Intelligent Work Layer's single-pane-of-glass canvas. A dedicated "Catch Up" or "Return from OOO" agent could complement the existing work assistant by providing a synthesized re-entry summary when users return from time away.
 
 ## Solution
 
 Research phase — no implementation yet. Future steps:
 1. Deep-dive into the Copilot Outlook catchup feature behavior and prompt patterns
-2. Evaluate how a similar agent could integrate with the existing Enterprise Work Assistant canvas
+2. Evaluate how a similar agent could integrate with the existing Intelligent Work Layer canvas
 3. Consider data sources (email via Graph API, Teams messages, Planner tasks, etc.)
 4. Design a prompt template following the observed pattern (themed grouping, per-item structure, urgency classification)
 5. Determine if this becomes a new agent in the multi-agent topology or an additional mode/skill of the existing assistant agent

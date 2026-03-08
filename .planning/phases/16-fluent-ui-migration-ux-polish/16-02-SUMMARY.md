@@ -26,10 +26,10 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - "enterprise-work-assistant/src/AssistantDashboard/components/CommandBar.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/App.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CommandBar.test.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/CommandBar.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/App.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/__tests__/CommandBar.test.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx"
 
 key-decisions:
   - "Used Fluent UI Input onChange data.value pattern instead of e.target.value for CommandBar"
@@ -74,10 +74,10 @@ Each task was committed atomically:
 2. **Task 2: Add loading Spinner to App, fix Agent Performance button, wire BriefingCard onBack** - `cb96a39` (feat)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/AssistantDashboard/components/CommandBar.tsx` - Replaced all plain HTML input/button elements with Fluent UI Input, Button, Spinner, Text
-- `enterprise-work-assistant/src/AssistantDashboard/components/App.tsx` - Added loading Spinner, Fluent Button for Agent Performance, wired onBack to BriefingCard
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CommandBar.test.tsx` - Updated to use renderWithProviders, getByRole for disabled button checks
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx` - Added loading spinner and filtered empty state tests, updated card-removed test expectation
+- `intelligent-work-layer/src/AssistantDashboard/components/CommandBar.tsx` - Replaced all plain HTML input/button elements with Fluent UI Input, Button, Spinner, Text
+- `intelligent-work-layer/src/AssistantDashboard/components/App.tsx` - Added loading Spinner, Fluent Button for Agent Performance, wired onBack to BriefingCard
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/CommandBar.test.tsx` - Updated to use renderWithProviders, getByRole for disabled button checks
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx` - Added loading spinner and filtered empty state tests, updated card-removed test expectation
 
 ## Decisions Made
 - Used Fluent UI Input `onChange(_e, data) => data.value` pattern instead of `e.target.value` (Fluent Input API convention)

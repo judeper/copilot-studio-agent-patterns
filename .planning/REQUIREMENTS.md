@@ -1,4 +1,4 @@
-# Requirements: Enterprise Work Assistant — Second Brain
+# Requirements: Intelligent Work Layer — Second Brain
 
 **Defined:** 2026-02-28
 **Core Value:** Every artifact in the solution must be correct and consistent — schemas match prompts, code compiles without errors, docs accurately describe the implementation, and scripts work when run. The system should learn from user behavior to improve its assistance over time.

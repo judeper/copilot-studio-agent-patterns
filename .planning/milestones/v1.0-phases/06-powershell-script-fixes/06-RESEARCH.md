@@ -472,7 +472,7 @@ if ($PSCmdlet.ShouldProcess($SolutionPath, "Build PCF component (bun run build)"
 # BEFORE:
 Or manually:
 ```bash
-cd enterprise-work-assistant/src
+cd intelligent-work-layer/src
 npm install
 npm run build
 ```
@@ -480,7 +480,7 @@ npm run build
 # AFTER:
 Or manually:
 ```bash
-cd enterprise-work-assistant/src
+cd intelligent-work-layer/src
 bun install
 bun run build
 ```

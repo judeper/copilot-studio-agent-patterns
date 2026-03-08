@@ -1,13 +1,13 @@
 # Project Research Summary
 
-**Project:** Enterprise Work Assistant -- Production Readiness Remediation
+**Project:** Intelligent Work Layer -- Production Readiness Remediation
 **Domain:** Power Platform reference pattern (PCF React virtual control + Copilot Studio agents + Power Automate flows + Dataverse)
 **Researched:** 2026-02-20
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project is a remediation pass on an existing Enterprise Work Assistant Power Platform solution that serves as a reference pattern for others to clone. The solution connects three signal sources (Outlook, Teams, Calendar) to a two-stage Copilot Studio agent pipeline (Main Agent for triage/research/drafting + Humanizer Agent for tone calibration), writes structured output to Dataverse, and displays results in a React-based PCF virtual control embedded in a Canvas App. The core problem is not missing features -- the feature set (triage, research, draft, humanize, display) is comprehensive -- but rather internal inconsistencies that would prevent the solution from deploying or running correctly: mismatched schemas, incorrect platform library version declarations, and code issues that fail TypeScript strict mode.
+This project is a remediation pass on an existing Intelligent Work Layer Power Platform solution that serves as a reference pattern for others to clone. The solution connects three signal sources (Outlook, Teams, Calendar) to a two-stage Copilot Studio agent pipeline (Main Agent for triage/research/drafting + Humanizer Agent for tone calibration), writes structured output to Dataverse, and displays results in a React-based PCF virtual control embedded in a Canvas App. The core problem is not missing features -- the feature set (triage, research, draft, humanize, display) is comprehensive -- but rather internal inconsistencies that would prevent the solution from deploying or running correctly: mismatched schemas, incorrect platform library version declarations, and code issues that fail TypeScript strict mode.
 
 The recommended approach is a contract-first remediation: fix the output schema and its downstream consumers (types.ts, system prompt, dataverse-table.json, Power Automate simplified schema) before touching any code or documentation. Every other component in the solution derives from the schema contract, so schema drift is the root cause behind the majority of known issues. Code fixes (Fluent UI API correctness, PCF lifecycle patterns, security hardening) come second, followed by documentation accuracy, and finally the one differentiator not yet present: unit tests for PCF components.
 

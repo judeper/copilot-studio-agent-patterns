@@ -24,14 +24,14 @@ tech-stack:
 
 key-files:
   created:
-    - enterprise-work-assistant/src/test/jest.config.ts
-    - enterprise-work-assistant/src/test/jest.setup.ts
-    - enterprise-work-assistant/src/tsconfig.test.json
-    - enterprise-work-assistant/src/test/mocks/componentFramework.ts
-    - enterprise-work-assistant/src/test/helpers/renderWithProviders.tsx
-    - enterprise-work-assistant/src/test/fixtures/cardFixtures.ts
+    - intelligent-work-layer/src/test/jest.config.ts
+    - intelligent-work-layer/src/test/jest.setup.ts
+    - intelligent-work-layer/src/tsconfig.test.json
+    - intelligent-work-layer/src/test/mocks/componentFramework.ts
+    - intelligent-work-layer/src/test/helpers/renderWithProviders.tsx
+    - intelligent-work-layer/src/test/fixtures/cardFixtures.ts
   modified:
-    - enterprise-work-assistant/src/package.json
+    - intelligent-work-layer/src/package.json
 
 key-decisions:
   - "skipLibCheck enabled in tsconfig.test.json -- @types/node brought by Jest uses esnext.disposable features incompatible with TypeScript 4.9.5"
@@ -77,13 +77,13 @@ Each task was committed atomically:
 2. **Task 2: Create ComponentFramework mock, renderWithProviders helper, and fixture data** - `ff440c3` (feat)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/test/jest.config.ts` - Jest configuration with ts-jest preset, jsdom env, coverage thresholds
-- `enterprise-work-assistant/src/test/jest.setup.ts` - jest-dom matchers import and matchMedia mock
-- `enterprise-work-assistant/src/tsconfig.test.json` - Test-specific TypeScript config with CommonJS module output
-- `enterprise-work-assistant/src/test/mocks/componentFramework.ts` - Factory function creating mock PCF datasets
-- `enterprise-work-assistant/src/test/helpers/renderWithProviders.tsx` - FluentProvider + webLightTheme wrapper
-- `enterprise-work-assistant/src/test/fixtures/cardFixtures.ts` - Typed fixtures for all triage tiers and edge cases
-- `enterprise-work-assistant/src/package.json` - Added test dependencies, test and test:coverage scripts
+- `intelligent-work-layer/src/test/jest.config.ts` - Jest configuration with ts-jest preset, jsdom env, coverage thresholds
+- `intelligent-work-layer/src/test/jest.setup.ts` - jest-dom matchers import and matchMedia mock
+- `intelligent-work-layer/src/tsconfig.test.json` - Test-specific TypeScript config with CommonJS module output
+- `intelligent-work-layer/src/test/mocks/componentFramework.ts` - Factory function creating mock PCF datasets
+- `intelligent-work-layer/src/test/helpers/renderWithProviders.tsx` - FluentProvider + webLightTheme wrapper
+- `intelligent-work-layer/src/test/fixtures/cardFixtures.ts` - Typed fixtures for all triage tiers and edge cases
+- `intelligent-work-layer/src/package.json` - Added test dependencies, test and test:coverage scripts
 
 ## Decisions Made
 - **skipLibCheck for test tsconfig:** @types/node (transitive dep of Jest) uses `Symbol.dispose` and `esnext.disposable` features not available in TypeScript 4.9.5. skipLibCheck avoids these errors without downgrading @types/node.
@@ -98,7 +98,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (tsc verification)
 - **Issue:** ComponentFramework namespace unresolved in ManifestTypes.d.ts and index.ts because tsconfig.test.json types field restricted to jest and jest-dom only
 - **Fix:** Added "powerapps-component-framework" to types array in tsconfig.test.json
-- **Files modified:** enterprise-work-assistant/src/tsconfig.test.json
+- **Files modified:** intelligent-work-layer/src/tsconfig.test.json
 - **Verification:** `npx tsc --project tsconfig.test.json --noEmit` exits 0
 - **Committed in:** ff440c3 (Task 2 commit)
 
@@ -106,7 +106,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (tsc verification)
 - **Issue:** @types/node pulled by Jest uses esnext.disposable features (Symbol.dispose, AsyncDisposable) incompatible with TypeScript 4.9.5
 - **Fix:** Added `"skipLibCheck": true` to tsconfig.test.json compilerOptions
-- **Files modified:** enterprise-work-assistant/src/tsconfig.test.json
+- **Files modified:** intelligent-work-layer/src/tsconfig.test.json
 - **Verification:** `npx tsc --project tsconfig.test.json --noEmit` exits 0
 - **Committed in:** ff440c3 (Task 2 commit)
 
@@ -114,7 +114,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (tsc verification)
 - **Issue:** Jest 30 types require `global` key in coverageThreshold object; TypeScript error TS2741
 - **Fix:** Added empty `global: {}` key alongside the per-file glob pattern
-- **Files modified:** enterprise-work-assistant/src/test/jest.config.ts
+- **Files modified:** intelligent-work-layer/src/test/jest.config.ts
 - **Verification:** `npx tsc --project tsconfig.test.json --noEmit` exits 0
 - **Committed in:** ff440c3 (Task 2 commit)
 

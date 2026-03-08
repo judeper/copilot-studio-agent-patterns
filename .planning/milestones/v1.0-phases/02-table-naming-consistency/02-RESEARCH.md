@@ -17,7 +17,7 @@
 - JSON property names in schema files: Claude determines which references are Dataverse-specific vs application-level naming
 - Create a reusable PowerShell audit script that checks naming conventions
 - Script reports both violations (incorrect usages) and correct usages as positive confirmation
-- Script lives inside `enterprise-work-assistant/` directory
+- Script lives inside `intelligent-work-layer/` directory
 - PowerShell format to match existing project script conventions
 
 ### Claude's Discretion
@@ -40,7 +40,7 @@ None — discussion stayed within phase scope
 
 This phase is a naming consistency audit and fix pass, not a technology integration. The Dataverse table `cr_assistantcard` (logical name, singular) and `cr_assistantcards` (entity set name, plural) must be used in the correct contexts everywhere. The codebase is small (14 files with references) and the rules are deterministic: singular for table definition/metadata contexts, plural for OData Web API entity set contexts.
 
-After exhaustive grep analysis of the entire `enterprise-work-assistant/` directory, the current naming is **already largely correct**. The dataverse-table.json schema file correctly defines `tableName: "cr_assistantcard"` and `entitySetName: "cr_assistantcards"`. PowerShell scripts correctly use singular form for `EntityDefinitions(LogicalName='..._assistantcard')` and `SchemaName` properties. The primary key column `cr_assistantcardid` is correctly derived from the singular logical name (this is a Dataverse convention -- primary key is always `{logicalname}id`).
+After exhaustive grep analysis of the entire `intelligent-work-layer/` directory, the current naming is **already largely correct**. The dataverse-table.json schema file correctly defines `tableName: "cr_assistantcard"` and `entitySetName: "cr_assistantcards"`. PowerShell scripts correctly use singular form for `EntityDefinitions(LogicalName='..._assistantcard')` and `SchemaName` properties. The primary key column `cr_assistantcardid` is correctly derived from the singular logical name (this is a Dataverse convention -- primary key is always `{logicalname}id`).
 
 The main work is: (1) creating the reusable audit script, (2) running it to confirm zero violations or catch edge cases, and (3) fixing any violations found.
 
@@ -201,7 +201,7 @@ These names are application conventions, not Dataverse API contracts:
 - Use section comment separators (`# ─────────────────────────────────────`)
 - Use `Write-Host` with `-ForegroundColor` for output
 - Include `.SYNOPSIS`, `.DESCRIPTION`, `.EXAMPLE` in comment-based help
-- Script should be runnable from the `enterprise-work-assistant/` directory
+- Script should be runnable from the `intelligent-work-layer/` directory
 
 ### Pattern 2: Context-Sensitive Classification
 
@@ -354,7 +354,7 @@ This means the primary deliverable is the **audit script** that proves and maint
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase analysis via exhaustive grep of all files in `enterprise-work-assistant/`
+- Direct codebase analysis via exhaustive grep of all files in `intelligent-work-layer/`
 - `schemas/dataverse-table.json` -- authoritative source for table naming conventions
 - PowerShell scripts -- existing API call patterns confirm Dataverse naming conventions
 

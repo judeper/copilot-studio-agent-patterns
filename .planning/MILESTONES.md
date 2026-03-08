@@ -8,7 +8,7 @@
 **Files modified:** 102 (16,100 insertions, 290 deletions)
 **Source LOC:** 2,218 TypeScript/CSS
 
-**Delivered:** Fixed all schema/prompt inconsistencies, code bugs, documentation gaps, and deployment script issues across the Intelligent Work Layer (IWL, formerly Enterprise Work Assistant) reference pattern, then added test infrastructure to validate correctness.
+**Delivered:** Fixed all schema/prompt inconsistencies, code bugs, documentation gaps, and deployment script issues across the Intelligent Work Layer (IWL, formerly Intelligent Work Layer) reference pattern, then added test infrastructure to validate correctness.
 
 **Key accomplishments:**
 1. Unified output schema contract with consistent null convention across JSON schema, prompts, and Dataverse definitions (SCHM-01–07)
@@ -142,7 +142,7 @@
 7. UX enhancement design doc — WCAG AA compliance fixes
 8. Environment "IWL-DryRun-v3" provisioned with all 9 tables and security roles
 9. Work OS schema proposal: 9 TypeScript models, 8 JSON schemas, adapter layer, 32 validation tests, agent-contract.md
-10. Rebrand: Enterprise Work Assistant → Intelligent Work Layer (IWL) across 63 files
+10. Rebrand: Intelligent Work Layer → Intelligent Work Layer (IWL) across 63 files
 
 ### UX Psychology-Driven Redesign (2026-03-08)
 

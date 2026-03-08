@@ -37,13 +37,13 @@ re_verification: false
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/schemas/dataverse-table.json` | cr_reminderdue DateTime column definition | VERIFIED | Column present at last position in columns array; type=DateTime, required=false, description links to Flow 10 |
-| `enterprise-work-assistant/prompts/orchestrator-agent-prompt.md` | cr_reminderdue required for SELF_REMINDER card creation | VERIFIED | Listed at line 89 with ISO 8601 example; guardrail at line 206 requires future datetime |
-| `enterprise-work-assistant/docs/agent-flows.md` | Flow 10 Reminder Firing spec + fixed Trigger Type Compose expression | VERIFIED | Flow 10 section at line 1897 with trigger, filter, NUDGE update, error handling, flow diagram, deployment checklist; Compose at line 261 maps all 6 values; naming table entry at line 2099; intro updated to "ten" at line 3 |
-| `enterprise-work-assistant/schemas/briefingschedule-table.json` | BriefingSchedule Dataverse table definition | VERIFIED | File exists, valid JSON, tableName=cr_briefingschedule, 6 columns all present |
-| `enterprise-work-assistant/docs/canvas-app-setup.md` | Briefing schedule configuration UI instructions | VERIFIED | Section 11 at line 270 with all required controls and Patch formula |
-| `enterprise-work-assistant/docs/deployment-guide.md` | BriefingSchedule table reference replacing cron env var | VERIFIED | Line 303 shows BriefingScheduleTime struck through and replaced with BriefingSchedule table reference |
-| `enterprise-work-assistant/scripts/provision-environment.ps1` | BriefingSchedule table creation + cr_reminderdue column | VERIFIED | BriefingSchedule creation at lines 1163-1416; cr_ReminderDue (= cr_reminderdue) at lines 577-609 |
+| `intelligent-work-layer/schemas/dataverse-table.json` | cr_reminderdue DateTime column definition | VERIFIED | Column present at last position in columns array; type=DateTime, required=false, description links to Flow 10 |
+| `intelligent-work-layer/prompts/orchestrator-agent-prompt.md` | cr_reminderdue required for SELF_REMINDER card creation | VERIFIED | Listed at line 89 with ISO 8601 example; guardrail at line 206 requires future datetime |
+| `intelligent-work-layer/docs/agent-flows.md` | Flow 10 Reminder Firing spec + fixed Trigger Type Compose expression | VERIFIED | Flow 10 section at line 1897 with trigger, filter, NUDGE update, error handling, flow diagram, deployment checklist; Compose at line 261 maps all 6 values; naming table entry at line 2099; intro updated to "ten" at line 3 |
+| `intelligent-work-layer/schemas/briefingschedule-table.json` | BriefingSchedule Dataverse table definition | VERIFIED | File exists, valid JSON, tableName=cr_briefingschedule, 6 columns all present |
+| `intelligent-work-layer/docs/canvas-app-setup.md` | Briefing schedule configuration UI instructions | VERIFIED | Section 11 at line 270 with all required controls and Patch formula |
+| `intelligent-work-layer/docs/deployment-guide.md` | BriefingSchedule table reference replacing cron env var | VERIFIED | Line 303 shows BriefingScheduleTime struck through and replaced with BriefingSchedule table reference |
+| `intelligent-work-layer/scripts/provision-environment.ps1` | BriefingSchedule table creation + cr_reminderdue column | VERIFIED | BriefingSchedule creation at lines 1163-1416; cr_ReminderDue (= cr_reminderdue) at lines 577-609 |
 
 ---
 
@@ -76,13 +76,13 @@ re_verification: false
 
 No blockers or warnings found. Scan covered all five modified files plus two new files:
 
-- `enterprise-work-assistant/schemas/dataverse-table.json` — clean
-- `enterprise-work-assistant/prompts/orchestrator-agent-prompt.md` — clean
-- `enterprise-work-assistant/docs/agent-flows.md` — no TODO/FIXME in modified sections
-- `enterprise-work-assistant/schemas/briefingschedule-table.json` — clean
-- `enterprise-work-assistant/docs/canvas-app-setup.md` — clean
-- `enterprise-work-assistant/docs/deployment-guide.md` — clean
-- `enterprise-work-assistant/scripts/provision-environment.ps1` — clean
+- `intelligent-work-layer/schemas/dataverse-table.json` — clean
+- `intelligent-work-layer/prompts/orchestrator-agent-prompt.md` — clean
+- `intelligent-work-layer/docs/agent-flows.md` — no TODO/FIXME in modified sections
+- `intelligent-work-layer/schemas/briefingschedule-table.json` — clean
+- `intelligent-work-layer/docs/canvas-app-setup.md` — clean
+- `intelligent-work-layer/docs/deployment-guide.md` — clean
+- `intelligent-work-layer/scripts/provision-environment.ps1` — clean
 
 ---
 

@@ -4,7 +4,7 @@
 
 This repo contains production-ready patterns for building autonomous agents on the Microsoft Copilot Studio + Power Platform stack. Each solution is a self-contained folder with prompts, schemas, provisioning scripts, and UI components.
 
-The primary solution is **Intelligent Work Layer** (`enterprise-work-assistant/`), an intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses autonomously. The data flow is:
+The primary solution is **Intelligent Work Layer** (`intelligent-work-layer/`), an intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses autonomously. The data flow is:
 
 1. **Power Automate Agent Flows** (10 main flows + 10 agent tool flows, deployed via `scripts/deploy-agent-flows.ps1`):
    - Signal triggers: Flow 1 (Email), Flow 2 (Teams), Flow 3 (Calendar) intercept signals, invoke the Copilot Studio agent via `ExecuteAgentAndWait` (Microsoft Copilot Studio connector), and write results to Dataverse
@@ -21,7 +21,7 @@ The primary solution is **Intelligent Work Layer** (`enterprise-work-assistant/`
 8. **Mock data** in `src/mock-data/` and `mock-api/` provide typed fixtures and JSON API payloads for offline development and testing.
 9. **Agent contract documentation** in `docs/agent-contract.md` specifies the Work OS agent-to-UI contract proposal.
 
-Design documents in `enterprise-work-assistant/docs/`: `architecture-overview.md` (system architecture and positioning), `architecture-enhancements.md` (MARL pipeline design), `learning-enhancements.md` (learning system design), `ux-enhancements.md` (UX improvements and WCAG AA compliance), `agent-contract.md` (Work OS agent-to-UI contract proposal).
+Design documents in `intelligent-work-layer/docs/`: `architecture-overview.md` (system architecture and positioning), `architecture-enhancements.md` (MARL pipeline design), `learning-enhancements.md` (learning system design), `ux-enhancements.md` (UX improvements and WCAG AA compliance), `agent-contract.md` (Work OS agent-to-UI contract proposal).
 
 The PCF component is a **virtual** React control (shares the platform React tree — does not bundle its own React). It uses a **dataset-type** binding where the Canvas app handles the Dataverse connection and passes pre-filtered records. The PCF emits output actions (send draft, dismiss, save draft, etc.) that the Canvas app handles via OnChange formulas.
 
@@ -44,7 +44,7 @@ The **Email Productivity Agent** (`email-productivity-agent/`) is a follow-up nu
 
 ## Build, Test, and Lint (PCF Component)
 
-All commands run from `enterprise-work-assistant/src/`:
+All commands run from `intelligent-work-layer/src/`:
 
 ```shell
 npm install          # also runs postinstall to patch manifest schema
@@ -56,13 +56,13 @@ npm run test:coverage # jest with 80% per-file threshold
 # Single test file:
 npx jest --config test/jest.config.ts AssistantDashboard/components/__tests__/CardItem.test.tsx
 
-# Deploy solution (from enterprise-work-assistant/scripts/):
+# Deploy solution (from intelligent-work-layer/scripts/):
 pwsh deploy-solution.ps1 -EnvironmentId "<env-id>"
 
-# Deploy Copilot Studio agent (from enterprise-work-assistant/scripts/):
+# Deploy Copilot Studio agent (from intelligent-work-layer/scripts/):
 pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
 
-# Deploy all 20 flows (from enterprise-work-assistant/scripts/):
+# Deploy all 20 flows (from intelligent-work-layer/scripts/):
 pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>"
 
 # Or deploy in phases:
@@ -143,7 +143,7 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 
 ### Provisioning Scripts
 
-PowerShell 7+ scripts in `enterprise-work-assistant/scripts/` handle environment setup. They require PAC CLI (`Microsoft.PowerApps.CLI.Tool`) version 1.32 or later:
+PowerShell 7+ scripts in `intelligent-work-layer/scripts/` handle environment setup. They require PAC CLI (`Microsoft.PowerApps.CLI.Tool`) version 1.32 or later:
 - `provision-environment.ps1` — Creates Power Platform environment and Dataverse tables
 - `create-security-roles.ps1` — Configures ownership-based row-level security
 - `deploy-solution.ps1` — Builds PCF component and imports solution (validates PAC CLI version, runs NuGet restore)
@@ -158,7 +158,7 @@ PowerShell 7+ scripts in `enterprise-work-assistant/scripts/` handle environment
 - **Write-only (Phase 1)**: The agent writes to OneNote but never reads back annotations. OneNote is a downstream knowledge surface, not a data source.
 - **Feature flag**: `cr_onenoteenabled` (org-level) and `cr_onenoteoptout` (per-user) gate all OneNote operations. Setting the flag to `false` stops all writes immediately.
 - **Group-scoped Graph API**: All OneNote calls use `/groups/{groupId}/onenote/...` with an application permission (`Notes.ReadWrite.All` scoped to a dedicated M365 Group). Never use delegated `/me/` endpoints.
-- **HTML templates**: Stored in `enterprise-work-assistant/templates/` using `{{PLACEHOLDER_NAME}}` syntax. All injected values must be HTML-entity-encoded before substitution.
+- **HTML templates**: Stored in `intelligent-work-layer/templates/` using `{{PLACEHOLDER_NAME}}` syntax. All injected values must be HTML-entity-encoded before substitution.
 - **Fail-safe error handling**: OneNote operations are wrapped in Power Automate Scopes. Failures are logged to `cr_errorlog` and surfaced as `cr_onenotesyncstatus = "FAILED"` on the card — they never block the main pipeline.
 - **External-sharing pre-check**: Before every write, flows verify the notebook is not shared with external users to prevent data leakage.
 - **Idempotency**: `cr_onenotepageid` on the Dataverse card is the dedup key. If a page ID exists, flows PATCH (update); otherwise POST (create).

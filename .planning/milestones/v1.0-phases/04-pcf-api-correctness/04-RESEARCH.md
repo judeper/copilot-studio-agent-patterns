@@ -75,7 +75,7 @@ None -- this phase uses the existing stack. No new dependencies needed.
 
 ### Current File Structure
 ```
-enterprise-work-assistant/src/AssistantDashboard/
+intelligent-work-layer/src/AssistantDashboard/
 ├── index.ts                    # PCF entry point
 ├── components/
 │   ├── types.ts                # NEEDS FIX: Priority/TemporalHorizon types

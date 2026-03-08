@@ -62,11 +62,11 @@ Wire sender behavioral data into the main triage agent as a formal input variabl
 ## Existing Code Insights
 
 ### Reusable Assets
-- `enterprise-work-assistant/schemas/senderprofile-table.json`: Full table schema with alternate key already defined
-- `enterprise-work-assistant/prompts/main-agent-system-prompt.md`: Agent prompt with SENDER_PROFILE input variable and triage/confidence logic already written
-- `enterprise-work-assistant/src/AssistantDashboard/index.ts`: `handleSendDraft` at line 83 — current send handler that builds `{cardId, finalText}` JSON
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx`: Component where user edits drafts and clicks Send — has access to original humanized draft and edited text
-- `enterprise-work-assistant/src/.eslintrc.json`: Existing ESLint config with @typescript-eslint parser and plugin
+- `intelligent-work-layer/schemas/senderprofile-table.json`: Full table schema with alternate key already defined
+- `intelligent-work-layer/prompts/main-agent-system-prompt.md`: Agent prompt with SENDER_PROFILE input variable and triage/confidence logic already written
+- `intelligent-work-layer/src/AssistantDashboard/index.ts`: `handleSendDraft` at line 83 — current send handler that builds `{cardId, finalText}` JSON
+- `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx`: Component where user edits drafts and clicks Send — has access to original humanized draft and edited text
+- `intelligent-work-layer/src/.eslintrc.json`: Existing ESLint config with @typescript-eslint parser and plugin
 
 ### Established Patterns
 - Power Automate flows use Compose actions for intermediate calculations (running averages, etc.)

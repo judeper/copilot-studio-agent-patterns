@@ -23,8 +23,8 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/docs/agent-flows.md
-    - enterprise-work-assistant/docs/deployment-guide.md
+    - intelligent-work-layer/docs/agent-flows.md
+    - intelligent-work-layer/docs/deployment-guide.md
 
 key-decisions:
   - "Used alternate key cr_senderemail_key for all Upsert operations rather than row ID lookup"
@@ -70,8 +70,8 @@ Each task was committed atomically:
 2. **Task 2: Update Flow 5 outcome tracker to use Upsert + pre-computed edit distance ratio** - `45af8c9` (feat)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/docs/agent-flows.md` - Updated flow specs: Upsert pattern in Flows 1-3 step 11 and Flow 5, SENDER_PROFILE passthrough (steps 3a-3b), pre-computed edit distance, removed R-17 gap
-- `enterprise-work-assistant/docs/deployment-guide.md` - Updated SENDER_PROFILE input variable description and Sprint 4 checklist
+- `intelligent-work-layer/docs/agent-flows.md` - Updated flow specs: Upsert pattern in Flows 1-3 step 11 and Flow 5, SENDER_PROFILE passthrough (steps 3a-3b), pre-computed edit distance, removed R-17 gap
+- `intelligent-work-layer/docs/deployment-guide.md` - Updated SENDER_PROFILE input variable description and Sprint 4 checklist
 
 ## Decisions Made
 - Used alternate key `cr_senderemail_key` for all Upsert operations, matching the alternate key already defined in senderprofile-table.json schema

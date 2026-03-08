@@ -1,4 +1,4 @@
-# Enterprise Work Assistant — Second Brain
+# Intelligent Work Layer — Second Brain
 
 ## What This Is
 

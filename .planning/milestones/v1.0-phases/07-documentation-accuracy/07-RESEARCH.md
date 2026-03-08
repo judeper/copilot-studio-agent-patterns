@@ -63,8 +63,8 @@ This phase modifies only Markdown documentation files. No libraries or tools are
 ### Files to Modify
 | File | Changes |
 |------|---------|
-| `enterprise-work-assistant/docs/deployment-guide.md` | Fix JSON output UI path (Section 2.2), update prerequisites (top section), verify research tool registration (Section 2.4), add "Last verified" dates |
-| `enterprise-work-assistant/docs/agent-flows.md` | Fix connector action name throughout, add complete Choice column expression examples, fix item_summary in simplified schema, add "Run a prompt" inline documentation with cross-reference to deployment guide, add "Last verified" dates |
+| `intelligent-work-layer/docs/deployment-guide.md` | Fix JSON output UI path (Section 2.2), update prerequisites (top section), verify research tool registration (Section 2.4), add "Last verified" dates |
+| `intelligent-work-layer/docs/agent-flows.md` | Fix connector action name throughout, add complete Choice column expression examples, fix item_summary in simplified schema, add "Run a prompt" inline documentation with cross-reference to deployment guide, add "Last verified" dates |
 
 ### No New Files
 Per CONTEXT.md: "No new documentation files — only corrections and additions to existing docs."
@@ -92,7 +92,7 @@ Per CONTEXT.md: "No new documentation files — only corrections and additions t
 
 **Confidence:** HIGH — verified against official Microsoft Learn page (`process-responses-json-output`, doc date 2025-11-07, last commit 2025-11-13).
 
-**Important nuance for this project:** The Enterprise Work Assistant uses an agent with a system prompt and input variables, not a standalone prompt. The JSON output mode described above applies to the **Prompt builder** (creating prompts that can run in agents, flows, and apps). For agents with generative orchestration, the JSON output format is set when the agent's prompt configuration is saved. The deployment guide should describe this using function-first language since the exact UI may evolve: "Configure the agent's prompt to output JSON format" rather than giving a stale settings path.
+**Important nuance for this project:** The Intelligent Work Layer uses an agent with a system prompt and input variables, not a standalone prompt. The JSON output mode described above applies to the **Prompt builder** (creating prompts that can run in agents, flows, and apps). For agents with generative orchestration, the JSON output format is set when the agent's prompt configuration is saved. The deployment guide should describe this using function-first language since the exact UI may evolve: "Configure the agent's prompt to output JSON format" rather than giving a stale settings path.
 
 **Source:** [JSON output - Microsoft Copilot Studio | Microsoft Learn](https://learn.microsoft.com/en-us/microsoft-copilot-studio/process-responses-json-output)
 

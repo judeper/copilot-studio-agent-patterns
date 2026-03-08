@@ -104,7 +104,7 @@ All 14 frontend/PCF source files, 9 test files, and 6 configuration files were r
 
 **IMP-F11: Build pipeline uses `pcf-scripts` with React 16 types -- `@testing-library/react` v16.3.2 expects React 18+**
 - **Artifact:** package.json:22-23
-- **Location:** `enterprise-work-assistant/src/package.json` lines 22-23
+- **Location:** `intelligent-work-layer/src/package.json` lines 22-23
 - **Issue:** `@testing-library/react: ^16.3.2` is designed for React 18+ and uses `createRoot` and `act` from React 18. However, `@types/react: ~16.14.0` pins React 16 types. This version mismatch works because: (1) pcf-scripts provides React at runtime so no React package is installed, (2) ts-jest uses skipLibCheck to avoid type conflicts, (3) the test library falls back to the legacy rendering API when React 18 APIs aren't available, OR (4) the actual React version available during testing may differ from the type declarations.
 - **Evidence:** `@testing-library/react: ^16.3.2` (latest) vs `@types/react: ~16.14.0` (React 16). The `skipLibCheck: true` in tsconfig.json suppresses type conflicts.
 - **Impact:** Non-blocking. Tests pass because of skipLibCheck and runtime compatibility layers. However, the version mismatch could cause confusing failures if skipLibCheck is ever disabled.
@@ -121,7 +121,7 @@ All 14 frontend/PCF source files, 9 test files, and 6 configuration files were r
 **IMP-FC02: Canvas App delegation limit of 2000 records applies to DataSet binding**
 - **Artifact:** useCardData.ts
 - **Location:** N/A (platform constraint)
-- **Constraint:** Even with pagination implemented, the Canvas App DataSet binding is subject to the 2000-record delegation limit. If the Dataverse view returns more than 2000 records, the DataSet will be truncated. For the Enterprise Work Assistant, this is unlikely to be hit (most users won't have 2000 active cards), but it's a known ceiling.
+- **Constraint:** Even with pagination implemented, the Canvas App DataSet binding is subject to the 2000-record delegation limit. If the Dataverse view returns more than 2000 records, the DataSet will be truncated. For the Intelligent Work Layer, this is unlikely to be hit (most users won't have 2000 active cards), but it's a known ceiling.
 - **Status:** Accepted risk. Document in deployment guide that card archival or cleanup is recommended for long-term use.
 
 **IMP-FC03: PCF controls cannot access Canvas App variables directly -- must use output properties for communication**

@@ -29,13 +29,13 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/schemas/output-schema.json
-    - enterprise-work-assistant/prompts/main-agent-system-prompt.md
-    - enterprise-work-assistant/prompts/orchestrator-agent-prompt.md
-    - enterprise-work-assistant/prompts/daily-briefing-agent-prompt.md
-    - enterprise-work-assistant/scripts/create-security-roles.ps1
-    - enterprise-work-assistant/scripts/provision-environment.ps1
-    - enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts
+    - intelligent-work-layer/schemas/output-schema.json
+    - intelligent-work-layer/prompts/main-agent-system-prompt.md
+    - intelligent-work-layer/prompts/orchestrator-agent-prompt.md
+    - intelligent-work-layer/prompts/daily-briefing-agent-prompt.md
+    - intelligent-work-layer/scripts/create-security-roles.ps1
+    - intelligent-work-layer/scripts/provision-environment.ps1
+    - intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts
     - .planning/PROJECT.md
 
 key-decisions:
@@ -85,13 +85,13 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `enterprise-work-assistant/schemas/output-schema.json` - Added "N/A" to priority and temporal_horizon enums
-- `enterprise-work-assistant/prompts/main-agent-system-prompt.md` - Fixed USER_VIP to USER_OVERRIDE, added injection defense
-- `enterprise-work-assistant/prompts/orchestrator-agent-prompt.md` - Added injection defense for COMMAND_TEXT
-- `enterprise-work-assistant/prompts/daily-briefing-agent-prompt.md` - Added injection defense for OPEN_CARDS content
-- `enterprise-work-assistant/scripts/create-security-roles.ps1` - PascalCase SchemaName for privilege construction
-- `enterprise-work-assistant/scripts/provision-environment.ps1` - Publisher validation/creation before entity creation
-- `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts` - Added dataset to useMemo dependency array
+- `intelligent-work-layer/schemas/output-schema.json` - Added "N/A" to priority and temporal_horizon enums
+- `intelligent-work-layer/prompts/main-agent-system-prompt.md` - Fixed USER_VIP to USER_OVERRIDE, added injection defense
+- `intelligent-work-layer/prompts/orchestrator-agent-prompt.md` - Added injection defense for COMMAND_TEXT
+- `intelligent-work-layer/prompts/daily-briefing-agent-prompt.md` - Added injection defense for OPEN_CARDS content
+- `intelligent-work-layer/scripts/create-security-roles.ps1` - PascalCase SchemaName for privilege construction
+- `intelligent-work-layer/scripts/provision-environment.ps1` - Publisher validation/creation before entity creation
+- `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts` - Added dataset to useMemo dependency array
 - `.planning/PROJECT.md` - Reclassified tech debt #7 as resolved
 
 ## Decisions Made

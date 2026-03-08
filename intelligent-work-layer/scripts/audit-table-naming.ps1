@@ -26,7 +26,7 @@
     .\audit-table-naming.ps1 -SearchRoot "."
 
 .EXAMPLE
-    .\audit-table-naming.ps1 -SearchRoot "../enterprise-work-assistant"
+    .\audit-table-naming.ps1 -SearchRoot "../intelligent-work-layer"
 #>
 
 param(

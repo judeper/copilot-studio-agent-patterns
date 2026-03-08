@@ -22,9 +22,9 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - "enterprise-work-assistant/schemas/output-schema.json"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/types.ts"
-    - "enterprise-work-assistant/schemas/dataverse-table.json"
+    - "intelligent-work-layer/schemas/output-schema.json"
+    - "intelligent-work-layer/src/AssistantDashboard/components/types.ts"
+    - "intelligent-work-layer/schemas/dataverse-table.json"
 
 key-decisions:
   - "item_summary is non-nullable string across all schema files -- agent always generates a summary including for SKIP tier"
@@ -69,9 +69,9 @@ Each task was committed atomically:
 2. **Task 2: Align types.ts and dataverse-table.json with updated schema** - `ed004e1` (fix)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/schemas/output-schema.json` - Canonical output schema: item_summary non-nullable, draft_payload null convention
-- `enterprise-work-assistant/src/AssistantDashboard/components/types.ts` - TypeScript interfaces: item_summary changed from `string | null` to `string`
-- `enterprise-work-assistant/schemas/dataverse-table.json` - Dataverse table definition: notes updated for SKIP write policy
+- `intelligent-work-layer/schemas/output-schema.json` - Canonical output schema: item_summary non-nullable, draft_payload null convention
+- `intelligent-work-layer/src/AssistantDashboard/components/types.ts` - TypeScript interfaces: item_summary changed from `string | null` to `string`
+- `intelligent-work-layer/schemas/dataverse-table.json` - Dataverse table definition: notes updated for SKIP write policy
 
 ## Decisions Made
 - Used null universally for "not applicable" rather than a mixed null/N/A approach -- cleaner for all consumers (Power Automate, PCF, Canvas app)

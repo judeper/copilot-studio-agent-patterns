@@ -35,11 +35,11 @@ re_verification: false
 
 | Artifact                                                        | Expected                                              | Status    | Details                                                                                    |
 |-----------------------------------------------------------------|-------------------------------------------------------|-----------|--------------------------------------------------------------------------------------------|
-| `enterprise-work-assistant/src/AssistantDashboard/components/types.ts`     | Priority/TemporalHorizon without N/A, nullable fields | VERIFIED | `Priority = "High" \| "Medium" \| "Low"`, `priority: Priority \| null`, `temporal_horizon: TemporalHorizon \| null` |
-| `enterprise-work-assistant/src/AssistantDashboard/components/constants.ts` | Shared PRIORITY_COLORS map, High/Medium/Low only      | VERIFIED | Exports `PRIORITY_COLORS` with exactly 3 entries; uses `colorPaletteMarigoldBorder2`        |
-| `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts`    | Null fallbacks for priority/temporal_horizon, simplified item_summary | VERIFIED | Lines 47-52: ingestion-boundary `!== "N/A"` mapping to null; line 46: `parsed.item_summary ?? ""` |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx` | Imports PRIORITY_COLORS, truthiness guards            | VERIFIED | Line 14: `import { PRIORITY_COLORS } from "./constants"`; line 62: `{card.temporal_horizon && (` |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` | Conditional priority badge, truthiness guards        | VERIFIED | Line 63: `{card.priority && (`; line 80: `{card.temporal_horizon && (`; line 145: `{card.draft_payload && (` |
+| `intelligent-work-layer/src/AssistantDashboard/components/types.ts`     | Priority/TemporalHorizon without N/A, nullable fields | VERIFIED | `Priority = "High" \| "Medium" \| "Low"`, `priority: Priority \| null`, `temporal_horizon: TemporalHorizon \| null` |
+| `intelligent-work-layer/src/AssistantDashboard/components/constants.ts` | Shared PRIORITY_COLORS map, High/Medium/Low only      | VERIFIED | Exports `PRIORITY_COLORS` with exactly 3 entries; uses `colorPaletteMarigoldBorder2`        |
+| `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts`    | Null fallbacks for priority/temporal_horizon, simplified item_summary | VERIFIED | Lines 47-52: ingestion-boundary `!== "N/A"` mapping to null; line 46: `parsed.item_summary ?? ""` |
+| `intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx` | Imports PRIORITY_COLORS, truthiness guards            | VERIFIED | Line 14: `import { PRIORITY_COLORS } from "./constants"`; line 62: `{card.temporal_horizon && (` |
+| `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` | Conditional priority badge, truthiness guards        | VERIFIED | Line 63: `{card.priority && (`; line 80: `{card.temporal_horizon && (`; line 145: `{card.draft_payload && (` |
 
 ---
 

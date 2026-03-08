@@ -13,7 +13,7 @@
 | **Category** | Intelligent Work Layer for Microsoft 365 |
 | **Value Prop** | An intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses before the user ever has to ask. |
 
-> **Backward compatibility note:** The Dataverse table prefix `cr_` (e.g., `cr_assistantcards`), the directory name `enterprise-work-assistant/`, solution package names, and PCF component identifiers retain the original "Enterprise Work Assistant" naming for backward compatibility. The product rebrand to "Intelligent Work Layer" (IWL) applies to all user-facing documentation and positioning. The old name "Enterprise Work Assistant" (EWA) is deprecated.
+> **Backward compatibility note:** The Dataverse table prefix `cr_` (e.g., `cr_assistantcards`), the directory name `intelligent-work-layer/`, solution package names, and PCF component identifiers retain the original "Intelligent Work Layer" naming for backward compatibility. The product rebrand to "Intelligent Work Layer" (IWL) applies to all user-facing documentation and positioning. The old name "Intelligent Work Layer" (IWL) is deprecated.
 
 ### What It Is NOT
 

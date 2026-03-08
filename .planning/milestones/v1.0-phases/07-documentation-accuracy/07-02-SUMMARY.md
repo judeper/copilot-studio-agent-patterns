@@ -24,7 +24,7 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/docs/agent-flows.md
+    - intelligent-work-layer/docs/agent-flows.md
 
 key-decisions:
   - "Execute Agent and wait (Microsoft Copilot Studio connector) replaces Run a prompt (AI Builder) for all agent invocations"
@@ -69,7 +69,7 @@ Each task was committed atomically:
 1. **Task 1: Fix connector action name and add expression examples** - `3bfbda9` (fix)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/docs/agent-flows.md` - Corrected connector actions, added complete Choice column expressions, fixed schema nullability, added cross-references and verification dates
+- `intelligent-work-layer/docs/agent-flows.md` - Corrected connector actions, added complete Choice column expressions, fixed schema nullability, added cross-references and verification dates
 
 ## Decisions Made
 - "Execute Agent and wait" from the Microsoft Copilot Studio connector is the correct action for invoking full agents (not "Run a prompt" from AI Builder which runs standalone prompts)
@@ -92,7 +92,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-- FOUND: enterprise-work-assistant/docs/agent-flows.md
+- FOUND: intelligent-work-layer/docs/agent-flows.md
 - FOUND: .planning/phases/07-documentation-accuracy/07-02-SUMMARY.md
 - FOUND: commit 3bfbda9
 

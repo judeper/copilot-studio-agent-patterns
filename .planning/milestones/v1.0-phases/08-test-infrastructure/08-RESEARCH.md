@@ -6,7 +6,7 @@
 
 ## Summary
 
-This phase configures Jest with ts-jest and React Testing Library to test a PCF (PowerApps Component Framework) virtual control built with TypeScript, React, and Fluent UI v9. The codebase has 11 source files under `enterprise-work-assistant/src/AssistantDashboard/` — a PCF entry point (`index.ts`), 5 React components (`App.tsx`, `CardItem.tsx`, `CardDetail.tsx`, `CardGallery.tsx`, `FilterBar.tsx`), a custom hook (`useCardData.ts`), a utility (`urlSanitizer.ts`), types, constants, and generated manifest types.
+This phase configures Jest with ts-jest and React Testing Library to test a PCF (PowerApps Component Framework) virtual control built with TypeScript, React, and Fluent UI v9. The codebase has 11 source files under `intelligent-work-layer/src/AssistantDashboard/` — a PCF entry point (`index.ts`), 5 React components (`App.tsx`, `CardItem.tsx`, `CardDetail.tsx`, `CardGallery.tsx`, `FilterBar.tsx`), a custom hook (`useCardData.ts`), a utility (`urlSanitizer.ts`), types, constants, and generated manifest types.
 
 The critical technical nuance is that this is a **PCF virtual control** — the platform provides React 16.14.0 at runtime, but the project's `node_modules` contains React 19.2.4 (pulled in by Fluent UI v9 dependencies). TypeScript types are pinned to `@types/react@~16.14.0`. Tests will execute against the React 19 runtime in node_modules, which is acceptable since the component code only uses React 16-compatible APIs. The `ComponentFramework` global namespace used in `index.ts` and `ManifestTypes.d.ts` requires mocking.
 
@@ -91,7 +91,7 @@ bun add -d jest ts-jest @types/jest jest-environment-jsdom @testing-library/reac
 ### Recommended Project Structure
 
 ```
-enterprise-work-assistant/src/
+intelligent-work-layer/src/
 ├── AssistantDashboard/          # existing source
 │   ├── components/
 │   ├── hooks/

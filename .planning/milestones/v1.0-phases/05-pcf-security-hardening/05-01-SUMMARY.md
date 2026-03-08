@@ -20,9 +20,9 @@ tech-stack:
 
 key-files:
   created:
-    - enterprise-work-assistant/src/AssistantDashboard/utils/urlSanitizer.ts
+    - intelligent-work-layer/src/AssistantDashboard/utils/urlSanitizer.ts
   modified:
-    - enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx
 
 key-decisions:
   - "SAFE_PROTOCOLS restricted to https: and mailto: only -- no http:, no enterprise schemes (tel:, ms-teams:) until explicitly needed"
@@ -65,8 +65,8 @@ Each task was committed atomically:
 2. **Task 2: Integrate URL sanitization into CardDetail.tsx** - `0e86a6c` (fix)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/AssistantDashboard/utils/urlSanitizer.ts` - URL validation utility with SAFE_PROTOCOLS Set and isSafeUrl() function
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` - Conditional Link vs Text rendering for verified_sources URLs
+- `intelligent-work-layer/src/AssistantDashboard/utils/urlSanitizer.ts` - URL validation utility with SAFE_PROTOCOLS Set and isSafeUrl() function
+- `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` - Conditional Link vs Text rendering for verified_sources URLs
 
 ## Decisions Made
 - SAFE_PROTOCOLS restricted to `https:` and `mailto:` only -- HTTP excluded per strict security posture; enterprise schemes (tel:, ms-teams:) deferred to future phase if needed
@@ -89,7 +89,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-- FOUND: enterprise-work-assistant/src/AssistantDashboard/utils/urlSanitizer.ts
+- FOUND: intelligent-work-layer/src/AssistantDashboard/utils/urlSanitizer.ts
 - FOUND: .planning/phases/05-pcf-security-hardening/05-01-SUMMARY.md
 - FOUND: commit d2ece2b (Task 1)
 - FOUND: commit 0e86a6c (Task 2)

@@ -25,12 +25,12 @@ tech-stack:
 
 key-files:
   created:
-    - enterprise-work-assistant/src/AssistantDashboard/components/constants.ts
+    - intelligent-work-layer/src/AssistantDashboard/components/constants.ts
   modified:
-    - enterprise-work-assistant/src/AssistantDashboard/components/types.ts
-    - enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts
-    - enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/types.ts
+    - intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts
+    - intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx
 
 key-decisions:
   - "Kept tokens import in CardItem.tsx -- still used for colorNeutralForeground3 on footer text"
@@ -79,11 +79,11 @@ Each task was committed atomically:
 **Plan metadata:** `4a785f1` (docs: complete plan)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/AssistantDashboard/components/types.ts` - Removed N/A from Priority and TemporalHorizon unions, made fields nullable
-- `enterprise-work-assistant/src/AssistantDashboard/components/constants.ts` - NEW: Shared PRIORITY_COLORS map with High/Medium/Low entries
-- `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts` - Maps agent "N/A" to null, simplified item_summary
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx` - Imports PRIORITY_COLORS, truthiness guards, conditional border
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` - Imports PRIORITY_COLORS, null guard on priority Badge, truthiness guards
+- `intelligent-work-layer/src/AssistantDashboard/components/types.ts` - Removed N/A from Priority and TemporalHorizon unions, made fields nullable
+- `intelligent-work-layer/src/AssistantDashboard/components/constants.ts` - NEW: Shared PRIORITY_COLORS map with High/Medium/Low entries
+- `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts` - Maps agent "N/A" to null, simplified item_summary
+- `intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx` - Imports PRIORITY_COLORS, truthiness guards, conditional border
+- `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` - Imports PRIORITY_COLORS, null guard on priority Badge, truthiness guards
 
 ## Decisions Made
 - **Kept `tokens` import in CardItem.tsx:** Plan said to remove it, but `tokens.colorNeutralForeground3` is still used on line 73 for the footer text color. Removing it would break the build. (Rule 1 -- bug prevention)
@@ -97,7 +97,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (CardItem.tsx modifications)
 - **Issue:** Plan instructed to remove `tokens` from CardItem.tsx imports, but `tokens.colorNeutralForeground3` is still used on line 73 for footer text color
 - **Fix:** Kept `tokens` in the import to prevent build failure
-- **Files modified:** enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx
+- **Files modified:** intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx
 - **Verification:** `bun run build` passes clean
 - **Committed in:** 135670b (Task 2 commit)
 

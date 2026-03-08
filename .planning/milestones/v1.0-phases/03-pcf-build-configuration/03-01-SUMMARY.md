@@ -21,17 +21,17 @@ tech-stack:
 
 key-files:
   created:
-    - enterprise-work-assistant/src/scripts/patch-manifest-schema.js
-    - enterprise-work-assistant/src/bun.lock
+    - intelligent-work-layer/src/scripts/patch-manifest-schema.js
+    - intelligent-work-layer/src/bun.lock
   modified:
-    - enterprise-work-assistant/src/AssistantDashboard/ControlManifest.Input.xml
-    - enterprise-work-assistant/src/AssistantDashboard/components/FilterBar.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/CardGallery.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx
-    - enterprise-work-assistant/src/.eslintrc.json
-    - enterprise-work-assistant/src/package.json
-    - enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts
+    - intelligent-work-layer/src/AssistantDashboard/ControlManifest.Input.xml
+    - intelligent-work-layer/src/AssistantDashboard/components/FilterBar.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/CardGallery.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx
+    - intelligent-work-layer/src/.eslintrc.json
+    - intelligent-work-layer/src/package.json
+    - intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts
 
 key-decisions:
   - "Postinstall patch for pcf-scripts ManifestSchema.json to support platform-library elements -- pcf-scripts ^1.51.1 lacks this in its validation schema"
@@ -80,16 +80,16 @@ Each task was committed atomically:
 **Plan metadata:** (pending final commit)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/AssistantDashboard/ControlManifest.Input.xml` - platform-library Fluent version 9.0 -> 9.46.2
-- `enterprise-work-assistant/src/AssistantDashboard/components/FilterBar.tsx` - Consolidated imports, eliminated @fluentui/react-theme
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardGallery.tsx` - Consolidated imports, eliminated @fluentui/react-theme
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx` - Merged duplicate @fluentui/react-components import blocks
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` - Merged duplicate @fluentui/react-components import blocks
-- `enterprise-work-assistant/src/.eslintrc.json` - no-console rule updated to allow console.warn
-- `enterprise-work-assistant/src/package.json` - Added postinstall script, added @types/powerapps-component-framework
-- `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts` - Fixed item_summary type narrowing
-- `enterprise-work-assistant/src/scripts/patch-manifest-schema.js` - NEW: postinstall script to patch pcf-scripts manifest schema
-- `enterprise-work-assistant/src/bun.lock` - NEW: Bun lockfile for deterministic installs
+- `intelligent-work-layer/src/AssistantDashboard/ControlManifest.Input.xml` - platform-library Fluent version 9.0 -> 9.46.2
+- `intelligent-work-layer/src/AssistantDashboard/components/FilterBar.tsx` - Consolidated imports, eliminated @fluentui/react-theme
+- `intelligent-work-layer/src/AssistantDashboard/components/CardGallery.tsx` - Consolidated imports, eliminated @fluentui/react-theme
+- `intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx` - Merged duplicate @fluentui/react-components import blocks
+- `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` - Merged duplicate @fluentui/react-components import blocks
+- `intelligent-work-layer/src/.eslintrc.json` - no-console rule updated to allow console.warn
+- `intelligent-work-layer/src/package.json` - Added postinstall script, added @types/powerapps-component-framework
+- `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts` - Fixed item_summary type narrowing
+- `intelligent-work-layer/src/scripts/patch-manifest-schema.js` - NEW: postinstall script to patch pcf-scripts manifest schema
+- `intelligent-work-layer/src/bun.lock` - NEW: Bun lockfile for deterministic installs
 
 ## Decisions Made
 - **Postinstall schema patch:** pcf-scripts ^1.51.1 does not include `platform-library` in its ManifestSchema.json validation schema, causing build failure. Added a postinstall script that patches the schema to accept platform-library elements. This is the standard community workaround for virtual PCF controls.
@@ -105,7 +105,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (bun run build)
 - **Issue:** pcf-scripts ^1.51.1 has `additionalProperties: false` on the control schema without a `platform-library` property definition, causing `pcf-1014` manifest validation error. This was a pre-existing build failure (also fails with the original 9.0 version).
 - **Fix:** Created `scripts/patch-manifest-schema.js` postinstall script that adds the platform-library property definition to ManifestSchema.json after each install.
-- **Files modified:** enterprise-work-assistant/src/scripts/patch-manifest-schema.js (new), enterprise-work-assistant/src/package.json (postinstall script)
+- **Files modified:** intelligent-work-layer/src/scripts/patch-manifest-schema.js (new), intelligent-work-layer/src/package.json (postinstall script)
 - **Verification:** `bun run build` succeeds with zero errors after patch
 - **Committed in:** 4d0b3a2 (Task 2 commit)
 
@@ -113,7 +113,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (bun run build)
 - **Issue:** `ComponentFramework` namespace used in index.ts and generated ManifestTypes.d.ts but no type package installed, causing 4 TS2503 errors.
 - **Fix:** Installed `@types/powerapps-component-framework ^1.3.18` as devDependency.
-- **Files modified:** enterprise-work-assistant/src/package.json
+- **Files modified:** intelligent-work-layer/src/package.json
 - **Verification:** Build compiles successfully with no namespace errors
 - **Committed in:** 4d0b3a2 (Task 2 commit)
 
@@ -121,7 +121,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (bun run build)
 - **Issue:** Line 46 cast `as string | null` assigns nullable type to non-nullable `item_summary: string` field on AssistantCard, causing TS2322 error under strict mode.
 - **Fix:** Changed to `String(parsed.item_summary ?? record.getValue("cr_itemsummary") ?? "")` for safe coercion.
-- **Files modified:** enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts
+- **Files modified:** intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts
 - **Verification:** Build compiles with zero type errors
 - **Committed in:** 4d0b3a2 (Task 2 commit)
 

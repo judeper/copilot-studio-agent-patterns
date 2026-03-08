@@ -60,7 +60,7 @@ An intelligent work layer for Microsoft 365 that triages incoming emails, Teams 
 ## File Map
 
 ```
-enterprise-work-assistant/
+intelligent-work-layer/
 ├── docs/
 │   ├── agent-flows.md            # Step-by-step flow building guide
 │   ├── architecture-enhancements.md # v3.0 MARL pipeline architecture design

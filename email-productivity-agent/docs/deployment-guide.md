@@ -37,7 +37,7 @@ If HTTP with Microsoft Entra ID is blocked or in a different group, contact your
 | `Mail.Send` | Send email | Send follow-up emails when user approves a draft |
 | `MailboxSettings.Read` | Read settings | Access user timezone for business-day calculations |
 
-> **Note on Mail.ReadWrite**: The Enterprise Work Assistant requires only `Mail.Read`. This agent requires `Mail.ReadWrite` because the snooze feature moves messages between folders via `POST /me/messages/{id}/move`. If deploying Phase 1 only (nudges without snooze), `Mail.Read` is sufficient.
+> **Note on Mail.ReadWrite**: The Intelligent Work Layer requires only `Mail.Read`. This agent requires `Mail.ReadWrite` because the snooze feature moves messages between folders via `POST /me/messages/{id}/move`. If deploying Phase 1 only (nudges without snooze), `Mail.Read` is sufficient.
 
 ---
 
@@ -413,7 +413,7 @@ To disable the Email Productivity Agent without affecting other systems:
 3. **(Optional) Clean up data**: Delete all rows in `cr_followuptracking` and `cr_snoozedconversation`
 4. **(Optional) Remove folder**: Delete the EPA-Snoozed folder via Graph or Outlook
 5. **(Optional) Remove harness flows**: Delete Flow 8-13 if you deployed the regression harnesses
-6. Existing Enterprise Work Assistant flows are unaffected
+6. Existing Intelligent Work Layer flows are unaffected
 
 ---
 

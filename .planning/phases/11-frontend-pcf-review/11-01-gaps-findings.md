@@ -44,7 +44,7 @@ All 14 frontend/PCF source files, 9 test files, and 6 configuration files were r
 - **Artifact:** ConfidenceCalibration.tsx
 - **Location:** `src/AssistantDashboard/components/ConfidenceCalibration.tsx`
 - **Gap:** ConfidenceCalibration is the largest component (324 lines) with four `useMemo` computations (accuracy buckets, triage stats, draft stats, top senders), four tab panels, and conditional rendering logic. There is no `ConfidenceCalibration.test.tsx` file. No test file exists in `__tests__/` for this component.
-- **Evidence:** `ls enterprise-work-assistant/src/AssistantDashboard/components/__tests__/` shows: App.test.tsx, BriefingCard.test.tsx, CardDetail.test.tsx, CardGallery.test.tsx, CardItem.test.tsx, CommandBar.test.tsx, FilterBar.test.tsx. No ConfidenceCalibration test file.
+- **Evidence:** `ls intelligent-work-layer/src/AssistantDashboard/components/__tests__/` shows: App.test.tsx, BriefingCard.test.tsx, CardDetail.test.tsx, CardGallery.test.tsx, CardItem.test.tsx, CommandBar.test.tsx, FilterBar.test.tsx. No ConfidenceCalibration test file.
 - **Why deploy-blocking:** The component performs mathematical calculations (percentages, ratios, sorting) that could silently produce incorrect results. Without tests, division-by-zero edge cases (0 resolved cards, 0 full cards, 0 sent cards, 0 senders) are unverified. The per-file 80% coverage threshold in jest.config.ts would fail for this file when `--coverage` is enabled.
 - **Suggested Fix:** Create `ConfidenceCalibration.test.tsx` with tests for: empty cards array, single card, cards with all outcomes, division-by-zero safety, sender deduplication, tab switching.
 
@@ -176,7 +176,7 @@ All 14 frontend/PCF source files, 9 test files, and 6 configuration files were r
 **GAP-F19: Missing ESLint rules for React-specific patterns**
 - **Category:** Configuration gap
 - **Artifact:** .eslintrc.json
-- **Location:** `enterprise-work-assistant/src/.eslintrc.json`
+- **Location:** `intelligent-work-layer/src/.eslintrc.json`
 - **Gap:** The ESLint configuration does not include `eslint-plugin-react` or `eslint-plugin-react-hooks`. This means: (a) React hooks rules (exhaustive-deps, rules-of-hooks) are not enforced -- the useMemo dependency issue in COR-F03 would have been caught by eslint-plugin-react-hooks, (b) React-specific patterns (key prop validation, no direct state mutation) are not linted.
 - **Evidence:** `.eslintrc.json` plugins array contains only `["@typescript-eslint"]`. No react or react-hooks plugin.
 - **Suggested Fix:** Add `eslint-plugin-react` and `eslint-plugin-react-hooks` to devDependencies and ESLint config.
@@ -184,7 +184,7 @@ All 14 frontend/PCF source files, 9 test files, and 6 configuration files were r
 **GAP-F20: No development preview mode for PCF control**
 - **Category:** Configuration gap
 - **Artifact:** package.json
-- **Location:** `enterprise-work-assistant/src/package.json`
+- **Location:** `intelligent-work-layer/src/package.json`
 - **Gap:** The `start` script runs `pcf-scripts start` which launches the PCF test harness. However, the test harness has limited functionality for virtual controls (it can render the control but mock data setup is manual). There is no Storybook, test page, or alternative preview mechanism for rapid development iteration.
 - **Evidence:** Only standard pcf-scripts commands available. No storybook config. No standalone preview HTML.
 - **Suggested Fix:** Consider adding a simple `preview.html` with mock data that renders the AppWrapper directly, bypassing the PCF lifecycle, for rapid visual iteration during development.

@@ -26,9 +26,9 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/schemas/dataverse-table.json
-    - enterprise-work-assistant/prompts/orchestrator-agent-prompt.md
-    - enterprise-work-assistant/docs/agent-flows.md
+    - intelligent-work-layer/schemas/dataverse-table.json
+    - intelligent-work-layer/prompts/orchestrator-agent-prompt.md
+    - intelligent-work-layer/docs/agent-flows.md
 
 key-decisions:
   - "15-minute recurrence interval balances timeliness against flow run quota"
@@ -74,9 +74,9 @@ Each task was committed atomically:
 **Plan metadata:** (pending) (docs: complete plan)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/schemas/dataverse-table.json` - Added cr_reminderdue DateTime column after cr_sourcesignalid
-- `enterprise-work-assistant/prompts/orchestrator-agent-prompt.md` - Added cr_reminderdue as required field for reminders, updated past-date guardrail
-- `enterprise-work-assistant/docs/agent-flows.md` - Fixed Trigger Type Compose to 6 values, added Flow 10 Reminder Firing spec, updated intro to "ten flows", added Flow 10 to naming table
+- `intelligent-work-layer/schemas/dataverse-table.json` - Added cr_reminderdue DateTime column after cr_sourcesignalid
+- `intelligent-work-layer/prompts/orchestrator-agent-prompt.md` - Added cr_reminderdue as required field for reminders, updated past-date guardrail
+- `intelligent-work-layer/docs/agent-flows.md` - Fixed Trigger Type Compose to 6 values, added Flow 10 Reminder Firing spec, updated intro to "ten flows", added Flow 10 to naming table
 
 ## Decisions Made
 - 15-minute recurrence interval chosen to balance timeliness against Power Automate run quota
@@ -92,7 +92,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (Flow 10 spec insertion)
 - **Issue:** Error Monitoring Strategy section still said "All nine flows" after adding Flow 10
 - **Fix:** Updated to "All ten flows" for consistency
-- **Files modified:** enterprise-work-assistant/docs/agent-flows.md
+- **Files modified:** intelligent-work-layer/docs/agent-flows.md
 - **Verification:** grep confirms "ten flows" in error monitoring section
 - **Committed in:** 97dc6ae (Task 2 commit)
 

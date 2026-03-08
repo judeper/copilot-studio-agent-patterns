@@ -25,7 +25,7 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - "enterprise-work-assistant/prompts/main-agent-system-prompt.md"
+    - "intelligent-work-layer/prompts/main-agent-system-prompt.md"
 
 key-decisions:
   - "SKIP example item_summary uses descriptive format 'Marketing newsletter from Contoso Weekly — no action needed.' matching schema guidance"
@@ -70,7 +70,7 @@ Each task was committed atomically:
 2. **Task 2: Fix SKIP example and verify all four few-shot examples** - `ac77453` (fix)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/prompts/main-agent-system-prompt.md` - SKIP instructions updated in STEP 1 and STEP 5; output schema template item_summary and draft_payload descriptions corrected; Example 4 SKIP item_summary changed from null to descriptive string
+- `intelligent-work-layer/prompts/main-agent-system-prompt.md` - SKIP instructions updated in STEP 1 and STEP 5; output schema template item_summary and draft_payload descriptions corrected; Example 4 SKIP item_summary changed from null to descriptive string
 
 ## Decisions Made
 - Used "Marketing newsletter from Contoso Weekly — no action needed." as the SKIP example item_summary, matching the format recommended in the research phase and the schema description example text
@@ -94,7 +94,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-- Modified file exists: enterprise-work-assistant/prompts/main-agent-system-prompt.md
+- Modified file exists: intelligent-work-layer/prompts/main-agent-system-prompt.md
 - Task 1 commit 89c1d41 found in git log
 - Task 2 commit ac77453 found in git log
 - SUMMARY.md created at .planning/phases/01-output-schema-contract/01-02-SUMMARY.md

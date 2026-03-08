@@ -24,12 +24,12 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - "enterprise-work-assistant/src/AssistantDashboard/components/BriefingCard.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/ConfidenceCalibration.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/__tests__/BriefingCard.test.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx"
-    - "enterprise-work-assistant/src/package.json"
-    - "enterprise-work-assistant/src/package-lock.json"
+    - "intelligent-work-layer/src/AssistantDashboard/components/BriefingCard.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/ConfidenceCalibration.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/__tests__/BriefingCard.test.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx"
+    - "intelligent-work-layer/src/package.json"
+    - "intelligent-work-layer/src/package-lock.json"
 
 key-decisions:
   - "Installed react@18 and @types/react@18 as dev deps to fix pre-existing test infrastructure gap (PCF provides react at runtime but tests need it installed)"
@@ -77,12 +77,12 @@ Each task was committed atomically:
 2. **Task 2: Migrate ConfidenceCalibration to Fluent UI with empty state fix** - `4e11fa5` (feat)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/AssistantDashboard/components/BriefingCard.tsx` - Fluent UI migration with onBack prop
-- `enterprise-work-assistant/src/AssistantDashboard/components/ConfidenceCalibration.tsx` - Fluent UI migration with "No data" empty states
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/BriefingCard.test.tsx` - Updated mocks, added Back button tests
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` - Updated tab selectors, added "No data" tests
-- `enterprise-work-assistant/src/package.json` - Added dev deps for test infrastructure
-- `enterprise-work-assistant/src/package-lock.json` - Updated lockfile
+- `intelligent-work-layer/src/AssistantDashboard/components/BriefingCard.tsx` - Fluent UI migration with onBack prop
+- `intelligent-work-layer/src/AssistantDashboard/components/ConfidenceCalibration.tsx` - Fluent UI migration with "No data" empty states
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/BriefingCard.test.tsx` - Updated mocks, added Back button tests
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` - Updated tab selectors, added "No data" tests
+- `intelligent-work-layer/src/package.json` - Added dev deps for test infrastructure
+- `intelligent-work-layer/src/package-lock.json` - Updated lockfile
 
 ## Decisions Made
 - Installed react@18 as dev dependency: PCF provides React at runtime, but `@testing-library/react` v16 requires `react-dom/client` (React 18+) for testing. This is a test-only dependency.
