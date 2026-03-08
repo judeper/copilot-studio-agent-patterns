@@ -67,9 +67,10 @@ This creates:
 This must be done manually — there is no CLI command:
 
 1. Go to **Power Platform Admin Center** → **Environments** → select your environment
-2. Click **Settings** → **Features**
-3. Enable **Allow publishing of canvas apps with code components**
-4. Click **Save**
+2. Click **Settings** → expand **Product** → click **Features**
+3. Scroll to **Power Apps component framework for canvas apps** section
+4. Toggle **"Allow publishing of canvas apps with code components"** → **On**
+5. Click **Save**
 
 ### 1.4 Create Security Roles
 

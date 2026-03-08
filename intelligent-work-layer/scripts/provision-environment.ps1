@@ -4051,13 +4051,12 @@ try {
 # 6. Enable PCF Components for Canvas Apps
 # ─────────────────────────────────────
 Write-Host "Enabling PCF components for Canvas apps..." -ForegroundColor Cyan
-Write-Host "  Note: This requires Power Platform Admin API access." -ForegroundColor Yellow
-Write-Host "  If this step fails, enable manually:" -ForegroundColor Yellow
-Write-Host "    Admin Center → Environments → $EnvironmentName → Settings → Features → PCF for Canvas apps → ON" -ForegroundColor Yellow
-
-# PCF for Canvas apps must be enabled manually — there is no CLI command for this.
+Write-Host "  Note: This must be enabled manually in the Admin Center." -ForegroundColor Yellow
 Write-Warning "  MANUAL STEP: Enable PCF for Canvas apps in the Admin Center:"
-Write-Host "    Admin Center → Environments → $EnvironmentName → Settings → Features → 'Allow publishing of canvas apps with code components' → ON" -ForegroundColor Yellow
+Write-Host "    Admin Center → Environments → $EnvironmentName → Settings → Product → Features" -ForegroundColor Yellow
+Write-Host "    Scroll to 'Power Apps component framework for canvas apps'" -ForegroundColor Yellow
+Write-Host "    Toggle 'Allow publishing of canvas apps with code components' → ON" -ForegroundColor Yellow
+Write-Host "    Click Save" -ForegroundColor Yellow
 
 # ─────────────────────────────────────
 # 5. Print Manual Steps
