@@ -1,0 +1,112 @@
+{
+  "tableName": "cr_skillregistry",
+  "entitySetName": "cr_skillregistries",
+  "displayName": "Skill Registry",
+  "pluralName": "Skill Registries",
+  "description": "Skill registry for extensible agent capabilities. Power users define custom prompts or flow references.",
+  "primaryColumn": "cr_skillname",
+  "ownershipType": "UserOwned",
+  "columns": [
+    {
+      "logicalName": "cr_skillname",
+      "displayName": "Skill Name",
+      "type": "Text",
+      "maxLength": 100,
+      "required": true,
+      "description": "Primary column — unique human-readable name for the skill (e.g., 'Summarize Thread', 'Extract Action Items')."
+    },
+    {
+      "logicalName": "cr_skilldescription",
+      "displayName": "Skill Description",
+      "type": "MultilineText",
+      "maxLength": 500,
+      "required": true,
+      "description": "Natural language description of what the skill does. Used by the agent for skill selection during triage."
+    },
+    {
+      "logicalName": "cr_skilltype",
+      "displayName": "Skill Type",
+      "type": "Choice",
+      "required": true,
+      "description": "Whether the skill is a prompt template executed inline or a reference to an external Power Automate flow.",
+      "options": [
+        { "label": "PROMPT_TEMPLATE", "value": 100000000 },
+        { "label": "FLOW_REFERENCE", "value": 100000001 }
+      ]
+    },
+    {
+      "logicalName": "cr_prompttemplate",
+      "displayName": "Prompt Template",
+      "type": "MultilineText",
+      "maxLength": 10000,
+      "required": false,
+      "description": "Prompt text with {{PARAM_NAME}} substitution placeholders. Required when cr_skilltype = PROMPT_TEMPLATE. The agent resolves placeholders at runtime from the parameter schema."
+    },
+    {
+      "logicalName": "cr_parameterschema",
+      "displayName": "Parameter Schema",
+      "type": "MultilineText",
+      "maxLength": 2000,
+      "required": false,
+      "description": "JSON Schema defining input parameters for the skill. The agent validates inputs against this schema before execution."
+    },
+    {
+      "logicalName": "cr_flowid",
+      "displayName": "Flow ID",
+      "type": "Text",
+      "maxLength": 500,
+      "required": false,
+      "description": "Power Automate flow GUID or HTTP trigger URL. Required when cr_skilltype = FLOW_REFERENCE. Nullable for PROMPT_TEMPLATE skills."
+    },
+    {
+      "logicalName": "cr_outputformat",
+      "displayName": "Output Format",
+      "type": "Choice",
+      "required": true,
+      "description": "How the skill output should be rendered in the UI.",
+      "options": [
+        { "label": "CARD", "value": 100000000 },
+        { "label": "BRIEFING_SECTION", "value": 100000001 },
+        { "label": "TEXT_RESPONSE", "value": 100000002 }
+      ]
+    },
+    {
+      "logicalName": "cr_isenabled",
+      "displayName": "Is Enabled",
+      "type": "Boolean",
+      "required": true,
+      "default": true,
+      "description": "Toggle to enable or disable this skill. Disabled skills are not available for agent selection."
+    },
+    {
+      "logicalName": "cr_isshared",
+      "displayName": "Is Shared",
+      "type": "Boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether this skill is admin-shared and visible to all users. When true, the skill appears in every user's skill list regardless of ownership."
+    },
+    {
+      "logicalName": "cr_lastused",
+      "displayName": "Last Used",
+      "type": "DateTime",
+      "required": false,
+      "description": "Timestamp of the most recent skill invocation. Nullable — null means the skill has never been used. Updated by the agent flow after execution."
+    },
+    {
+      "logicalName": "cr_usagecount",
+      "displayName": "Usage Count",
+      "type": "WholeNumber",
+      "required": false,
+      "default": 0,
+      "description": "Total number of times this skill has been invoked. Incremented by the agent flow after each execution."
+    }
+  ],
+  "notes": {
+    "design_rationale": "UserOwned so each power user manages their own skills. Admin-shared skills (cr_isshared = true) are queried separately and merged into every user's available skill list. The agent selects skills based on cr_skilldescription during triage — the description must be clear enough for semantic matching.",
+    "prompt_template_format": "Prompt templates use {{PARAM_NAME}} double-brace substitution (not Liquid or Handlebars). The agent resolves parameters from the input signal context and the cr_parameterschema definition. Unresolved placeholders are left as-is — the agent handles missing parameters gracefully.",
+    "flow_reference_pattern": "For FLOW_REFERENCE skills, the agent calls the flow via HTTP trigger URL and passes the resolved parameter JSON as the request body. The flow must return a JSON response matching the expected output format.",
+    "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user's custom skills are private. Admin-shared skills bypass row-level security via a Dataverse view scoped to cr_isshared = true.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
+  }
+}

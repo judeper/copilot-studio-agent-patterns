@@ -26,6 +26,14 @@ Use the `draft_type` field to determine which formatting rules to apply (EMAIL o
 TEAMS_MESSAGE) from the DRAFT TYPE RULES section below.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RUNTIME INPUTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{{PERSONA_PREFERENCES}}  : JSON object from cr_userpersona (or null if not configured)
+                           Fields: preferred_tone, signature_preference, formatting_style, custom_rules
+{{SEMANTIC_KNOWLEDGE}}   : JSON array of active semantic facts relevant to tone/style (or null)
+                           Fields: fact_type, fact_statement, confidence_score
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TONE RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -61,6 +69,21 @@ COLLABORATIVE (inferred_tone: collaborative):
 > **Recipient name**: Always extract the recipient's name from the `raw_draft` field
 > (look for the greeting line). The input contract does not include a separate
 > recipient_name field. If the raw_draft has no greeting, omit the name.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PREFERENCE CASCADE (priority order)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. If PERSONA_PREFERENCES is present and cr_isenabled = true:
+   - Use cr_preferredtone instead of inferred tone (if set)
+   - Apply cr_formattingstyle (PROSE, BULLETS, MIXED) to structure the draft
+   - Append cr_signaturepreference as the closing signature
+   - Apply ALL rules in cr_customrules verbatim (e.g., "Never use exclamation marks")
+2. Else if SEMANTIC_KNOWLEDGE contains TONE-type facts with confidence >= 0.5:
+   - Apply relevant semantic facts as tone guidance
+   - Example: fact "User always uses formal tone with Finance department" → use FORMAL
+3. Else:
+   - Fall back to the inferred_tone from the handoff object (existing behavior)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DRAFT TYPE RULES

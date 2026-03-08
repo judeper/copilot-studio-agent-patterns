@@ -768,3 +768,463 @@
 .calibration-link:hover {
     color: #6366f1;
 }
+
+/* ─── Feed Sections (Grouped Gallery) ─── */
+
+.feed-section {
+    margin-bottom: 4px;
+}
+
+.feed-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-left: 3px solid transparent;
+    background: var(--colorNeutralBackground3, #f5f5f5);
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.feed-section-header:hover {
+    background: var(--colorNeutralBackground3Hover, #ebebeb);
+}
+
+.feed-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--colorNeutralForeground2, #555);
+}
+
+.feed-section-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    background: #6366f1;
+    border-radius: 10px;
+    padding: 0 6px;
+    min-width: 18px;
+    text-align: center;
+    line-height: 18px;
+}
+
+.feed-section-chevron {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--colorNeutralForeground3, #888);
+}
+
+.feed-section-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+}
+
+/* ─── Filter Chips ─── */
+
+.filter-bar {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+}
+
+.filter-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border: 1px solid var(--colorNeutralStroke1, #d0d0d0);
+    border-radius: 16px;
+    background: #fff;
+    font-size: 13px;
+    color: var(--colorNeutralForeground1, #333);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease, border-color 0.12s ease;
+    flex-shrink: 0;
+}
+
+.filter-chip:hover {
+    background: #f0f0ff;
+    border-color: #6366f1;
+}
+
+.filter-chip-active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+}
+
+.filter-chip-active:hover {
+    background: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.filter-chip-count {
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    padding: 0 5px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 16px;
+}
+
+.filter-chip-active .filter-chip-count {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.filter-chip-sort {
+    margin-left: auto;
+}
+
+/* ─── Empty State ─── */
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 48px 24px;
+    text-align: center;
+    gap: 6px;
+}
+
+.empty-state-icon {
+    font-size: 32px;
+    color: #22c55e;
+    margin-bottom: 8px;
+}
+
+.empty-state-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--colorNeutralForeground1, #1a1a2e);
+}
+
+.empty-state-meta {
+    font-size: 13px;
+    color: var(--colorNeutralForeground3, #888);
+}
+
+.empty-state-cta {
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6366f1;
+}
+
+/* ── UI/UX Redesign: Card Item Priority Borders ── */
+
+.card-item-priority-high {
+    border-left: 3px solid #ef4444;
+}
+
+.card-item-priority-medium {
+    border-left: 3px solid #f59e0b;
+}
+
+.card-item-priority-low {
+    border-left: 3px solid #22c55e;
+}
+
+/* ── UI/UX Redesign: Heartbeat & Stale States ── */
+
+.card-item-heartbeat {
+    border-left: 3px solid #8b5cf6 !important;
+    background: #faf5ff;
+}
+
+.card-item-stale {
+    background: #fffbeb;
+}
+
+/* ── UI/UX Redesign: Card Item Header/Footer ── */
+
+.card-item-sender {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--colorNeutralForeground1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.card-item-age {
+    font-size: 12px;
+    color: var(--colorNeutralForeground3);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.card-item-open-hint {
+    opacity: 0;
+    color: var(--colorNeutralForeground3);
+    font-size: 16px;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+.assistant-card-item:hover .card-item-open-hint {
+    opacity: 1;
+}
+
+.card-item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* ── UI/UX Redesign: Detail Panel Close Button ── */
+
+.detail-close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--colorNeutralForeground2);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    line-height: 1;
+}
+
+.detail-close-btn:hover {
+    background: var(--colorNeutralBackground3);
+    color: var(--colorNeutralForeground1);
+}
+
+.card-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* ── UI/UX Redesign: Collapsible Detail Sections ── */
+
+.detail-section {
+    margin-bottom: 8px;
+}
+
+.detail-section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 0;
+    width: 100%;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+}
+
+.detail-section-toggle:hover {
+    color: var(--colorBrandForeground1);
+}
+
+.detail-section-chevron {
+    display: inline-block;
+    font-size: 16px;
+    transition: transform 0.15s ease;
+    width: 16px;
+    text-align: center;
+}
+
+/* ── UI/UX Redesign: Confidence Color Coding ── */
+
+.detail-confidence-high {
+    color: #16a34a;
+    font-weight: 600;
+}
+
+.detail-confidence-mid {
+    color: #ca8a04;
+    font-weight: 600;
+}
+
+.detail-confidence-low {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* ─── Collapsed Command Bar Pill ─── */
+
+.command-bar-pill {
+    position: sticky;
+    bottom: 0;
+    margin: 12px auto;
+    width: fit-content;
+    padding: 10px 24px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    user-select: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.command-bar-pill:hover {
+    border-color: #6366f1;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.18);
+}
+
+/* ─── Quick Chips ─── */
+
+.quick-chips {
+    display: flex;
+    gap: 6px;
+    padding: 6px 0;
+    flex-wrap: wrap;
+}
+
+.quick-chip {
+    padding: 4px 12px;
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 14px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.quick-chip:hover {
+    background: #ede9fe;
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+/* ─── UIUX Redesign: Status Bar ─── */
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--colorNeutralStroke2);
+    flex-shrink: 0;
+}
+
+.status-bar-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-bar-title {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.status-bar-action-count {
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: #6366f1;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.status-bar-action-count:hover {
+    background: #f0f0ff;
+}
+
+.status-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.memory-icon-active {
+    color: #6366f1;
+    animation: memoryPulse 2s ease-in-out infinite;
+    font-size: 10px;
+}
+
+.memory-icon {
+    color: #999;
+    font-size: 10px;
+}
+
+/* ─── UIUX Redesign: Feed / Detail Layout ─── */
+
+.feed-detail-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.feed-dimmed {
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.detail-panel {
+    width: 360px;
+    min-width: 300px;
+    border-left: 1px solid var(--colorNeutralStroke2);
+    flex-shrink: 0;
+    animation: slideInRight 0.25s ease-out;
+    overflow-y: auto;
+}
+
+.detail-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .detail-backdrop {
+        display: block;
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 10;
+    }
+
+    .detail-panel {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 11;
+        background: var(--colorNeutralBackground1, #fff);
+    }
+}
+
+/* ─── UIUX Redesign: Animations ─── */
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes memoryPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}

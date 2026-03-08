@@ -1,0 +1,92 @@
+{
+  "tableName": "cr_episodicmemory",
+  "entitySetName": "cr_episodicmemories",
+  "displayName": "Episodic Memory",
+  "pluralName": "Episodic Memories",
+  "description": "Episodic memory log storing user decision events for agent learning. 90-day retention.",
+  "primaryColumn": "cr_eventsummary",
+  "ownershipType": "UserOwned",
+  "columns": [
+    {
+      "logicalName": "cr_eventsummary",
+      "displayName": "Event Summary",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Primary column — short summary of the decision event."
+    },
+    {
+      "logicalName": "cr_eventtype",
+      "displayName": "Event Type",
+      "type": "Choice",
+      "required": true,
+      "description": "The type of user decision event recorded.",
+      "options": [
+        { "label": "DRAFT_SENT_AS_IS", "value": 100000000 },
+        { "label": "DRAFT_SENT_EDITED", "value": 100000001 },
+        { "label": "DISMISSED", "value": 100000002 },
+        { "label": "DELEGATED", "value": 100000003 },
+        { "label": "TRIAGE_OVERRIDDEN", "value": 100000004 },
+        { "label": "REMINDER_CREATED", "value": 100000005 },
+        { "label": "DRAFT_REFINED", "value": 100000006 }
+      ]
+    },
+    {
+      "logicalName": "cr_entityreference",
+      "displayName": "Entity Reference",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Reference identifier for the related entity — card ID or sender email."
+    },
+    {
+      "logicalName": "cr_eventdetail",
+      "displayName": "Event Detail",
+      "type": "Text",
+      "maxLength": 500,
+      "required": false,
+      "description": "Free-text description of the event providing additional context."
+    },
+    {
+      "logicalName": "cr_senderemail",
+      "displayName": "Sender Email",
+      "type": "Text",
+      "maxLength": 320,
+      "required": false,
+      "description": "Email address of the sender involved in this event. Nullable — not all events have a sender."
+    },
+    {
+      "logicalName": "cr_eventdate",
+      "displayName": "Event Date",
+      "type": "DateTime",
+      "required": true,
+      "description": "Timestamp when the decision event occurred."
+    },
+    {
+      "logicalName": "cr_cardtriggertype",
+      "displayName": "Card Trigger Type",
+      "type": "Choice",
+      "required": false,
+      "description": "The trigger type of the card associated with this event.",
+      "options": [
+        { "label": "EMAIL", "value": 100000000 },
+        { "label": "TEAMS_MESSAGE", "value": 100000001 },
+        { "label": "CALENDAR_SCAN", "value": 100000002 }
+      ]
+    },
+    {
+      "logicalName": "cr_targetcontext",
+      "displayName": "Target Context",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Delegation target or override reason. Nullable — only populated for DELEGATED or TRIAGE_OVERRIDDEN events."
+    }
+  ],
+  "notes": {
+    "design_rationale": "Append-only event log. Each row captures a single user decision. Rows are never updated after creation — the table is designed for time-series analysis and pattern detection by the semantic knowledge promotion logic.",
+    "retention": "90-day retention policy. A scheduled Power Automate flow deletes rows older than 90 days to keep the table performant. The semantic knowledge promotion flow runs before the retention cleanup.",
+    "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user's decision history is private.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
+  }
+}

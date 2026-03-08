@@ -90,6 +90,7 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
                     // Sprint 1B — clustering & source identity
                     conversation_cluster_id: record.getValue("cr_conversationclusterid") as string | null,
                     source_signal_id: record.getValue("cr_sourcesignalid") as string | null,
+                    hours_stale: typeof parsed.hours_stale === "number" ? parsed.hours_stale : null,
                 };
 
                 cards.push(card);

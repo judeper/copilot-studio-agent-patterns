@@ -1,0 +1,74 @@
+{
+  "tableName": "cr_userpersona",
+  "entitySetName": "cr_userpersonas",
+  "displayName": "User Persona",
+  "pluralName": "User Personas",
+  "description": "User persona configuration for explicit communication style preferences.",
+  "primaryColumn": "cr_userdisplayname",
+  "ownershipType": "UserOwned",
+  "columns": [
+    {
+      "logicalName": "cr_userdisplayname",
+      "displayName": "User Display Name",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Primary column — display name of the user. One row per user (enforced by ownership)."
+    },
+    {
+      "logicalName": "cr_preferredtone",
+      "displayName": "Preferred Tone",
+      "type": "Choice",
+      "required": false,
+      "description": "User's preferred communication tone. Nullable — null means the agent infers tone from episodic memory patterns.",
+      "options": [
+        { "label": "FORMAL", "value": 100000000 },
+        { "label": "SEMI_FORMAL", "value": 100000001 },
+        { "label": "DIRECT", "value": 100000002 },
+        { "label": "COLLABORATIVE", "value": 100000003 }
+      ]
+    },
+    {
+      "logicalName": "cr_signaturepreference",
+      "displayName": "Signature Preference",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Preferred email sign-off (e.g., 'Best regards,', 'Thanks,', 'Cheers,'). Used by the Humanizer Agent for draft closing."
+    },
+    {
+      "logicalName": "cr_formattingstyle",
+      "displayName": "Formatting Style",
+      "type": "Choice",
+      "required": false,
+      "description": "Preferred response formatting style. Nullable — null means the agent infers from episodic memory patterns.",
+      "options": [
+        { "label": "PROSE", "value": 100000000 },
+        { "label": "BULLETS", "value": 100000001 },
+        { "label": "MIXED", "value": 100000002 }
+      ]
+    },
+    {
+      "logicalName": "cr_customrules",
+      "displayName": "Custom Rules",
+      "type": "MultilineText",
+      "maxLength": 2000,
+      "required": false,
+      "description": "Free-text rules for the agent (e.g., 'Never use exclamation marks', 'Always CC my assistant on procurement replies'). Injected into the agent system prompt at runtime."
+    },
+    {
+      "logicalName": "cr_isenabled",
+      "displayName": "Is Enabled",
+      "type": "Boolean",
+      "required": true,
+      "default": true,
+      "description": "Master toggle for persona preferences. When false, the agent ignores all persona settings and falls back to default behavior."
+    }
+  ],
+  "notes": {
+    "design_rationale": "One row per user. Explicit persona preferences take precedence over inferred semantic knowledge facts. When cr_preferredtone or cr_formattingstyle is null, the agent falls back to inferred facts from cr_semanticknowledge. Custom rules are injected verbatim into the system prompt — they are not validated.",
+    "persona_promotion": "When a user sets explicit preferences, corresponding semantic knowledge facts are created with cr_sourcetype = USER_EXPLICIT and cr_createdfrompersona = true. These facts have higher confidence and slower decay than inferred facts.",
+    "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user's persona is private.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
+  }
+}
