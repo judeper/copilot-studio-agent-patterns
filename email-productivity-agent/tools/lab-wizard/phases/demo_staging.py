@@ -253,6 +253,8 @@ def _bootstrap_mail_app(tenant_id: str) -> dict | None:
         console.print("[red]Client secret was empty in response.[/red]")
         return None
     console.print("  [green]Client secret created[/green]")
+    console.print("  [dim]Waiting 20s for secret to propagate…[/dim]")
+    time.sleep(20)
 
     # Step 6: Save config
     mail_config = {
