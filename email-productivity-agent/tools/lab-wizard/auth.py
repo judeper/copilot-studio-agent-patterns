@@ -1,5 +1,8 @@
 """MSAL-based authentication for Dataverse, Flow, PowerApps, and Graph APIs."""
 
+import json
+import shutil
+import subprocess
 import sys
 import msal
 from rich.console import Console
@@ -16,6 +19,31 @@ SCOPES = {
     "powerapps": "https://service.powerapps.com/.default",
     "graph": "https://graph.microsoft.com/.default",
 }
+
+# Resource URIs for az account get-access-token (without /.default suffix)
+AZ_RESOURCES = {
+    "dataverse": "{org_url}",
+    "flow": "https://service.flow.microsoft.com",
+    "powerapps": "https://service.powerapps.com",
+    "graph": "https://graph.microsoft.com",
+}
+
+
+def _try_az_token(resource: str) -> str | None:
+    """Try to acquire a token via Azure CLI (az account get-access-token)."""
+    az_path = shutil.which("az")
+    if not az_path:
+        return None
+    try:
+        result = subprocess.run(
+            [az_path, "account", "get-access-token", "--resource", resource, "--query", "accessToken", "-o", "tsv"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return None
 
 
 class TokenManager:
@@ -38,11 +66,37 @@ class TokenManager:
             scope = scope.replace("{org_url}", self.org_url)
         return [scope]
 
+    def _resolve_az_resource(self, scope_key: str) -> str:
+        resource = AZ_RESOURCES[scope_key]
+        if "{org_url}" in resource:
+            if not self.org_url:
+                raise ValueError("org_url required for Dataverse scope")
+            resource = resource.replace("{org_url}", self.org_url)
+        return resource
+
     def get_token(self, scope_key: str) -> str:
-        """Get a cached or fresh token for the given scope key."""
+        """Get a cached or fresh token for the given scope key.
+
+        Tries Azure CLI first (``az account get-access-token``), then falls
+        back to MSAL device-code flow.  Azure CLI is preferred because its
+        client ID is already consented in most tenants and avoids a separate
+        interactive login.
+        """
         if scope_key in self._cache:
             return self._cache[scope_key]
 
+        # Try Azure CLI token acquisition first
+        try:
+            resource = self._resolve_az_resource(scope_key)
+            token = _try_az_token(resource)
+            if token:
+                self._cache[scope_key] = token
+                console.print(f"[green]✅ Token acquired via Azure CLI for {scope_key}[/green]")
+                return token
+        except ValueError:
+            pass
+
+        # Fall back to MSAL device-code flow
         scopes = self._resolve_scope(scope_key)
 
         # Try silent acquisition first
