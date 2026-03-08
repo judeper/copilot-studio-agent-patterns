@@ -99,7 +99,7 @@ intelligent-work-layer/
 │   ├── provision-environment.ps1      # Environment + Dataverse setup
 │   ├── create-security-roles.ps1      # Ownership-based RLS
 │   ├── deploy-solution.ps1            # PCF build + solution import
-│   ├── deploy-agent-flows.ps1         # Deploy 20 flows via Flow Management API
+│   ├── deploy-agent-flows.ps1         # Deploy main flows via Flow Management API (tool flows via Copilot Studio)
 │   ├── provision-copilot.ps1          # Create Copilot Studio agent via PAC CLI
 │   ├── provision-onenote.ps1          # OneNote notebook + section provisioning
 │   ├── validate-onenote-integration.ps1 # Verify OneNote integration health

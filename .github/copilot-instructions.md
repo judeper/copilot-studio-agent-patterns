@@ -6,12 +6,13 @@ This repo contains production-ready patterns for building autonomous agents on t
 
 The primary solution is **Intelligent Work Layer** (`intelligent-work-layer/`), an intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses autonomously. The data flow is:
 
-1. **Power Automate Agent Flows** (10 main flows + 10 agent tool flows, deployed via `scripts/deploy-agent-flows.ps1`):
+1. **Power Automate Agent Flows** (10 main flows + 10 agent tool flows):
    - Signal triggers: Flow 1 (Email), Flow 2 (Teams), Flow 3 (Calendar) intercept signals, invoke the Copilot Studio agent via `ExecuteAgentAndWait` (Microsoft Copilot Studio connector), and write results to Dataverse
    - Operations: Flow 4 (Send Email), Flow 5 (Card Outcome Tracker), Flow 6 (Daily Briefing), Flow 7 (Staleness Monitor), Flow 8 (Command Execution), Flow 9 (Sender Profile Analyzer), Flow 10 (Reminder Firing)
    - Learning system: Flow 11 (Heartbeat/Background Assessment), Flow 14 (Memory Retention), Flow 15 (Reflection/Knowledge Extraction), Flow 16 (Memory Decay)
    - Research tools: 5 agent tool flows (SearchUserEmail, SearchSentItems, SearchTeamsMessages, SearchSharePoint, SearchPlannerTasks) using "When an agent calls the flow" trigger for Tier 1-3 research
    - Orchestrator tools: 5 agent tool flows (QueryCards, QuerySenderProfile, UpdateCard, CreateCard, RefineDraft) for command bar actions
+   - **Deployment note:** Tool flows use the `PowerVirtualAgents` trigger kind which cannot be created via the Flow Management API. They must be created via Copilot Studio (add as Actions to the agent) or via `pac solution export/import`. Main flows use standard triggers and are deployed via `scripts/deploy-agent-flows.ps1`, but the JSON definitions are POC scaffolding — some require manual building in the Power Automate designer following `docs/agent-flows.md`.
 2. **Copilot Studio Agent** — 17 agent prompts (10 original + 7 new: Router, Calendar, Task, Email Compose, Search, Validation, Delegation) organized in a MARL pipeline (Triage→Research→Scorer→DraftGen→Humanizer via Flow-level chaining). Shared prompt patterns in `prompts/patterns/`. Provisioned via `scripts/provision-copilot.ps1`.
 3. **Dataverse** (9 tables: `AssistantCards`, `SenderProfile`, `BriefingSchedule`, `ErrorLog`, `EpisodicMemory`, `SemanticKnowledge`, `UserPersona`, `SkillRegistry`, `SemanticEpisodic`) persists results with ownership-based row-level security
 4. **Canvas App + PCF React Dashboard** (PCF manifest v2.2.0, 233 tests across 16 suites) renders a single-pane-of-glass UI with WCAG AA compliance. The UX is grounded in cognitive science research (Cowan's 4±1 attention slots, Gloria Mark's 23-min interruption cost, Zeigarnik Effect, arXiv 2024 AI trust miscalibration, PMC visual fatigue). Key UX features: three-state confidence display (not percentages), 5-item focused queue with composite sort, quiet mode for focus protection, morning/EOD/meeting briefing variants via DayGlance component, warm-gray palette for sustained use, and `prefers-reduced-motion` support.
@@ -62,12 +63,12 @@ pwsh deploy-solution.ps1 -EnvironmentId "<env-id>"
 # Deploy Copilot Studio agent (from intelligent-work-layer/scripts/):
 pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
 
-# Deploy all 20 flows (from intelligent-work-layer/scripts/):
-pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>"
+# Deploy main flows (from intelligent-work-layer/scripts/):
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate MainFlows
 
-# Or deploy in phases:
-pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate ToolFlows   # tool flows first
-pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate MainFlows   # then main flows
+# Tool flows (ToolFlows) CANNOT be deployed via the Flow Management API —
+# the PowerVirtualAgents trigger kind is rejected. Create tool flows by
+# adding Actions in Copilot Studio or via pac solution export/import.
 ```
 
 ## Provision and Deploy (Email Productivity Agent)
@@ -110,8 +111,9 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 
 ### Flow & Topic Artifacts
 
-- **Flow definitions** (`src/flow-*.json`): ARM Logic Apps JSON schema with `connectionName` bindings. Deployed via Flow Management API in `scripts/deploy-agent-flows.ps1`.
-- **Agent tool flows** (`src/tool-*.json`): Use `PowerVirtualAgents` trigger (`When an agent calls the flow`) and `PowerVirtualAgentsResponseV2` response. "Asynchronous response" must be OFF.
+- **Flow definitions** (`src/flow-*.json`): ARM Logic Apps JSON schema with `connectionName` bindings. Main flows deployed via Flow Management API in `scripts/deploy-agent-flows.ps1`; some may need manual building in Power Automate designer.
+- **Agent tool flows** (`src/tool-*.json`): Reference definitions for Copilot Studio agent actions. Use `PowerVirtualAgents` trigger — cannot be API-deployed; create via Copilot Studio Actions or `pac solution import`.
+- **Agent tool flows** (`src/tool-*.json`): Reference definitions for Copilot Studio agent actions. Use `PowerVirtualAgents` trigger (`When an agent calls the flow`) and `PowerVirtualAgentsResponseV2` response. **Cannot be created via Flow Management API** — create via Copilot Studio Actions or `pac solution import`. "Asynchronous response" must be OFF.
 - **Topic definitions** (`src/*-topic.yaml`): Copilot Studio Adaptive Dialog YAML. Use `InvokeAIBuilderModelAction` for AI prompts (referenced by `aIModelId` GUID — environment-specific). Use `InvokeFlowAction` for tool actions (referenced by `flowId` GUID — environment-specific).
 - **Agent invocation**: Prompt assets remain in the repo, but the current validated POC deployment keeps Flow 2 mocked and Flow 4 bypassed; only re-enabled live-agent variants should use `shared_microsoftcopilotstudio`.
 - **5 connectors required in the tested deployment**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized). Add Microsoft Copilot Studio only when re-enabling live agent calls.
@@ -148,7 +150,7 @@ PowerShell 7+ scripts in `intelligent-work-layer/scripts/` handle environment se
 - `create-security-roles.ps1` — Configures ownership-based row-level security
 - `deploy-solution.ps1` — Builds PCF component and imports solution (validates PAC CLI version, runs NuGet restore)
 - `provision-copilot.ps1` — Creates Copilot Studio agent with 17 prompts (MARL pipeline) via PAC CLI
-- `deploy-agent-flows.ps1` — Deploys 20 flows via Flow Management API (supports phased deployment with `-FlowsToCreate`)
+- `deploy-agent-flows.ps1` — Deploys main flows via Flow Management API (tool flows must be created via Copilot Studio or solution import)
 - `provision-onenote.ps1` — Provisions OneNote notebook and sections
 - `validate-onenote-integration.ps1` — Verifies OneNote integration health
 - `audit-table-naming.ps1` — Audits Dataverse table naming consistency
@@ -165,7 +167,8 @@ PowerShell 7+ scripts in `intelligent-work-layer/scripts/` handle environment se
 
 ### Email Productivity Agent — Flow Deployment
 
-- **Flow Management API is mandatory**: Flows MUST be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity). Dataverse-created flows never bind connections at runtime regardless of API-level settings.
+- **Flow Management API for main flows**: Main flows (standard triggers) should be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity). Dataverse-created flows never bind connections at runtime. Agent tool flows are the exception — they must be created via Copilot Studio or solution import because the API rejects the `PowerVirtualAgents` trigger kind.
+- **Main flow JSON definitions are POC scaffolding**: Some flow definitions in `src/flow-*.json` may have validation errors and require manual building in the Power Automate designer following `docs/agent-flows.md`.
 - **`state=Started`** during creation activates flows immediately but enforces strict dynamic parameter validation.
 - **Teams connector**: `PostMessageToConversation` and `PostCardToConversation` require `poster` and `location` static params before dynamic `body` params. For `location = "Chat with Flow bot"`, use `body/recipient` as a flat email string and `body/messageBody` for the payload; `body/recipient/to` causes Graph lookup failures.
 - **Dataverse connector**: `UpsertRecord` doesn't exist. For owner-scoped config and snooze tables, prefer `ListRecords` + `UpdateRecord`/`CreateRecord` over alternate-key writes; `cr_snoozedconversation` creates must explicitly set `item/cr_unsnoozedbyagent`. `Terminate` action does not support `runError` when `runStatus` is `Succeeded`.

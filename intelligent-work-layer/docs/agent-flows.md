@@ -2,7 +2,7 @@
 
 This guide walks through building the ten Power Automate flows that drive the Intelligent Work Layer. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-10 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, sender analytics, and reminder firing.
 
-> **Agent tool flow artifacts:** The 5 research tools (`src/tool-search-*.json`) and 5 orchestrator tools (`src/tool-query-*.json`, `src/tool-update-card.json`, `src/tool-create-card.json`, `src/tool-refine-draft.json`) are deployed via `scripts/deploy-agent-flows.ps1`. These flows use the "When an agent calls the flow" trigger and are automatically registered as agent actions for generative orchestration.
+> **Agent tool flow artifacts:** The 5 research tools (`src/tool-search-*.json`) and 5 orchestrator tools (`src/tool-query-*.json`, `src/tool-update-card.json`, `src/tool-create-card.json`, `src/tool-refine-draft.json`) use the "When an agent calls the flow" trigger (`PowerVirtualAgents` kind). **These cannot be deployed via the Flow Management API** — the API rejects the `PowerVirtualAgents` trigger kind. Instead, create them by adding Actions to the agent in Copilot Studio (which auto-creates the flows), or via `pac solution export/import`. The JSON files serve as reference definitions documenting the expected schema.
 
 ## Prerequisites
 
