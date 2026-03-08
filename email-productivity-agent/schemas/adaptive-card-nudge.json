@@ -109,18 +109,6 @@
   "actions": [
     {
       "type": "Action.Submit",
-      "title": "✏️ Create Draft",
-      "style": "positive",
-      "data": {
-        "action": "draft_followup",
-        "trackingId": "${trackingId}",
-        "conversationId": "${conversationId}",
-        "recipientEmail": "${recipientEmail}",
-        "suggestedDraft": "${suggestedDraft}"
-      }
-    },
-    {
-      "type": "Action.Submit",
       "title": "⏰ Snooze 2 Days",
       "data": {
         "action": "snooze_nudge",

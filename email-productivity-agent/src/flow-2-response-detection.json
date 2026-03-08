@@ -49,7 +49,9 @@
           }
         },
         "runAfter": {
-          "Get_my_profile_(V2)": ["Succeeded"]
+          "Get_my_profile_(V2)": [
+            "Succeeded"
+          ]
         }
       },
       "List_NudgeConfig": {
@@ -67,7 +69,9 @@
           }
         },
         "runAfter": {
-          "Lookup_Dataverse_UserId": ["Succeeded"]
+          "Lookup_Dataverse_UserId": [
+            "Succeeded"
+          ]
         }
       },
       "Condition_Nudges_Enabled": {
@@ -398,7 +402,9 @@
                                               "width": "auto",
                                               "items": [
                                                 {
-                                                  "type": "TextBlock", "text": "\uD83D\uDD14", "size": "Large"
+                                                  "type": "TextBlock",
+                                                  "text": "🔔",
+                                                  "size": "Large"
                                                 }
                                               ]
                                             },
@@ -489,18 +495,6 @@
                                         }
                                       ],
                                       "actions": [
-                                        {
-                                          "type": "Action.Submit",
-                                          "title": "✏️ Create Draft",
-                                          "style": "positive",
-                                          "data": {
-                                            "action": "draft_followup",
-                                            "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}",
-                                            "conversationId": "@{items('Apply_to_each')?['cr_conversationid']}",
-                                            "recipientEmail": "@{items('Apply_to_each')?['cr_recipientemail']}",
-                                            "suggestedDraft": "@{body('Parse_AgentResponse')?['suggestedDraft']}"
-                                          }
-                                        },
                                         {
                                           "type": "Action.Submit",
                                           "title": "⏰ Snooze 2 Days",

@@ -91,7 +91,7 @@ After Flow 2 or Flow 8 runs:
    - Nudge priority (High/Medium/Low)
    - Thread summary
    - Suggested follow-up draft
-   - Three action buttons: **Draft Follow-Up**, **Snooze 2 Days**, **Dismiss**
+   - Two action buttons: **Snooze 2 Days**, **Dismiss**
 
 ### Step 5: Demo the Actions
 
@@ -99,9 +99,10 @@ Click each button to demonstrate:
 
 | Action | What Happens |
 |---|---|
-| **Draft Follow-Up** | Shows a placeholder (future: generates full draft via Copilot) |
-| **Snooze 2 Days** | Sets `cr_followupdate = now + 2 days`, resets `cr_nudgesent = false` |
+| **Snooze 2 Days** | Sets `cr_followupdate = now + 2 days`, resets `cr_nudgesent = false` — you'll be reminded again in 2 days |
 | **Dismiss** | Sets `cr_dismissedbyuser = true` — email won't be nudged again |
+
+> **Note:** Draft generation via Copilot is planned for a future release. The current POC focuses on the nudge → snooze → auto-unsnooze pipeline.
 
 ---
 
