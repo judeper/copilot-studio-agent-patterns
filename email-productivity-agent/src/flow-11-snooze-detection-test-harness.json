@@ -141,16 +141,12 @@
           ]
         },
         "actions": {
-          "Create_Snoozed_Folder": {
+          "HTTP_Find_Snoozed_Folder": {
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "request/method": "POST",
-                "request/url": "/v1.0/me/mailFolders",
-                "request/body": {
-                  "displayName": "EPA-Snoozed",
-                  "isHidden": false
-                }
+                "request/method": "GET",
+                "request/url": "/v1.0/me/mailFolders?$select=id,displayName&$filter=displayName eq 'EPA-Snoozed'"
               },
               "host": {
                 "connectionName": "shared_webcontents",
@@ -165,14 +161,69 @@
               }
             }
           },
-          "Set_snoozeFolderId_New": {
-            "type": "SetVariable",
-            "inputs": {
-              "name": "snoozeFolderId",
-              "value": "@body('Create_Snoozed_Folder')?['id']"
+          "Condition_Existing_Folder_Found": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(body('HTTP_Find_Snoozed_Folder')?['value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Set_snoozeFolderId_Existing": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "snoozeFolderId",
+                  "value": "@first(body('HTTP_Find_Snoozed_Folder')?['value'])?['id']"
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Create_Snoozed_Folder": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "request/method": "POST",
+                      "request/url": "/v1.0/me/mailFolders",
+                      "request/body": {
+                        "displayName": "EPA-Snoozed",
+                        "isHidden": false
+                      }
+                    },
+                    "host": {
+                      "connectionName": "shared_webcontents",
+                      "operationId": "InvokeHttp",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                    },
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 3,
+                      "interval": "PT10S",
+                      "maximumInterval": "PT1M"
+                    }
+                  }
+                },
+                "Set_snoozeFolderId_New": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "snoozeFolderId",
+                    "value": "@body('Create_Snoozed_Folder')?['id']"
+                  },
+                  "runAfter": {
+                    "Create_Snoozed_Folder": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              }
             },
             "runAfter": {
-              "Create_Snoozed_Folder": [
+              "HTTP_Find_Snoozed_Folder": [
                 "Succeeded"
               ]
             }
@@ -192,7 +243,7 @@
               }
             },
             "runAfter": {
-              "Set_snoozeFolderId_New": [
+              "Condition_Existing_Folder_Found": [
                 "Succeeded"
               ]
             }
@@ -235,23 +286,82 @@
             "foreach": "@coalesce(body('HTTP_List_Snoozed_Messages')?['value'], json('[]'))",
             "actions": {
               "Upsert_SnoozedConversation": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "greater": [
+                        "@length(outputs('List_Existing_SnoozedConversation')?['body/value'])",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Update_SnoozedConversation": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_snoozedconversations",
+                        "recordId": "@first(outputs('List_Existing_SnoozedConversation')?['body/value'])?['cr_snoozedconversationid']",
+                        "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
+                        "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                        "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
+                        "item/cr_currentfolder": "@variables('snoozeFolderId')",
+                        "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Create_SnoozedConversation": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "entityName": "cr_snoozedconversations",
+                          "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
+                          "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                          "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
+                          "item/cr_currentfolder": "@variables('snoozeFolderId')",
+                          "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)",
+                          "item/cr_unsnoozedbyagent": false
+                        },
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        }
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "List_Existing_SnoozedConversation": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "List_Existing_SnoozedConversation": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
                     "entityName": "cr_snoozedconversations",
-                    "recordId": "@{encodeURIComponent(concat('cr_conversationid=''', encodeURIComponent(items('Apply_to_each_message')?['conversationId']), ''',cr_owneruserid=''', encodeURIComponent(outputs('Get_my_profile_(V2)')?['body/id']), ''''))}",
-                    "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
-                    "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
-                    "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
-                    "item/cr_currentfolder": "@variables('snoozeFolderId')",
-                    "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
+                    "$filter": "cr_conversationid eq '@{items('Apply_to_each_message')?['conversationId']}' and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+                    "$top": 1
                   },
                   "host": {
                     "connectionName": "shared_commondataserviceforapps",
-                    "operationId": "UpdateRecord",
+                    "operationId": "ListRecords",
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
                   }
-                }
+                },
+                "runAfter": {}
               }
             },
             "runAfter": {

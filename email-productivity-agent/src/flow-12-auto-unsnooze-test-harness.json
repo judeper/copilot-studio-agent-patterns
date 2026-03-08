@@ -240,109 +240,9 @@
           "Scope_Agent_Decision": {
             "type": "Scope",
             "actions": {
-              "Execute_Agent_and_wait": {
-                "type": "OpenApiConnectionWebhook",
-                "inputs": {
-                  "parameters": {
-                    "Copilot": "Email Productivity Agent"
-                  },
-                  "body": {
-                    "text": "Decide whether this snoozed conversation should be unsnoozed and return raw JSON only.",
-                    "inputVariables": {
-                      "CONVERSATION_ID": "@{outputs('Compose_newConversationId')}",
-                      "NEW_MESSAGE_SENDER": "@{triggerBody()?['from']?['emailAddress']?['address']}",
-                      "NEW_MESSAGE_SENDER_NAME": "@{triggerBody()?['from']?['emailAddress']?['name']}",
-                      "NEW_MESSAGE_SUBJECT": "@{triggerBody()?['subject']}",
-                      "NEW_MESSAGE_EXCERPT": "@{take(coalesce(triggerBody()?['bodyPreview'], ''), 500)}",
-                      "SNOOZED_SUBJECT": "@{outputs('Compose_snoozedRow')?['cr_originalsubject']}",
-                      "SNOOZE_UNTIL": "@{outputs('Compose_snoozedRow')?['cr_snoozeuntil']}",
-                      "USER_TIMEZONE": "@{variables('userTimeZone')}",
-                      "CURRENT_DATETIME": "@utcNow()"
-                    }
-                  },
-                  "host": {
-                    "connectionName": "shared_microsoftcopilotstudio",
-                    "operationId": "ExecuteCopilotAsyncV2",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
-                  }
-                }
-              },
-              "Compose_AgentResponseJSON": {
+              "Compose_Agent_Bypass": {
                 "type": "Compose",
-                "inputs": "@coalesce(body('Execute_Agent_and_wait')?['AgentResponseJSON'], body('Execute_Agent_and_wait')?['lastResponse'])",
-                "runAfter": {
-                  "Execute_Agent_and_wait": [
-                    "Succeeded"
-                  ]
-                }
-              },
-              "Parse_AgentResponse": {
-                "type": "ParseJson",
-                "inputs": {
-                  "content": "@json(outputs('Compose_AgentResponseJSON'))",
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "unsnoozeAction": {
-                        "type": "string"
-                      },
-                      "suppressReason": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "notificationMessage": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "urgency": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "confidence": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "unsnoozeAction",
-                      "confidence"
-                    ]
-                  }
-                },
-                "runAfter": {
-                  "Compose_AgentResponseJSON": [
-                    "Succeeded"
-                  ]
-                }
-              },
-              "Set_unsnoozeAction_From_Agent": {
-                "type": "SetVariable",
-                "inputs": {
-                  "name": "unsnoozeAction",
-                  "value": "@coalesce(body('Parse_AgentResponse')?['unsnoozeAction'], 'UNSNOOZE')"
-                },
-                "runAfter": {
-                  "Parse_AgentResponse": [
-                    "Succeeded"
-                  ]
-                }
-              },
-              "Set_notificationMessage_From_Agent": {
-                "type": "SetVariable",
-                "inputs": {
-                  "name": "notificationMessage",
-                  "value": "@coalesce(body('Parse_AgentResponse')?['notificationMessage'], concat('\ud83d\udcec Unsnoozed: ', outputs('Compose_snoozedRow')?['cr_originalsubject'], ' \u2014 new reply from ', triggerBody()?['from']?['emailAddress']?['name']))"
-                },
-                "runAfter": {
-                  "Set_unsnoozeAction_From_Agent": [
-                    "Succeeded"
-                  ]
-                }
+                "inputs": "POC mode: skipping Snooze Agent invocation and using the default UNSNOOZE path."
               }
             },
             "runAfter": {
@@ -562,21 +462,20 @@
   },
   "_metadata": {
     "flowName": "EPA - Flow 12: Auto-Unsnooze Test Harness",
-    "description": "HTTP-triggered harness for Flow 4. Simulates a new Inbox email payload so auto-unsnooze matching, Graph move, Dataverse updates, and Teams notifications can be tested from the CLI.",
+    "description": "HTTP-triggered harness for Flow 4. Simulates a new Inbox email payload so auto-unsnooze matching, Graph move, Dataverse updates, and Teams notifications can be tested from the CLI without invoking the Snooze Agent.",
     "requiredConnections": [
       "shared_office365 (Office 365 Outlook)",
       "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",
       "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)",
-      "shared_microsoftcopilotstudio (Microsoft Copilot Studio)",
       "shared_teams (Microsoft Teams)"
     ],
     "notes": {
-      "agentDecisioning": "Flow 4 now invokes the Snooze Agent via the Microsoft Copilot Studio connector, defaults to UNSNOOZE on agent failure, and suppresses auto-unsnooze when the agent returns SUPPRESS.",
+      "agentDecisioning": "POC mode bypasses the Snooze Agent and always takes the default UNSNOOZE path once a matching snoozed conversation is found.",
       "timezoneLookup": "The flow tries to read /me/mailboxSettings timeZone and falls back to UTC if mailbox settings are unavailable.",
       "messageIdInvalidation": "CRITICAL: Graph move operation invalidates the original message ID. The new ID from the response MUST be captured and stored in Dataverse.",
       "error404Handling": "If the snoozed message no longer exists (manually moved/deleted), marks the Dataverse row as handled to prevent infinite retries.",
-      "teamsNotification": "Notifications use the agent-supplied message when available; otherwise the flow falls back to a deterministic text message.",
+      "teamsNotification": "Notifications use the deterministic fallback text message because the Snooze Agent is currently bypassed.",
       "trigger": "Invoke with a JSON body that mirrors the subset of the Outlook trigger payload used by Flow 4: conversationId, subject, bodyPreview, and from.emailAddress.{address,name}."
     }
   }
