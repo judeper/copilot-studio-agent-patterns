@@ -199,7 +199,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                     }
                 }}
             >
-                ⚡ Ask EWA...
+                ⚡ Ask IWL...
             </div>
         );
     }

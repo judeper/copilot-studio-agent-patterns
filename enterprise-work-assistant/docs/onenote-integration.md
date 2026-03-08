@@ -1,6 +1,6 @@
 # OneNote Integration Design
 
-This document is the **source of truth** for the OneNote integration layer added to the Enterprise Work Assistant. OneNote serves as a downstream knowledge surface — persistent, mobile, offline-capable, annotatable, and indexed by Microsoft Search — that augments (never replaces) the Dataverse card system.
+This document is the **source of truth** for the OneNote integration layer added to the Intelligent Work Layer. OneNote serves as a downstream knowledge surface — persistent, mobile, offline-capable, annotatable, and indexed by Microsoft Search — that augments (never replaces) the Dataverse card system.
 
 > **Augmentation Principle**: The assistant works identically if OneNote is unavailable. All OneNote writes are gated behind a feature flag (`cr_onenoteenabled`) and wrapped in fail-safe scopes. Dataverse remains the system of record.
 
@@ -21,7 +21,7 @@ This document is the **source of truth** for the OneNote integration layer added
 The assistant provisions a single OneNote notebook in a dedicated Microsoft 365 Group. The hierarchy is:
 
 ```
-Enterprise Work Assistant (Notebook)
+Intelligent Work Layer (Notebook)
 ├── Meetings (Section Group)
 │   ├── This Week (Section)
 │   └── Archive (Section)
@@ -33,7 +33,7 @@ Enterprise Work Assistant (Notebook)
 └── Research Archive (Section)  [P2-PLANNED]
 ```
 
-> **Naming**: The notebook name includes the user's display name for disambiguation in shared tenant environments: `{UserDisplayName} — Work Assistant`.
+> **Naming**: The notebook name includes the user's display name for disambiguation in shared tenant environments: `{UserDisplayName} — Work Layer`.
 
 ---
 

@@ -1,6 +1,6 @@
 # Security Constraints
 
-Standard security rules that all Enterprise Work Assistant agents must follow. Reference this pattern in agent prompts to ensure consistent security posture.
+Standard security rules that all Intelligent Work Layer agents must follow. Reference this pattern in agent prompts to ensure consistent security posture.
 
 ---
 

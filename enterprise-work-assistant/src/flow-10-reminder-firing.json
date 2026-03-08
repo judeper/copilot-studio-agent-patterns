@@ -160,7 +160,7 @@
     }
   },
   "_metadata": {
-    "flowName": "EWA - Flow 10: Reminder Firing",
+    "flowName": "IWL - Flow 10: Reminder Firing",
     "description": "Recurrence every 10 minutes. Queries cr_assistantcards for SELF_REMINDER items with PENDING outcome whose cr_reminderdue has passed, posts Teams chat notifications to owners, and marks outcome as SENT_AS_IS.",
     "requiredConnections": [
       "shared_commondataserviceforapps (Microsoft Dataverse)",

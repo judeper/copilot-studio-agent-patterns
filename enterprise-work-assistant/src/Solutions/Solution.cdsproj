@@ -3,8 +3,8 @@
     <SolutionPackageType>Unmanaged</SolutionPackageType>
     <SolutionUniqueName>EnterpriseWorkAssistant</SolutionUniqueName>
     <SolutionVersion>1.0.0</SolutionVersion>
-    <SolutionLocalizedName>Enterprise Work Assistant</SolutionLocalizedName>
-    <SolutionDescription>PCF dashboard component for the Enterprise Work Assistant agent.</SolutionDescription>
+    <SolutionLocalizedName>Intelligent Work Layer</SolutionLocalizedName>
+    <SolutionDescription>PCF dashboard component for the Intelligent Work Layer agent.</SolutionDescription>
     <OutputPath>$(MSBuildThisFileDirectory)bin\Debug</OutputPath>
   </PropertyGroup>
   <ItemGroup>

@@ -3,7 +3,7 @@
   "entitySetName": "cr_assistantcards",
   "displayName": "Assistant Cards",
   "pluralName": "Assistant Cards",
-  "description": "Stores structured output from the Enterprise Work Assistant agent. Each row represents one processed incoming signal (email, Teams message, or calendar event).",
+  "description": "Stores structured output from the Intelligent Work Layer agent. Each row represents one processed incoming signal (email, Teams message, or calendar event).",
   "primaryColumn": "cr_itemsummary",
   "ownershipType": "UserOwned",
   "alternateKeys": [

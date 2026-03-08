@@ -139,7 +139,7 @@ export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard })
                 <div className="empty-state-meta">
                     Next briefing: {nextBriefing.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </div>
-                <div className="empty-state-cta">⚡ Ask EWA about anything</div>
+                <div className="empty-state-cta">⚡ Ask IWL about anything</div>
             </div>
         );
     }

@@ -1,12 +1,12 @@
 # Agent Flows — Step-by-Step Build Guide
 
-This guide walks through building the ten Power Automate flows that drive the Enterprise Work Assistant. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-10 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, sender analytics, and reminder firing.
+This guide walks through building the ten Power Automate flows that drive the Intelligent Work Layer. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-10 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, sender analytics, and reminder firing.
 
 > **Agent tool flow artifacts:** The 5 research tools (`src/tool-search-*.json`) and 5 orchestrator tools (`src/tool-query-*.json`, `src/tool-update-card.json`, `src/tool-create-card.json`, `src/tool-refine-draft.json`) are deployed via `scripts/deploy-agent-flows.ps1`. These flows use the "When an agent calls the flow" trigger and are automatically registered as agent actions for generative orchestration.
 
 ## Prerequisites
 
-- Enterprise Work Assistant agent **published** in Copilot Studio with JSON output mode enabled (see [deployment-guide.md](deployment-guide.md), Phase 2)
+- Intelligent Work Layer agent **published** in Copilot Studio with JSON output mode enabled (see [deployment-guide.md](deployment-guide.md), Phase 2)
 - `Assistant Cards` Dataverse table provisioned (run `scripts/provision-environment.ps1`)
 - Research tool actions registered in Copilot Studio (see [deployment-guide.md](deployment-guide.md), Section 2.4)
 - Connections created for: Office 365 Outlook, Microsoft Teams, Office 365 Users, Microsoft Graph, SharePoint
@@ -233,7 +233,7 @@ Compose the memory context block into three agent input parameters: `PERSONA_PRE
 
 **4. Invoke the agent**
 
-Add the **Microsoft Copilot Studio** connector (search for "Microsoft Copilot Studio" in the connector list — do NOT use the AI Builder connector). Select the **"Execute Agent and wait"** action. Choose the **Enterprise Work Assistant** agent.
+Add the **Microsoft Copilot Studio** connector (search for "Microsoft Copilot Studio" in the connector list — do NOT use the AI Builder connector). Select the **"Execute Agent and wait"** action. Choose the **Intelligent Work Layer** agent.
 
 > **Important**: "Run a prompt" is a different action (AI Builder) that runs a standalone prompt, not a full agent. You must use **"Execute Agent and wait"** from the **Microsoft Copilot Studio** connector to invoke an agent with its system prompt, tools, and orchestration.
 
@@ -2322,7 +2322,7 @@ This section describes the Power Automate flow enhancements that write assistant
 The assistant uses a dedicated OneNote notebook provisioned via `scripts/provision-onenote.ps1` in a dedicated M365 Group:
 
 ```
-Enterprise Work Assistant (Notebook)
+Intelligent Work Layer (Notebook)
 ├── Meetings (Section Group)
 │   ├── This Week (Section)    ← Flow 3 writes here
 │   └── Archive (Section)      ← Monthly archival
@@ -2668,7 +2668,7 @@ Gather current workspace state:
 
 | Setting | Value |
 |---------|-------|
-| Agent | Enterprise Work Assistant |
+| Agent | Intelligent Work Layer |
 | Input | Workspace snapshot JSON from step 6 |
 
 **8. Parse JSON** — Parse agent response using simplified output schema (see [Parse JSON Schema](#important-parse-json-schema) section)
