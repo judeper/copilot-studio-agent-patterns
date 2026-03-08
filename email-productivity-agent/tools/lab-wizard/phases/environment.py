@@ -55,16 +55,15 @@ def _table_definitions(prefix: str) -> list[dict]:
             "columns": [
                 _string_col(P, "sourcesignalid", "Source Signal ID", 200),
                 _memo_col(P, "conversationid", "Conversation ID"),
+                _memo_col(P, "internetmessageheaders", "Internet Message Headers", 2000),
                 _datetime_col(P, "sentdatetime", "Sent Date Time"),
                 _string_col(P, "recipientemail", "Recipient Email", 250),
                 _string_col(P, "recipienttype", "Recipient Type", 20),
-                _string_col(P, "originalsubject", "Original Subject", 400),
                 _datetime_col(P, "followupdate", "Follow Up Date"),
                 _boolean_col(P, "responsereceived", "Response Received", False),
                 _boolean_col(P, "nudgesent", "Nudge Sent", False),
                 _boolean_col(P, "dismissedbyuser", "Dismissed By User", False),
                 _datetime_col(P, "lastchecked", "Last Checked"),
-                _string_col(P, "owneruserid", "Owner User ID", 50),
             ],
             "keys": [
                 {
@@ -88,13 +87,13 @@ def _table_definitions(prefix: str) -> list[dict]:
                 "required": True,
             },
             "columns": [
-                _string_col(P, "owneruserid", "Owner User ID", 50),
-                _integer_col(P, "internaldays", "Internal Days", 3),
-                _integer_col(P, "externaldays", "External Days", 5),
-                _integer_col(P, "prioritydays", "Priority Days", 1),
-                _integer_col(P, "generaldays", "General Days", 7),
+                _string_col(P, "owneruserid", "Owner User ID", 36),
+                _integer_col(P, "internaldays", "Internal Follow-Up Days", 3),
+                _integer_col(P, "externaldays", "External Follow-Up Days", 5),
+                _integer_col(P, "prioritydays", "Priority Follow-Up Days", 1),
+                _integer_col(P, "generaldays", "General Follow-Up Days", 7),
                 _boolean_col(P, "nudgesenabled", "Nudges Enabled", True),
-                _string_col(P, "snoozedfolderid", "Snoozed Folder ID", 200),
+                _string_col(P, "snoozefolderid", "Snooze Folder ID", 200),
             ],
             "keys": [
                 {
@@ -119,12 +118,12 @@ def _table_definitions(prefix: str) -> list[dict]:
             },
             "columns": [
                 _memo_col(P, "conversationid", "Conversation ID"),
-                _string_col(P, "owneruserid", "Owner User ID", 50),
-                _string_col(P, "originalmessageid", "Original Message ID", 200),
-                _string_col(P, "snoozedfolderid", "Snoozed Folder ID", 200),
+                _string_col(P, "owneruserid", "Owner User ID", 36),
+                _string_col(P, "originalmessageid", "Original Message ID", 500),
                 _datetime_col(P, "snoozeuntil", "Snooze Until"),
+                _string_col(P, "currentfolder", "Current Folder", 200),
                 _boolean_col(P, "unsnoozedbyagent", "Unsnoozed By Agent", False),
-                _string_col(P, "currentfolder", "Current Folder", 50),
+                _datetime_col(P, "unsnoozeddatetime", "Unsnoozed Date Time"),
             ],
             "keys": [
                 {
@@ -150,14 +149,13 @@ def _string_col(prefix: str, name: str, label: str, max_len: int) -> dict:
     }
 
 
-def _memo_col(prefix: str, name: str, label: str) -> dict:
+def _memo_col(prefix: str, name: str, label: str, max_len: int = 10000) -> dict:
     return {
         "@odata.type": "#Microsoft.Dynamics.CRM.MemoAttributeMetadata",
         "SchemaName": f"{prefix}_{name}",
         "DisplayName": _label(label),
         "RequiredLevel": {"Value": "None"},
-        "MaxLength": 1048576,
-        "Format": "Text",
+        "MaxLength": max_len,
     }
 
 
@@ -193,7 +191,8 @@ def _integer_col(prefix: str, name: str, label: str, default: int) -> dict:
         "RequiredLevel": {"Value": "None"},
         "MinValue": 1,
         "MaxValue": 365,
-        "DefaultValue": default,
+        "Format": "None",
+        "DefaultFormValue": default,
     }
 
 
