@@ -231,7 +231,7 @@ describe('App briefing integration', () => {
         });
 
         // Briefing summary renders in gallery
-        expect(screen.getByText(dailyBriefingItem.item_summary)).toBeInTheDocument();
+        expect(screen.getAllByText(dailyBriefingItem.item_summary).length).toBeGreaterThan(0);
         // Regular card also renders
         expect(screen.getByText(tier3FullItem.item_summary)).toBeInTheDocument();
         // No Back button in gallery mode — briefing cards render inline

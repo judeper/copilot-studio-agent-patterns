@@ -13,7 +13,11 @@ jest.mock('@fluentui/react-components', () => ({
     ),
     Text: (props: Record<string, unknown>) => <span>{props.children as React.ReactNode}</span>,
     Badge: (props: Record<string, unknown>) => <span>{props.children as React.ReactNode}</span>,
-    Card: (props: Record<string, unknown>) => <div>{props.children as React.ReactNode}</div>,
+    Card: (props: Record<string, unknown>) => (
+        <div onClickCapture={props.onClickCapture as () => void}>
+            {props.children as React.ReactNode}
+        </div>
+    ),
 }));
 
 // Mock Fluent UI Icons
@@ -24,6 +28,11 @@ jest.mock('@fluentui/react-icons', () => ({
     ChevronRightRegular: () => <span data-testid="icon-chevron-right" />,
     CalendarRegular: () => <span data-testid="icon-calendar" />,
     ArrowRightRegular: () => <span data-testid="icon-arrow-right" />,
+    WeatherSunnyRegular: () => <span data-testid="icon-weather-sunny" />,
+    WeatherMoonRegular: () => <span data-testid="icon-weather-moon" />,
+    CheckmarkCircleRegular: () => <span data-testid="icon-checkmark-circle" />,
+    ChatBubblesQuestionRegular: () => <span data-testid="icon-chat-bubbles" />,
+    LightbulbRegular: () => <span data-testid="icon-lightbulb" />,
 }));
 
 describe('BriefingCard', () => {
@@ -217,5 +226,142 @@ describe('BriefingCard', () => {
 
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(mockBack).toHaveBeenCalledTimes(1);
+    });
+
+    // ── Phase C1: Morning Briefing ──
+
+    it('renders morning briefing summary for DAILY briefing type', () => {
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        expect(screen.getByText('Start-of-day summary')).toBeTruthy();
+        expect(screen.getByText(/front-loaded around/)).toBeTruthy();
+        expect(screen.getByText('Start my day')).toBeTruthy();
+    });
+
+    it('renders morning metric tiles', () => {
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        expect(screen.getByText('First decision')).toBeTruthy();
+        expect(screen.getByText('Protected window')).toBeTruthy();
+        expect(screen.getByText('Next context shift')).toBeTruthy();
+    });
+
+    it('calls onJumpToCard when Start my day is clicked', () => {
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        fireEvent.click(screen.getByText('Start my day'));
+        expect(mockJump).toHaveBeenCalledWith('full-001');
+    });
+
+    // ── Phase C2: End-of-Day Review ──
+
+    it('renders end-of-day review for END_OF_DAY briefing type', () => {
+        const eodCard: AssistantCard = {
+            ...dailyBriefingItem,
+            draft_payload: JSON.stringify({
+                briefing_type: 'END_OF_DAY',
+                briefing_date: '2026-02-28',
+                total_open_items: 3,
+                day_shape: 'Wrapping up your day.',
+                action_items: [
+                    {
+                        rank: 1,
+                        card_ids: ['full-001'],
+                        thread_summary: 'Remaining item',
+                        recommended_action: 'Carry forward to tomorrow',
+                        urgency_reason: 'Low urgency',
+                        related_calendar: null,
+                    },
+                ],
+            }),
+        };
+        render(
+            <BriefingCard
+                card={eodCard}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        expect(screen.getByText('End-of-Day Review')).toBeTruthy();
+        expect(screen.getByText('Completed')).toBeTruthy();
+        expect(screen.getByText('Deferred')).toBeTruthy();
+        expect(screen.getByText('Protected focus')).toBeTruthy();
+        expect(screen.getByText('Finalize review')).toBeTruthy();
+        expect(screen.getByText('Rebuild tomorrow lane')).toBeTruthy();
+    });
+
+    it('renders carry-forward items in EOD review', () => {
+        const eodCard: AssistantCard = {
+            ...dailyBriefingItem,
+            draft_payload: JSON.stringify({
+                briefing_type: 'END_OF_DAY',
+                briefing_date: '2026-02-28',
+                total_open_items: 1,
+                day_shape: 'Day is wrapping up.',
+                action_items: [
+                    {
+                        rank: 1,
+                        card_ids: ['full-001'],
+                        thread_summary: 'Contract item',
+                        recommended_action: 'Review contract before deadline',
+                        urgency_reason: 'High priority',
+                        related_calendar: null,
+                    },
+                ],
+            }),
+        };
+        render(
+            <BriefingCard
+                card={eodCard}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        expect(screen.getByText("Tomorrow's carry-forward")).toBeTruthy();
+        expect(screen.getAllByText('Review contract before deadline').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // ── Phase C3: Enhanced Meeting Briefing ──
+
+    it('renders meeting briefing sections for action items', () => {
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        expect(screen.getByText('What changed')).toBeTruthy();
+        expect(screen.getByText('Open decisions')).toBeTruthy();
+        expect(screen.getByText('Suggested talking points')).toBeTruthy();
+    });
+
+    it('shows Briefed badge after clicking on a button inside the card', () => {
+        render(
+            <BriefingCard
+                card={dailyBriefingItem}
+                onJumpToCard={mockJump}
+                onDismissCard={mockDismiss}
+            />,
+        );
+        expect(screen.queryByText('Briefed')).toBeNull();
+        // Click a button inside the card — the onClickCapture on Card should fire
+        fireEvent.click(screen.getByText('Start my day'));
+        expect(screen.getByText('Briefed')).toBeTruthy();
     });
 });

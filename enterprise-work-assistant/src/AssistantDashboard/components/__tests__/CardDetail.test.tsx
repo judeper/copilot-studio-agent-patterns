@@ -50,7 +50,7 @@ describe('CardDetail', () => {
     it('renders confidence badge', () => {
         renderCardDetail(tier3FullItem);
 
-        expect(screen.getByText('Confidence: 87%')).toBeInTheDocument();
+        expect(screen.getByText('Review suggested')).toBeInTheDocument();
     });
 
     it('renders trigger type badge', () => {
@@ -116,7 +116,7 @@ describe('CardDetail', () => {
     it('renders humanized draft textarea', () => {
         renderCardDetail(tier3FullItem);
 
-        expect(screen.getByText('Humanized Draft')).toBeInTheDocument();
+        expect(screen.getByText('Your draft')).toBeInTheDocument();
         const textarea = screen.getByDisplayValue(tier3FullItem.humanized_draft!);
         expect(textarea).toBeInTheDocument();
     });
@@ -328,7 +328,7 @@ describe('CardDetail', () => {
         renderCardDetail(tier1SkipItem);
 
         expect(screen.queryByText('Draft')).not.toBeInTheDocument();
-        expect(screen.queryByText('Humanized Draft')).not.toBeInTheDocument();
+        expect(screen.queryByText('Your draft')).not.toBeInTheDocument();
     });
 
     // Sprint 2: Inline editing tests

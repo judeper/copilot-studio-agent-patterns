@@ -73,7 +73,8 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    line-height: 1.4;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .card-item-footer {
@@ -248,7 +249,7 @@
     line-height: 1.5;
     color: #2a2a3e;
     padding: 12px;
-    background: white;
+    background: #fefefe;
     border-radius: 6px;
     margin-bottom: 16px;
     border-left: 3px solid #6366f1;
@@ -260,7 +261,7 @@
 
 .briefing-section h3 {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     margin: 0 0 8px 0;
     color: #333;
 }
@@ -269,7 +270,7 @@
     display: flex;
     gap: 10px;
     padding: 10px;
-    background: white;
+    background: #fefefe;
     border-radius: 6px;
     margin-bottom: 8px;
     border: 1px solid #e0e0e0;
@@ -447,11 +448,143 @@
     border-color: #767676;
 }
 
+/* ─── Phase C: Briefing Variants ─── */
+
+.briefing-morning-summary {
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f8ff 100%);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.briefing-morning-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #d97706;
+}
+
+.briefing-morning-narrative {
+    color: #333;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.briefing-morning-action {
+    margin-top: 12px;
+}
+
+.briefing-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.briefing-metric-tile {
+    border: 1px solid #e0e0f0;
+    border-radius: 12px;
+    padding: 12px;
+    background: white;
+}
+
+.briefing-metric-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #767676;
+}
+
+.briefing-metric-value {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.briefing-eod-section {
+    background: linear-gradient(180deg, #f5f3ff 0%, #faf5ff 100%);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.briefing-eod-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #6366f1;
+}
+
+.briefing-eod-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.briefing-carry-forward {
+    margin-top: 12px;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0f0;
+}
+
+.briefing-carry-list {
+    margin: 6px 0 0 0;
+    padding-left: 18px;
+    list-style: disc;
+}
+
+.briefing-carry-list li {
+    padding: 2px 0;
+    color: #444;
+    font-size: 13px;
+}
+
+.briefing-meeting-sections {
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.briefing-meeting-subsection {
+    background: #f9f9ff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid #ebebf5;
+}
+
+.briefing-meeting-subsection-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    color: #6366f1;
+}
+
+.briefing-meeting-list {
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+}
+
+.briefing-meeting-list li {
+    padding: 2px 0;
+    color: #444;
+    font-size: 13px;
+}
+
+.briefing-briefed-badge {
+    margin-left: auto;
+}
+
 /* ─── Sprint 2: Inline Editing ─── */
 
 .card-detail-draft-editable {
     border: 2px solid #6366f1;
-    background: #fafaff;
+    background: #fafaf8;
 }
 
 .card-detail-edit-bar {
@@ -510,7 +643,7 @@
 }
 
 .command-entry-assistant {
-    background: white;
+    background: #fefefe;
     color: #333;
     margin-right: 40px;
     border: 1px solid #e8e8e8;
@@ -533,7 +666,7 @@
 }
 
 .command-card-link {
-    background: #f0f0ff;
+    background: #f5f5f3;
     border: 1px solid #d0d0e8;
     border-radius: 4px;
     padding: 2px 8px;
@@ -705,7 +838,7 @@
     padding: 8px 10px;
     border-bottom: 2px solid #e0e0e0;
     color: #444;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .calibration-table td {
@@ -728,7 +861,7 @@
 }
 
 .calibration-stat-card {
-    background: white;
+    background: #fefefe;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 16px;
@@ -794,7 +927,7 @@
 
 .feed-section-title {
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--colorNeutralForeground2, #555);
@@ -845,7 +978,7 @@
     padding: 4px 12px;
     border: 1px solid var(--colorNeutralStroke1, #d0d0d0);
     border-radius: 16px;
-    background: #fff;
+    background: #fefefe;
     font-size: 13px;
     color: var(--colorNeutralForeground1, #333);
     cursor: pointer;
@@ -855,7 +988,7 @@
 }
 
 .filter-chip:hover {
-    background: #f0f0ff;
+    background: #f5f5f3;
     border-color: #6366f1;
 }
 
@@ -1068,7 +1201,7 @@
     margin: 12px auto;
     width: fit-content;
     padding: 10px 24px;
-    background: white;
+    background: #fefefe;
     border: 1px solid #e0e0e0;
     border-radius: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1145,7 +1278,7 @@
 }
 
 .status-bar-action-count:hover {
-    background: #f0f0ff;
+    background: #f5f5f3;
 }
 
 .status-bar-right {
@@ -1156,8 +1289,11 @@
 
 .memory-icon-active {
     color: #6366f1;
-    animation: memoryPulse 2s ease-in-out infinite;
     font-size: 10px;
+}
+
+.memory-icon-active.memory-pulse {
+    animation: memoryPulse 1.5s ease-in-out 2;
 }
 
 .memory-icon {
@@ -1227,4 +1363,195 @@
     0% { opacity: 1; }
     50% { opacity: 0.5; }
     100% { opacity: 1; }
+}
+
+/* ─── Phase A: Card Intelligence ─── */
+
+.card-item-rationale {
+    font-size: 13px;
+    color: #595959;
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
+.confidence-pill {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.show-more-container {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.show-more-button {
+    font-size: 13px;
+    color: #6366f1;
+}
+
+.send-feedback-message {
+    font-size: 13px;
+    color: #16a34a;
+    font-weight: 500;
+    padding: 6px 0;
+    animation: feedbackFade 2s ease-out forwards;
+}
+
+@keyframes feedbackFade {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ─── Phase B: StatusBar Day Metrics ─── */
+
+.status-bar-metrics {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-bar-focus-status {
+    font-size: 12px;
+    color: var(--colorNeutralForeground2, #555);
+    white-space: nowrap;
+}
+
+.status-bar-next-meeting {
+    font-size: 12px;
+    color: var(--colorNeutralForeground2, #555);
+    white-space: nowrap;
+}
+
+.status-bar-held-items {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+/* ─── Phase B: State Transition Animations ─── */
+
+@keyframes cardComplete {
+    0% { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(20px); }
+}
+
+.card-item-completing {
+    animation: cardComplete 300ms ease-out forwards;
+}
+
+@keyframes statusPulse {
+    0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.3); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.card-item-status-updated {
+    animation: statusPulse 600ms ease-out;
+}
+
+/* ─── Phase D: CommandBar Activity Feed ─── */
+
+.command-activity-section {
+    border-top: 1px solid #e0e0f0;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+.command-activity-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 0;
+    color: inherit;
+    font: inherit;
+}
+
+.command-activity-toggle:hover {
+    color: #6366f1;
+}
+
+.command-activity-list {
+    padding-top: 4px;
+}
+
+.command-activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 13px;
+    color: #595959;
+}
+
+.command-activity-time {
+    font-size: 11px;
+    color: #767676;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+/* ─── Phase D: DayGlance Calendar ─── */
+
+.day-glance {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #e0e0f0;
+    border-radius: 12px;
+    background: #fafaf8;
+}
+
+.day-glance-header {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #1a1a2e;
+}
+
+.day-glance-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.day-glance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: #fefefe;
+    border: 1px solid #e8e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.day-glance-item-title {
+    color: #1a1a2e;
+    font-weight: 500;
+}
+
+.day-glance-item-type {
+    font-size: 11px;
+    color: #767676;
+    padding: 2px 8px;
+    border: 1px solid #e0e0f0;
+    border-radius: 10px;
+}
+
+/* ─── Phase E: Animation Budget — Reduced Motion ─── */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

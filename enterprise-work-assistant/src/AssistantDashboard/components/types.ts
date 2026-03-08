@@ -33,6 +33,8 @@ export type CardOutcome = "PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISMISSED"
 
 // Sprint 2 — Daily Briefing types
 
+export type BriefingType = "DAILY" | "MORNING" | "END_OF_DAY" | "MEETING_PREP";
+
 export interface BriefingActionItem {
     rank: number;
     card_ids: string[];
@@ -55,14 +57,39 @@ export interface BriefingStaleAlert {
     recommended_action: "RESPOND" | "DELEGATE" | "DISMISS";
 }
 
+// Phase C — Morning briefing metrics
+export interface MorningMetric {
+    label: string;
+    value: string;
+}
+
+export interface MorningBriefingData {
+    decisions_count: number;
+    focus_blocks_count: number;
+    meetings_needing_prep: number;
+    first_decision: string;
+    protected_window: string;
+    next_context_shift: string;
+}
+
+// Phase C — End-of-day review data
+export interface EndOfDayData {
+    completed_count: number;
+    deferred_count: number;
+    protected_focus_hours: number;
+    carry_forward: string[];
+}
+
 export interface DailyBriefing {
-    briefing_type: "DAILY";
+    briefing_type: BriefingType;
     briefing_date: string;
     total_open_items: number;
     day_shape: string;
     action_items: BriefingActionItem[];
     fyi_items?: BriefingFyiItem[];
     stale_alerts?: BriefingStaleAlert[];
+    morning_data?: MorningBriefingData;
+    eod_data?: EndOfDayData;
 }
 
 export interface BriefingScheduleConfig {
@@ -117,6 +144,8 @@ export interface AssistantCard {
     conversation_cluster_id: string | null;
     source_signal_id: string | null;
     hours_stale: number | null;
+    // Phase A — Card Intelligence
+    urgency_reason?: string;
 }
 
 export interface AppProps {

@@ -2,6 +2,8 @@ import * as React from "react";
 import type { AssistantCard } from "./types";
 import { CardItem } from "./CardItem";
 import { HEARTBEAT_TRIGGER_TYPES, FEED_SECTIONS } from "./constants";
+import { compositeSort } from "../hooks/useCardData";
+import { Button } from "@fluentui/react-components";
 
 type FeedSection = {
     key: string;
@@ -71,7 +73,11 @@ interface CardGalleryProps {
 }
 
 export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard }) => {
-    const sections = React.useMemo(() => groupCards(cards), [cards]);
+    const [visibleCount, setVisibleCount] = React.useState(5);
+    const sortedCards = React.useMemo(() => compositeSort(cards), [cards]);
+    const visibleCards = React.useMemo(() => sortedCards.slice(0, visibleCount), [sortedCards, visibleCount]);
+    const hasMore = visibleCount < sortedCards.length;
+    const sections = React.useMemo(() => groupCards(visibleCards), [visibleCards]);
     const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
         for (const [key, def] of Object.entries(FEED_SECTIONS)) {
@@ -80,9 +86,43 @@ export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard })
         return initial;
     });
 
+    // B3: Track previous card outcomes to detect completion transitions
+    const prevOutcomes = React.useRef<Record<string, string>>({});
+    const [completingIds, setCompletingIds] = React.useState<Set<string>>(() => new Set());
+
+    React.useEffect(() => {
+        const newCompleting = new Set<string>();
+        for (const card of cards) {
+            const prev = prevOutcomes.current[card.id];
+            if (
+                prev === "PENDING" &&
+                (card.card_outcome === "SENT_AS_IS" || card.card_outcome === "SENT_EDITED" || card.card_outcome === "DISMISSED")
+            ) {
+                newCompleting.add(card.id);
+            }
+        }
+        // Update tracked outcomes
+        const next: Record<string, string> = {};
+        for (const card of cards) {
+            next[card.id] = card.card_outcome;
+        }
+        prevOutcomes.current = next;
+
+        if (newCompleting.size > 0) {
+            setCompletingIds(newCompleting);
+            const timer = window.setTimeout(() => setCompletingIds(new Set()), 350);
+            return () => window.clearTimeout(timer);
+        }
+    }, [cards]);
+
     const toggleSection = React.useCallback((key: string) => {
         setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
     }, []);
+
+    // Reset visible count when cards change
+    React.useEffect(() => {
+        setVisibleCount(5);
+    }, [cards]);
 
     if (cards.length === 0) {
         const now = new Date();
@@ -123,12 +163,28 @@ export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard })
                     {!collapsed[section.key] && (
                         <div className="feed-section-cards">
                             {section.cards.map((card) => (
-                                <CardItem key={card.id} card={card} onClick={onSelectCard} />
+                                <div
+                                    key={card.id}
+                                    className={completingIds.has(card.id) ? "card-item-completing" : undefined}
+                                >
+                                    <CardItem card={card} onClick={onSelectCard} />
+                                </div>
                             ))}
                         </div>
                     )}
                 </div>
             ))}
+            {hasMore && (
+                <div className="show-more-container">
+                    <Button
+                        appearance="subtle"
+                        className="show-more-button"
+                        onClick={() => setVisibleCount((prev) => prev + 5)}
+                    >
+                        Show next 5 ({sortedCards.length - visibleCount} remaining)
+                    </Button>
+                </div>
+            )}
         </div>
     );
 };

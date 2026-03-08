@@ -17,7 +17,7 @@ import {
     CheckmarkCircleRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
-import { PRIORITY_COLORS, EWA_COLORS } from "./constants";
+import { PRIORITY_COLORS, EWA_COLORS, getConfidenceState } from "./constants";
 import { isSafeUrl } from "../utils/urlSanitizer";
 import { levenshteinRatio } from "../utils/levenshtein";
 import { focusAfterRender } from "../utils/focusUtils";
@@ -30,12 +30,6 @@ interface CardDetailProps {
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
     onSaveDraft: (cardId: string, editedText: string) => void;
-}
-
-function getConfidenceClass(score: number): string {
-    if (score >= 70) return "detail-confidence-high";
-    if (score >= 40) return "detail-confidence-mid";
-    return "detail-confidence-low";
 }
 
 const DetailSection: React.FC<{
@@ -122,6 +116,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 }) => {
     const handleClose = onClose ?? onBack;
     const [localSendState, setLocalSendState] = React.useState<SendDisplayState>("idle");
+    const [sendFeedback, setSendFeedback] = React.useState(false);
     // Sprint 2: Inline editing state
     const [isEditing, setIsEditing] = React.useState(false);
     const [editedDraft, setEditedDraft] = React.useState(card.humanized_draft ?? "");
@@ -173,6 +168,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     // Reset local state when switching to a different card
     React.useEffect(() => {
         setLocalSendState("idle");
+        setSendFeedback(false);
         setIsEditing(false);
         setEditedDraft(card.humanized_draft ?? "");
     }, [card.id, card.humanized_draft]);
@@ -216,7 +212,18 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 
     React.useEffect(() => {
         if (isEditing) {
-            focusAfterRender(() => draftTextareaRef.current?.focus());
+            focusAfterRender(() => {
+                const textarea = draftTextareaRef.current;
+                if (textarea) {
+                    textarea.focus();
+                    const text = textarea.value;
+                    const greetingEnd = text.indexOf("\n\n");
+                    if (greetingEnd !== -1) {
+                        const pos = greetingEnd + 2;
+                        textarea.setSelectionRange(pos, pos);
+                    }
+                }
+            });
         }
     }, [isEditing]);
 
@@ -237,6 +244,8 @@ export const CardDetail: React.FC<CardDetailProps> = ({
         const originalDraft = card.humanized_draft ?? "";
         const ratio = levenshteinRatio(originalDraft, finalText);
         onSendDraft(card.id, finalText, ratio);
+        setSendFeedback(true);
+        setTimeout(() => setSendFeedback(false), 2000);
     }, [card.id, card.humanized_draft, editedDraft, isEditing, onSendDraft]);
 
     const handleCancelSend = React.useCallback(() => {
@@ -321,15 +330,17 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         {card.priority}
                     </Badge>
                 )}
-                {card.confidence_score !== null && (
-                    <Badge
-                        appearance="outline"
-                        size="medium"
-                        className={getConfidenceClass(card.confidence_score)}
-                    >
-                        Confidence: {card.confidence_score}%
-                    </Badge>
-                )}
+                {card.confidence_score !== null && (() => {
+                    const cs = getConfidenceState(card.confidence_score!);
+                    return (
+                        <span
+                            className="confidence-pill"
+                            style={{ color: cs.color, backgroundColor: cs.bgColor }}
+                        >
+                            {cs.label}
+                        </span>
+                    );
+                })()}
                 <Badge appearance="outline" size="medium">
                     {card.trigger_type}
                 </Badge>
@@ -414,7 +425,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
             {card.draft_payload && (
                 <section className="card-detail-section">
                     <Text as="h3" size={400} weight="semibold" block>
-                        {card.humanized_draft ? "Humanized Draft" : "Draft"}
+                        {card.humanized_draft ? "Your draft" : "Draft"}
                     </Text>
                     {card.humanized_draft ? (
                         <>
@@ -524,6 +535,9 @@ export const CardDetail: React.FC<CardDetailProps> = ({
             )}
 
             {/* Action buttons */}
+            {sendFeedback && (
+                <div className="send-feedback-message">Draft preference noted</div>
+            )}
             <div className="card-detail-actions">
                 {/* Send button — EMAIL FULL cards with humanized draft only */}
                 {sendable && !isSent && !isDismissed && (
