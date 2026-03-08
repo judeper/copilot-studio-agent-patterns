@@ -30,18 +30,12 @@ The PCF component is a **virtual** React control (shares the platform React tree
 
 The **Agent Cost Governance — PAYGO** solution (`agent-cost-governance-paygo/`) is a Tier-2 Cross-Cutting Governance solution providing leadership-quality PAYGO cost visibility for Copilot Studio agents. It uses Azure Cost Management + Power BI (no PCF component). Key artifacts: DAX measures, PowerShell billing policy script (Power Platform REST API), ARM budget alert template, and FSI regulatory alignment documents (GLBA, SOX, FINRA, OCC). Known limitation: Azure Cost Management reports at environment level, not per-agent.
 
-The **Email Productivity Agent** (`email-productivity-agent/`) is a follow-up nudge and snooze system for Outlook emails. It tracks sent emails, detects missing replies, delivers Teams adaptive card nudges, auto-unsnoozes conversations when replies arrive, and now includes a full CLI-driven regression harness set. The architecture is:
-
-1. **9 production Power Automate Flows** deployed via Flow Management API:
-   - Phase 1 (Follow-Up Nudges): Flow 1 (Sent Items Tracker), Flow 2 (Response Detection), Flow 2b (Card Action Handler), Flow 5 (Data Retention)
-   - Phase 2 (Snooze Auto-Removal): Flow 3 (Snooze Detection), Flow 4 (Auto-Unsnooze), Flow 6 (Snooze Cleanup)
-   - Phase 3 (Settings UX): Flow 7 (Settings Card), Flow 7b (Settings Card Handler)
-2. **6 optional HTTP regression harness flows**:
-   - Flow 8 (Follow-Up Test Harness), Flow 9 (Card Action Test Harness), Flow 10 (Settings Handler Test Harness)
-   - Flow 11 (Snooze Detection Test Harness), Flow 12 (Auto-Unsnooze Test Harness), Flow 13 (Snooze Seed Test Harness)
-3. **Copilot Studio assets remain in repo** for follow-up and snooze decisioning, but the currently validated POC deployment keeps Flow 2 mocked and Flow 4 on a deterministic UNSNOOZE bypass path so end-to-end automation does not depend on a live agent call
-4. **3 Dataverse Tables**: `cr_followuptracking`, `cr_nudgeconfiguration`, `cr_snoozedconversation` — alternate keys remain in the schema, while some validated flow writes use `ListRecords` + `UpdateRecord`/`CreateRecord` for reliability
-5. **5 connectors** are required by the current tested flow deployment: Office 365 Outlook, Office 365 Users, Microsoft Dataverse, Microsoft Teams, HTTP with Microsoft Entra ID (preauthorized). The Microsoft Copilot Studio connector is only needed if the live agent steps are re-enabled
+The **Email Productivity Agent** (`email-productivity-agent/`) provides Gmail-like follow-up nudges and smart snooze for Outlook:
+- **9 production flows** (Phase 1: nudges, Phase 2: snooze, Phase 3: settings) + 6 optional CLI regression harnesses
+- **3 Dataverse tables**: `cr_followuptracking`, `cr_nudgeconfiguration`, `cr_snoozedconversation`
+- **Connectors**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID
+- **POC state**: Flow 2 mocked, Flow 4 deterministic bypass; Copilot assets available for re-enabling
+- **Lab wizard** (`tools/lab-wizard/wizard.py`): Python CLI automating full deployment in 9 phases
 
 ## Build, Test, and Lint (PCF Component)
 
@@ -73,39 +67,16 @@ pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate MainFlows
 
 ## Provision and Deploy (Email Productivity Agent)
 
-### Option A: Lab Wizard (Recommended)
-
-The Python lab wizard automates the full deployment in one interactive session:
+Deploy via lab wizard (recommended) or manual scripts. See `email-productivity-agent/README.md` for full instructions.
 
 ```shell
-cd email-productivity-agent/tools/lab-wizard
-pip install -r requirements.txt
-python wizard.py
-```
+# Lab wizard (automated, interactive)
+cd email-productivity-agent/tools/lab-wizard && pip install -r requirements.txt && python wizard.py
 
-The wizard runs 9 phases: Environment → Security Roles → Copilot Agent → Connections → Deploy Flows → Assign User Roles → Validation Check → Demo Staging.
-
-Runtime config is saved to `epa-config.json` (gitignored). Demo staging bootstraps an Entra app registration (`epa-mail-app.json`, also gitignored) with `Mail.ReadWrite` + `Mail.Send` for sending demo emails from Lisa Taylor's mailbox.
-
-### Option B: Manual Scripts
-
-All commands run from `email-productivity-agent/scripts/`:
-
-```shell
-# 1. Provision environment + Dataverse tables
+# Manual scripts (from email-productivity-agent/scripts/)
 pwsh provision-environment.ps1 -TenantId "<tenant-id>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
-pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
-
-# 2. Deploy flows (Phase1 → Phase2 → Phase3)
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase1"
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase2"
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase3"
-
-# 3. Optional: deploy regression harness flows (Flow8-Flow13)
-foreach ($flow in @("Flow8","Flow9","Flow10","Flow11","Flow12","Flow13")) {
-    pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate $flow
-}
+pwsh deploy-agent-flows.ps1 -OrgUrl "..." -EnvironmentId "..." -FlowsToCreate "Phase1"  # then Phase2, Phase3
 ```
 
 Requires: PowerShell 7+, PAC CLI, Azure CLI (`az login` for token acquisition).
@@ -174,15 +145,11 @@ PowerShell 7+ scripts in `intelligent-work-layer/scripts/` handle environment se
 
 ### Email Productivity Agent — Flow Deployment
 
-- **Flow Management API for main flows**: Main flows (standard triggers) should be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity). Dataverse-created flows never bind connections at runtime. Agent tool flows are the exception — they must be created via Copilot Studio or solution import because the API rejects the `PowerVirtualAgents` trigger kind.
-- **Main flow JSON definitions are POC scaffolding**: Some flow definitions in `src/flow-*.json` may have validation errors and require manual building in the Power Automate designer following `docs/agent-flows.md`.
-- **`state=Started`** during creation activates flows immediately but enforces strict dynamic parameter validation.
-- **Teams connector**: `PostMessageToConversation` and `PostCardToConversation` require `poster` and `location` static params before dynamic `body` params. For `location = "Chat with Flow bot"`, use `body/recipient` as a flat email string and `body/messageBody` for the payload; `body/recipient/to` causes Graph lookup failures.
-- **Dataverse connector**: `UpsertRecord` doesn't exist. For owner-scoped config and snooze tables, prefer `ListRecords` + `UpdateRecord`/`CreateRecord` over alternate-key writes; `cr_snoozedconversation` creates must explicitly set `item/cr_unsnoozedbyagent`. `Terminate` action does not support `runError` when `runStatus` is `Succeeded`.
-- **Owner-scoped queries**: `cr_followuptracking` uses Dataverse ownership, not a custom `cr_owneruserid` column. Filter on `_ownerid_value` and, when starting from Office 365 Users, translate the AAD object ID to Dataverse `systemuserid` first.
-- **HTTP with Entra ID**: Connector API name is `shared_webcontents` with `InvokeHttp` operationId. Uses `request/method` and `request/url` parameters.
-- **HTTP harness callback URLs**: `listCallbackUrl` requires the `x-ms-client-scope` header and may return the URL under either `value` or `response.value`.
-- **Flow JSON definitions**: Stored in `email-productivity-agent/src/flow-*.json`. Each file contains a `definition` (Logic Apps schema) and `_metadata` block with flow name, description, and required connections.
+- **Flow Management API**: Deploy main flows via `api.flow.microsoft.com` with `$connections` and `$authentication` parameters injected. Flow definitions in `email-productivity-agent/src/flow-*.json`.
+- **Dataverse connector**: Use `ListRecords` + `UpdateRecord`/`CreateRecord` (not `UpsertRecord`). Set `cr_unsnoozedbyagent` explicitly on creates.
+- **Teams connector**: For `"Chat with Flow bot"`, use `body/recipient` as flat email string (not nested `body/recipient/to`).
+- **Table naming**: Singular for logical names (`cr_snoozedconversation`), plural for OData entity sets (`cr_snoozedconversations`).
+- See `email-productivity-agent/docs/deployment-guide.md` Step 5 for detailed troubleshooting.
 
 ### Planning Structure
 
