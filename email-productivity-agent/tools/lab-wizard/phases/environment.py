@@ -54,7 +54,7 @@ def _table_definitions(prefix: str) -> list[dict]:
             },
             "columns": [
                 _string_col(P, "sourcesignalid", "Source Signal ID", 200),
-                _memo_col(P, "conversationid", "Conversation ID"),
+                _string_col(P, "conversationid", "Conversation ID", 500),
                 _memo_col(P, "internetmessageheaders", "Internet Message Headers", 2000),
                 _datetime_col(P, "sentdatetime", "Sent Date Time"),
                 _string_col(P, "recipientemail", "Recipient Email", 250),
@@ -117,7 +117,7 @@ def _table_definitions(prefix: str) -> list[dict]:
                 "required": False,
             },
             "columns": [
-                _memo_col(P, "conversationid", "Conversation ID"),
+                _string_col(P, "conversationid", "Conversation ID", 255),
                 _string_col(P, "owneruserid", "Owner User ID", 36),
                 _string_col(P, "originalmessageid", "Original Message ID", 500),
                 _datetime_col(P, "snoozeuntil", "Snooze Until"),

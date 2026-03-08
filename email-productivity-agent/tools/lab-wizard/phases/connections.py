@@ -125,13 +125,10 @@ def setup_connections(auth: TokenManager, config: dict) -> dict[str, str]:
         )
     )
 
-    # Try to open the browser
+    # Show the URL but don't auto-open (may open in wrong browser profile)
     conn_url = f"https://make.powerautomate.com/environments/{env_id}/connections"
-    try:
-        webbrowser.open(conn_url)
-        console.print("[dim]Opened browser to connection page.[/dim]\n")
-    except Exception:
-        console.print("[dim]Could not open browser — please navigate manually.[/dim]\n")
+    console.print(f"[bold]Open this URL in your admin browser profile:[/bold]")
+    console.print(f"  [link={conn_url}]{conn_url}[/link]\n")
 
     console.print(
         "[bold]Polling for connections every 15 seconds… "
