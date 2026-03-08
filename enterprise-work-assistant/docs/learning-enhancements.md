@@ -1,6 +1,6 @@
 # Learning Enhancements — Design Document
 
-This document describes the learning subsystem enhancements for the Enterprise Work Assistant. These features enable the agent to adapt to each user's communication patterns over time — bootstrapping from historical data, analyzing edit behavior, applying exponentially weighted averages, and gating learned preferences behind confidence thresholds.
+This document describes the learning subsystem enhancements for the Intelligent Work Layer. These features enable the agent to adapt to each user's communication patterns over time — bootstrapping from historical data, analyzing edit behavior, applying exponentially weighted averages, and gating learned preferences behind confidence thresholds.
 
 > **Status**: Design phase. These enhancements build on the Sprint 4 sender-adaptive foundation (`cr_senderprofile`, `cr_episodicmemory`, `cr_semanticknowledge`) documented in [agent-flows.md](agent-flows.md).
 

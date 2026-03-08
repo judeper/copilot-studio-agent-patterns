@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-    Creates and publishes the Enterprise Work Assistant copilot from repo assets.
+    Creates and publishes the Intelligent Work Layer copilot from repo assets.
 
 .DESCRIPTION
     Builds a Copilot Studio template from the repo's base bot template plus the
-    Enterprise Work Assistant topic prompts, then creates or reuses the
-    `Enterprise Work Assistant` copilot in the target environment and publishes it.
+    Intelligent Work Layer topic prompts, then creates or reuses the
+    `Intelligent Work Layer` copilot in the target environment and publishes it.
 
-    This script automates the Copilot Studio portion of the EWA setup that was
+    This script automates the Copilot Studio portion of the IWL setup that was
     previously manual. It provisions four flow-invoked topics:
       - Main Triage
       - Humanizer
@@ -15,13 +15,13 @@
       - Orchestrator
 
     The generated topics use generative actions and return raw JSON through
-    their respective output variables expected by the EWA flows and canvas app.
+    their respective output variables expected by the IWL flows and canvas app.
 
 .PARAMETER EnvironmentId
     Power Platform environment ID (GUID).
 
 .PARAMETER DisplayName
-    Display name of the copilot. Default: "Enterprise Work Assistant"
+    Display name of the copilot. Default: "Intelligent Work Layer"
 
 .PARAMETER SchemaName
     Schema name (unique name) of the copilot. Default: "cr_enterpriseworkassistant"
@@ -38,7 +38,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$EnvironmentId,
 
-    [string]$DisplayName = "Enterprise Work Assistant",
+    [string]$DisplayName = "Intelligent Work Layer",
 
     [string]$SchemaName = "cr_enterpriseworkassistant",
 
@@ -599,7 +599,7 @@ $briefingPromptPath = Join-Path $PSScriptRoot "..\prompts\daily-briefing-agent-p
 $orchestratorPromptPath = Join-Path $PSScriptRoot "..\prompts\orchestrator-agent-prompt.md"
 
 Write-Host "`n╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║  Enterprise Work Assistant — Copilot Provisioning   ║" -ForegroundColor Cyan
+Write-Host "║  Intelligent Work Layer — Copilot Provisioning   ║" -ForegroundColor Cyan
 Write-Host "╚══════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
 
 if (-not (Get-Command "pac" -ErrorAction SilentlyContinue)) {

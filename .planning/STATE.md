@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 Phase: All 7 v3.0 phases complete (90/90 items done)
 Plan: All implementation items verified
-Status: v3.0 + UX redesign complete — build passes, 213 tests pass (16 suites)
+Status: v3.0 + UX redesign + Work OS schema complete — build passes, 233 tests pass (16 suites)
 Last activity: 2026-03-08 — Completed UX Psychology-Driven Redesign (16 items, 5 phases)
 
 Progress: [██████████] 100% (7/7 phases complete, 90/90 items done)
@@ -99,7 +99,16 @@ Progress: [██████████] 100% (7/7 phases complete, 90/90 item
 - 14 PCF component fixes (a11y, tests, code quality)
 - 7 new agent prompts (Router, Calendar, Task, Email Compose, Search, Validation, Delegation)
 - Architecture, learning, and UX enhancement design docs
-- Environment "EWA-DryRun-v3" provisioned with all 9 tables and security roles
+- Environment "IWL-DryRun-v3" provisioned with all 9 tables and security roles
+
+### Work OS Schema Proposal (2026-03-08)
+- 9 TypeScript proposal models (`src/models/`) defining agent-to-UI contract
+- 8 JSON Schemas (`schemas/workos/`) for payload validation
+- Adapter layer (`src/models/adapters.ts`) bridging AssistantCard → WorkQueueItem
+- Typed mock data fixtures (`src/mock-data/`, `mock-api/`)
+- Agent contract documentation (`docs/agent-contract.md`)
+- 32 adapter validation tests (233 total tests, 16 suites)
+- Rebrand: Enterprise Work Assistant → Intelligent Work Layer (IWL)
 
 **v3.0 UX Psychology-Driven Redesign (16 items, 5 phases):**
 - Phase A — Card Intelligence: three-state confidence (HIGH/MEDIUM/LOW, not percentages), composite sort, Zeigarnik-aware pending indicators
@@ -108,7 +117,7 @@ Progress: [██████████] 100% (7/7 phases complete, 90/90 item
 - Phase D — Contextual Intelligence: research-grounded trust calibration (arXiv 2024 AI trust miscalibration)
 - Phase E — Visual Sustainability: warm-gray palette for 8-hour sustained use (PMC visual fatigue), `prefers-reduced-motion` support
 - Research basis: 8 cognitive science areas applied across all 5 phases
-- Test result: 213 tests pass across 16 suites
+- Test result: 233 tests pass across 16 suites
 
 ### Pending Todos
 
@@ -121,5 +130,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-08
-Stopped at: Completed v3.0 AI Council Enhancement Implementation + UX Psychology-Driven Redesign — 16 UX items, 5 phases, 213 tests
+Stopped at: Completed v3.0 AI Council Enhancement Implementation + UX Psychology-Driven Redesign + Work OS Schema Proposal — 233 tests
 Resume file: .planning/ROADMAP.md

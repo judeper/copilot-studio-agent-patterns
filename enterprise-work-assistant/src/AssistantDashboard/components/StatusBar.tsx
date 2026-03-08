@@ -38,7 +38,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <div className="status-bar">
             <div className="status-bar-brand">
                 <BrainCircuitRegular fontSize={20} />
-                <span className="status-bar-title">Work Assistant</span>
+                <span className="status-bar-title">Work Layer</span>
             </div>
             <div className="status-bar-metrics">
                 <button
