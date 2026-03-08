@@ -209,31 +209,48 @@ def _bootstrap_mail_app(tenant_id: str) -> dict | None:
         return None
 
     # Step 4: Assign permissions + admin consent
-    console.print("  [dim]Assigning Mail.ReadWrite + Mail.Send and granting admin consent…[/dim]")
+    console.print(f"  [dim]Mail.ReadWrite role: {mail_rw_id}[/dim]")
+    console.print(f"  [dim]Mail.Send role: {mail_send_id}[/dim]")
+    console.print("  [dim]Adding permissions to app…[/dim]")
 
-    resolve_cli(
+    # Each permission must be a separate argument (not space-separated in one string)
+    perm_result = resolve_cli(
         [az_path, "ad", "app", "permission", "add",
          "--id", app_id,
          "--api", "00000003-0000-0000-c000-000000000000",
-         "--api-permissions", f"{mail_rw_id}=Role {mail_send_id}=Role"],
+         "--api-permissions", f"{mail_rw_id}=Role", f"{mail_send_id}=Role"],
         capture_output=True, text=True, timeout=30,
     )
+    console.print(f"  [dim]Permission add rc={perm_result.returncode}[/dim]")
+    if perm_result.stderr:
+        console.print(f"  [dim]{perm_result.stderr.strip()[:200]}[/dim]")
 
-    # Grant admin consent (retry with delay for propagation)
-    resolve_cli(
+    # Verify permissions were added
+    verify_result = resolve_cli(
+        [az_path, "ad", "app", "show", "--id", app_id,
+         "--query", "requiredResourceAccess", "-o", "json"],
+        capture_output=True, text=True, timeout=15,
+    )
+    rra = json.loads(verify_result.stdout) if verify_result.returncode == 0 else []
+    if not rra:
+        console.print("  [red]❌ Permissions not added — requiredResourceAccess is empty[/red]")
+        return None
+    console.print(f"  [green]Permissions registered ({len(rra[0].get('resourceAccess', []))} roles)[/green]")
+
+    # Grant admin consent (with propagation wait)
+    console.print("  [dim]Granting admin consent…[/dim]")
+    consent_result = resolve_cli(
         [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
         capture_output=True, text=True, timeout=60,
     )
+    console.print(f"  [dim]Consent rc={consent_result.returncode}[/dim]")
     console.print("  [dim]Waiting 30s for consent to propagate…[/dim]")
     time.sleep(30)
-    resolve_cli(
-        [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
-        capture_output=True, text=True, timeout=60,
-    )
 
-    console.print("  [green]Mail.ReadWrite + Mail.Send permissions granted[/green]")
+    # Verify roles appear in token
+    console.print("  [dim]Verifying token roles…[/dim]")
 
-    # Step 5: Create client secret
+    # Step 5: Create client secret (needed before we can verify token)
     console.print("  [dim]Creating client secret…[/dim]")
     secret_result = resolve_cli(
         [az_path, "ad", "app", "credential", "reset",
@@ -244,7 +261,9 @@ def _bootstrap_mail_app(tenant_id: str) -> dict | None:
         capture_output=True, text=True, timeout=30,
     )
     if secret_result.returncode != 0 or not secret_result.stdout.strip():
-        console.print("[red]Could not create client secret.[/red]")
+        console.print(f"[red]Could not create client secret (rc={secret_result.returncode}).[/red]")
+        if secret_result.stderr:
+            console.print(f"  [dim]{secret_result.stderr[:200]}[/dim]")
         return None
 
     secret_data = json.loads(secret_result.stdout)
@@ -252,9 +271,48 @@ def _bootstrap_mail_app(tenant_id: str) -> dict | None:
     if not client_secret:
         console.print("[red]Client secret was empty in response.[/red]")
         return None
-    console.print("  [green]Client secret created[/green]")
+    console.print(f"  [green]Client secret created (length={len(client_secret)})[/green]")
     console.print("  [dim]Waiting 20s for secret to propagate…[/dim]")
     time.sleep(20)
+
+    # Verify token has the expected roles
+    try:
+        import base64
+        test_app = msal.ConfidentialClientApplication(
+            client_id=app_id,
+            client_credential=client_secret,
+            authority=f"https://login.microsoftonline.com/{tenant_id}",
+        )
+        test_result = test_app.acquire_token_for_client(
+            scopes=["https://graph.microsoft.com/.default"]
+        )
+        if "access_token" not in test_result:
+            console.print(f"  [red]Token acquisition failed: {test_result.get('error_description', '?')[:200]}[/red]")
+            console.print("  [dim]Retrying in 15s…[/dim]")
+            time.sleep(15)
+            test_result = test_app.acquire_token_for_client(
+                scopes=["https://graph.microsoft.com/.default"]
+            )
+
+        if "access_token" in test_result:
+            token_payload = test_result["access_token"].split(".")[1]
+            token_payload += "=" * (4 - len(token_payload) % 4)
+            decoded = json.loads(base64.b64decode(token_payload))
+            roles = decoded.get("roles", [])
+            console.print(f"  [green]Token roles: {roles}[/green]")
+            if "Mail.ReadWrite" not in roles or "Mail.Send" not in roles:
+                console.print("  [yellow]⚠ Missing expected roles — consent may still be propagating.[/yellow]")
+                console.print("  [dim]Waiting 60s and retrying consent…[/dim]")
+                time.sleep(60)
+                resolve_cli(
+                    [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
+                    capture_output=True, text=True, timeout=60,
+                )
+                time.sleep(15)
+        else:
+            console.print(f"  [red]Token still failing: {test_result.get('error_description', '?')[:200]}[/red]")
+    except Exception as exc:
+        console.print(f"  [yellow]Could not verify token: {exc}[/yellow]")
 
     # Step 6: Save config
     mail_config = {
