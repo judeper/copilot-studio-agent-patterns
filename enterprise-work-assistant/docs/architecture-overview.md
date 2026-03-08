@@ -243,6 +243,32 @@ Users continue to use Outlook and Teams as their **primary tools**. IWL intercep
 
 ---
 
+## Contract Evolution — Work OS Proposal
+
+The current `AssistantCard` / `output-schema.json` contract remains the shipped baseline. A proposal `WorkOsViewModel` contract (`schemas/workos/work-os-view-model.schema.json`) introduces richer governance, scenario moments, and agent activity models.
+
+### Proposal Artifacts
+
+| Artifact | Location | Purpose |
+|----------|----------|---------|
+| TypeScript models | `src/models/` | Typed interfaces for all Work OS objects |
+| JSON Schemas | `schemas/workos/` | Payload validation for agent-to-UI contract |
+| Adapter layer | `src/models/adapters.ts` | Backward-compatible bridge: `AssistantCard` → `WorkQueueItem` |
+| Mock data | `src/mock-data/`, `mock-api/` | Typed fixtures for development and testing |
+| Contract spec | [`agent-contract.md`](agent-contract.md) | Full specification with governance rules and UI evolution roadmap |
+
+### Compatibility
+
+The adapter layer (`adapters.ts`) maps current Dataverse-sourced `AssistantCard` records to the proposed `WorkQueueItem` shape. This enables gradual adoption — the existing `CardGallery` / `CardDetail` rendering path continues to work unchanged while new surfaces can consume the richer contract.
+
+Key mappings:
+- `Priority "N/A"` → `PriorityLevel "Low"`
+- `CardStatus` / `CardOutcome` → `WorkItemState` (e.g., READY + confidence ≥ 90 → "Ready")
+- `DraftPayload` → `DraftArtifact` (prefers humanized draft)
+- Confidence score → `GovernanceState` (< 90 requires approval)
+
+---
+
 ## 8. Cross-References
 
 | Topic | Document |
@@ -256,3 +282,4 @@ Users continue to use Outlook and Teams as their **primary tools**. IWL intercep
 | OneNote integration (Phase 1–3) | [`onenote-integration.md`](onenote-integration.md) |
 | Canvas app + PCF setup | [`canvas-app-setup.md`](canvas-app-setup.md) |
 | Agent output contract | [`../schemas/output-schema.json`](../schemas/output-schema.json) |
+| Agent-to-UI contract | [`agent-contract.md`](agent-contract.md) |

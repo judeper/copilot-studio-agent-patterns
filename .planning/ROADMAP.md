@@ -1,4 +1,4 @@
-# Roadmap: Enterprise Work Assistant
+# Roadmap: Intelligent Work Layer (IWL)
 
 ## Milestones
 
@@ -76,7 +76,7 @@ Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
 - [x] **Phase 6: Learning System** — 8 learning system flows documented (Flows 11, 14-16); memory injection capped at ~2000 tokens; weekly reflection for POC
 - [x] **Phase 7: UX Enhancements** — UX enhancement design doc; WCAG AA compliance fixes
 
-**Key artifacts:** 48 files changed, +7,273 lines | Build passes, 201 tests (15 suites) | Environment "EWA-DryRun-v3" provisioned | 3 new design docs
+**Key artifacts:** 48 files changed, +7,273 lines | Build passes, 201 tests (15 suites) | Environment "IWL-DryRun-v3" provisioned | 3 new design docs
 
 ### ✅ v3.0 UX Psychology-Driven Redesign (2026-03-08)
 
@@ -88,7 +88,32 @@ Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
 - [x] **Phase D: Contextual Intelligence** — Trust-calibrated confidence presentation based on arXiv 2024 AI trust miscalibration research
 - [x] **Phase E: Visual Sustainability** — Warm-gray palette for 8-hour sustained use (PMC visual fatigue research), `prefers-reduced-motion` media query support
 
-**Key artifacts:** 21 files changed, +1,162 lines | Build passes, 213 tests (16 suites) | New component: DayGlance.tsx
+**Key artifacts:** 21 files changed, +1,162 lines | Build passes, 233 tests (16 suites) | New component: DayGlance.tsx
+
+### Work OS Schema Proposal (2026-03-08)
+
+**Milestone Goal:** Define the agent-to-UI contract for the Intelligent Work Layer (IWL) — 9 TypeScript models, 8 JSON schemas, adapter layer, typed mock data, and agent contract documentation.
+
+- [x] **TypeScript Models** — 9 proposal models (`src/models/`) defining WorkQueueItem, AgentActivityItem, BriefingPackModel, ShellState, and more
+- [x] **JSON Schemas** — 8 JSON Schemas (`schemas/workos/`) for payload validation
+- [x] **Adapter Layer** — `src/models/adapters.ts` bridging AssistantCard → WorkQueueItem
+- [x] **Mock Data** — Typed mock data fixtures (`src/mock-data/`, `mock-api/`)
+- [x] **Agent Contract** — `docs/agent-contract.md` documenting the full agent-to-UI contract
+- [x] **Validation Tests** — 32 adapter validation tests (233 total tests, 16 suites)
+- [x] **Rebrand** — Enterprise Work Assistant → Intelligent Work Layer (IWL) across 63 files
+
+**Key artifacts:** 9 models, 8 schemas, 1 adapter layer, 32 new tests | 233 total tests (16 suites) | `docs/agent-contract.md`
+
+### Work OS Contract Evolution (Planned)
+
+Phased adoption of the Work OS agent-to-UI contract into the shipped dashboard:
+
+1. **Slice 1 — Enhanced Agent Activity Feed** — Replace CommandSideEffect log with AgentActivityItem (adapter exists)
+2. **Slice 2 — Governance Metadata on Cards** — Surface approval-required indicators (adapter exists)
+3. **Slice 3 — Shell State Awareness** — Unify quiet mode into ShellState model (internal refactor)
+4. **Slice 4 — Enriched Briefing Model** — Accept BriefingPackModel alongside DailyBriefing (requires agent changes)
+
+See `docs/agent-contract.md` §8 for details.
 
 ## Phase Details
 
