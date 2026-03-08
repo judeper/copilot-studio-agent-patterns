@@ -3,9 +3,12 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Button, Input, Spinner, Text } from "@fluentui/react-components";
 import { SendRegular, DismissCircleRegular } from "@fluentui/react-icons";
 import type { OrchestratorResponse, CommandCardLink } from "./types";
+import { DEFAULT_COMMAND_CHIPS, DETAIL_COMMAND_CHIPS } from "./constants";
 
 interface CommandBarProps {
     currentCardId: string | null;
+    /** ID of the currently selected/open card in the detail panel */
+    selectedCardId: string | null;
     onExecuteCommand: (command: string, currentCardId: string | null) => void;
     onJumpToCard: (cardId: string) => void;
     /** The latest response from the orchestrator, passed down from the Canvas app */
@@ -44,6 +47,7 @@ function focusAfterRender(callback: () => void): void {
 
 export const CommandBar: React.FC<CommandBarProps> = ({
     currentCardId,
+    selectedCardId,
     onExecuteCommand,
     onJumpToCard,
     lastResponse,
@@ -52,6 +56,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     const [inputText, setInputText] = useState("");
     const [conversation, setConversation] = useState<ConversationEntry[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const responseRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const sendButtonRef = useRef<FocusableButtonElement>(null);
@@ -130,16 +135,17 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     }, [isExpanded, restoreFocus]);
 
     useEffect(() => {
-        if (!isExpanded) return;
+        if (collapsed) return;
         const handleEscapeKey = (e: KeyboardEvent) => {
             if (e.defaultPrevented || e.key !== "Escape") return;
             e.preventDefault();
             e.stopPropagation();
             setIsExpanded(false);
+            setCollapsed(true);
         };
         document.addEventListener("keydown", handleEscapeKey, true);
         return () => document.removeEventListener("keydown", handleEscapeKey, true);
-    }, [isExpanded]);
+    }, [collapsed]);
 
     const handleSubmit = useCallback(() => {
         const trimmed = inputText.trim();
@@ -151,6 +157,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             { role: "user", text: trimmed, timestamp: new Date() },
         ]);
         setInputText("");
+        setCollapsed(false);
         setIsExpanded(true);
         onExecuteCommand(trimmed, currentCardId);
     }, [inputText, isProcessing, currentCardId, onExecuteCommand, rememberSubmitFocusTarget]);
@@ -172,6 +179,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                 ...prev,
                 { role: "user", text: command, timestamp: new Date() },
             ]);
+            setCollapsed(false);
             setIsExpanded(true);
             onExecuteCommand(command, currentCardId);
         },
@@ -182,10 +190,51 @@ export const CommandBar: React.FC<CommandBarProps> = ({
         focusRestoreTargetRef.current = null;
         setConversation([]);
         setIsExpanded(false);
+        setCollapsed(true);
     }, []);
 
+    const handlePillClick = useCallback(() => {
+        setCollapsed(false);
+        focusAfterRender(() => inputRef.current?.focus());
+    }, []);
+
+    const handleChipClick = useCallback(
+        (chipText: string) => {
+            setConversation((prev) => [
+                ...prev,
+                { role: "user", text: chipText, timestamp: new Date() },
+            ]);
+            setCollapsed(false);
+            setIsExpanded(true);
+            onExecuteCommand(chipText, currentCardId);
+        },
+        [currentCardId, onExecuteCommand],
+    );
+
+    const contextChips = selectedCardId ? DETAIL_COMMAND_CHIPS : DEFAULT_COMMAND_CHIPS;
+
+    // Show collapsed pill when no conversation and not processing
+    if (collapsed && !isProcessing) {
+        return (
+            <div
+                className="command-bar-pill"
+                onClick={handlePillClick}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handlePillClick();
+                    }
+                }}
+            >
+                ⚡ Ask EWA...
+            </div>
+        );
+    }
+
     return (
-        <div className={`command-bar ${isExpanded ? "command-bar-expanded" : ""}`}>
+        <div className={`command-bar command-bar-expanded`}>
             {/* Response panel (visible when conversation exists) */}
             {isExpanded && conversation.length > 0 && (
                 <div className="command-response-panel" ref={responseRef}>
@@ -260,8 +309,23 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                 )}
             </div>
 
-            {/* Quick actions (visible when not expanded and not processing) */}
+            {/* Context-aware quick chips */}
             {!isExpanded && !isProcessing && (
+                <div className="quick-chips">
+                    {contextChips.map((chip) => (
+                        <button
+                            key={chip}
+                            className="quick-chip"
+                            onClick={() => handleChipClick(chip)}
+                        >
+                            {chip}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* Legacy quick actions (visible when expanded with no conversation) */}
+            {!isExpanded && !isProcessing && conversation.length === 0 && (
                 <div className="command-quick-actions">
                     {QUICK_ACTIONS.map((qa) => (
                         <Button

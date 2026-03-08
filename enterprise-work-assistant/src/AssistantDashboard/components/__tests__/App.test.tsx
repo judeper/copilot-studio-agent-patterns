@@ -90,7 +90,7 @@ describe('App filter logic', () => {
     it('shows empty state when no cards match filters', () => {
         renderApp({ filterTriggerType: 'CALENDAR_SCAN' });
 
-        expect(screen.getByText('No cards match the current filters.')).toBeInTheDocument();
+        expect(screen.getByText("You're all caught up")).toBeInTheDocument();
     });
 
     it('shows all cards when all filters are empty strings', () => {
@@ -102,9 +102,14 @@ describe('App filter logic', () => {
             filterTemporalHorizon: '',
         });
 
-        expect(screen.getByText(tier1SkipItem.item_summary)).toBeInTheDocument();
+        // LIGHT items appear in "New Signals" (expanded by default)
         expect(screen.getByText(tier2LightItem.item_summary)).toBeInTheDocument();
+        // FULL items appear in "Action Required" (expanded by default)
         expect(screen.getByText(tier3FullItem.item_summary)).toBeInTheDocument();
+        // SKIP items land in "FYI" section (collapsed by default) — expand it first
+        const fyiHeader = screen.getByText('FYI');
+        fireEvent.click(fyiHeader);
+        expect(screen.getByText(tier1SkipItem.item_summary)).toBeInTheDocument();
     });
 });
 
@@ -256,7 +261,7 @@ describe('App loading state', () => {
 
         expect(screen.getByText('Loading cards...')).toBeInTheDocument();
         // Should NOT show the filter bar or empty state text
-        expect(screen.queryByText('No cards match the current filters.')).not.toBeInTheDocument();
+        expect(screen.queryByText("You're all caught up")).not.toBeInTheDocument();
     });
 
     it('shows filter empty state (not spinner) when cards are empty due to filter', () => {
@@ -269,7 +274,7 @@ describe('App loading state', () => {
         });
 
         // Should show filtered empty state, not loading spinner
-        expect(screen.getByText('No cards match the current filters.')).toBeInTheDocument();
+        expect(screen.getByText("You're all caught up")).toBeInTheDocument();
         expect(screen.queryByText('Loading cards...')).not.toBeInTheDocument();
     });
 });

@@ -1,4 +1,12 @@
-export type TriggerType = "EMAIL" | "TEAMS_MESSAGE" | "CALENDAR_SCAN" | "DAILY_BRIEFING" | "SELF_REMINDER" | "COMMAND_RESULT";
+export type TriggerType = "EMAIL" | "TEAMS_MESSAGE" | "CALENDAR_SCAN" | "DAILY_BRIEFING" | "SELF_REMINDER" | "COMMAND_RESULT" | "PREP_REQUIRED" | "STALE_TASK" | "FOLLOW_UP_NEEDED" | "PATTERN_ALERT";
+
+export type HeartbeatTriggerType = "PREP_REQUIRED" | "STALE_TASK" | "FOLLOW_UP_NEEDED" | "PATTERN_ALERT";
+
+export interface FeedSection {
+    title: string;
+    defaultExpanded: boolean;
+    accentColor?: string;
+}
 
 // Sprint 3 — Command Bar / Orchestrator types
 
@@ -100,6 +108,7 @@ export interface AssistantCard {
     // Sprint 1B — Clustering & source identity
     conversation_cluster_id: string | null;
     source_signal_id: string | null;
+    hours_stale: number | null;
 }
 
 export interface AppProps {

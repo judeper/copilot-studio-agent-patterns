@@ -1,0 +1,146 @@
+{
+  "tableName": "cr_semanticknowledge",
+  "entitySetName": "cr_semanticknowledges",
+  "displayName": "Semantic Knowledge",
+  "pluralName": "Semantic Knowledges",
+  "description": "Semantic knowledge base storing durable facts promoted from episodic memory patterns.",
+  "primaryColumn": "cr_knowledgesummary",
+  "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_contexthash_key",
+      "displayName": "Context Hash Key",
+      "keyAttributes": ["cr_contexthash"],
+      "purpose": "Enables safe upsert pattern — prevents duplicate facts for the same context. The hash is deterministic so concurrent promotion runs converge to the same row."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_knowledgesummary",
+      "displayName": "Knowledge Summary",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Primary column — short human-readable summary of the knowledge fact."
+    },
+    {
+      "logicalName": "cr_facttype",
+      "displayName": "Fact Type",
+      "type": "Choice",
+      "required": true,
+      "description": "Category of the knowledge fact.",
+      "options": [
+        { "label": "DELEGATION", "value": 100000000 },
+        { "label": "AVOIDANCE", "value": 100000001 },
+        { "label": "TONE", "value": 100000002 },
+        { "label": "RESPONSE_SPEED", "value": 100000003 },
+        { "label": "CUSTOM", "value": 100000004 }
+      ]
+    },
+    {
+      "logicalName": "cr_factstatement",
+      "displayName": "Fact Statement",
+      "type": "MultilineText",
+      "maxLength": 500,
+      "required": true,
+      "description": "Natural language statement of the knowledge fact (e.g., 'User always delegates procurement emails to jane@contoso.com')."
+    },
+    {
+      "logicalName": "cr_contexthash",
+      "displayName": "Context Hash",
+      "type": "Text",
+      "maxLength": 100,
+      "required": true,
+      "description": "Deterministic hash for upsert deduplication. Computed from fact type + key context attributes (e.g., SHA-256 of factType|senderEmail|delegationTarget)."
+    },
+    {
+      "logicalName": "cr_confidencescore",
+      "displayName": "Confidence Score",
+      "type": "Decimal",
+      "precision": 4,
+      "minValue": 0,
+      "maxValue": 1,
+      "required": true,
+      "description": "Confidence level (0.0–1.0) based on the number and consistency of supporting episodic events."
+    },
+    {
+      "logicalName": "cr_eventcount",
+      "displayName": "Event Count",
+      "type": "WholeNumber",
+      "required": true,
+      "description": "Number of supporting episodic memory events that contributed to this fact."
+    },
+    {
+      "logicalName": "cr_lastvalidated",
+      "displayName": "Last Validated",
+      "type": "DateTime",
+      "required": true,
+      "description": "Timestamp when this fact was last reinforced by a matching episodic event."
+    },
+    {
+      "logicalName": "cr_validuntil",
+      "displayName": "Valid Until",
+      "type": "DateTime",
+      "required": false,
+      "description": "Explicit expiry date for people-dependent facts (e.g., delegation targets who may leave). Nullable — null means no explicit expiry."
+    },
+    {
+      "logicalName": "cr_isactive",
+      "displayName": "Is Active",
+      "type": "Boolean",
+      "required": true,
+      "default": true,
+      "description": "Soft-delete flag for confidence decay. Set to false when confidence drops below threshold or the fact expires. Agent queries filter on cr_isactive = true."
+    },
+    {
+      "logicalName": "cr_sourcetype",
+      "displayName": "Source Type",
+      "type": "Choice",
+      "required": true,
+      "description": "How this fact was created.",
+      "options": [
+        { "label": "INFERRED", "value": 100000000 },
+        { "label": "USER_EXPLICIT", "value": 100000001 }
+      ]
+    },
+    {
+      "logicalName": "cr_createdfrompersona",
+      "displayName": "Created From Persona",
+      "type": "Boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether this fact was promoted from an explicit user persona rule. Persona-sourced facts have higher initial confidence."
+    }
+  ],
+  "junctionTable": {
+    "tableName": "cr_semanticepisodic",
+    "entitySetName": "cr_semanticepisodics",
+    "displayName": "Semantic-Episodic Link",
+    "pluralName": "Semantic-Episodic Links",
+    "description": "Junction table linking semantic knowledge facts to their supporting episodic memory events. Many-to-many relationship.",
+    "ownershipType": "UserOwned",
+    "lookups": [
+      {
+        "logicalName": "cr_semanticknowledgeid",
+        "displayName": "Semantic Knowledge",
+        "targetEntity": "cr_semanticknowledge",
+        "required": true,
+        "description": "Lookup to the semantic knowledge fact."
+      },
+      {
+        "logicalName": "cr_episodicmemoryid",
+        "displayName": "Episodic Memory",
+        "targetEntity": "cr_episodicmemory",
+        "required": true,
+        "description": "Lookup to the supporting episodic memory event."
+      }
+    ]
+  },
+  "notes": {
+    "design_rationale": "Facts are upserted using the cr_contexthash alternate key. On each promotion run, the flow computes the hash from the fact's key attributes and upserts — incrementing cr_eventcount and updating cr_confidencescore and cr_lastvalidated. This makes concurrent runs safe and idempotent.",
+    "confidence_decay": "A scheduled flow checks cr_lastvalidated. If a fact has not been reinforced within 60 days, cr_confidencescore is halved. If it drops below 0.2, cr_isactive is set to false (soft-delete). USER_EXPLICIT facts decay at half the rate.",
+    "junction_table": "The cr_semanticepisodic junction table enables traceability — the agent can explain why it holds a belief by listing the supporting events. The junction is populated by the promotion flow and pruned when episodic events are deleted by the 90-day retention cleanup.",
+    "security": "Table uses UserOwned ownership type. Row-level security is enforced via an ownership-based security role so each user's knowledge base is private.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically and do not need to be defined here."
+  }
+}

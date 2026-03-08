@@ -1,80 +1,84 @@
 import * as React from 'react';
-import { screen } from '@testing-library/react';
+import { screen, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { FilterBar } from '../FilterBar';
 import { renderWithProviders } from '../../../test/helpers/renderWithProviders';
+import type { AssistantCard } from '../types';
+import { tier3FullItem, tier2LightItem, calendarBriefingItem } from '../../../test/fixtures/cardFixtures';
+
+const testCards: AssistantCard[] = [
+    { ...tier3FullItem, id: 'email-1', trigger_type: 'EMAIL' },
+    { ...tier2LightItem, id: 'teams-1', trigger_type: 'TEAMS_MESSAGE' },
+    { ...calendarBriefingItem, id: 'cal-1', trigger_type: 'CALENDAR_SCAN' },
+];
 
 describe('FilterBar', () => {
-    it('shows singular card count', () => {
+    it('renders all chip buttons', () => {
         renderWithProviders(
-            <FilterBar
-                cardCount={1}
-                filterTriggerType=""
-                filterPriority=""
-                filterCardStatus=""
-                filterTemporalHorizon=""
-            />
+            <FilterBar cards={testCards} onFilteredCards={jest.fn()} />
         );
 
-        expect(screen.getByText('1 card')).toBeInTheDocument();
+        expect(screen.getByText('All')).toBeInTheDocument();
+        expect(screen.getByText(/Email/)).toBeInTheDocument();
+        expect(screen.getByText(/Teams/)).toBeInTheDocument();
+        expect(screen.getByText(/Calendar/)).toBeInTheDocument();
+        expect(screen.getByText(/Proactive/)).toBeInTheDocument();
+        expect(screen.getByText(/Stale/)).toBeInTheDocument();
+        expect(screen.getByText(/Newest/)).toBeInTheDocument();
     });
 
-    it('shows plural card count', () => {
+    it('calls onFilteredCards with all cards initially', () => {
+        const handleFiltered = jest.fn();
         renderWithProviders(
-            <FilterBar
-                cardCount={5}
-                filterTriggerType=""
-                filterPriority=""
-                filterCardStatus=""
-                filterTemporalHorizon=""
-            />
+            <FilterBar cards={testCards} onFilteredCards={handleFiltered} />
         );
 
-        expect(screen.getByText('5 cards')).toBeInTheDocument();
+        expect(handleFiltered).toHaveBeenCalled();
+        const lastCall = handleFiltered.mock.calls[handleFiltered.mock.calls.length - 1][0];
+        expect(lastCall).toHaveLength(3);
     });
 
-    it('shows active filter badges', () => {
+    it('filters to email cards when Email chip clicked', async () => {
+        const handleFiltered = jest.fn();
         renderWithProviders(
-            <FilterBar
-                cardCount={3}
-                filterTriggerType=""
-                filterPriority="High"
-                filterCardStatus=""
-                filterTemporalHorizon=""
-            />
+            <FilterBar cards={testCards} onFilteredCards={handleFiltered} />
         );
 
-        expect(screen.getByText('High')).toBeInTheDocument();
+        await act(async () => {
+            await userEvent.click(screen.getByText(/Email/));
+        });
+
+        const lastCall = handleFiltered.mock.calls[handleFiltered.mock.calls.length - 1][0];
+        expect(lastCall).toHaveLength(1);
+        expect(lastCall[0].trigger_type).toBe('EMAIL');
     });
 
-    it('shows multiple filter badges', () => {
+    it('clicking All clears other filters', async () => {
+        const handleFiltered = jest.fn();
         renderWithProviders(
-            <FilterBar
-                cardCount={1}
-                filterTriggerType="EMAIL"
-                filterPriority="High"
-                filterCardStatus="READY"
-                filterTemporalHorizon="TODAY"
-            />
+            <FilterBar cards={testCards} onFilteredCards={handleFiltered} />
         );
 
-        expect(screen.getByText('EMAIL')).toBeInTheDocument();
-        expect(screen.getByText('High')).toBeInTheDocument();
-        expect(screen.getByText('READY')).toBeInTheDocument();
-        expect(screen.getByText('TODAY')).toBeInTheDocument();
+        await act(async () => {
+            await userEvent.click(screen.getByText(/Email/));
+        });
+        await act(async () => {
+            await userEvent.click(screen.getByText('All'));
+        });
+
+        const lastCall = handleFiltered.mock.calls[handleFiltered.mock.calls.length - 1][0];
+        expect(lastCall).toHaveLength(3);
     });
 
-    it('hides filter badge area when no filters active', () => {
-        const { container } = renderWithProviders(
-            <FilterBar
-                cardCount={0}
-                filterTriggerType=""
-                filterPriority=""
-                filterCardStatus=""
-                filterTemporalHorizon=""
-            />
+    it('cycles sort mode on sort button click', async () => {
+        renderWithProviders(
+            <FilterBar cards={testCards} onFilteredCards={jest.fn()} />
         );
 
-        // The filter-bar-labels div should not exist when all filters are empty
-        expect(container.querySelector('.filter-bar-labels')).toBeNull();
+        expect(screen.getByText(/Newest/)).toBeInTheDocument();
+        await act(async () => {
+            await userEvent.click(screen.getByText(/Newest/));
+        });
+        expect(screen.getByText(/Priority/)).toBeInTheDocument();
     });
 });
