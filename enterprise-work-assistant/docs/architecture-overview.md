@@ -164,6 +164,11 @@ User command (CommandBar)
 | `SELF_REMINDER` | User-created (Flow 10) | N/A | Reminder card |
 | `COMMAND_RESULT` | CommandBar (Flow 8) | N/A | Response card |
 
+> **v3.0 Note:** The `DAILY_BRIEFING` trigger now supports four briefing sub-types via the `BriefingType` enum:
+> `MORNING` (start-of-day summary), `DAILY` (standard briefing), `END_OF_DAY` (review + carry-forward),
+> and `MEETING_PREP` (enhanced with what-changed, decisions needed, talking points).
+> See `types.ts` for `MorningBriefingData`, `EndOfDayData`, and `MorningMetric` interfaces.
+
 ### Card State Machine
 
 ```
@@ -178,6 +183,11 @@ READY ──────────┬─── SENT_AS_IS       (user sent wit
                 ├─── DISMISSED         (user dismissed)
                 └─── EXPIRED           (retention policy / staleness)
 ```
+
+> **v3.0 Note:** Card state transitions now include visual transition feedback in the
+> PCF dashboard. Confidence is displayed as a three-state label — **Ready to send** (≥ 70),
+> **Review suggested** (40–69), **Draft only** (< 40) — rather than a raw numeric score.
+> The `getConfidenceState()` helper in `constants.ts` maps scores to these states.
 
 ### Signal Type → Output Field Matrix
 
