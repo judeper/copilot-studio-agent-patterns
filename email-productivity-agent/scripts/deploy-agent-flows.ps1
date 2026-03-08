@@ -43,7 +43,7 @@
     Valid values: "All", "Phase1" (Flow1,2,2b,5), "Phase2" (Flow3,4,6),
     "Phase3" (Flow7,7b), or individual: "Flow1", "Flow2", "Flow2b",
     "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8",
-    "Flow9", "Flow10", "Flow11", "Flow12"
+    "Flow9", "Flow10", "Flow11", "Flow12", "Flow13"
 
 .EXAMPLE
     .\deploy-agent-flows.ps1 `
@@ -67,7 +67,7 @@ param(
 
     [string]$TimeZone = "Eastern Standard Time",
 
-    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12")]
+    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12", "Flow13")]
     [string]$FlowsToCreate = "All"
 )
 
@@ -106,7 +106,7 @@ $flowMap = [ordered]@{
     Flow4  = @{
         File        = "flow-4-auto-unsnooze.json"
         DisplayName = "EPA - Flow 4: Auto-Unsnooze"
-        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_microsoftcopilotstudio", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
     }
     Flow6  = @{
         File        = "flow-6-snooze-cleanup.json"
@@ -146,7 +146,12 @@ $flowMap = [ordered]@{
     Flow12 = @{
         File        = "flow-12-auto-unsnooze-test-harness.json"
         DisplayName = "EPA - Flow 12: Auto-Unsnooze Test Harness"
-        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_microsoftcopilotstudio", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+    }
+    Flow13 = @{
+        File        = "flow-13-snooze-seed-test-harness.json"
+        DisplayName = "EPA - Flow 13: Snooze Seed Test Harness"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents")
     }
 }
 

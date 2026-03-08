@@ -11,10 +11,10 @@ Step-by-step checklist for deploying the Email Productivity Agent to a Power Pla
 | **PAC CLI** | `dotnet tool install --global Microsoft.PowerApps.CLI.Tool` |
 | **Azure CLI** | `winget install Microsoft.AzureCLI` (Windows) or `brew install azure-cli` (macOS) |
 | **PowerShell 7+** | Required for provisioning scripts |
-| **Power Platform Environment** | With Copilot Studio capacity allocated |
+| **Power Platform Environment** | Any environment with Dataverse; Copilot Studio capacity is only needed if you plan to re-enable live agent steps |
 | **Microsoft 365 License** | E3/E5 or Business Premium (for Graph API access) |
 | **Power Apps Premium** | Required for Canvas App accessing custom Dataverse tables |
-| **Copilot Studio License** | Required for agent invocations; premium connectors (Dataverse, HTTP/Entra ID) are covered by Copilot Studio license |
+| **Copilot Studio License** | Optional for the current POC dry-run build; required only if you plan to re-enable the live Flow 2 / Flow 4 agent decision steps |
 
 ### DLP Policy Check
 
@@ -67,7 +67,9 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 - `cr_NudgeConfiguration`
 - `cr_SnoozedConversation` (will show a warning if Phase 2 table doesn't exist yet)
 
-### Step 3: Configure Copilot Studio Agent
+### Step 3: Configure Copilot Studio Agent (Optional in the current POC build)
+
+> **Current tested state:** Flow 2 uses a mocked agent response and Flow 4 bypasses the Snooze Agent entirely, so the dry-run deployment does not require a live Copilot Studio connector. Keep this step for future re-enablement of live agent decisioning.
 
 1. Open [Copilot Studio](https://copilotstudio.microsoft.com) and select the provisioned environment from the environment picker (top-right)
 2. Click **Create** → **New agent** → **Skip to configure** (to bypass the wizard)
@@ -199,9 +201,9 @@ Verify the Power Automate flow bot is allowed in your Teams environment:
 4. Monitor flow run history for errors
 5. Collect feedback on nudge timing and relevance
 
-### Optional: Deploy Flow 8 Test Harness
+### Optional: Deploy Phase 1 Regression Harnesses
 
-Use the Flow 8 harness when you need to re-run Flow 2 logic on a single `cr_followuptracking` row without waiting for the daily recurrence.
+Use the harness flows when you need to re-run Phase 1 logic without waiting for scheduled recurrences or Teams card clicks.
 
 ```powershell
 cd email-productivity-agent/scripts
@@ -210,13 +212,28 @@ pwsh deploy-agent-flows.ps1 `
     -EnvironmentId "<environment-guid>" `
     -FlowsToCreate "Flow8"
 
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow9"
+
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow10"
+
 pwsh invoke-followup-test-harness.ps1 `
     -EnvironmentId "<environment-guid>" `
     -TrackingId "<cr_followuptrackingid-guid>" `
     -ForceNudge
+
+pwsh invoke-http-flow-harness.ps1 `
+    -EnvironmentId "<environment-guid>" `
+    -FlowDisplayName "EPA - Flow 10: Settings Handler Test Harness" `
+    -BodyJson '{"action":"restore_defaults","responderEmail":"<user@domain.com>","responderUserPrincipalName":"<user@domain.com>"}'
 ```
 
-The helper script resolves the HTTP callback URL automatically, triggers the harness, and waits for the run status so you can debug Flow 2 from the CLI. The current harness keeps the agent response mocked so you can isolate reply detection, Dataverse updates, and Teams delivery before reintroducing the live Copilot step. Use `-ForceNudge` when you need to replay the Teams-card branch even if the row is already marked replied, dismissed, or nudged.
+Flow 8 validates Flow 2, Flow 9 validates Flow 2b, and Flow 10 validates Flow 7b. `invoke-followup-test-harness.ps1` is purpose-built for Flow 8, while `invoke-http-flow-harness.ps1` is the generic helper for Flow 9-13. The generic helper automatically resolves the callback URL, handles the required `x-ms-client-scope` header, understands callback URLs returned under either `value` or `response.value`, and waits for the run to finish. Use `-ForceNudge` with Flow 8 when you need to replay the Teams-card branch even if the row is already marked replied, dismissed, or nudged.
 
 ---
 
@@ -271,9 +288,55 @@ Flow 3 (create mail folder, list messages) and Flow 4 (move messages) use the **
    - Marks `cr_unsnoozedbyagent = true` in Dataverse
    - Sends a Teams notification: "📬 Unsnoozed: {subject} — reply from {sender}"
 
-### Step 12: Configure Snooze Agent (Optional — Production)
+### Optional: Deploy Phase 2 Regression Harnesses
 
-For production deployments, you can add intelligent snooze decisions:
+Use these harness flows when you want deterministic CLI coverage for the snooze path:
+
+```powershell
+cd email-productivity-agent/scripts
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow11"
+
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow12"
+
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow13"
+
+# 1. Seed a real message into EPA-Snoozed
+pwsh invoke-http-flow-harness.ps1 `
+    -EnvironmentId "<environment-guid>" `
+    -FlowDisplayName "EPA - Flow 13: Snooze Seed Test Harness" `
+    -BodyJson '{"subjectPrefix":"EPA Snooze Harness","bodyText":"Automated snooze seed"}'
+
+# 2. Scan the folder and create/update cr_snoozedconversation rows
+pwsh invoke-http-flow-harness.ps1 `
+    -EnvironmentId "<environment-guid>" `
+    -FlowDisplayName "EPA - Flow 11: Snooze Detection Test Harness"
+```
+
+Then query the newest active `cr_snoozedconversation` row and pass its `conversationId` into Flow 12:
+
+```powershell
+pwsh invoke-http-flow-harness.ps1 `
+    -EnvironmentId "<environment-guid>" `
+    -FlowDisplayName "EPA - Flow 12: Auto-Unsnooze Test Harness" `
+    -BodyJson '{"conversationId":"<graph-conversation-id>","subject":"Re: <original-subject>","bodyPreview":"Automated reply payload","from":{"emailAddress":{"address":"<user@domain.com>","name":"<display-name>"}}}'
+```
+
+This harness sequence validates the real mailbox move, Dataverse update, and Teams notification path without waiting on a live reply.
+
+> **Observed dry-run hardening:** Flow 3 now first checks whether `EPA-Snoozed` already exists before trying to create it, persists the recovered folder ID back into `cr_nudgeconfiguration`, and uses `ListRecords` + `UpdateRecord`/`CreateRecord` for `cr_snoozedconversation` writes. The create path must explicitly set `item/cr_unsnoozedbyagent = false` for the Dataverse connector to save successfully.
+
+### Step 12: Configure Snooze Agent (Optional — Production only)
+
+For production deployments, you can add intelligent snooze decisions. The current validated dry-run does **not** use this path; Flow 4 is intentionally deterministic so test automation remains stable.
 
 1. In Copilot Studio, add a **"Snooze Auto-Removal"** topic
 2. Paste `prompts/snooze-agent-system-prompt.md` as instructions
@@ -304,11 +367,12 @@ Each user runs their own set of flows under their own connections:
 
 To disable the Email Productivity Agent without affecting other systems:
 
-1. **Turn off flows**: Disable all 7 flows (1, 2, 2b, 3, 4, 5, 6) in Power Automate
+1. **Turn off flows**: Disable all 9 production flows (1, 2, 2b, 3, 4, 5, 6, 7, 7b) in Power Automate
 2. **Disable agent**: Deactivate the Copilot Studio agent
 3. **(Optional) Clean up data**: Delete all rows in `cr_followuptracking` and `cr_snoozedconversation`
 4. **(Optional) Remove folder**: Delete the EPA-Snoozed folder via Graph or Outlook
-5. Existing Enterprise Work Assistant flows are unaffected
+5. **(Optional) Remove harness flows**: Delete Flow 8-13 if you deployed the regression harnesses
+6. Existing Enterprise Work Assistant flows are unaffected
 
 ---
 
