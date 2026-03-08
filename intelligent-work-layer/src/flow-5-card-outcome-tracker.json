@@ -7,16 +7,25 @@
         "type": "OpenApiConnectionNotification",
         "inputs": {
           "parameters": {
+            "$connections": {
+              "defaultValue": {},
+              "type": "Object"
+            },
+            "$authentication": {
+              "defaultValue": {},
+              "type": "SecureObject"
+            },
             "entityName": "cr_assistantcards",
             "scope": "Organization",
             "filterExpression": "",
             "selectedColumns": "cr_cardoutcome"
           },
           "host": {
-            "connectionName": "shared_commondataserviceforapps",
             "operationId": "SubscribeWebhookTrigger",
-            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-          }
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+            "connectionName": "shared_commondataserviceforapps"
+          },
+          "authentication": "@parameters('$authentication')"
         }
       }
     },
@@ -28,14 +37,23 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_assistantcards",
                 "recordId": "@triggerOutputs()?['body/cr_assistantcardid']"
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "GetItem",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -64,14 +82,23 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_senderprofiles",
                         "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "ListRecords",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {
                       "Compose_ResponseHours_SentAsIs": [
@@ -96,16 +123,25 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_senderprofileid']",
                             "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 1)",
                             "item/cr_avgresponsehours": "@div(add(mul(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_avgresponsehours'], first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount']), outputs('Compose_ResponseHours_SentAsIs')), add(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 1))"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "UpdateRecord",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       }
@@ -116,6 +152,14 @@
                           "type": "OpenApiConnection",
                           "inputs": {
                             "parameters": {
+                              "$connections": {
+                                "defaultValue": {},
+                                "type": "Object"
+                              },
+                              "$authentication": {
+                                "defaultValue": {},
+                                "type": "SecureObject"
+                              },
                               "entityName": "cr_senderprofiles",
                               "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
                               "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
@@ -127,10 +171,11 @@
                               "item/cr_lastsignaldate": "@utcNow()"
                             },
                             "host": {
-                              "connectionName": "shared_commondataserviceforapps",
                               "operationId": "CreateRecord",
-                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                            }
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                              "connectionName": "shared_commondataserviceforapps"
+                            },
+                            "authentication": "@parameters('$authentication')"
                           },
                           "runAfter": {}
                         }
@@ -156,25 +201,29 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_senderprofiles",
                         "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "ListRecords",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {
                       "Compose_ResponseHours_SentEdited": [
                         "Succeeded"
                       ]
                     }
-                  },
-                  "Compose_NewAvgEditDistance_SentEdited": {
-                    "type": "Compose",
-                    "inputs": "@div(add(mul(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgeditdistance'], first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount']), outputs('Get_Modified_Card')?['body/cr_editdistanceratio']), add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1))",
-                    "runAfter": {}
                   },
                   "Condition_Profile_Exists_SentEdited": {
                     "type": "If",
@@ -193,6 +242,14 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_SentEdited')?['value'])?['cr_senderprofileid']",
                             "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1)",
@@ -200,16 +257,22 @@
                             "item/cr_avgeditdistance": "@outputs('Compose_NewAvgEditDistance_SentEdited')"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "UpdateRecord",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {
                           "Compose_NewAvgEditDistance_SentEdited": [
                             "Succeeded"
                           ]
                         }
+                      },
+                      "Compose_NewAvgEditDistance_SentEdited": {
+                        "type": "Compose",
+                        "inputs": "@div(add(mul(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgeditdistance'], first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount']), outputs('Get_Modified_Card')?['body/cr_editdistanceratio']), add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1))",
+                        "runAfter": {}
                       }
                     },
                     "else": {
@@ -218,6 +281,14 @@
                           "type": "OpenApiConnection",
                           "inputs": {
                             "parameters": {
+                              "$connections": {
+                                "defaultValue": {},
+                                "type": "Object"
+                              },
+                              "$authentication": {
+                                "defaultValue": {},
+                                "type": "SecureObject"
+                              },
                               "entityName": "cr_senderprofiles",
                               "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
                               "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
@@ -229,10 +300,11 @@
                               "item/cr_lastsignaldate": "@utcNow()"
                             },
                             "host": {
-                              "connectionName": "shared_commondataserviceforapps",
                               "operationId": "CreateRecord",
-                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                            }
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                              "connectionName": "shared_commondataserviceforapps"
+                            },
+                            "authentication": "@parameters('$authentication')"
                           },
                           "runAfter": {}
                         }
@@ -253,14 +325,23 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_senderprofiles",
                         "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "ListRecords",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {}
                   },
@@ -281,15 +362,24 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_Dismissed')?['value'])?['cr_senderprofileid']",
                             "item/cr_dismisscount": "@add(first(body('List_SenderProfile_Dismissed')?['value'])?['cr_dismisscount'], 1)"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "UpdateRecord",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       }
@@ -300,6 +390,14 @@
                           "type": "OpenApiConnection",
                           "inputs": {
                             "parameters": {
+                              "$connections": {
+                                "defaultValue": {},
+                                "type": "Object"
+                              },
+                              "$authentication": {
+                                "defaultValue": {},
+                                "type": "SecureObject"
+                              },
                               "entityName": "cr_senderprofiles",
                               "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
                               "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
@@ -311,10 +409,11 @@
                               "item/cr_lastsignaldate": "@utcNow()"
                             },
                             "host": {
-                              "connectionName": "shared_commondataserviceforapps",
                               "operationId": "CreateRecord",
-                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                            }
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                              "connectionName": "shared_commondataserviceforapps"
+                            },
+                            "authentication": "@parameters('$authentication')"
                           },
                           "runAfter": {}
                         }

@@ -38,12 +38,22 @@
           "Get_my_profile_(V2)": {
             "type": "OpenApiConnection",
             "inputs": {
-              "parameters": {},
+              "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                }
+              },
               "host": {
-                "connectionName": "shared_office365users",
                 "operationId": "MyProfile_V2",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                "connectionName": "shared_office365users"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -74,14 +84,23 @@
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
+                    "$connections": {
+                      "defaultValue": {},
+                      "type": "Object"
+                    },
+                    "$authentication": {
+                      "defaultValue": {},
+                      "type": "SecureObject"
+                    },
                     "entityName": "cr_assistantcards",
                     "recordId": "@triggerBody()?['currentCardId']"
                   },
                   "host": {
-                    "connectionName": "shared_commondataserviceforapps",
                     "operationId": "GetItem",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                  }
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "authentication": "@parameters('$authentication')"
                 },
                 "runAfter": {}
               },
@@ -123,16 +142,25 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_assistantcards",
                 "$filter": "cr_triggertype eq 100000003 and _ownerid_value eq '@{triggerBody()?['userId']}' and createdon ge @{formatDateTime(utcNow(), 'yyyy-MM-dd')}",
                 "$orderby": "createdon desc",
                 "$top": 1
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "ListRecords",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {
               "Compose_CardJSON": [
@@ -172,6 +200,14 @@
             "type": "OpenApiConnectionWebhook",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "Copilot": "Intelligent Work Layer"
               },
               "body": {
@@ -185,10 +221,11 @@
                 }
               },
               "host": {
-                "connectionName": "shared_microsoftcopilotstudio",
                 "operationId": "ExecuteCopilotAsyncV2",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
+                "connectionName": "shared_microsoftcopilotstudio"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {
               "Compose_OrchestratorInput": [

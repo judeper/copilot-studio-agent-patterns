@@ -16,14 +16,7 @@
               "20"
             ],
             "minutes": [
-              "0"
-            ],
-            "weekDays": [
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday"
+              0
             ]
           },
           "timeZone": "Eastern Standard Time"
@@ -38,14 +31,23 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_assistantcards",
                 "$filter": "cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addHours(utcNow(), -24)}"
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "ListRecords",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -62,14 +64,23 @@
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
+                    "$connections": {
+                      "defaultValue": {},
+                      "type": "Object"
+                    },
+                    "$authentication": {
+                      "defaultValue": {},
+                      "type": "SecureObject"
+                    },
                     "entityName": "cr_assistantcards",
                     "$filter": "cr_sourcesignalid eq '@{outputs('Compose_NudgeSignalId')}'"
                   },
                   "host": {
-                    "connectionName": "shared_commondataserviceforapps",
                     "operationId": "ListRecords",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                  }
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "authentication": "@parameters('$authentication')"
                 },
                 "runAfter": {
                   "Compose_NudgeSignalId": [
@@ -94,6 +105,14 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_assistantcards",
                         "item/cr_itemsummary": "⏰ Overdue: @{items('Apply_to_each_overdue')?['cr_itemsummary']}",
                         "item/cr_triggertype": 100000000,
@@ -108,10 +127,11 @@
                         "item@odata.bind": "systemusers(@{items('Apply_to_each_overdue')?['_ownerid_value']})"
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "CreateRecord",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {}
                   },
@@ -119,15 +139,24 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_assistantcards",
                         "recordId": "@items('Apply_to_each_overdue')?['cr_assistantcardid']",
                         "item/cr_cardstatus": 100000004
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "UpdateRecord",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {
                       "Create_Nudge_Card": [
@@ -162,14 +191,23 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_assistantcards",
                 "$filter": "cr_cardoutcome eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addDays(utcNow(), -7)}"
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "ListRecords",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -181,15 +219,24 @@
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
+                    "$connections": {
+                      "defaultValue": {},
+                      "type": "Object"
+                    },
+                    "$authentication": {
+                      "defaultValue": {},
+                      "type": "SecureObject"
+                    },
                     "entityName": "cr_assistantcards",
                     "recordId": "@items('Apply_to_each_abandoned')?['cr_assistantcardid']",
                     "item/cr_cardoutcome": 100000004
                   },
                   "host": {
-                    "connectionName": "shared_commondataserviceforapps",
                     "operationId": "UpdateRecord",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                  }
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "authentication": "@parameters('$authentication')"
                 },
                 "runAfter": {}
               }

@@ -34,12 +34,22 @@
           "Get_my_profile_(V2)": {
             "type": "OpenApiConnection",
             "inputs": {
-              "parameters": {},
+              "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                }
+              },
               "host": {
-                "connectionName": "shared_office365users",
                 "operationId": "MyProfile_V2",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                "connectionName": "shared_office365users"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -47,14 +57,23 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_assistantcards",
                 "recordId": "@triggerBody()?['CardId']"
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "GetItem",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {
               "Get_my_profile_(V2)": [
@@ -183,16 +202,25 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "emailMessage/To": "@outputs('Get_Card')?['body/cr_originalsenderemail']",
                 "emailMessage/Subject": "@outputs('Compose_ReplySubject')",
                 "emailMessage/Body": "@triggerBody()?['FinalDraftText']",
                 "emailMessage/Importance": "Normal"
               },
               "host": {
-                "connectionName": "shared_office365",
                 "operationId": "SendEmailV2",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                "connectionName": "shared_office365"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {
               "Compose_ReplySubject": [
@@ -204,6 +232,14 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_assistantcards",
                 "recordId": "@triggerBody()?['CardId']",
                 "item/cr_cardoutcome": 100000001,
@@ -212,10 +248,11 @@
                 "item/cr_sentrecipient": "@outputs('Get_Card')?['body/cr_originalsenderemail']"
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "UpdateRecord",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {
               "Send_Email": [

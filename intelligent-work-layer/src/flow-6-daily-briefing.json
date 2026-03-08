@@ -19,14 +19,23 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                },
+                "$authentication": {
+                  "defaultValue": {},
+                  "type": "SecureObject"
+                },
                 "entityName": "cr_briefingschedules",
                 "$filter": "cr_isenabled eq true"
               },
               "host": {
-                "connectionName": "shared_commondataserviceforapps",
                 "operationId": "ListRecords",
-                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-              }
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
             },
             "runAfter": {}
           },
@@ -80,14 +89,23 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
+                        "$connections": {
+                          "defaultValue": {},
+                          "type": "Object"
+                        },
+                        "$authentication": {
+                          "defaultValue": {},
+                          "type": "SecureObject"
+                        },
                         "entityName": "cr_assistantcards",
                         "$filter": "cr_triggertype eq 100000003 and _ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and createdon ge @{addHours(utcNow(), -20)}"
                       },
                       "host": {
-                        "connectionName": "shared_commondataserviceforapps",
                         "operationId": "ListRecords",
-                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                      }
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
                     },
                     "runAfter": {}
                   },
@@ -108,13 +126,22 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "id": "@items('Apply_to_each_schedule')?['_cr_userid_value']"
                           },
                           "host": {
-                            "connectionName": "shared_office365users",
                             "operationId": "UserProfile_V2",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                            "connectionName": "shared_office365users"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       },
@@ -122,16 +149,25 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_assistantcards",
                             "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and cr_cardoutcome eq 100000000",
                             "$top": 50,
                             "$orderby": "createdon desc"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "ListRecords",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       },
@@ -139,14 +175,23 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_assistantcards",
                             "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and cr_cardoutcome eq 100000000 and cr_priority ne 100000003 and createdon lt @{addHours(utcNow(), -24)}"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "ListRecords",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       },
@@ -154,16 +199,25 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "calendarId": "Calendar",
                             "startDateTimeUtc": "@startOfDay(outputs('Compose_UserLocalTime'))",
                             "endDateTimeUtc": "@addDays(startOfDay(outputs('Compose_UserLocalTime')), 1)",
                             "$top": 50
                           },
                           "host": {
-                            "connectionName": "shared_office365",
                             "operationId": "CalendarGetOnNewItemsV3",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                            "connectionName": "shared_office365"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       },
@@ -171,14 +225,23 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_senderprofiles",
                             "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}'"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "ListRecords",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {}
                       },
@@ -218,14 +281,23 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "botId": "@parameters('BriefingAgentBotId')",
                             "message": "@{string(outputs('Compose_BriefingInput'))}"
                           },
                           "host": {
-                            "connectionName": "shared_microsoftcopilotforagents",
                             "operationId": "ExecuteAgentAndWait",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotforagents"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
+                            "connectionName": "shared_microsoftcopilotstudio"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {
                           "Compose_BriefingInput": [
@@ -251,6 +323,14 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
+                            "$connections": {
+                              "defaultValue": {},
+                              "type": "Object"
+                            },
+                            "$authentication": {
+                              "defaultValue": {},
+                              "type": "SecureObject"
+                            },
                             "entityName": "cr_assistantcards",
                             "item/cr_triggertype": 100000003,
                             "item/cr_triagetier": 100000002,
@@ -262,10 +342,11 @@
                             "item@odata.bind": "systemusers(@{items('Apply_to_each_schedule')?['_cr_userid_value']})"
                           },
                           "host": {
-                            "connectionName": "shared_commondataserviceforapps",
                             "operationId": "CreateRecord",
-                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                          }
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
                         },
                         "runAfter": {
                           "Compose_OutputEnvelope": [
