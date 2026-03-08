@@ -72,39 +72,50 @@ SNOOZE_INSTRUCTIONS = (
 
 
 def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
-    """Get a Graph token for Lisa Taylor using Azure CLI.
+    """Get a Graph token for Lisa Taylor using Azure CLI device-code flow.
 
-    Since the MSAL device-code flow is blocked in some tenants, this
-    function uses ``az login`` to sign in as Lisa, acquires a Graph
-    token, then returns it.  The admin can re-authenticate afterward.
+    Shows the device code and URL in the terminal for the user to copy
+    into their lab browser profile. Does NOT auto-open a browser.
     """
     from phases import resolve_cli
+    import subprocess
+    import shutil
 
     console.print(Panel(
-        "[bold yellow]Lisa Taylor must sign in via Azure CLI.[/bold yellow]\n\n"
-        "A device code will be shown below. Open the URL in your browser,\n"
-        "sign in as [cyan]Lisa Taylor[/cyan], and enter the code.\n\n"
+        "[bold yellow]Lisa Taylor must sign in via device code.[/bold yellow]\n\n"
+        "A code and URL will be shown below. Copy the URL into your\n"
+        "[bold]lab browser profile[/bold], sign in as Lisa Taylor,\n"
+        "and enter the code.\n\n"
         "After demo staging completes, re-authenticate as admin:\n"
         "  [cyan]az login[/cyan]",
         title="📧 Lisa Taylor — Graph Authentication",
         border_style="yellow",
     ))
 
-    # Use device-code flow — must run interactively so user sees the code
-    console.print("  [dim]Starting device-code sign-in for Lisa Taylor…[/dim]\n")
-    import subprocess
-    import shutil
     az_path = shutil.which("az")
     if not az_path:
         console.print("[red]Azure CLI not found.[/red]")
         return None
 
-    login_result = subprocess.run(
+    console.print("  [dim]Requesting device code…[/dim]\n")
+
+    # Stream stderr to show the device code as it appears
+    proc = subprocess.Popen(
         [az_path, "login", "--use-device-code", "--allow-no-subscriptions"],
-        timeout=180,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
 
-    if login_result.returncode != 0:
+    # az prints the device code instruction to stderr
+    while True:
+        line = proc.stderr.readline()
+        if not line and proc.poll() is not None:
+            break
+        if line.strip():
+            console.print(f"  [bold yellow]{line.strip()}[/bold yellow]")
+
+    proc.wait(timeout=180)
+
+    if proc.returncode != 0:
         console.print("[red]az login failed.[/red]")
         return None
 
@@ -201,6 +212,16 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
         return False
 
     demo_users = config.get("demo_users", {})
+
+    # Map persona keys to display names for UPN resolution
+    _persona_names = {
+        "lisa_taylor": "Lisa Taylor",
+        "omar_bennett": "Omar Bennett",
+        "hadar_caspit": "Hadar Caspit",
+        "will_beringer": "William Beringer",
+        "sonia_rees": "Sonia Rees",
+    }
+
     all_sent = True
 
     for email_def in DEMO_EMAILS:
@@ -209,6 +230,13 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
             console.print(f"[red]❌ No email configured for {email_def['recipient_key']}[/red]")
             all_sent = False
             continue
+
+        # Resolve real UPN in case wizard-suggested email differs
+        from phases.security import _resolve_user_upn
+        display = _persona_names.get(email_def["recipient_key"], "")
+        real_upn = _resolve_user_upn(to_addr, display)
+        if real_upn:
+            to_addr = real_upn
 
         ok = _send_email(graph_token, to_addr, email_def["subject"], email_def["body"])
         if ok:
