@@ -172,7 +172,7 @@
             "type": "OpenApiConnectionWebhook",
             "inputs": {
               "parameters": {
-                "Copilot": "Enterprise Work Assistant"
+                "Copilot": "Intelligent Work Layer"
               },
               "body": {
                 "text": "@{string(outputs('Compose_OrchestratorInput'))}",
@@ -309,7 +309,7 @@
     }
   },
   "_metadata": {
-    "flowName": "EWA - Flow 8: Command Execution",
+    "flowName": "IWL - Flow 8: Command Execution",
     "description": "Instant/manual trigger invoked from Canvas app command bar. Accepts natural language commands, resolves current card context and recent briefing, invokes the orchestrator agent, and returns structured response.",
     "requiredConnections": [
       "shared_office365users (Office 365 Users)",
@@ -318,7 +318,7 @@
     ],
     "notes": {
       "trigger": "Instant (Button) — called via PowerAutomate.Run from the Canvas app.",
-      "agentInvocation": "Invokes the Enterprise Work Assistant orchestrator agent with command text, user context, current card JSON, recent briefing, and current datetime. Coalesces AgentResponseJSON/lastResponse.",
+      "agentInvocation": "Invokes the Intelligent Work Layer orchestrator agent with command text, user context, current card JSON, recent briefing, and current datetime. Coalesces AgentResponseJSON/lastResponse.",
       "errorHandling": "Scope_Handle_Errors returns HTTP 500 with error details if the main scope fails or times out."
     }
   }

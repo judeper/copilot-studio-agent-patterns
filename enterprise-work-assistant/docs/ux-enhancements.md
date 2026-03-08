@@ -2,7 +2,7 @@
 
 > **Status:** Design · **Version:** 0.1 · **Last Updated:** 2025-07-15
 >
-> This document specifies upcoming UX enhancements for the Enterprise Work Assistant
+> This document specifies upcoming UX enhancements for the Intelligent Work Layer
 > dashboard. Each section is self-contained and can be implemented independently unless
 > noted otherwise. Cross-references use Dataverse logical names (`cr_*`) and PCF output
 > conventions established in [canvas-app-setup.md](canvas-app-setup.md).
@@ -124,7 +124,7 @@ cr_assistantcard row:
   cr_triggertype    = "ONBOARDING"
   cr_cardstatus     = "SETUP"
   cr_triagetier     = "FULL"
-  cr_itemsummary    = "Welcome to Work Assistant"
+  cr_itemsummary    = "Welcome to Work Layer"
   cr_priority       = "High"
   cr_cardoutcome    = "PENDING"
 ```
@@ -140,7 +140,7 @@ selected. Steps are tracked via local React state (not persisted until completio
 
 #### Step 1 — Welcome
 
-- Brief explanation of what Work Assistant does (3–4 sentences).
+- Brief explanation of what Work Layer does (3–4 sentences).
 - Input field: **Display name** (pre-populated from `Office365Users.MyProfile().DisplayName`).
 - "Next" button advances to Step 2.
 
@@ -288,7 +288,7 @@ on `cr_ownerid`.
 
 ### Purpose
 
-Auto-dismiss cards when the user has already handled the item outside EWA (e.g.,
+Auto-dismiss cards when the user has already handled the item outside IWL (e.g.,
 replied directly in Outlook). This eliminates the most common source of stale cards.
 
 > **Pattern:** Adapted from Email Productivity Agent Flow 2 (Response Detection).

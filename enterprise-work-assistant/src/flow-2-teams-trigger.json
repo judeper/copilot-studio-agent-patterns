@@ -344,7 +344,7 @@
           "Compose_ErrorDetails": {
             "type": "Compose",
             "inputs": {
-              "flowName": "EWA-Flow-2-TeamsTrigger",
+              "flowName": "IWL-Flow-2-TeamsTrigger",
               "errorTimestamp": "@utcNow()",
               "triggerMessageId": "@coalesce(triggerOutputs()?['body/id'], 'Unknown')",
               "triggerFrom": "@coalesce(triggerOutputs()?['body/from']?['user']?['displayName'], 'Unknown')",

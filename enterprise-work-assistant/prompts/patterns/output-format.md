@@ -1,6 +1,6 @@
 # Output Format
 
-JSON output formatting rules for all Enterprise Work Assistant agents. Reference this pattern to ensure consistent, parseable responses across the agent pipeline.
+JSON output formatting rules for all Intelligent Work Layer agents. Reference this pattern to ensure consistent, parseable responses across the agent pipeline.
 
 ---
 

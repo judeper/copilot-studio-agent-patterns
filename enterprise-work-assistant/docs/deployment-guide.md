@@ -1,6 +1,6 @@
 # Deployment Guide
 
-End-to-end deployment checklist for the Enterprise Work Assistant solution.
+End-to-end deployment checklist for the Intelligent Work Layer solution.
 
 ## Prerequisites
 
@@ -106,7 +106,7 @@ Navigate to: Power Automate → Connections → New connection
 ### 2.1 Create the Main Agent
 
 1. Open **Copilot Studio** → select the provisioned environment
-2. Create a new agent: **"Enterprise Work Assistant"**
+2. Create a new agent: **"Intelligent Work Layer"**
 3. Enable **Generative Orchestration**
 4. Paste the system prompt from `prompts/main-agent-system-prompt.md` into the system message
 
@@ -243,7 +243,7 @@ The Power Automate flows invoke the Humanizer Agent directly in steps 8-10 (see 
 **Option B — Connected Agent:**
 Configure the Humanizer as a Connected Agent available to the main agent within Copilot Studio. In this approach, the main agent orchestrates the humanization call internally. This simplifies the flows but makes the humanization step less visible and harder to debug.
 
-To configure the Humanizer as a Connected Agent: In Copilot Studio, open the main Enterprise Work Assistant agent. Navigate to **Actions** -> **Add an action** -> select **Invoke a Copilot agent** -> select the **Humanizer Agent**. Map the input variable `draft_text` to the agent's draft payload (the `raw_draft` field from the main agent's `draft_payload` output). The Connected Agent will return the humanized text, which the main agent can then include in its output.
+To configure the Humanizer as a Connected Agent: In Copilot Studio, open the main Intelligent Work Layer agent. Navigate to **Actions** -> **Add an action** -> select **Invoke a Copilot agent** -> select the **Humanizer Agent**. Map the input variable `draft_text` to the agent's draft payload (the `raw_draft` field from the main agent's `draft_payload` output). The Connected Agent will return the humanized text, which the main agent can then include in its output.
 
 > Do not use both approaches simultaneously — this would result in double humanization.
 
@@ -276,7 +276,7 @@ cd scripts
 pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
 ```
 
-This creates the Enterprise Work Assistant copilot with 4 topics (Main Triage, Humanizer, Daily Briefing, Orchestrator) and publishes it.
+This creates the Intelligent Work Layer copilot with 4 topics (Main Triage, Humanizer, Daily Briefing, Orchestrator) and publishes it.
 
 **Manual steps after provisioning:**
 1. In Copilot Studio → Tools → Add MCP server for Bing WebSearch (Streamable transport)
@@ -491,7 +491,7 @@ The Copilot Studio agent requires knowledge sources to research incoming signals
 
 ### Configuration Steps
 
-1. **Open Copilot Studio** → Select the Enterprise Work Assistant agent
+1. **Open Copilot Studio** → Select the Intelligent Work Layer agent
 2. Navigate to **Knowledge** in the left sidebar
 3. Click **+ Add knowledge**
 4. For each source type:

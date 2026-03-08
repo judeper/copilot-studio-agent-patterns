@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Audits Dataverse table naming conventions across the Enterprise Work Assistant codebase.
+    Audits Dataverse table naming conventions across the Intelligent Work Layer codebase.
 
 .DESCRIPTION
     Scans all files under a given root directory for references to cr_assistantcard

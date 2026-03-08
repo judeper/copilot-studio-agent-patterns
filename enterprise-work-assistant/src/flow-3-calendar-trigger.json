@@ -383,7 +383,7 @@
           "Compose_ErrorDetails": {
             "type": "Compose",
             "inputs": {
-              "flowName": "EWA-Flow-3-CalendarTrigger",
+              "flowName": "IWL-Flow-3-CalendarTrigger",
               "errorTimestamp": "@utcNow()",
               "errorMessage": "Calendar trigger flow failed during processing. Check run history for details."
             },

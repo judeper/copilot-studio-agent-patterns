@@ -391,7 +391,7 @@
           "Compose_ErrorDetails": {
             "type": "Compose",
             "inputs": {
-              "flowName": "EWA-Flow-1-EmailTrigger",
+              "flowName": "IWL-Flow-1-EmailTrigger",
               "errorTimestamp": "@utcNow()",
               "triggerSubject": "@coalesce(triggerOutputs()?['body/subject'], 'Unknown')",
               "triggerFrom": "@coalesce(triggerOutputs()?['body/from'], 'Unknown')",

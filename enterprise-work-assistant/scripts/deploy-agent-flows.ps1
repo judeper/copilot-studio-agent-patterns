@@ -1,34 +1,34 @@
 <#
 .SYNOPSIS
-    Deploys Power Automate flows for the Enterprise Work Assistant.
+    Deploys Power Automate flows for the Intelligent Work Layer.
 
 .DESCRIPTION
     Creates all 20 flows (10 tool flows + 10 main flows) programmatically via the
     Flow Management API, then adds them to a Dataverse solution:
 
     Tool Flows (agent research/action tools):
-      - EWA - SearchUserEmail          (tool-search-user-email.json)
-      - EWA - SearchSentItems          (tool-search-sent-items.json)
-      - EWA - SearchTeamsMessages      (tool-search-teams-messages.json)
-      - EWA - SearchSharePoint         (tool-search-sharepoint.json)
-      - EWA - SearchPlannerTasks       (tool-search-planner-tasks.json)
-      - EWA - QueryCards               (tool-query-cards.json)
-      - EWA - QuerySenderProfile       (tool-query-sender-profile.json)
-      - EWA - UpdateCard               (tool-update-card.json)
-      - EWA - CreateCard               (tool-create-card.json)
-      - EWA - RefineDraft              (tool-refine-draft.json)
+      - IWL - SearchUserEmail          (tool-search-user-email.json)
+      - IWL - SearchSentItems          (tool-search-sent-items.json)
+      - IWL - SearchTeamsMessages      (tool-search-teams-messages.json)
+      - IWL - SearchSharePoint         (tool-search-sharepoint.json)
+      - IWL - SearchPlannerTasks       (tool-search-planner-tasks.json)
+      - IWL - QueryCards               (tool-query-cards.json)
+      - IWL - QuerySenderProfile       (tool-query-sender-profile.json)
+      - IWL - UpdateCard               (tool-update-card.json)
+      - IWL - CreateCard               (tool-create-card.json)
+      - IWL - RefineDraft              (tool-refine-draft.json)
 
     Main Flows (triggers, orchestration, scheduled):
-      - EWA - Flow 1: EMAIL Trigger
-      - EWA - Flow 2: TEAMS_MESSAGE Trigger
-      - EWA - Flow 3: CALENDAR_SCAN Trigger
-      - EWA - Flow 4: Send Email
-      - EWA - Flow 5: Card Outcome Tracker
-      - EWA - Flow 6: Daily Briefing
-      - EWA - Flow 7: Staleness Monitor
-      - EWA - Flow 8: Command Execution
-      - EWA - Flow 9: Sender Profile Analyzer
-      - EWA - Flow 10: Reminder Firing
+      - IWL - Flow 1: EMAIL Trigger
+      - IWL - Flow 2: TEAMS_MESSAGE Trigger
+      - IWL - Flow 3: CALENDAR_SCAN Trigger
+      - IWL - Flow 4: Send Email
+      - IWL - Flow 5: Card Outcome Tracker
+      - IWL - Flow 6: Daily Briefing
+      - IWL - Flow 7: Staleness Monitor
+      - IWL - Flow 8: Command Execution
+      - IWL - Flow 9: Sender Profile Analyzer
+      - IWL - Flow 10: Reminder Firing
 
     The script:
       1. Creates (or reuses) an "EnterpriseWorkAssistant" Dataverse solution
@@ -114,122 +114,122 @@ $flowMap = [ordered]@{
     # ── Tool Flows ──
     ToolSearchUserEmail    = @{
         File        = "tool-search-user-email.json"
-        DisplayName = "EWA - SearchUserEmail"
+        DisplayName = "IWL - SearchUserEmail"
         ConnRefs    = @("shared_office365", "shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolSearchSentItems    = @{
         File        = "tool-search-sent-items.json"
-        DisplayName = "EWA - SearchSentItems"
+        DisplayName = "IWL - SearchSentItems"
         ConnRefs    = @("shared_office365", "shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolSearchTeamsMessages = @{
         File        = "tool-search-teams-messages.json"
-        DisplayName = "EWA - SearchTeamsMessages"
+        DisplayName = "IWL - SearchTeamsMessages"
         ConnRefs    = @("shared_teams", "shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolSearchSharePoint   = @{
         File        = "tool-search-sharepoint.json"
-        DisplayName = "EWA - SearchSharePoint"
+        DisplayName = "IWL - SearchSharePoint"
         ConnRefs    = @("shared_webcontents", "shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolSearchPlannerTasks = @{
         File        = "tool-search-planner-tasks.json"
-        DisplayName = "EWA - SearchPlannerTasks"
+        DisplayName = "IWL - SearchPlannerTasks"
         ConnRefs    = @("shared_webcontents", "shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolQueryCards         = @{
         File        = "tool-query-cards.json"
-        DisplayName = "EWA - QueryCards"
+        DisplayName = "IWL - QueryCards"
         ConnRefs    = @("shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolQuerySenderProfile = @{
         File        = "tool-query-sender-profile.json"
-        DisplayName = "EWA - QuerySenderProfile"
+        DisplayName = "IWL - QuerySenderProfile"
         ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolUpdateCard         = @{
         File        = "tool-update-card.json"
-        DisplayName = "EWA - UpdateCard"
+        DisplayName = "IWL - UpdateCard"
         ConnRefs    = @("shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolCreateCard         = @{
         File        = "tool-create-card.json"
-        DisplayName = "EWA - CreateCard"
+        DisplayName = "IWL - CreateCard"
         ConnRefs    = @("shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     ToolRefineDraft        = @{
         File        = "tool-refine-draft.json"
-        DisplayName = "EWA - RefineDraft"
+        DisplayName = "IWL - RefineDraft"
         ConnRefs    = @("shared_microsoftcopilotstudio", "shared_commondataserviceforapps")
         Group       = "ToolFlows"
     }
     # ── Main Flows ──
     Flow1  = @{
         File        = "flow-1-email-trigger.json"
-        DisplayName = "EWA - Flow 1: EMAIL Trigger"
+        DisplayName = "IWL - Flow 1: EMAIL Trigger"
         ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_microsoftcopilotstudio")
         Group       = "MainFlows"
     }
     Flow2  = @{
         File        = "flow-2-teams-trigger.json"
-        DisplayName = "EWA - Flow 2: TEAMS_MESSAGE Trigger"
+        DisplayName = "IWL - Flow 2: TEAMS_MESSAGE Trigger"
         ConnRefs    = @("shared_teams", "shared_office365users", "shared_commondataserviceforapps", "shared_microsoftcopilotstudio")
         Group       = "MainFlows"
     }
     Flow3  = @{
         File        = "flow-3-calendar-trigger.json"
-        DisplayName = "EWA - Flow 3: CALENDAR_SCAN Trigger"
+        DisplayName = "IWL - Flow 3: CALENDAR_SCAN Trigger"
         ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_microsoftcopilotstudio")
         Group       = "MainFlows"
     }
     Flow4  = @{
         File        = "flow-4-send-email.json"
-        DisplayName = "EWA - Flow 4: Send Email"
+        DisplayName = "IWL - Flow 4: Send Email"
         ConnRefs    = @("shared_office365", "shared_commondataserviceforapps")
         Group       = "MainFlows"
     }
     Flow5  = @{
         File        = "flow-5-card-outcome-tracker.json"
-        DisplayName = "EWA - Flow 5: Card Outcome Tracker"
+        DisplayName = "IWL - Flow 5: Card Outcome Tracker"
         ConnRefs    = @("shared_commondataserviceforapps")
         Group       = "MainFlows"
     }
     Flow6  = @{
         File        = "flow-6-daily-briefing.json"
-        DisplayName = "EWA - Flow 6: Daily Briefing"
+        DisplayName = "IWL - Flow 6: Daily Briefing"
         ConnRefs    = @("shared_commondataserviceforapps", "shared_teams", "shared_microsoftcopilotstudio")
         Group       = "MainFlows"
     }
     Flow7  = @{
         File        = "flow-7-staleness-monitor.json"
-        DisplayName = "EWA - Flow 7: Staleness Monitor"
+        DisplayName = "IWL - Flow 7: Staleness Monitor"
         ConnRefs    = @("shared_commondataserviceforapps")
         Group       = "MainFlows"
     }
     Flow8  = @{
         File        = "flow-8-command-execution.json"
-        DisplayName = "EWA - Flow 8: Command Execution"
+        DisplayName = "IWL - Flow 8: Command Execution"
         ConnRefs    = @("shared_commondataserviceforapps", "shared_microsoftcopilotstudio")
         Group       = "MainFlows"
     }
     Flow9  = @{
         File        = "flow-9-sender-profile-analyzer.json"
-        DisplayName = "EWA - Flow 9: Sender Profile Analyzer"
+        DisplayName = "IWL - Flow 9: Sender Profile Analyzer"
         ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents")
         Group       = "MainFlows"
     }
     Flow10 = @{
         File        = "flow-10-reminder-firing.json"
-        DisplayName = "EWA - Flow 10: Reminder Firing"
+        DisplayName = "IWL - Flow 10: Reminder Firing"
         ConnRefs    = @("shared_commondataserviceforapps", "shared_teams")
         Group       = "MainFlows"
     }
@@ -237,19 +237,19 @@ $flowMap = [ordered]@{
 
 # Connection reference definitions (for Dataverse solution layer)
 $connRefDefs = @{
-    shared_office365                = @{ LogicalName = "cr_sharedoffice365_ewa";      DisplayName = "EWA - Office 365 Outlook" }
-    shared_office365users           = @{ LogicalName = "cr_sharedoffice365users_ewa"; DisplayName = "EWA - Office 365 Users" }
-    shared_teams                    = @{ LogicalName = "cr_sharedteams_ewa";          DisplayName = "EWA - Microsoft Teams" }
-    shared_commondataserviceforapps = @{ LogicalName = "cr_shareddataverse_ewa";      DisplayName = "EWA - Microsoft Dataverse" }
-    shared_webcontents              = @{ LogicalName = "cr_sharedwebcontents_ewa";    DisplayName = "EWA - HTTP with Entra ID" }
-    shared_microsoftcopilotstudio   = @{ LogicalName = "cr_sharedcopilotstudio_ewa";  DisplayName = "EWA - Microsoft Copilot Studio" }
+    shared_office365                = @{ LogicalName = "cr_sharedoffice365_ewa";      DisplayName = "IWL - Office 365 Outlook" }
+    shared_office365users           = @{ LogicalName = "cr_sharedoffice365users_ewa"; DisplayName = "IWL - Office 365 Users" }
+    shared_teams                    = @{ LogicalName = "cr_sharedteams_ewa";          DisplayName = "IWL - Microsoft Teams" }
+    shared_commondataserviceforapps = @{ LogicalName = "cr_shareddataverse_ewa";      DisplayName = "IWL - Microsoft Dataverse" }
+    shared_webcontents              = @{ LogicalName = "cr_sharedwebcontents_ewa";    DisplayName = "IWL - HTTP with Entra ID" }
+    shared_microsoftcopilotstudio   = @{ LogicalName = "cr_sharedcopilotstudio_ewa";  DisplayName = "IWL - Microsoft Copilot Studio" }
 }
 
 # ─────────────────────────────────────
 # 0. Prerequisite Checks
 # ─────────────────────────────────────
 Write-Host "`n╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║  Enterprise Work Assistant — Flow Deployment         ║" -ForegroundColor Cyan
+Write-Host "║  Intelligent Work Layer — Flow Deployment         ║" -ForegroundColor Cyan
 Write-Host "╚══════════════════════════════════════════════════════╝`n" -ForegroundColor Cyan
 
 if ($WhatIf) {
@@ -398,8 +398,8 @@ if ($solCheck.value.Count -gt 0) {
 else {
     $solBody = @{
         uniquename   = $SolutionName
-        friendlyname = "Enterprise Work Assistant"
-        description  = "Enterprise Work Assistant - flows, connection references, and components"
+        friendlyname = "Intelligent Work Layer"
+        description  = "Intelligent Work Layer - flows, connection references, and components"
         version      = "1.0.0.0"
         "publisherid@odata.bind" = "/publishers($publisherId)"
     } | ConvertTo-Json
@@ -416,7 +416,7 @@ Write-Host "`n[3/6] Setting up connection references..." -ForegroundColor Cyan
 
 # Dependency guard: warn if deploying main flows without tool flows
 if ($FlowsToCreate -eq "MainFlows") {
-    $toolFlows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EWA - Search') or startswith(name,'EWA - Query') or startswith(name,'EWA - Update') or startswith(name,'EWA - Create') or startswith(name,'EWA - Refine')&`$select=name,workflowid" -Headers $dvHeaders
+    $toolFlows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'IWL - Search') or startswith(name,'IWL - Query') or startswith(name,'IWL - Update') or startswith(name,'IWL - Create') or startswith(name,'IWL - Refine')&`$select=name,workflowid" -Headers $dvHeaders
     if ($toolFlows.value.Count -eq 0) {
         Write-Warning "No tool flows found in the environment. Main flows may reference tool flow GUIDs. Deploy ToolFlows first."
     }
@@ -534,7 +534,7 @@ $skippedFlows = @()
 # Check existing flows
 $existingFlows = @{}
 try {
-    $ewaFlows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EWA')&`$select=name,workflowid,statecode" -Headers $dvHeaders
+    $ewaFlows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'IWL')&`$select=name,workflowid,statecode" -Headers $dvHeaders
     foreach ($ef in $ewaFlows.value) { $existingFlows[$ef.name] = @{ id = $ef.workflowid; state = $ef.statecode } }
 } catch {}
 

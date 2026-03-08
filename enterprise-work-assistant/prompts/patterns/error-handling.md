@@ -1,6 +1,6 @@
 # Error Handling
 
-Error handling patterns for all Enterprise Work Assistant agents. Reference this pattern to ensure consistent degradation behavior and structured error reporting.
+Error handling patterns for all Intelligent Work Layer agents. Reference this pattern to ensure consistent degradation behavior and structured error reporting.
 
 ---
 
