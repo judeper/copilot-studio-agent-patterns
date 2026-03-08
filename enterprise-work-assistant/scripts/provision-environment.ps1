@@ -1473,6 +1473,194 @@ try {
     Write-Warning "  Column 'Is Enabled' failed: $($_.Exception.Message)"
 }
 
+# Heartbeat Frequency (Choice)
+$heartbeatFreqDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_HeartbeatFrequency"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Heartbeat Frequency"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "How often the heartbeat agent runs for this user."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "Every 2 Hours"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "Every 4 Hours"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "Daily"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $heartbeatFreqDef
+    Write-Host "  Column 'Heartbeat Frequency' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Heartbeat Frequency' failed: $($_.Exception.Message)"
+}
+
+# Heartbeat Enabled (Boolean, default false)
+$heartbeatEnabledDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_HeartbeatEnabled"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Heartbeat Enabled"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Whether heartbeat proactive scanning is enabled for this user."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $heartbeatEnabledDef
+    Write-Host "  Column 'Heartbeat Enabled' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Heartbeat Enabled' failed: $($_.Exception.Message)"
+}
+
+# Last Heartbeat Timestamp (DateTime)
+$lastHeartbeatDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_LastHeartbeatTimestamp"
+    RequiredLevel = @{ Value = "None" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Last Heartbeat Timestamp"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Last time the heartbeat agent ran for this user. Used for deduplication."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $lastHeartbeatDef
+    Write-Host "  Column 'Last Heartbeat Timestamp' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Last Heartbeat Timestamp' failed: $($_.Exception.Message)"
+}
+
+# Max Cards Per Run (WholeNumber 1-10)
+$maxCardsPerRunDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_MaxCardsPerRun"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 1
+    MaxValue = 10
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Max Cards Per Run"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Maximum proactive cards generated per heartbeat run."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($briefingEntityId)/Attributes" -Method Post -Headers $headers -Body $maxCardsPerRunDef
+    Write-Host "  Column 'Max Cards Per Run' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Max Cards Per Run' failed: $($_.Exception.Message)"
+}
+
 Write-Host "BriefingSchedule table provisioning complete." -ForegroundColor Green
 
 # ─────────────────────────────────────
@@ -1772,7 +1960,2038 @@ try {
 Write-Host "Error Log table provisioning complete." -ForegroundColor Green
 
 # ─────────────────────────────────────
-# 5a. Publish All Customizations
+# 6. Create Episodic Memory Table (Memory System)
+# ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
+Write-Host "`n--- Creating Episodic Memory Table ---" -ForegroundColor Cyan
+
+$episodicEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_EpisodicMemory"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Episodic Memory"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Episodic Memories"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Episodic memory log storing user decision events for agent learning. 90-day retention."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_eventsummary"
+    Attributes = @(
+        # Primary Name — Event Summary
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_EventSummary"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 200
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Event Summary"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Primary column — short summary of the decision event."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    $episodicResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $episodicEntityDef
+    $episodicEntityId = $episodicResult.MetadataId
+    Write-Host "  Episodic Memory table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Episodic Memory table creation failed (may already exist): $($_.Exception.Message)"
+    try {
+        $episodicEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_episodicmemory')" -Headers $headers).MetadataId
+    } catch {
+        Write-Warning "  Could not retrieve Episodic Memory entity ID. Column creation may fail."
+    }
+}
+
+# Event Type (Choice)
+$eventTypeDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_EventType"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Event Type"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "The type of user decision event recorded."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "DRAFT_SENT_AS_IS"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "DRAFT_SENT_EDITED"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "DISMISSED"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000003
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "DELEGATED"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000004
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "TRIAGE_OVERRIDDEN"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000005
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "REMINDER_CREATED"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000006
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "DRAFT_REFINED"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($episodicEntityId)/Attributes" -Method Post -Headers $headers -Body $eventTypeDef
+    Write-Host "  Column 'Event Type' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Event Type' failed: $($_.Exception.Message)"
+}
+
+# Entity Reference (Text 200)
+$entityRefDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_EntityReference"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MaxLength = 200
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Entity Reference"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Reference identifier for the related entity — card ID or sender email."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($episodicEntityId)/Attributes" -Method Post -Headers $headers -Body $entityRefDef
+    Write-Host "  Column 'Entity Reference' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Entity Reference' failed: $($_.Exception.Message)"
+}
+
+# Event Detail (Text 500)
+$eventDetailDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_EventDetail"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 500
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Event Detail"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Free-text description of the event providing additional context."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($episodicEntityId)/Attributes" -Method Post -Headers $headers -Body $eventDetailDef
+    Write-Host "  Column 'Event Detail' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Event Detail' failed: $($_.Exception.Message)"
+}
+
+# Sender Email (Text 320)
+$episodicSenderEmailDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_SenderEmail"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 320
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Sender Email"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Email address of the sender involved in this event."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($episodicEntityId)/Attributes" -Method Post -Headers $headers -Body $episodicSenderEmailDef
+    Write-Host "  Column 'Sender Email' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Sender Email' failed: $($_.Exception.Message)"
+}
+
+# Event Date (DateTime)
+$eventDateDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_EventDate"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Event Date"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Timestamp when the decision event occurred."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($episodicEntityId)/Attributes" -Method Post -Headers $headers -Body $eventDateDef
+    Write-Host "  Column 'Event Date' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Event Date' failed: $($_.Exception.Message)"
+}
+
+# Card Trigger Type (Choice)
+$cardTriggerTypeDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_CardTriggerType"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Card Trigger Type"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "The trigger type of the card associated with this event."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "EMAIL"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "TEAMS_MESSAGE"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "CALENDAR_SCAN"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($episodicEntityId)/Attributes" -Method Post -Headers $headers -Body $cardTriggerTypeDef
+    Write-Host "  Column 'Card Trigger Type' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Card Trigger Type' failed: $($_.Exception.Message)"
+}
+
+# Target Context (Text 200)
+$targetContextDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_TargetContext"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 200
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Target Context"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Delegation target or override reason. Only populated for DELEGATED or TRIAGE_OVERRIDDEN events."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($episodicEntityId)/Attributes" -Method Post -Headers $headers -Body $targetContextDef
+    Write-Host "  Column 'Target Context' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Target Context' failed: $($_.Exception.Message)"
+}
+
+Write-Host "Episodic Memory table provisioning complete." -ForegroundColor Green
+
+# ─────────────────────────────────────
+# 7. Create Semantic Knowledge Table (Memory System)
+# ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
+Write-Host "`n--- Creating Semantic Knowledge Table ---" -ForegroundColor Cyan
+
+$semanticEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_SemanticKnowledge"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Semantic Knowledge"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Semantic Knowledges"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Semantic knowledge base storing durable facts promoted from episodic memory patterns."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_knowledgesummary"
+    Attributes = @(
+        # Primary Name — Knowledge Summary
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_KnowledgeSummary"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 200
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Knowledge Summary"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Primary column — short human-readable summary of the knowledge fact."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    $semanticResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $semanticEntityDef
+    $semanticEntityId = $semanticResult.MetadataId
+    Write-Host "  Semantic Knowledge table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Semantic Knowledge table creation failed (may already exist): $($_.Exception.Message)"
+    try {
+        $semanticEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_semanticknowledge')" -Headers $headers).MetadataId
+    } catch {
+        Write-Warning "  Could not retrieve Semantic Knowledge entity ID. Column creation may fail."
+    }
+}
+
+# Fact Type (Choice)
+$factTypeDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_FactType"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Fact Type"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Category of the knowledge fact."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "DELEGATION"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "AVOIDANCE"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "TONE"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000003
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "RESPONSE_SPEED"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000004
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "CUSTOM"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $factTypeDef
+    Write-Host "  Column 'Fact Type' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Fact Type' failed: $($_.Exception.Message)"
+}
+
+# Fact Statement (Multiline Text 500)
+$factStatementDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_FactStatement"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MaxLength = 500
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Fact Statement"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Natural language statement of the knowledge fact."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $factStatementDef
+    Write-Host "  Column 'Fact Statement' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Fact Statement' failed: $($_.Exception.Message)"
+}
+
+# Context Hash (Text 100)
+$contextHashDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ContextHash"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MaxLength = 100
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Context Hash"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Deterministic hash for upsert deduplication. Computed from fact type + key context attributes."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $contextHashDef
+    Write-Host "  Column 'Context Hash' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Context Hash' failed: $($_.Exception.Message)"
+}
+
+# Confidence Score (Decimal 0.0000 - 1.0000)
+$semanticConfidenceDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ConfidenceScore"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    Precision = 4
+    MinValue = 0
+    MaxValue = 1
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Confidence Score"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Confidence level (0.0-1.0) based on the number and consistency of supporting episodic events."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $semanticConfidenceDef
+    Write-Host "  Column 'Confidence Score' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Confidence Score' failed: $($_.Exception.Message)"
+}
+
+# Event Count (WholeNumber)
+$eventCountDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_EventCount"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MinValue = 0
+    MaxValue = 2147483647
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Event Count"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Number of supporting episodic memory events that contributed to this fact."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $eventCountDef
+    Write-Host "  Column 'Event Count' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Event Count' failed: $($_.Exception.Message)"
+}
+
+# Last Validated (DateTime)
+$lastValidatedDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_LastValidated"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Last Validated"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Timestamp when this fact was last reinforced by a matching episodic event."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $lastValidatedDef
+    Write-Host "  Column 'Last Validated' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Last Validated' failed: $($_.Exception.Message)"
+}
+
+# Valid Until (DateTime, nullable)
+$validUntilDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ValidUntil"
+    RequiredLevel = @{ Value = "None" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Valid Until"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Explicit expiry date for people-dependent facts. Null means no explicit expiry."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $validUntilDef
+    Write-Host "  Column 'Valid Until' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Valid Until' failed: $($_.Exception.Message)"
+}
+
+# Is Active (Boolean, default true)
+$isActiveDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_IsActive"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Is Active"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Soft-delete flag for confidence decay. Set to false when confidence drops below threshold."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $isActiveDef
+    Write-Host "  Column 'Is Active' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Is Active' failed: $($_.Exception.Message)"
+}
+
+# Source Type (Choice)
+$sourceTypeDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_SourceType"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Source Type"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "How this fact was created."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "INFERRED"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "USER_EXPLICIT"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $sourceTypeDef
+    Write-Host "  Column 'Source Type' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Source Type' failed: $($_.Exception.Message)"
+}
+
+# Created From Persona (Boolean, default false)
+$createdFromPersonaDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_CreatedFromPersona"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Created From Persona"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Whether this fact was promoted from an explicit user persona rule."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Attributes" -Method Post -Headers $headers -Body $createdFromPersonaDef
+    Write-Host "  Column 'Created From Persona' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Created From Persona' failed: $($_.Exception.Message)"
+}
+
+# 7a. Create Alternate Key on Semantic Knowledge (cr_contexthash)
+Write-Host "Creating alternate key on Semantic Knowledge (cr_contexthash)..." -ForegroundColor Cyan
+
+$semanticAltKeyDef = @{
+    SchemaName = "${PublisherPrefix}_contexthash_key"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Context Hash Key"
+            LanguageCode = 1033
+        })
+    }
+    KeyAttributes = @("${PublisherPrefix}_contexthash")
+} | ConvertTo-Json -Depth 20
+
+try {
+    $semanticKeyResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Keys" -Method Post -Headers $headers -Body $semanticAltKeyDef
+    Write-Host "  Alternate key creation initiated." -ForegroundColor Yellow
+
+    # Poll for key activation
+    $semanticKeyId = $semanticKeyResult.MetadataId
+    $keyAttempts = 0
+    $keyMaxAttempts = 12
+    do {
+        Start-Sleep -Seconds 2.5
+        $keyAttempts++
+        $keyStatus = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($semanticEntityId)/Keys($semanticKeyId)" -Headers $headers
+        if ($keyStatus.EntityKeyIndexStatus -eq "Active") {
+            Write-Host "  Alternate key active." -ForegroundColor Green
+            break
+        }
+        Write-Host "  Key indexing... attempt $keyAttempts/$keyMaxAttempts (status: $($keyStatus.EntityKeyIndexStatus))"
+    } while ($keyAttempts -lt $keyMaxAttempts)
+
+    if ($keyAttempts -ge $keyMaxAttempts) {
+        Write-Warning "  Alternate key not yet active after 30s. Check manually in Admin Center."
+    }
+} catch {
+    Write-Warning "  Alternate key creation failed (may already exist): $($_.Exception.Message)"
+}
+
+Write-Host "Semantic Knowledge table provisioning complete." -ForegroundColor Green
+
+# ─────────────────────────────────────
+# 8. Create User Persona Table (Memory System)
+# ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
+Write-Host "`n--- Creating User Persona Table ---" -ForegroundColor Cyan
+
+$personaEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_UserPersona"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "User Persona"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "User Personas"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "User persona configuration for explicit communication style preferences."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_userdisplayname"
+    Attributes = @(
+        # Primary Name — User Display Name
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_UserDisplayName"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 200
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "User Display Name"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Primary column — display name of the user. One row per user."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    $personaResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $personaEntityDef
+    $personaEntityId = $personaResult.MetadataId
+    Write-Host "  User Persona table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  User Persona table creation failed (may already exist): $($_.Exception.Message)"
+    try {
+        $personaEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_userpersona')" -Headers $headers).MetadataId
+    } catch {
+        Write-Warning "  Could not retrieve User Persona entity ID. Column creation may fail."
+    }
+}
+
+# Preferred Tone (Choice)
+$preferredToneDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_PreferredTone"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Preferred Tone"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "User's preferred communication tone. Null means the agent infers tone from episodic memory."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "FORMAL"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "SEMI_FORMAL"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "DIRECT"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000003
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "COLLABORATIVE"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $preferredToneDef
+    Write-Host "  Column 'Preferred Tone' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Preferred Tone' failed: $($_.Exception.Message)"
+}
+
+# Signature Preference (Text 200)
+$signaturePrefDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_SignaturePreference"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 200
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Signature Preference"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Preferred email sign-off. Used by the Humanizer Agent for draft closing."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $signaturePrefDef
+    Write-Host "  Column 'Signature Preference' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Signature Preference' failed: $($_.Exception.Message)"
+}
+
+# Formatting Style (Choice)
+$formattingStyleDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_FormattingStyle"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Formatting Style"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Preferred response formatting style. Null means the agent infers from episodic memory."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "PROSE"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "BULLETS"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "MIXED"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $formattingStyleDef
+    Write-Host "  Column 'Formatting Style' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Formatting Style' failed: $($_.Exception.Message)"
+}
+
+# Custom Rules (Multiline Text 2000)
+$customRulesDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_CustomRules"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 2000
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Custom Rules"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Free-text rules for the agent. Injected into the agent system prompt at runtime."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $customRulesDef
+    Write-Host "  Column 'Custom Rules' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Custom Rules' failed: $($_.Exception.Message)"
+}
+
+# Is Enabled (Boolean, default true)
+$personaIsEnabledDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_IsEnabled"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Is Enabled"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Master toggle for persona preferences. When false, the agent ignores all persona settings."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $personaIsEnabledDef
+    Write-Host "  Column 'Is Enabled' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Is Enabled' failed: $($_.Exception.Message)"
+}
+
+Write-Host "User Persona table provisioning complete." -ForegroundColor Green
+
+# ─────────────────────────────────────
+# 9. Create Skill Registry Table (Extensibility)
+# ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
+Write-Host "`n--- Creating Skill Registry Table ---" -ForegroundColor Cyan
+
+$skillEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_SkillRegistry"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Skill Registry"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Skill Registries"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Skill registry for extensible agent capabilities. Power users define custom prompts or flow references."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_skillname"
+    Attributes = @(
+        # Primary Name — Skill Name
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_SkillName"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 100
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Skill Name"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Primary column — unique human-readable name for the skill."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    $skillResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $skillEntityDef
+    $skillEntityId = $skillResult.MetadataId
+    Write-Host "  Skill Registry table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Skill Registry table creation failed (may already exist): $($_.Exception.Message)"
+    try {
+        $skillEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_skillregistry')" -Headers $headers).MetadataId
+    } catch {
+        Write-Warning "  Could not retrieve Skill Registry entity ID. Column creation may fail."
+    }
+}
+
+# Skill Description (Multiline Text 500)
+$skillDescDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_SkillDescription"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    MaxLength = 500
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Skill Description"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Natural language description of what the skill does. Used by the agent for skill selection."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $skillDescDef
+    Write-Host "  Column 'Skill Description' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Skill Description' failed: $($_.Exception.Message)"
+}
+
+# Skill Type (Choice)
+$skillTypeDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_SkillType"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Skill Type"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Whether the skill is a prompt template or a reference to an external flow."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "PROMPT_TEMPLATE"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "FLOW_REFERENCE"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $skillTypeDef
+    Write-Host "  Column 'Skill Type' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Skill Type' failed: $($_.Exception.Message)"
+}
+
+# Prompt Template (Multiline Text 10000)
+$promptTemplateDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_PromptTemplate"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 10000
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Prompt Template"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Prompt text with {{PARAM_NAME}} substitution placeholders. Required when skill type is PROMPT_TEMPLATE."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $promptTemplateDef
+    Write-Host "  Column 'Prompt Template' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Prompt Template' failed: $($_.Exception.Message)"
+}
+
+# Parameter Schema (Multiline Text 2000)
+$paramSchemaDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ParameterSchema"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 2000
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Parameter Schema"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "JSON Schema defining input parameters for the skill."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $paramSchemaDef
+    Write-Host "  Column 'Parameter Schema' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Parameter Schema' failed: $($_.Exception.Message)"
+}
+
+# Flow ID (Text 500)
+$flowIdDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_FlowId"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 500
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Flow ID"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Power Automate flow GUID or HTTP trigger URL. Required when skill type is FLOW_REFERENCE."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $flowIdDef
+    Write-Host "  Column 'Flow ID' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Flow ID' failed: $($_.Exception.Message)"
+}
+
+# Output Format (Choice)
+$outputFormatDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_OutputFormat"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Output Format"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "How the skill output should be rendered in the UI."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "CARD"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "BRIEFING_SECTION"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "TEXT_RESPONSE"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $outputFormatDef
+    Write-Host "  Column 'Output Format' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Output Format' failed: $($_.Exception.Message)"
+}
+
+# Is Enabled (Boolean, default true)
+$skillIsEnabledDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_IsEnabled"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Is Enabled"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Toggle to enable or disable this skill."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $skillIsEnabledDef
+    Write-Host "  Column 'Is Enabled' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Is Enabled' failed: $($_.Exception.Message)"
+}
+
+# Is Shared (Boolean, default false)
+$isSharedDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_IsShared"
+    RequiredLevel = @{ Value = "None" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Is Shared"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Whether this skill is admin-shared and visible to all users."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $isSharedDef
+    Write-Host "  Column 'Is Shared' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Is Shared' failed: $($_.Exception.Message)"
+}
+
+# Last Used (DateTime)
+$lastUsedDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_LastUsed"
+    RequiredLevel = @{ Value = "None" }
+    Format = "DateAndTime"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Last Used"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Timestamp of the most recent skill invocation."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $lastUsedDef
+    Write-Host "  Column 'Last Used' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Last Used' failed: $($_.Exception.Message)"
+}
+
+# Usage Count (WholeNumber)
+$usageCountDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_UsageCount"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 2147483647
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Usage Count"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Total number of times this skill has been invoked."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($skillEntityId)/Attributes" -Method Post -Headers $headers -Body $usageCountDef
+    Write-Host "  Column 'Usage Count' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Usage Count' failed: $($_.Exception.Message)"
+}
+
+Write-Host "Skill Registry table provisioning complete." -ForegroundColor Green
+
+# ─────────────────────────────────────
+# 10. Create Semantic-Episodic Junction Table (Memory System)
+# ─────────────────────────────────────
+Refresh-TokenIfNeeded
+
+Write-Host "`n--- Creating Semantic-Episodic Junction Table ---" -ForegroundColor Cyan
+
+$junctionEntityDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_SemanticEpisodic"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Semantic-Episodic Link"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Semantic-Episodic Links"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Junction table linking semantic knowledge facts to their supporting episodic memory events."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_linkname"
+    Attributes = @(
+        # Primary Name — auto-populated link identifier
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            SchemaName = "${PublisherPrefix}_LinkName"
+            RequiredLevel = @{ Value = "ApplicationRequired" }
+            MaxLength = 200
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Link Name"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Primary column — auto-populated link identifier."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    $junctionResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $junctionEntityDef
+    $junctionEntityId = $junctionResult.MetadataId
+    Write-Host "  Semantic-Episodic junction table created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Semantic-Episodic junction table creation failed (may already exist): $($_.Exception.Message)"
+    try {
+        $junctionEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_semanticepisodic')" -Headers $headers).MetadataId
+    } catch {
+        Write-Warning "  Could not retrieve Semantic-Episodic entity ID. Relationship creation may fail."
+    }
+}
+
+# Create lookup to Episodic Memory
+Write-Host "  Creating lookup to Episodic Memory..." -ForegroundColor Cyan
+$episodicLookupDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.LookupAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_EpisodicMemoryId"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Episodic Memory"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Lookup to the supporting episodic memory event."
+            LanguageCode = 1033
+        })
+    }
+    Targets = @("${PublisherPrefix}_episodicmemory")
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($junctionEntityId)/Attributes" -Method Post -Headers $headers -Body $episodicLookupDef
+    Write-Host "  Lookup 'Episodic Memory' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Lookup 'Episodic Memory' failed: $($_.Exception.Message)"
+}
+
+# Create lookup to Semantic Knowledge
+Write-Host "  Creating lookup to Semantic Knowledge..." -ForegroundColor Cyan
+$semanticLookupDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.LookupAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_SemanticKnowledgeId"
+    RequiredLevel = @{ Value = "ApplicationRequired" }
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Semantic Knowledge"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Lookup to the semantic knowledge fact."
+            LanguageCode = 1033
+        })
+    }
+    Targets = @("${PublisherPrefix}_semanticknowledge")
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($junctionEntityId)/Attributes" -Method Post -Headers $headers -Body $semanticLookupDef
+    Write-Host "  Lookup 'Semantic Knowledge' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Lookup 'Semantic Knowledge' failed: $($_.Exception.Message)"
+}
+
+# Create composite alternate key on junction table (episodic + semantic)
+Write-Host "Creating composite alternate key on Semantic-Episodic junction..." -ForegroundColor Cyan
+
+$junctionAltKeyDef = @{
+    SchemaName = "${PublisherPrefix}_episodic_semantic_key"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Episodic-Semantic Composite Key"
+            LanguageCode = 1033
+        })
+    }
+    KeyAttributes = @("${PublisherPrefix}_episodicmemoryid", "${PublisherPrefix}_semanticknowledgeid")
+} | ConvertTo-Json -Depth 20
+
+try {
+    $junctionKeyResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($junctionEntityId)/Keys" -Method Post -Headers $headers -Body $junctionAltKeyDef
+    Write-Host "  Composite alternate key creation initiated." -ForegroundColor Yellow
+
+    # Poll for key activation
+    $junctionKeyId = $junctionKeyResult.MetadataId
+    $keyAttempts = 0
+    $keyMaxAttempts = 12
+    do {
+        Start-Sleep -Seconds 2.5
+        $keyAttempts++
+        $keyStatus = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($junctionEntityId)/Keys($junctionKeyId)" -Headers $headers
+        if ($keyStatus.EntityKeyIndexStatus -eq "Active") {
+            Write-Host "  Composite alternate key active." -ForegroundColor Green
+            break
+        }
+        Write-Host "  Key indexing... attempt $keyAttempts/$keyMaxAttempts (status: $($keyStatus.EntityKeyIndexStatus))"
+    } while ($keyAttempts -lt $keyMaxAttempts)
+
+    if ($keyAttempts -ge $keyMaxAttempts) {
+        Write-Warning "  Composite alternate key not yet active after 30s. Check manually in Admin Center."
+    }
+} catch {
+    Write-Warning "  Composite alternate key creation failed (may already exist): $($_.Exception.Message)"
+}
+
+Write-Host "Semantic-Episodic junction table provisioning complete." -ForegroundColor Green
+
+# ─────────────────────────────────────
+# 11. Publish All Customizations
 # ─────────────────────────────────────
 Write-Host "Publishing all customizations..." -ForegroundColor Cyan
 

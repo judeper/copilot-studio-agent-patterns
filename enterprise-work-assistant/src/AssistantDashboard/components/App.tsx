@@ -9,6 +9,7 @@ import { ConfidenceCalibration } from "./ConfidenceCalibration";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { FilterBar } from "./FilterBar";
 import { StatusBar } from "./StatusBar";
+import { focusAfterRender } from "../utils/focusUtils";
 
 type ViewState =
     | { mode: "gallery"; selectedCardId: string | null }
@@ -21,14 +22,6 @@ type FocusRestoreTarget =
 
 function escapeAttributeValue(value: string): string {
     return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-function focusAfterRender(callback: () => void): void {
-    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
-        window.requestAnimationFrame(callback);
-        return;
-    }
-    setTimeout(callback, 0);
 }
 
 function getActiveFocusRestoreTarget(): FocusRestoreTarget | null {
@@ -340,7 +333,7 @@ export const App: React.FC<AppProps> = ({
                                         </div>
                                     )
                                 )}
-                                {detailOpen && <div className="detail-backdrop" onClick={handleCloseDetail} />}
+                                {detailOpen && <div className="detail-backdrop" role="presentation" aria-hidden="true" onClick={handleCloseDetail} />}
                             </div>
                         )}
                     </>

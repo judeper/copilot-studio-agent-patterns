@@ -11,8 +11,8 @@ interface ErrorBoundaryState {
  *
  * Catches render crashes from malformed card data or unexpected component errors
  * and displays a recovery UI instead of crashing the entire dashboard.
- * Implemented as a class component because React 16 does not support
- * error boundaries via hooks.
+ * Implemented as a class component because React does not support
+ * error boundaries via hooks (class component required).
  */
 export class ErrorBoundary extends React.Component<
     { children: React.ReactNode },

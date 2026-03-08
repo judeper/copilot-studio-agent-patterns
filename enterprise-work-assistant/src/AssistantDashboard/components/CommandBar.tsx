@@ -4,6 +4,7 @@ import { Button, Input, Spinner, Text } from "@fluentui/react-components";
 import { SendRegular, DismissCircleRegular } from "@fluentui/react-icons";
 import type { OrchestratorResponse, CommandCardLink } from "./types";
 import { DEFAULT_COMMAND_CHIPS, DETAIL_COMMAND_CHIPS } from "./constants";
+import { focusAfterRender } from "../utils/focusUtils";
 
 interface CommandBarProps {
     currentCardId: string | null;
@@ -17,12 +18,6 @@ interface CommandBarProps {
     isProcessing: boolean;
 }
 
-const QUICK_ACTIONS = [
-    { label: "What's urgent?", command: "What needs my attention right now?" },
-    { label: "Draft status", command: "Show me all cards with drafts ready to send" },
-    { label: "My day", command: "What should I focus on today?" },
-];
-
 interface ConversationEntry {
     role: "user" | "assistant";
     text: string;
@@ -34,16 +29,7 @@ type FocusableButtonElement = HTMLButtonElement | HTMLAnchorElement;
 
 type FocusRestoreTarget =
     | { type: "input" }
-    | { type: "send" }
-    | { type: "quickAction"; label: string };
-
-function focusAfterRender(callback: () => void): void {
-    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
-        window.requestAnimationFrame(callback);
-        return;
-    }
-    setTimeout(callback, 0);
-}
+    | { type: "send" };
 
 export const CommandBar: React.FC<CommandBarProps> = ({
     currentCardId,
@@ -60,16 +46,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     const responseRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const sendButtonRef = useRef<FocusableButtonElement>(null);
-    const quickActionRefs = useRef(new Map<string, FocusableButtonElement>());
     const focusRestoreTargetRef = useRef<FocusRestoreTarget | null>(null);
-
-    const setQuickActionRef = useCallback((label: string, element: FocusableButtonElement | null) => {
-        if (element) {
-            quickActionRefs.current.set(label, element);
-            return;
-        }
-        quickActionRefs.current.delete(label);
-    }, []);
 
     const restoreFocus = useCallback(() => {
         const target = focusRestoreTargetRef.current;
@@ -78,9 +55,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
             const element =
                 target.type === "input"
                     ? inputRef.current
-                    : target.type === "send"
-                      ? sendButtonRef.current
-                      : quickActionRefs.current.get(target.label) ?? null;
+                    : sendButtonRef.current;
             element?.focus();
         });
         focusRestoreTargetRef.current = null;
@@ -172,20 +147,6 @@ export const CommandBar: React.FC<CommandBarProps> = ({
         [handleSubmit],
     );
 
-    const handleQuickAction = useCallback(
-        (label: string, command: string) => {
-            focusRestoreTargetRef.current = { type: "quickAction", label };
-            setConversation((prev) => [
-                ...prev,
-                { role: "user", text: command, timestamp: new Date() },
-            ]);
-            setCollapsed(false);
-            setIsExpanded(true);
-            onExecuteCommand(command, currentCardId);
-        },
-        [currentCardId, onExecuteCommand],
-    );
-
     const handleClear = useCallback(() => {
         focusRestoreTargetRef.current = null;
         setConversation([]);
@@ -237,7 +198,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
         <div className={`command-bar command-bar-expanded`}>
             {/* Response panel (visible when conversation exists) */}
             {isExpanded && conversation.length > 0 && (
-                <div className="command-response-panel" ref={responseRef}>
+                <div className="command-response-panel" ref={responseRef} aria-live="polite">
                     {conversation.map((entry, i) => (
                         <div
                             key={i}
@@ -324,22 +285,7 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                 </div>
             )}
 
-            {/* Legacy quick actions (visible when expanded with no conversation) */}
-            {!isExpanded && !isProcessing && conversation.length === 0 && (
-                <div className="command-quick-actions">
-                    {QUICK_ACTIONS.map((qa) => (
-                        <Button
-                            key={qa.label}
-                            appearance="outline"
-                            ref={(element) => setQuickActionRef(qa.label, element)}
-                            size="small"
-                            onClick={() => handleQuickAction(qa.label, qa.command)}
-                        >
-                            {qa.label}
-                        </Button>
-                    ))}
-                </div>
-            )}
+
         </div>
     );
 };

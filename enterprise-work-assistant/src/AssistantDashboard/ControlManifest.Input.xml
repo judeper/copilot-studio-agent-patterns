@@ -2,7 +2,7 @@
 <manifest>
   <control namespace="EnterpriseWorkAssistant"
            constructor="AssistantDashboard"
-           version="1.0.0"
+           version="2.2.0"
            display-name-key="AssistantDashboard_DisplayName"
            description-key="AssistantDashboard_Description"
            control-type="virtual">

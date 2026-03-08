@@ -362,7 +362,7 @@
 
 .briefing-stale-hours {
     font-size: 12px;
-    color: #888;
+    color: #595959;
     margin-left: 8px;
 }
 
@@ -390,7 +390,7 @@
 .briefing-fyi-chevron {
     font-size: 12px;
     margin-left: 6px;
-    color: #888;
+    color: #595959;
 }
 
 .briefing-fyi-item {
@@ -417,7 +417,7 @@
 .briefing-empty {
     text-align: center;
     padding: 20px;
-    color: #888;
+    color: #595959;
     font-size: 14px;
 }
 
@@ -444,7 +444,7 @@
 
 .briefing-dismiss-button:hover {
     background: #f0f0f0;
-    border-color: #999;
+    border-color: #767676;
 }
 
 /* ─── Sprint 2: Inline Editing ─── */
@@ -517,7 +517,7 @@
 }
 
 .command-thinking {
-    color: #888;
+    color: #595959;
     font-style: italic;
 }
 
@@ -591,14 +591,14 @@
     background: none;
     border: 1px solid #d0d0d0;
     border-radius: 4px;
-    color: #888;
+    color: #595959;
     cursor: pointer;
     font-size: 12px;
 }
 
 .command-clear-button:hover {
     background: #f0f0f0;
-    border-color: #999;
+    border-color: #767676;
 }
 
 .command-quick-actions {
@@ -657,7 +657,7 @@
 
 .calibration-sample {
     font-size: 12px;
-    color: #888;
+    color: #595959;
 }
 
 .calibration-tabs {
@@ -750,14 +750,14 @@
 
 .calibration-stat-detail {
     font-size: 11px;
-    color: #888;
+    color: #595959;
     margin-top: 4px;
 }
 
 .calibration-link {
     background: none;
     border: none;
-    color: #888;
+    color: #595959;
     font-size: 12px;
     cursor: pointer;
     padding: 4px 12px;
@@ -815,7 +815,7 @@
 .feed-section-chevron {
     margin-left: auto;
     font-size: 12px;
-    color: var(--colorNeutralForeground3, #888);
+    color: var(--colorNeutralForeground3, #595959);
 }
 
 .feed-section-cards {
@@ -916,7 +916,7 @@
 
 .empty-state-meta {
     font-size: 13px;
-    color: var(--colorNeutralForeground3, #888);
+    color: var(--colorNeutralForeground3, #595959);
 }
 
 .empty-state-cta {
@@ -942,8 +942,8 @@
 
 /* ── UI/UX Redesign: Heartbeat & Stale States ── */
 
-.card-item-heartbeat {
-    border-left: 3px solid #8b5cf6 !important;
+.card-item-heartbeat[data-card-type="heartbeat"] {
+    border-left: 3px solid #8b5cf6;
     background: #faf5ff;
 }
 
@@ -1161,7 +1161,7 @@
 }
 
 .memory-icon {
-    color: #999;
+    color: #767676;
     font-size: 10px;
 }
 

@@ -13,6 +13,8 @@ RUNTIME INPUTS
 {{VERIFIED_SOURCES}}  : JSON array of { title, url, tier } objects
 {{SENDER_PROFILE}}    : JSON object from cr_senderprofile (or null)
 {{TRIAGE_TIER}}       : "FULL" (you are only invoked for FULL-tier items)
+{{CURRENT_DATETIME}}  : Current date and time in ISO 8601 format
+{{ITEM_RECEIVED_TIMESTAMP}} : ISO 8601 timestamp of when the original signal was received
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SCORING BANDS
@@ -88,3 +90,28 @@ Do not add text, labels, or code fences before or after the object.
 - Fabricate evidence to inflate the score.
 - Apply sender modifiers when SENDER_PROFILE is null.
 - Return a score outside 0-100.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEW-SHOT EXAMPLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Input (EMAIL trigger, FULL tier):**
+
+```
+RESEARCH_LOG: "Tier 1: searched inbox for 'contract renewal Fabrikam'. Found 3 email threads. Tier 2: searched SharePoint for 'Fabrikam MSA'. Found signed MSA document dated 2025-11-01. Tier 4: not searched (sufficient internal evidence)."
+KEY_FINDINGS: ["Fabrikam MSA expires March 15, 2026 — renewal clause requires 30-day notice", "User exchanged 3 emails with Fabrikam Legal last week discussing revised terms"]
+VERIFIED_SOURCES: [{"title": "Fabrikam MSA 2025", "url": "https://contoso.sharepoint.com/docs/fabrikam-msa.pdf", "tier": 2}, {"title": "Re: Contract Renewal Terms", "url": "outlook://message/AAMk...", "tier": 1}]
+SENDER_PROFILE: {"sender_category": "AUTO_HIGH", "avg_response_hours": 4.2, "response_rate": 0.93, "avg_edit_distance": 22}
+CURRENT_DATETIME: "2026-02-27T09:15:00Z"
+ITEM_RECEIVED_TIMESTAMP: "2026-02-27T08:30:00Z"
+```
+
+**Output:**
+
+```json
+{
+  "confidence_score": 95,
+  "card_status": "READY",
+  "low_confidence_note": null
+}
+```

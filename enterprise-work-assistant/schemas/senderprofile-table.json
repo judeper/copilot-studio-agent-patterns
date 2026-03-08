@@ -7,10 +7,10 @@
   "primaryNameAttribute": "cr_senderemail",
   "alternateKeys": [
     {
-      "schemaName": "cr_senderemail_key",
-      "displayName": "Sender Email Key",
-      "keyAttributes": ["cr_senderemail"],
-      "purpose": "Enables safe upsert pattern — prevents duplicate rows for the same sender during concurrent flow runs."
+      "schemaName": "cr_senderemail_owner_key",
+      "displayName": "Sender Email Owner Key",
+      "keyAttributes": ["cr_senderemail", "ownerid"],
+      "purpose": "Enables safe upsert pattern — composite key prevents duplicate rows for the same sender per user during concurrent flow runs."
     }
   ],
   "columns": [

@@ -48,8 +48,9 @@
       "description": "Plain-text log of which research tiers were checked and what was found or not found. Null for SKIP and LIGHT."
     },
     "key_findings": {
-      "type": ["string", "null"],
-      "description": "Plain-text bulleted list of relevant findings from research. 'None retrieved' if nothing found. Null for SKIP and LIGHT."
+      "type": ["array", "null"],
+      "items": { "type": "string" },
+      "description": "Key findings from research, as an array of strings. Each element is a plain-text finding with source attribution. ['None retrieved'] if nothing found. Null for SKIP and LIGHT."
     },
     "verified_sources": {
       "type": ["array", "null"],
@@ -107,7 +108,7 @@
           "properties": {
             "draft_type": {
               "type": "string",
-              "enum": ["EMAIL", "TEAMS_MESSAGE"],
+              "enum": ["EMAIL", "TEAMS_MESSAGE", "PREP_NOTES"],
               "description": "The type of draft being handed off. Determines output format in the Humanizer Agent."
             },
             "raw_draft": {
@@ -142,6 +143,10 @@
           "additionalProperties": false
         }
       ]
+    },
+    "skip_reason": {
+      "type": ["string", "null"],
+      "description": "Brief reason for skipping (populated when triage_tier is SKIP)"
     },
     "low_confidence_note": {
       "type": ["string", "null"],

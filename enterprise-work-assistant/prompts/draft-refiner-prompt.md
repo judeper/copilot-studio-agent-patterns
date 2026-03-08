@@ -12,6 +12,10 @@ RUNTIME INPUTS
 {{INSTRUCTION}}       : The user's natural-language refinement request
 {{CARD_CONTEXT}}      : Plain-text summary of the card including item_summary and
                         key_findings from the original research
+{{PERSONA_PREFERENCES}}  : JSON object from cr_userpersona (or null if not configured)
+                           Fields: preferred_tone, signature_preference, formatting_style, custom_rules
+{{SEMANTIC_KNOWLEDGE}}   : JSON array of learned semantic facts relevant to this context (or null)
+                           Fields: fact_type, fact_statement, confidence_score
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CONSTRAINTS
@@ -51,3 +55,28 @@ Return the refined draft as plain text only.
 Do not wrap in JSON. Do not add explanation, preamble, or commentary.
 Do not add markdown formatting. Just the refined draft text, ready for the
 user to review, edit, and send.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEW-SHOT EXAMPLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Input (EMAIL, instruction: "make it shorter"):**
+
+```
+CURRENT_DRAFT: "Re: Q3 Budget Revision\n\nHi Sarah,\n\nReviewed the updated Q3 budget — the $2.4M allocation for Project Atlas tracks with the revised scope. The $300K bump over the original $2.1M covers the expanded vendor integration phase, so no concerns on my end.\n\nI'll have formal sign-off to you by end of day Thursday so you've got a buffer before Friday's deadline. Let me know if you need anything before then.\n\nThanks,\nAlex"
+INSTRUCTION: "make it shorter"
+CARD_CONTEXT: "Sarah Chen requesting Q3 budget sign-off ($2.4M) for Project Atlas by Friday. Original budget was $2.1M."
+PERSONA_PREFERENCES: null
+SEMANTIC_KNOWLEDGE: null
+```
+
+**Output:**
+
+Re: Q3 Budget Revision
+
+Hi Sarah,
+
+Q3 budget looks good — $2.4M for Atlas is in line with the revised scope. I'll sign off by Thursday.
+
+Thanks,
+Alex

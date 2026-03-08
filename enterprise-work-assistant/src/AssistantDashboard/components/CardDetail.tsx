@@ -17,9 +17,10 @@ import {
     CheckmarkCircleRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
-import { PRIORITY_COLORS } from "./constants";
+import { PRIORITY_COLORS, EWA_COLORS } from "./constants";
 import { isSafeUrl } from "../utils/urlSanitizer";
 import { levenshteinRatio } from "../utils/levenshtein";
+import { focusAfterRender } from "../utils/focusUtils";
 
 interface CardDetailProps {
     card: AssistantCard;
@@ -109,14 +110,6 @@ function renderKeyFindings(keyFindings: string): React.ReactElement {
  */
 type SendDisplayState = "idle" | "confirming" | "sending" | "sent";
 type FocusableButtonElement = HTMLButtonElement | HTMLAnchorElement;
-
-function focusAfterRender(callback: () => void): void {
-    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
-        window.requestAnimationFrame(callback);
-        return;
-    }
-    setTimeout(callback, 0);
-}
 
 export const CardDetail: React.FC<CardDetailProps> = ({
     card,
@@ -286,7 +279,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     const isSent = effectiveSendState === "sent";
 
     return (
-        <div className="card-detail">
+        <div className="card-detail" role="region" aria-label="Card detail">
             {/* Header with back + close */}
             <div className="card-detail-header">
                 <Button
@@ -307,10 +300,10 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 
             {/* Sender + age row */}
             {card.original_sender_display && (
-                <Text size={300} block style={{ color: "#555", marginBottom: "4px" }}>
+                <Text size={300} block style={{ color: "#595959", marginBottom: "4px" }}>
                     {card.original_sender_display}
                     {card.created_on && (
-                        <span style={{ marginLeft: "8px", color: "#999" }}>
+                        <span style={{ marginLeft: "8px", color: "#767676" }}>
                             {card.created_on}
                         </span>
                     )}
@@ -499,7 +492,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                             <strong>Subject:</strong> Re: {card.original_subject ?? "(no subject)"}
                         </Text>
                         {draftIsModified && (
-                            <Text size={200} block style={{ color: "#6366f1" }}>
+                            <Text size={200} block style={{ color: EWA_COLORS.brand }}>
                                 Draft has been modified from the original.
                             </Text>
                         )}
