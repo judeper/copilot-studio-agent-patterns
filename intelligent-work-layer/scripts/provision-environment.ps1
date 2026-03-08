@@ -60,37 +60,50 @@ pac auth create --tenant $TenantId
 if ($LASTEXITCODE -ne 0) { throw "Authentication failed." }
 
 # ─────────────────────────────────────
-# 2. Create Environment
+# 2. Create Environment (idempotent — reuses existing)
 # ─────────────────────────────────────
-Write-Host "Creating environment: $EnvironmentName..." -ForegroundColor Cyan
-$envResult = pac admin create `
-    --name $EnvironmentName `
-    --type $EnvironmentType `
-    --region $Region `
-    --currency USD `
-    --language 1033 `
-    --domain (($EnvironmentName -replace '[^a-zA-Z0-9]', '').ToLower().Substring(0, [Math]::Min(($EnvironmentName -replace '[^a-zA-Z0-9]', '').Length, 22))) `
-    --async
+Write-Host "Checking for existing environment: $EnvironmentName..." -ForegroundColor Cyan
+$existingEnvRaw = pac admin list --json 2>&1
+if ($LASTEXITCODE -eq 0) {
+    $existingEnvList = $existingEnvRaw | ConvertFrom-Json
+    $existingEnv = @($existingEnvList | Where-Object { $_.DisplayName -eq $EnvironmentName -and $_.EnvironmentUrl }) | Select-Object -First 1
+}
 
-# Poll for environment readiness
-Write-Host "Waiting for environment provisioning..." -ForegroundColor Yellow
-$maxAttempts = 30
-$attempt = 0
-do {
-    Start-Sleep -Seconds 10
-    $attempt++
-    $envListRaw = pac admin list --json 2>&1
-    if ($LASTEXITCODE -ne 0) { Write-Host "  pac admin list failed, retrying..." -ForegroundColor Yellow; continue }
-    $envList = $envListRaw | ConvertFrom-Json
-    $env = $envList | Where-Object { $_.DisplayName -eq $EnvironmentName }
-    if ($env -and $env.EnvironmentUrl) {
-        Write-Host "Environment ready." -ForegroundColor Green
-        break
-    }
-    Write-Host "  Attempt $attempt/$maxAttempts - Waiting for environment..."
-} while ($attempt -lt $maxAttempts)
+if ($existingEnv) {
+    Write-Host "  Environment '$EnvironmentName' already exists — reusing." -ForegroundColor Green
+    $env = $existingEnv
+} else {
+    Write-Host "Creating environment: $EnvironmentName..." -ForegroundColor Cyan
+    $envResult = pac admin create `
+        --name $EnvironmentName `
+        --type $EnvironmentType `
+        --region $Region `
+        --currency USD `
+        --language 1033 `
+        --domain (($EnvironmentName -replace '[^a-zA-Z0-9]', '').ToLower().Substring(0, [Math]::Min(($EnvironmentName -replace '[^a-zA-Z0-9]', '').Length, 22))) `
+        --async
 
-if ($attempt -ge $maxAttempts) { throw "Environment provisioning timed out after $($maxAttempts * 10) seconds." }
+    # Poll for environment readiness
+    Write-Host "Waiting for environment provisioning..." -ForegroundColor Yellow
+    $maxAttempts = 30
+    $attempt = 0
+    do {
+        Start-Sleep -Seconds 10
+        $attempt++
+        $envListRaw = pac admin list --json 2>&1
+        if ($LASTEXITCODE -ne 0) { Write-Host "  pac admin list failed, retrying..." -ForegroundColor Yellow; continue }
+        $envList = $envListRaw | ConvertFrom-Json
+        $envMatches = @($envList | Where-Object { $_.DisplayName -eq $EnvironmentName })
+        $env = $envMatches | Select-Object -First 1
+        if ($env -and $env.EnvironmentUrl) {
+            Write-Host "Environment ready." -ForegroundColor Green
+            break
+        }
+        Write-Host "  Attempt $attempt/$maxAttempts - Waiting for environment..."
+    } while ($attempt -lt $maxAttempts)
+
+    if ($attempt -ge $maxAttempts) { throw "Environment provisioning timed out after $($maxAttempts * 10) seconds." }
+}
 
 $OrgUrl = $env.EnvironmentUrl.TrimEnd('/')
 $EnvironmentId = $env.EnvironmentId
@@ -105,14 +118,16 @@ pac org select --environment $EnvironmentId
 # ─────────────────────────────────────
 Write-Host "Creating AssistantCards Dataverse table..." -ForegroundColor Cyan
 
-# Authenticate Azure CLI (required for Dataverse API token — separate from PAC CLI auth)
-Write-Host "Authenticating Azure CLI for Dataverse API access..." -ForegroundColor Cyan
-az login --tenant $TenantId
-if ($LASTEXITCODE -ne 0) { throw "Azure CLI login failed. Ensure Azure CLI is installed ('az --version') and try 'az login --tenant $TenantId' manually." }
-
-# Get access token for Dataverse via Azure CLI (pac auth token does not exist)
-$token = az account get-access-token --resource $OrgUrl --query accessToken -o tsv
-if (-not $token) { throw "Failed to get access token. Verify 'az login' succeeded and you have access to the Dataverse environment." }
+# Get access token for Dataverse via Azure CLI (assumes az login was already run)
+Write-Host "Acquiring Dataverse API token via Azure CLI..." -ForegroundColor Cyan
+$token = az account get-access-token --resource $OrgUrl --query accessToken -o tsv 2>$null
+if (-not $token) {
+    Write-Host "  No cached token — running az login..." -ForegroundColor Yellow
+    az login --tenant $TenantId
+    if ($LASTEXITCODE -ne 0) { throw "Azure CLI login failed. Ensure Azure CLI is installed ('az --version') and try 'az login --tenant $TenantId' manually." }
+    $token = az account get-access-token --resource $OrgUrl --query accessToken -o tsv
+    if (-not $token) { throw "Failed to get access token. Verify 'az login' succeeded and you have access to the Dataverse environment." }
+}
 $headers = @{
     "Authorization" = "Bearer $token"
     "Content-Type"  = "application/json"
@@ -132,6 +147,22 @@ function Refresh-TokenIfNeeded {
             $headers["Authorization"] = "Bearer $freshToken"
         } else {
             Write-Warning "  Token refresh failed — continuing with existing token."
+        }
+    }
+}
+
+# Retry helper — Dataverse entity metadata isn't immediately available after creation
+function Get-EntityMetadataWithRetry {
+    param([string]$LogicalName, [int]$MaxAttempts = 6, [int]$DelaySeconds = 10)
+    for ($i = 1; $i -le $MaxAttempts; $i++) {
+        try {
+            Refresh-TokenIfNeeded
+            $result = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$LogicalName')" -Headers $headers
+            return $result
+        } catch {
+            if ($i -eq $MaxAttempts) { throw "Entity '$LogicalName' not found after $MaxAttempts attempts: $($_.Exception.Message)" }
+            Write-Host "  Waiting for '$LogicalName' to propagate... attempt $i/$MaxAttempts" -ForegroundColor Yellow
+            Start-Sleep -Seconds $DelaySeconds
         }
     }
 }
@@ -203,6 +234,7 @@ $entityDef = @{
         # Primary Name (Item Summary) - Text 300 chars
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_itemsummary"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 300
@@ -234,7 +266,7 @@ try {
 }
 
 # Helper to get entity metadata ID
-$entityMetadata = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_assistantcard')" -Headers $headers
+$entityMetadata = Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_assistantcard"
 $entityId = $entityMetadata.MetadataId
 
 # ─────────────────────────────────────
@@ -706,6 +738,7 @@ $senderEntityDef = @{
         # Primary Name — Sender Email (unique per user)
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_senderemail"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 320
@@ -737,7 +770,7 @@ try {
 }
 
 # Get entity metadata ID for sender profile
-$senderMetadata = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_senderprofile')" -Headers $headers
+$senderMetadata = Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_senderprofile"
 $senderEntityId = $senderMetadata.MetadataId
 
 # Add columns to SenderProfile table (reuse helper functions from section 3)
@@ -1253,6 +1286,7 @@ $briefingEntityDef = @{
         # Primary Name — User Display Name
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_UserDisplayName"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 200
@@ -1284,7 +1318,7 @@ try {
     Write-Warning "  BriefingSchedule table creation failed (may already exist): $($_.Exception.Message)"
     # Try to get existing entity ID for column creation
     try {
-        $briefingEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_briefingschedule')" -Headers $headers).MetadataId
+        $briefingEntityId = (Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_briefingschedule").MetadataId
     } catch {
         Write-Warning "  Could not retrieve BriefingSchedule entity ID. Column creation may fail."
     }
@@ -1705,6 +1739,7 @@ $errorLogEntityDef = @{
         # Primary Name — Flow Name
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_FlowName"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 100
@@ -1736,7 +1771,7 @@ try {
 }
 
 # Get entity metadata ID for error log
-$errorLogMetadata = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_errorlog')" -Headers $headers
+$errorLogMetadata = Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_errorlog"
 $errorLogEntityId = $errorLogMetadata.MetadataId
 
 # Error Message (Multiline Text)
@@ -2001,6 +2036,7 @@ $episodicEntityDef = @{
         # Primary Name — Event Summary
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_EventSummary"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 200
@@ -2031,7 +2067,7 @@ try {
 } catch {
     Write-Warning "  Episodic Memory table creation failed (may already exist): $($_.Exception.Message)"
     try {
-        $episodicEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_episodicmemory')" -Headers $headers).MetadataId
+        $episodicEntityId = (Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_episodicmemory").MetadataId
     } catch {
         Write-Warning "  Could not retrieve Episodic Memory entity ID. Column creation may fail."
     }
@@ -2420,6 +2456,7 @@ $semanticEntityDef = @{
         # Primary Name — Knowledge Summary
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_KnowledgeSummary"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 200
@@ -2450,7 +2487,7 @@ try {
 } catch {
     Write-Warning "  Semantic Knowledge table creation failed (may already exist): $($_.Exception.Message)"
     try {
-        $semanticEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_semanticknowledge')" -Headers $headers).MetadataId
+        $semanticEntityId = (Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_semanticknowledge").MetadataId
     } catch {
         Write-Warning "  Could not retrieve Semantic Knowledge entity ID. Column creation may fail."
     }
@@ -2992,6 +3029,7 @@ $personaEntityDef = @{
         # Primary Name — User Display Name
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_UserDisplayName"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 200
@@ -3022,7 +3060,7 @@ try {
 } catch {
     Write-Warning "  User Persona table creation failed (may already exist): $($_.Exception.Message)"
     try {
-        $personaEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_userpersona')" -Headers $headers).MetadataId
+        $personaEntityId = (Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_userpersona").MetadataId
     } catch {
         Write-Warning "  Could not retrieve User Persona entity ID. Column creation may fail."
     }
@@ -3340,6 +3378,7 @@ $skillEntityDef = @{
         # Primary Name — Skill Name
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_SkillName"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 100
@@ -3370,7 +3409,7 @@ try {
 } catch {
     Write-Warning "  Skill Registry table creation failed (may already exist): $($_.Exception.Message)"
     try {
-        $skillEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_skillregistry')" -Headers $headers).MetadataId
+        $skillEntityId = (Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_skillregistry").MetadataId
     } catch {
         Write-Warning "  Could not retrieve Skill Registry entity ID. Column creation may fail."
     }
@@ -3846,6 +3885,7 @@ $junctionEntityDef = @{
         # Primary Name — auto-populated link identifier
         @{
             "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
             SchemaName = "${PublisherPrefix}_LinkName"
             RequiredLevel = @{ Value = "ApplicationRequired" }
             MaxLength = 200
@@ -3876,7 +3916,7 @@ try {
 } catch {
     Write-Warning "  Semantic-Episodic junction table creation failed (may already exist): $($_.Exception.Message)"
     try {
-        $junctionEntityId = (Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_semanticepisodic')" -Headers $headers).MetadataId
+        $junctionEntityId = (Get-EntityMetadataWithRetry -LogicalName "${PublisherPrefix}_semanticepisodic").MetadataId
     } catch {
         Write-Warning "  Could not retrieve Semantic-Episodic entity ID. Relationship creation may fail."
     }
