@@ -424,10 +424,7 @@
                                               "width": "auto",
                                               "items": [
                                                 {
-                                                  "type": "Image",
-                                                  "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bell/3D/bell_3d.png",
-                                                  "size": "Small",
-                                                  "altText": "Nudge bell icon"
+                                                  "type": "TextBlock", "text": "\uD83D\uDD14", "size": "Large"
                                                 }
                                               ]
                                             },
@@ -520,7 +517,7 @@
                                       "actions": [
                                         {
                                           "type": "Action.Submit",
-                                          "title": "\u270f\ufe0f Draft Follow-Up",
+                                          "title": "\u270f\ufe0f Create Draft",
                                           "style": "positive",
                                           "data": {
                                             "action": "draft_followup",
