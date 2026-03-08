@@ -5,7 +5,7 @@
            version="2.2.0"
            display-name-key="AssistantDashboard_DisplayName"
            description-key="AssistantDashboard_Description"
-           control-type="virtual">
+           control-type="standard">
 
     <!-- Dataset: bound to AssistantCards Dataverse table in Canvas app -->
     <data-set name="cardDataset" display-name-key="CardDataset_DisplayName" cds-data-set-options="displayCommandBar:false;displayViewSelector:false;displayQuickFind:false">
@@ -104,9 +104,12 @@
               of-type="SingleLine.Text"
               usage="output" />
 
-    <!-- Platform libraries: share the platform React tree (virtual control) -->
-    <platform-library name="React" version="18.2.0" />
-    <platform-library name="Fluent" version="9.46.2" />
+    <!-- Platform libraries: React and Fluent are bundled (standard control mode) -->
+    <!-- NOTE: For virtual control mode (shares platform React tree), uncomment platform-library
+         elements below and set control-type="virtual". Requires environment support for
+         platform-library manifest schema. -->
+    <!-- <platform-library name="React" version="18.2.0" /> -->
+    <!-- <platform-library name="Fluent" version="9.46.2" /> -->
 
     <resources>
       <code path="index.ts" order="1" />

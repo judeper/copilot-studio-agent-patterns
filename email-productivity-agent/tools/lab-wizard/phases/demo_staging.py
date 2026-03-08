@@ -241,15 +241,18 @@ def _bootstrap_mail_app(tenant_id: str) -> dict | None:
          "--id", app_id,
          "--display-name", "EPA-DemoLab-Secret",
          "--years", "1",
-         "--query", "password",
-         "-o", "tsv"],
+         "-o", "json"],
         capture_output=True, text=True, timeout=30,
     )
     if secret_result.returncode != 0 or not secret_result.stdout.strip():
         console.print("[red]Could not create client secret.[/red]")
         return None
 
-    client_secret = secret_result.stdout.strip()
+    secret_data = json.loads(secret_result.stdout)
+    client_secret = secret_data.get("password", "")
+    if not client_secret:
+        console.print("[red]Client secret was empty in response.[/red]")
+        return None
     console.print("  [green]Client secret created[/green]")
 
     # Step 6: Save config
