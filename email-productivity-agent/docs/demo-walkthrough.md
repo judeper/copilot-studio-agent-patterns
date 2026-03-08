@@ -10,6 +10,7 @@ Step-by-step guide for demonstrating the Email Productivity Agent after deployme
 - 9 flows deployed and ON
 - Demo users assigned (Lisa Taylor, Omar Bennett, Hadar Caspit, William Beringer, Sonia Rees)
 - Lisa Taylor has an Exchange Online mailbox
+- Teams client can render emoji characters in Adaptive Cards (no external image dependencies)
 
 ## Demo Flow Overview
 

@@ -1,0 +1,7 @@
+# Dependencies
+__pycache__/
+*.pyc
+
+# Lab wizard runtime config (generated per-environment, may contain secrets)
+epa-config.json
+epa-mail-app.json
