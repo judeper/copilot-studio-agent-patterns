@@ -82,6 +82,23 @@ def load_config() -> dict | None:
     return None
 
 
+def _delete_environment(env_id: str, env_name: str):
+    """Delete a Power Platform environment via PAC CLI."""
+    from phases import resolve_cli
+
+    console.print(f"\n  [yellow]Deleting environment [bold]{env_name}[/bold] ({env_id})…[/yellow]")
+    result = resolve_cli(
+        ["pac", "admin", "delete", "--environment", env_id, "--async"],
+        capture_output=True, text=True, timeout=120,
+    )
+    if result.returncode == 0:
+        console.print(f"  [green]✅ Environment deletion initiated (async). URL cannot be reused for 24 hours.[/green]")
+    else:
+        stderr = (result.stderr or result.stdout or "").strip()[:300]
+        console.print(f"  [red]❌ Deletion failed (rc={result.returncode}): {stderr}[/red]")
+        console.print(f"  [dim]You can delete it manually: pac admin delete --environment {env_id}[/dim]")
+
+
 def save_config(config: dict):
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f, indent=2)
@@ -106,6 +123,14 @@ def collect_config() -> dict:
             _display_config(existing)
             if Confirm.ask("  Proceed with this config?", default=True):
                 return existing
+
+        # Offer to delete the old environment before starting fresh
+        old_env_id = existing.get("environment_id", "")
+        old_env_name = existing.get("environment_name", "")
+        if old_env_id:
+            console.print(f"\n[yellow]Previous environment:[/yellow] {old_env_name} ({old_env_id})")
+            if Confirm.ask("  Delete the old environment before creating a new one?", default=False):
+                _delete_environment(old_env_id, old_env_name)
 
     config: dict = {}
 
