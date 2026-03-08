@@ -587,10 +587,13 @@ def provision_environment(auth: Any, config: dict) -> tuple[str, str]:
 
     # Authenticate PAC to the new environment
     console.print("\n  [dim]Authenticating PAC CLI to environment…[/dim]")
-    resolve_cli(
-        ["pac", "auth", "create", "--environment", env_id],
-        capture_output=True, text=True, timeout=60,
-    )
+    try:
+        resolve_cli(
+            ["pac", "auth", "create", "--environment", env_id],
+            capture_output=True, text=True, timeout=180,
+        )
+    except subprocess.TimeoutExpired:
+        console.print("  [yellow]⚠ PAC auth timed out — continuing with Azure CLI tokens[/yellow]")
 
     # Update auth module with org URL
     auth.set_org_url(org_url)
