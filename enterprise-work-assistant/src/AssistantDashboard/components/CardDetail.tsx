@@ -24,11 +24,52 @@ import { levenshteinRatio } from "../utils/levenshtein";
 interface CardDetailProps {
     card: AssistantCard;
     onBack: () => void;
+    onClose?: () => void;
     onSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
     onSaveDraft: (cardId: string, editedText: string) => void;
 }
+
+function getConfidenceClass(score: number): string {
+    if (score >= 70) return "detail-confidence-high";
+    if (score >= 40) return "detail-confidence-mid";
+    return "detail-confidence-low";
+}
+
+const DetailSection: React.FC<{
+    title: string;
+    count?: number;
+    defaultOpen?: boolean;
+    children: React.ReactNode;
+}> = ({ title, count, defaultOpen = false, children }) => {
+    const [isOpen, setIsOpen] = React.useState(defaultOpen);
+    return (
+        <section className="detail-section">
+            <button
+                className="detail-section-toggle"
+                onClick={() => setIsOpen(!isOpen)}
+                aria-expanded={isOpen}
+            >
+                <span
+                    className="detail-section-chevron"
+                    style={{ transform: isOpen ? "rotate(90deg)" : undefined }}
+                >
+                    ›
+                </span>
+                <Text as="span" size={400} weight="semibold">
+                    {title}
+                </Text>
+                {count !== undefined && (
+                    <Badge appearance="outline" size="small" style={{ marginLeft: "6px" }}>
+                        {count}
+                    </Badge>
+                )}
+            </button>
+            {isOpen && children}
+        </section>
+    );
+};
 
 /** Whether the card has a sendable EMAIL draft */
 function isSendable(card: AssistantCard): boolean {
@@ -80,11 +121,13 @@ function focusAfterRender(callback: () => void): void {
 export const CardDetail: React.FC<CardDetailProps> = ({
     card,
     onBack,
+    onClose,
     onSendDraft,
     onCopyDraft,
     onDismissCard,
     onSaveDraft,
 }) => {
+    const handleClose = onClose ?? onBack;
     const [localSendState, setLocalSendState] = React.useState<SendDisplayState>("idle");
     // Sprint 2: Inline editing state
     const [isEditing, setIsEditing] = React.useState(false);
@@ -244,7 +287,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
 
     return (
         <div className="card-detail">
-            {/* Header */}
+            {/* Header with back + close */}
             <div className="card-detail-header">
                 <Button
                     appearance="subtle"
@@ -253,7 +296,26 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                 >
                     Back
                 </Button>
+                <button
+                    className="detail-close-btn"
+                    onClick={handleClose}
+                    aria-label="Close detail panel"
+                >
+                    ✕
+                </button>
             </div>
+
+            {/* Sender + age row */}
+            {card.original_sender_display && (
+                <Text size={300} block style={{ color: "#555", marginBottom: "4px" }}>
+                    {card.original_sender_display}
+                    {card.created_on && (
+                        <span style={{ marginLeft: "8px", color: "#999" }}>
+                            {card.created_on}
+                        </span>
+                    )}
+                </Text>
+            )}
 
             {/* Badges row */}
             <div className="card-detail-badges">
@@ -267,7 +329,11 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                     </Badge>
                 )}
                 {card.confidence_score !== null && (
-                    <Badge appearance="outline" size="medium">
+                    <Badge
+                        appearance="outline"
+                        size="medium"
+                        className={getConfidenceClass(card.confidence_score)}
+                    >
                         Confidence: {card.confidence_score}%
                     </Badge>
                 )}
@@ -303,32 +369,31 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                 </MessageBar>
             )}
 
-            {/* Key findings */}
+            {/* Key findings — collapsible */}
             {card.key_findings && (
-                <section className="card-detail-section">
-                    <Text as="h3" size={400} weight="semibold" block>
-                        Key Findings
-                    </Text>
+                <DetailSection
+                    title="Key Findings"
+                    count={
+                        card.key_findings
+                            .split(/\n|(?:^|\n)\s*[-*\u2022]\s*/)
+                            .map((l) => l.trim())
+                            .filter((l) => l.length > 0).length
+                    }
+                >
                     {renderKeyFindings(card.key_findings)}
-                </section>
+                </DetailSection>
             )}
 
-            {/* Research log */}
+            {/* Research log — collapsible */}
             {card.research_log && (
-                <section className="card-detail-section">
-                    <Text as="h3" size={400} weight="semibold" block>
-                        Research Log
-                    </Text>
+                <DetailSection title="Research Log">
                     <pre className="card-detail-research-log">{card.research_log}</pre>
-                </section>
+                </DetailSection>
             )}
 
-            {/* Verified sources */}
+            {/* Verified sources — collapsible */}
             {card.verified_sources && card.verified_sources.length > 0 && (
-                <section className="card-detail-section">
-                    <Text as="h3" size={400} weight="semibold" block>
-                        Sources
-                    </Text>
+                <DetailSection title="Sources" count={card.verified_sources.length}>
                     <ul className="card-detail-sources">
                         {card.verified_sources.map((source, idx) => (
                             <li key={`${source.tier}-${idx}`}>
@@ -349,7 +414,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                             </li>
                         ))}
                     </ul>
-                </section>
+                </DetailSection>
             )}
 
             {/* Draft section */}

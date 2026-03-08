@@ -1,6 +1,5 @@
 import * as React from "react";
-import { FluentProvider, webLightTheme, webDarkTheme, Button, Spinner } from "@fluentui/react-components";
-import { SettingsRegular } from "@fluentui/react-icons";
+import { FluentProvider, webLightTheme, webDarkTheme, Spinner } from "@fluentui/react-components";
 import type { AssistantCard, AppProps } from "./types";
 import { CardGallery } from "./CardGallery";
 import { CardDetail } from "./CardDetail";
@@ -9,10 +8,10 @@ import { CommandBar } from "./CommandBar";
 import { ConfidenceCalibration } from "./ConfidenceCalibration";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { FilterBar } from "./FilterBar";
+import { StatusBar } from "./StatusBar";
 
 type ViewState =
-    | { mode: "gallery" }
-    | { mode: "detail"; cardId: string }
+    | { mode: "gallery"; selectedCardId: string | null }
     | { mode: "calibration" };
 
 type FocusRestoreTarget =
@@ -124,10 +123,30 @@ export const App: React.FC<AppProps> = ({
     onExecuteCommand,
     onSaveDraft,
 }) => {
-    const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery" });
+    const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery", selectedCardId: null });
+    const [localFilteredCards, setLocalFilteredCards] = React.useState<AssistantCard[] | null>(null);
     const prefersDark = usePrefersDarkMode();
+
+    const handleFilteredCards = React.useCallback((filtered: AssistantCard[]) => {
+        setLocalFilteredCards(filtered);
+    }, []);
     const focusRestoreTargetRef = React.useRef<FocusRestoreTarget | null>(null);
     const previousModeRef = React.useRef<ViewState["mode"]>(viewState.mode);
+
+    const selectedCardId = viewState.mode === "gallery" ? viewState.selectedCardId : null;
+    const detailOpen = selectedCardId !== null;
+
+    // Close the detail panel on Escape
+    React.useEffect(() => {
+        if (!detailOpen) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setViewState({ mode: "gallery", selectedCardId: null });
+            }
+        };
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
+    }, [detailOpen]);
 
     const restoreFocus = React.useCallback(() => {
         const target = focusRestoreTargetRef.current;
@@ -165,16 +184,16 @@ export const App: React.FC<AppProps> = ({
 
     // Derive the selected card from the live dataset to avoid stale snapshots
     const selectedCard = React.useMemo(() => {
-        if (viewState.mode !== "detail") return null;
-        return cards.find((c) => c.id === viewState.cardId) ?? null;
-    }, [cards, viewState]);
+        if (!selectedCardId) return null;
+        return cards.find((c) => c.id === selectedCardId) ?? null;
+    }, [cards, selectedCardId]);
 
-    // If the selected card was removed from the dataset, return to gallery
+    // If the selected card was removed from the dataset, close the panel
     React.useEffect(() => {
-        if (viewState.mode === "detail" && !selectedCard) {
-            setViewState({ mode: "gallery" });
+        if (selectedCardId && !selectedCard) {
+            setViewState({ mode: "gallery", selectedCardId: null });
         }
-    }, [viewState, selectedCard]);
+    }, [selectedCardId, selectedCard]);
 
     React.useEffect(() => {
         const previousMode = previousModeRef.current;
@@ -184,37 +203,50 @@ export const App: React.FC<AppProps> = ({
         previousModeRef.current = viewState.mode;
     }, [viewState.mode, restoreFocus]);
 
+    // Restore focus when the detail panel closes within gallery mode
+    const prevDetailOpenRef = React.useRef(detailOpen);
+    React.useEffect(() => {
+        if (prevDetailOpenRef.current && !detailOpen) {
+            restoreFocus();
+        }
+        prevDetailOpenRef.current = detailOpen;
+    }, [detailOpen, restoreFocus]);
+
     const handleSelectCard = React.useCallback(
         (cardId: string) => {
             const card = cards.find((c) => c.id === cardId);
             if (card) {
                 focusRestoreTargetRef.current = { type: "card", cardId };
-                setViewState({ mode: "detail", cardId });
+                setViewState({ mode: "gallery", selectedCardId: cardId });
                 onSelectCard(cardId);
             }
         },
         [cards, onSelectCard],
     );
 
-    // Sprint 2: Jump to card from briefing — navigates to detail view
+    // Sprint 2: Jump to card from briefing — opens detail panel
     const handleJumpToCard = React.useCallback(
         (cardId: string) => {
             const card = cards.find((c) => c.id === cardId);
             if (card) {
                 focusRestoreTargetRef.current = getActiveFocusRestoreTarget();
-                setViewState({ mode: "detail", cardId });
+                setViewState({ mode: "gallery", selectedCardId: cardId });
                 onJumpToCard(cardId);
             }
         },
         [cards, onJumpToCard],
     );
 
+    const handleCloseDetail = React.useCallback(() => {
+        setViewState({ mode: "gallery", selectedCardId: null });
+    }, []);
+
     const handleBack = React.useCallback(() => {
-        setViewState({ mode: "gallery" });
+        setViewState({ mode: "gallery", selectedCardId: null });
     }, []);
 
     // Sprint 3: Derive current card ID for context-aware commands
-    const currentCardId = viewState.mode === "detail" ? viewState.cardId : null;
+    const currentCardId = selectedCardId;
 
     // Sprint 4: Navigate to calibration dashboard
     const handleShowCalibration = React.useCallback(() => {
@@ -232,43 +264,45 @@ export const App: React.FC<AppProps> = ({
         }
     }, [orchestratorResponse]);
 
+    // Count action items (non-briefing, non-dismissed)
+    const actionCount = filteredCards.filter(
+        (c) => c.trigger_type !== "DAILY_BRIEFING" && c.card_outcome === "PENDING",
+    ).length;
+    const newCount = filteredCards.filter(
+        (c) => c.card_status === "READY" && c.card_outcome === "PENDING",
+    ).length;
+
     return (
         <FluentProvider theme={prefersDark ? webDarkTheme : webLightTheme}>
             <div className="assistant-dashboard" style={{ width, height, display: "flex", flexDirection: "column" }}>
                 <ErrorBoundary>
-                <div style={{ flex: 1, overflow: "auto" }}>
-                    {viewState.mode === "calibration" ? (
-                        /* Sprint 4: Confidence calibration analytics */
-                        <ConfidenceCalibration
-                            cards={cards}
-                            onBack={handleBack}
+                <StatusBar
+                    actionCount={actionCount}
+                    newCount={newCount}
+                    memoryActive={cards.length > 0}
+                    onSettingsClick={handleShowCalibration}
+                />
+                {viewState.mode === "calibration" ? (
+                    /* Sprint 4: Confidence calibration analytics */
+                    <ConfidenceCalibration
+                        cards={cards}
+                        onBack={handleBack}
+                    />
+                ) : (
+                    <>
+                        {/* BriefingStrip placeholder — future: dedicated briefing strip component */}
+                        <FilterBar
+                            cards={regularCards}
+                            onFilteredCards={handleFilteredCards}
                         />
-                    ) : viewState.mode === "gallery" || !selectedCard ? (
-                        <>
-                            {/* UIUX-04: Loading state when cards haven't arrived yet */}
-                            {cards.length === 0 && !filterTriggerType && !filterPriority && !filterCardStatus && !filterTemporalHorizon ? (
-                                <div className="dashboard-loading" style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
-                                    <Spinner size="large" label="Loading cards..." />
-                                </div>
-                            ) : (
-                                <>
-                                    <FilterBar
-                                        cardCount={filteredCards.length}
-                                        filterTriggerType={filterTriggerType}
-                                        filterPriority={filterPriority}
-                                        filterCardStatus={filterCardStatus}
-                                        filterTemporalHorizon={filterTemporalHorizon}
-                                    />
-                                    {/* Sprint 4: Agent Performance link — UIUX-01 Fluent UI Button */}
-                                    <Button
-                                        appearance="transparent"
-                                        data-focus-return="agent-performance"
-                                        icon={<SettingsRegular />}
-                                        onClick={handleShowCalibration}
-                                        size="small"
-                                    >
-                                        Agent Performance
-                                    </Button>
+                        {/* UIUX-04: Loading state when cards haven't arrived yet */}
+                        {cards.length === 0 && !filterTriggerType && !filterPriority && !filterCardStatus && !filterTemporalHorizon ? (
+                            <div className="dashboard-loading" style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+                                <Spinner size="large" label="Loading cards..." />
+                            </div>
+                        ) : (
+                            <div className="feed-detail-layout">
+                                <div className={detailOpen ? "card-gallery feed-dimmed" : "card-gallery"} style={{ flex: 1, overflow: "auto" }}>
                                     {/* Sprint 2: Briefing cards render above the gallery */}
                                     {briefingCards.map((bc) => (
                                         <BriefingCard
@@ -279,34 +313,43 @@ export const App: React.FC<AppProps> = ({
                                         />
                                     ))}
                                     <CardGallery
-                                        cards={regularCards}
+                                        cards={localFilteredCards ?? regularCards}
                                         onSelectCard={handleSelectCard}
                                     />
-                                </>
-                            )}
-                        </>
-                    ) : selectedCard.trigger_type === "DAILY_BRIEFING" ? (
-                        <BriefingCard
-                            card={selectedCard}
-                            onJumpToCard={handleJumpToCard}
-                            onDismissCard={onDismissCard}
-                            onBack={handleBack}
-                        />
-                    ) : (
-                        <CardDetail
-                            card={selectedCard}
-                            onBack={handleBack}
-                            onSendDraft={onSendDraft}
-                            onCopyDraft={onCopyDraft}
-                            onDismissCard={onDismissCard}
-                            onSaveDraft={onSaveDraft}
-                        />
-                    )}
-                </div>
+                                </div>
+                                {detailOpen && selectedCard && (
+                                    selectedCard.trigger_type === "DAILY_BRIEFING" ? (
+                                        <div className="detail-panel">
+                                            <BriefingCard
+                                                card={selectedCard}
+                                                onJumpToCard={handleJumpToCard}
+                                                onDismissCard={onDismissCard}
+                                                onBack={handleCloseDetail}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="detail-panel">
+                                            <CardDetail
+                                                card={selectedCard}
+                                                onBack={handleCloseDetail}
+                                                onSendDraft={onSendDraft}
+                                                onCopyDraft={onCopyDraft}
+                                                onDismissCard={onDismissCard}
+                                                onSaveDraft={onSaveDraft}
+                                            />
+                                        </div>
+                                    )
+                                )}
+                                {detailOpen && <div className="detail-backdrop" onClick={handleCloseDetail} />}
+                            </div>
+                        )}
+                    </>
+                )}
                 </ErrorBoundary>
                 {/* Sprint 3: Command bar — persistent bottom panel */}
                 <CommandBar
                     currentCardId={currentCardId}
+                    selectedCardId={currentCardId}
                     onExecuteCommand={onExecuteCommand}
                     onJumpToCard={handleJumpToCard}
                     lastResponse={parsedOrchestratorResponse}

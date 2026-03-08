@@ -34,6 +34,7 @@ export const tier1SkipItem: AssistantCard = {
     original_subject: 'Contoso Weekly Newsletter — February 2026',
     conversation_cluster_id: 'conv-newsletter-001',
     source_signal_id: 'msgid-skip-001@example.com',
+    hours_stale: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -61,6 +62,7 @@ export const tier2LightItem: AssistantCard = {
     original_subject: null,
     conversation_cluster_id: 'thread-teams-001',
     source_signal_id: 'msg-light-001',
+    hours_stale: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,7 @@ export const tier3FullItem: AssistantCard = {
     original_subject: 'Contract Renewal — Contoso Agreement #2024-1847',
     conversation_cluster_id: 'conv-fabrikam-renewal',
     source_signal_id: 'msgid-full-001@example.com',
+    hours_stale: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -125,6 +128,7 @@ export const lowConfidenceItem: AssistantCard = {
     original_subject: 'Re: Project Timeline Inquiry',
     conversation_cluster_id: 'conv-woodgrove-timeline',
     source_signal_id: 'msgid-lowconf-001@example.com',
+    hours_stale: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -152,6 +156,7 @@ export const calendarBriefingItem: AssistantCard = {
     original_subject: 'Quarterly Business Review',
     conversation_cluster_id: 'series-qbr-master-001',
     source_signal_id: 'event-cal-001',
+    hours_stale: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -290,6 +295,7 @@ export const dailyBriefingItem: AssistantCard = {
     original_subject: null,
     conversation_cluster_id: null,
     source_signal_id: null,
+    hours_stale: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -317,4 +323,5 @@ export const nudgeItem: AssistantCard = {
     original_subject: 'Contract Renewal — Contoso Agreement #2024-1847',
     conversation_cluster_id: 'conv-fabrikam-renewal',
     source_signal_id: 'msgid-full-001@example.com',
+    hours_stale: null,
 };

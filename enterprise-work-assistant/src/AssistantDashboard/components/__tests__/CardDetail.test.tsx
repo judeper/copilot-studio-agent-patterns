@@ -59,22 +59,37 @@ describe('CardDetail', () => {
         expect(screen.getByText('EMAIL')).toBeInTheDocument();
     });
 
-    it('renders key findings section', () => {
+    it('renders key findings section toggle', () => {
         renderCardDetail(tier3FullItem);
 
         expect(screen.getByText('Key Findings')).toBeInTheDocument();
+    });
+
+    it('reveals key findings content when section is expanded', async () => {
+        renderCardDetail(tier3FullItem);
+
+        // Section is collapsed by default — content not visible
+        expect(screen.queryByText('Contract expires March 1')).not.toBeInTheDocument();
+
+        // Expand the section
+        await userEvent.click(screen.getByText('Key Findings'));
         expect(screen.getByText('Contract expires March 1')).toBeInTheDocument();
     });
 
-    it('renders research log section', () => {
+    it('renders research log section toggle', () => {
         renderCardDetail(tier3FullItem);
 
         expect(screen.getByText('Research Log')).toBeInTheDocument();
     });
 
-    it('renders verified sources with safe URLs as links', () => {
+    it('reveals verified sources when section is expanded', async () => {
         renderCardDetail(tier3FullItem);
 
+        // Collapsed by default
+        expect(screen.queryByText('Fabrikam Contract Portal')).not.toBeInTheDocument();
+
+        // Expand the Sources section
+        await userEvent.click(screen.getByText('Sources'));
         const sourceLink = screen.getByText('Fabrikam Contract Portal');
         expect(sourceLink.closest('a')).toHaveAttribute(
             'href',
@@ -82,7 +97,7 @@ describe('CardDetail', () => {
         );
     });
 
-    it('renders unsafe URLs as plain text (not links)', () => {
+    it('renders unsafe URLs as plain text (not links) when expanded', async () => {
         const unsafeSourceCard: AssistantCard = {
             ...tier3FullItem,
             id: 'unsafe-src-001',
@@ -93,6 +108,7 @@ describe('CardDetail', () => {
 
         renderCardDetail(unsafeSourceCard);
 
+        await userEvent.click(screen.getByText('Sources'));
         const sourceText = screen.getByText('Malicious Site');
         expect(sourceText.closest('a')).toBeNull();
     });
@@ -116,6 +132,16 @@ describe('CardDetail', () => {
         renderCardDetail(tier3FullItem, { onBack });
 
         await userEvent.click(screen.getByText('Back'));
+        expect(onBack).toHaveBeenCalled();
+    });
+
+    it('renders close button that calls onBack by default', async () => {
+        const onBack = jest.fn();
+        renderCardDetail(tier3FullItem, { onBack });
+
+        const closeBtn = screen.getByLabelText('Close detail panel');
+        expect(closeBtn).toBeInTheDocument();
+        await userEvent.click(closeBtn);
         expect(onBack).toHaveBeenCalled();
     });
 
@@ -151,7 +177,7 @@ describe('CardDetail', () => {
         await userEvent.click(screen.getByText('Send'));
 
         expect(screen.getByText(/Confirm send/)).toBeInTheDocument();
-        expect(screen.getByText(/Fabrikam Legal/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Fabrikam Legal/).length).toBeGreaterThan(0);
         expect(screen.getByText(/Contract Renewal/)).toBeInTheDocument();
         expect(screen.getByText('Confirm & Send')).toBeInTheDocument();
         expect(screen.getByText('Cancel')).toBeInTheDocument();

@@ -11,6 +11,7 @@ describe('CommandBar', () => {
 
     const defaultProps = {
         currentCardId: null,
+        selectedCardId: null,
         onExecuteCommand: mockExecute,
         onJumpToCard: mockJump,
         lastResponse: null,
@@ -21,34 +22,66 @@ describe('CommandBar', () => {
         jest.clearAllMocks();
     });
 
-    it('renders input field and send button', () => {
+    async function expandPill() {
+        const pill = screen.getByText(/Ask EWA/);
+        await userEvent.click(pill);
+    }
+
+    it('renders collapsed pill by default', () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        expect(screen.getByText(/Ask EWA/)).toBeTruthy();
+    });
+
+    it('renders input field and send button after expanding pill', async () => {
+        renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         expect(screen.getByPlaceholderText('Type a command...')).toBeTruthy();
         expect(screen.getByText('Send')).toBeTruthy();
     });
 
-    it('shows context-aware placeholder when card is selected', () => {
+    it('shows context-aware placeholder when card is selected', async () => {
         renderWithProviders(<CommandBar {...defaultProps} currentCardId="card-123" />);
+        await expandPill();
         expect(
             screen.getByPlaceholderText('Ask about this card or type a command...'),
         ).toBeTruthy();
     });
 
-    it('renders quick action chips when not expanded', () => {
+    it('renders quick action chips when not expanded', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         expect(screen.getByText("What's urgent?")).toBeTruthy();
         expect(screen.getByText('Draft status')).toBeTruthy();
         expect(screen.getByText('My day')).toBeTruthy();
     });
 
-    it('send button is disabled when input is empty', () => {
+    it('renders context-aware default chips when no card selected', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
+        expect(screen.getByText('What needs attention?')).toBeTruthy();
+        expect(screen.getByText('Show high priority')).toBeTruthy();
+        expect(screen.getByText('Daily briefing')).toBeTruthy();
+    });
+
+    it('renders detail chips when selectedCardId is set', async () => {
+        renderWithProviders(<CommandBar {...defaultProps} selectedCardId="card-123" />);
+        await expandPill();
+        expect(screen.getByText('Summarize this')).toBeTruthy();
+        expect(screen.getByText('Delegate to...')).toBeTruthy();
+        expect(screen.getByText('Remind me in 2h')).toBeTruthy();
+        expect(screen.getByText('Draft reply')).toBeTruthy();
+    });
+
+    it('send button is disabled when input is empty', async () => {
+        renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const sendBtn = screen.getByRole('button', { name: /Send/ });
         expect(sendBtn).toBeDisabled();
     });
 
     it('calls onExecuteCommand when Send is clicked', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText('Type a command...');
         await userEvent.type(input, 'What needs attention?');
         await userEvent.click(screen.getByText('Send'));
@@ -60,6 +93,7 @@ describe('CommandBar', () => {
 
     it('calls onExecuteCommand with currentCardId when set', async () => {
         renderWithProviders(<CommandBar {...defaultProps} currentCardId="card-456" />);
+        await expandPill();
         const input = screen.getByPlaceholderText(
             'Ask about this card or type a command...',
         );
@@ -73,6 +107,7 @@ describe('CommandBar', () => {
 
     it('calls onExecuteCommand on Enter key', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText('Type a command...');
         await userEvent.type(input, 'Show urgent items{Enter}');
         expect(mockExecute).toHaveBeenCalledWith('Show urgent items', null);
@@ -80,6 +115,7 @@ describe('CommandBar', () => {
 
     it('clears input after submit', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText(
             'Type a command...',
         ) as HTMLInputElement;
@@ -89,13 +125,12 @@ describe('CommandBar', () => {
     });
 
     it('shows "Thinking..." when processing', async () => {
-        // Submit a command first to create conversation
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText('Type a command...');
         await userEvent.type(input, 'test');
         await userEvent.click(screen.getByText('Send'));
 
-        // Re-render with isProcessing=true
         rerender(<CommandBar {...defaultProps} isProcessing={true} />);
         expect(screen.getByText('Thinking...')).toBeTruthy();
     });
@@ -112,6 +147,7 @@ describe('CommandBar', () => {
 
     it('executes quick action on chip click', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         await userEvent.click(screen.getByText("What's urgent?"));
         expect(mockExecute).toHaveBeenCalledWith(
             'What needs my attention right now?',
@@ -121,21 +157,22 @@ describe('CommandBar', () => {
 
     it('shows clear button after conversation exists', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText('Type a command...');
         await userEvent.type(input, 'test');
         await userEvent.click(screen.getByText('Send'));
         expect(screen.getByTitle('Clear conversation')).toBeTruthy();
     });
 
-    it('clears conversation on clear button click', async () => {
+    it('collapses to pill on clear button click', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText('Type a command...');
         await userEvent.type(input, 'test');
         await userEvent.click(screen.getByText('Send'));
-        // Clear
         await userEvent.click(screen.getByTitle('Clear conversation'));
-        // Quick actions should reappear
-        expect(screen.getByText("What's urgent?")).toBeTruthy();
+        // Should return to collapsed pill
+        expect(screen.getByText(/Ask EWA/)).toBeTruthy();
     });
 
     it('renders card links from response', async () => {
@@ -148,13 +185,12 @@ describe('CommandBar', () => {
             side_effects: [],
         };
 
-        // First submit a command to create conversation
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText('Type a command...');
         await userEvent.type(input, 'test');
         await userEvent.click(screen.getByText('Send'));
 
-        // Re-render with response
         rerender(
             <CommandBar
                 {...defaultProps}
@@ -175,6 +211,7 @@ describe('CommandBar', () => {
         };
 
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
         const input = screen.getByPlaceholderText('Type a command...');
         await userEvent.type(input, 'test');
         await userEvent.click(screen.getByText('Send'));
@@ -191,26 +228,18 @@ describe('CommandBar', () => {
         expect(mockJump).toHaveBeenCalledWith('card-abc');
     });
 
-    it('collapses the overlay on Escape and restores focus to the triggering quick action', async () => {
+    it('collapses to pill on Escape', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
 
-        const quickAction = screen.getByText('My day');
-        quickAction.focus();
-        expect(quickAction).toHaveFocus();
-
-        await userEvent.click(quickAction);
-
-        await waitFor(() => {
-            expect(
-                screen.getByPlaceholderText('Type a command...'),
-            ).toHaveFocus();
-        });
+        const input = screen.getByPlaceholderText('Type a command...');
+        expect(input).toBeTruthy();
 
         fireEvent.keyDown(document, { key: 'Escape' });
 
         await waitFor(() => {
-            expect(screen.queryByText('What should I focus on today?')).not.toBeInTheDocument();
-            expect(screen.getByText('My day')).toHaveFocus();
+            expect(screen.getByText(/Ask EWA/)).toBeTruthy();
+            expect(screen.queryByPlaceholderText('Type a command...')).not.toBeInTheDocument();
         });
     });
 
@@ -222,6 +251,7 @@ describe('CommandBar', () => {
         };
 
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
+        await expandPill();
 
         await userEvent.click(screen.getByText("What's urgent?"));
 
@@ -241,7 +271,7 @@ describe('CommandBar', () => {
 
         await waitFor(() => {
             expect(screen.queryByText('Test card →')).not.toBeInTheDocument();
-            expect(screen.getByText("What's urgent?")).toHaveFocus();
+            expect(screen.getByText(/Ask EWA/)).toBeTruthy();
         });
     });
 });

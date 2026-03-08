@@ -55,6 +55,44 @@
       "type": "TwoOption",
       "required": true,
       "description": "Whether the daily briefing is active for this user. Default: true. Set to false to pause briefings without deleting the schedule."
+    },
+    {
+      "logicalName": "cr_heartbeatfrequency",
+      "displayName": "Heartbeat Frequency",
+      "type": "Choice",
+      "required": false,
+      "options": [
+        { "label": "Every 2 Hours", "value": 100000000 },
+        { "label": "Every 4 Hours", "value": 100000001 },
+        { "label": "Daily", "value": 100000002 }
+      ],
+      "description": "How often the heartbeat agent runs for this user."
+    },
+    {
+      "logicalName": "cr_heartbeatenabled",
+      "displayName": "Heartbeat Enabled",
+      "type": "TwoOption",
+      "required": false,
+      "default": false,
+      "description": "Whether heartbeat proactive scanning is enabled for this user. Separate from daily briefing enable."
+    },
+    {
+      "logicalName": "cr_lastheartbeattimestamp",
+      "displayName": "Last Heartbeat Timestamp",
+      "type": "DateTime",
+      "required": false,
+      "nullable": true,
+      "description": "Last time the heartbeat agent ran for this user. Used for deduplication."
+    },
+    {
+      "logicalName": "cr_maxcardsperrun",
+      "displayName": "Max Cards Per Run",
+      "type": "WholeNumber",
+      "minValue": 1,
+      "maxValue": 10,
+      "required": false,
+      "default": 5,
+      "description": "Maximum proactive cards generated per heartbeat run."
     }
   ],
   "notes": {

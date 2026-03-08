@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HeartbeatAssessmentOutput",
+  "description": "Output schema for the Background Assessment Agent (heartbeat). Contains proactive card suggestions based on calendar, Planner, To Do, and episodic memory scanning.",
+  "type": "object",
+  "required": ["assessment_cards", "assessment_timestamp", "cards_generated"],
+  "properties": {
+    "assessment_cards": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["card_type", "item_summary", "priority", "rationale", "suggested_action"],
+        "properties": {
+          "card_type": {
+            "type": "string",
+            "enum": ["PREP_REQUIRED", "STALE_TASK", "FOLLOW_UP_NEEDED", "PATTERN_ALERT"],
+            "description": "Type of proactive card"
+          },
+          "item_summary": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "1-2 sentence description of what needs attention"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["High", "Medium", "Low"]
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Why this needs attention now"
+          },
+          "source_ref": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Calendar event title, task name, or sender email"
+          },
+          "suggested_action": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "What the user should do"
+          }
+        }
+      }
+    },
+    "assessment_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cards_generated": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    }
+  }
+}
