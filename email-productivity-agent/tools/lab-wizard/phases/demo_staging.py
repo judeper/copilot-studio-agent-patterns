@@ -196,43 +196,42 @@ def _bootstrap_mail_app(tenant_id: str) -> dict | None:
 
     graph_data = json.loads(graph_sp_result.stdout)
     graph_sp_id = graph_data["id"]
-    mail_role_id = None
+    mail_rw_id = None
+    mail_send_id = None
     for role in graph_data.get("appRoles", []):
         if role.get("value") == "Mail.ReadWrite":
-            mail_role_id = role["id"]
-            break
+            mail_rw_id = role["id"]
+        elif role.get("value") == "Mail.Send":
+            mail_send_id = role["id"]
 
-    if not mail_role_id:
-        console.print("[red]Mail.ReadWrite app role not found on Graph SP.[/red]")
+    if not mail_rw_id or not mail_send_id:
+        console.print("[red]Mail.ReadWrite or Mail.Send app role not found.[/red]")
         return None
 
-    # Step 4: Assign the permission + admin consent
-    console.print("  [dim]Assigning Mail.ReadWrite and granting admin consent…[/dim]")
+    # Step 4: Assign permissions + admin consent
+    console.print("  [dim]Assigning Mail.ReadWrite + Mail.Send and granting admin consent…[/dim]")
 
-    # Add the permission to the app's requiredResourceAccess
     resolve_cli(
         [az_path, "ad", "app", "permission", "add",
          "--id", app_id,
          "--api", "00000003-0000-0000-c000-000000000000",
-         "--api-permissions", f"{mail_role_id}=Role"],
+         "--api-permissions", f"{mail_rw_id}=Role {mail_send_id}=Role"],
         capture_output=True, text=True, timeout=30,
     )
 
-    # Grant admin consent
-    consent_result = resolve_cli(
+    # Grant admin consent (retry with delay for propagation)
+    resolve_cli(
         [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
         capture_output=True, text=True, timeout=60,
     )
-    if consent_result.returncode != 0:
-        console.print(f"  [yellow]Admin consent may need a moment to propagate…[/yellow]")
-        time.sleep(10)
-        # Retry once
-        resolve_cli(
-            [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
-            capture_output=True, text=True, timeout=60,
-        )
+    console.print("  [dim]Waiting 30s for consent to propagate…[/dim]")
+    time.sleep(30)
+    resolve_cli(
+        [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
+        capture_output=True, text=True, timeout=60,
+    )
 
-    console.print("  [green]Mail.ReadWrite permission granted[/green]")
+    console.print("  [green]Mail.ReadWrite + Mail.Send permissions granted[/green]")
 
     # Step 5: Create client secret
     console.print("  [dim]Creating client secret…[/dim]")
