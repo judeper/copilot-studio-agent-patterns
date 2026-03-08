@@ -184,15 +184,17 @@ def _datetime_col(prefix: str, name: str, label: str) -> dict:
 
 
 def _integer_col(prefix: str, name: str, label: str, default: int) -> dict:
+    # Note: Dataverse Web API does not support setting default values for
+    # IntegerAttributeMetadata. Defaults must be set post-creation via the
+    # Maker Portal or solution XML import.
     return {
         "@odata.type": "#Microsoft.Dynamics.CRM.IntegerAttributeMetadata",
         "SchemaName": f"{prefix}_{name}",
         "DisplayName": _label(label),
-        "RequiredLevel": {"Value": "None"},
+        "RequiredLevel": {"Value": "None", "CanBeChanged": True},
+        "Format": "None",
         "MinValue": 1,
         "MaxValue": 365,
-        "Format": "None",
-        "DefaultFormValue": default,
     }
 
 
