@@ -291,10 +291,31 @@ def _deploy_single_flow(
             timeout=60,
         )
         if not resp.ok:
+            # Write detailed error to log file for debugging
+            safe_name = flow_name.replace(" ", "_").replace(":", "")
+            log_file = Path(f"flow-error-{safe_name}.json")
+            error_detail = {
+                "flow_name": flow_name,
+                "status_code": resp.status_code,
+                "error_response": resp.text,
+                "connection_refs": conn_refs,
+                "connection_keys": list(conn_keys),
+                "parameters": definition.get("parameters", {}),
+            }
+            log_file.write_text(json.dumps(error_detail, indent=2), encoding="utf-8")
+
             console.print(
                 f"  [red]✗ Failed to create '{flow_name}': "
-                f"{resp.status_code} — {resp.text[:300]}[/red]"
+                f"{resp.status_code}[/red]"
             )
+            # Show the full error message
+            try:
+                err = resp.json().get("error", {})
+                console.print(f"    [red]Code: {err.get('code', '?')}[/red]")
+                console.print(f"    [red]Message: {err.get('message', resp.text[:500])}[/red]")
+            except Exception:
+                console.print(f"    [red]{resp.text[:500]}[/red]")
+            console.print(f"    [dim]Full error saved to: {log_file.resolve()}[/dim]")
             return False
     except requests.RequestException as exc:
         console.print(f"  [red]✗ Request error for '{flow_name}': {exc}[/red]")
