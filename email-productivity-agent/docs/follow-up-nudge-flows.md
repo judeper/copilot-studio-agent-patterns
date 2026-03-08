@@ -301,6 +301,8 @@ Top Count: 50 (process in batches to avoid timeout)
 
 > ⚠️ Owner filter is required for data isolation. Do not remove this filter even if using RLS-based security roles.
 
+> **POC limitation — no pagination:** The current build processes up to 50 overdue rows per daily run. If a user has more than 50 pending follow-ups, excess rows are deferred to subsequent runs. For production use, consider adding a pagination loop using `@odata.nextLink`.
+
 #### Step 4: Loop Through Pending Follow-Ups
 
 ```

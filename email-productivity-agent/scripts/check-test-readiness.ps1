@@ -333,7 +333,7 @@ if ($pilotUser) {
             Add-CheckResult -Category "Pilot Config" -Status "PASS" -Details "Default NudgeConfiguration exists ($configSummary)"
         }
         else {
-            Add-CheckResult -Category "Pilot Config" -Status "FAIL" -Details "No NudgeConfiguration row exists for the pilot user"
+            Add-CheckResult -Category "Pilot Config" -Status "FAIL" -Details "No NudgeConfiguration row exists for the pilot user. Send an email from the pilot account (Flow 1 auto-creates it) or seed one manually."
         }
     }
     catch {

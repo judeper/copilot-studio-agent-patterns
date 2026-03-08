@@ -41,13 +41,46 @@ If HTTP with Microsoft Entra ID is blocked or in a different group, contact your
 
 ---
 
+## Inter-Flow Dependencies
+
+Understanding which flows depend on which tables and other flows helps ensure correct deployment order and simplifies troubleshooting.
+
+```
+Dataverse Tables                          Flows
+──────────────                            ─────
+                                          Flow 1 (Sent Items Tracker)
+cr_nudgeconfiguration  ◄──── created by ──── Flow 1 (auto-creates on first email)
+cr_followuptracking    ◄──── created by ──── Flow 1 (one row per recipient)
+                                              │
+cr_followuptracking    ──── read by ─────► Flow 2 (Response Detection)
+cr_nudgeconfiguration  ──── read by ─────► Flow 2
+                                              │ posts Teams card
+                                              ▼
+cr_followuptracking    ◄──── updated by ── Flow 2b (Card Action Handler)
+                                          
+cr_nudgeconfiguration  ──── read by ─────► Flow 3 (Snooze Detection)
+cr_snoozedconversation ◄──── created by ── Flow 3
+                                          
+cr_snoozedconversation ──── read by ─────► Flow 4 (Auto-Unsnooze)
+cr_snoozedconversation ◄──── updated by ── Flow 4
+                                          
+cr_followuptracking    ◄──── deleted by ── Flow 5 (Data Retention, >90 days)
+cr_snoozedconversation ◄──── deleted by ── Flow 6 (Snooze Cleanup, >30 days)
+                                          
+cr_nudgeconfiguration  ──── read/write ──► Flow 7/7b (Settings)
+```
+
+**Deployment order:** Phase 1 (Flow 5, 1, 2, 2b) → Phase 2 (Flow 6, 3, 4) → Phase 3 (Flow 7, 7b). Each phase's flows can run independently, but Phase 2 flows require Phase 1 tables to exist.
+
+---
+
 ## Phase 1: Follow-Up Nudges
 
 ### Step 1: Provision Environment & Dataverse Tables
 
 ```powershell
 cd email-productivity-agent/scripts
-pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@example.com>"
+pwsh provision-environment.ps1 -TenantId "<tenant-id>"
 ```
 
 This creates:
@@ -55,6 +88,8 @@ This creates:
 - `cr_followuptracking` table with 12 columns + composite alternate key
 - `cr_nudgeconfiguration` table with 8 columns (including cr_owneruserid) + owner alternate key
 - `cr_snoozedconversation` table with 8 columns (conversationId, ownerUserId, originalMessageId, snoozeUntil, currentFolder, unsnoozedByAgent, unsnoozedDateTime, originalSubject) + composite alternate key (cr_conversationid + cr_owneruserid)
+
+> **Naming convention:** Dataverse table logical names are singular (e.g., `cr_snoozedconversation`) while the OData entity set names used in API calls and Power Automate connectors are plural (e.g., `cr_snoozedconversations`). Both forms appear throughout this documentation — singular when referring to the table definition, plural when referencing connector operations.
 
 ### Step 2: Create Security Roles
 
@@ -156,7 +191,13 @@ Set up these Power Automate connections:
 
 ### Step 5: Deploy Power Automate Flows
 
-The deploy script creates the 4 Phase 1 flows (Flow 1, 2, 2b, 5) via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution.
+The deploy script creates flows via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution. Flow definitions are located in the `src/` directory as JSON files (e.g., `src/flow-1-sent-items-tracker.json`).
+
+**Phase groups:**
+- **Phase1**: Flow 5 (Data Retention), Flow 1 (Sent Items Tracker), Flow 2 (Response Detection), Flow 2b (Card Action Handler)
+- **Phase2**: Flow 6 (Snooze Cleanup), Flow 3 (Snooze Detection), Flow 4 (Auto-Unsnooze)
+- **Phase3**: Flow 7 (Settings Card), Flow 7b (Settings Card Handler)
+- **Individual harnesses** (optional): Flow8 through Flow13 — deployed one at a time for regression testing
 
 > **Why the Flow Management API?** Flows must be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity) because only the Flow API properly binds connections at runtime. Dataverse-created flows always fail activation with "connection references need connections" regardless of PAC solution import settings.
 

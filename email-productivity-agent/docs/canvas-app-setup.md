@@ -34,6 +34,18 @@ Add these data sources:
   - `Snoozed Conversations`
 - **Office 365 Users**
 
+> **Column display names:** The formulas throughout this guide reference Dataverse columns by their **display names** (e.g., `'Internal Follow-Up Days'` for logical column `cr_internaldays`). These display names are set during table provisioning by `provision-environment.ps1`. If your environment uses different display names, update the formulas accordingly. The key mappings are:
+>
+> | Display Name | Logical Name |
+> |---|---|
+> | `Owner User ID` | `cr_owneruserid` |
+> | `Internal Follow-Up Days` | `cr_internaldays` |
+> | `External Follow-Up Days` | `cr_externaldays` |
+> | `Priority Follow-Up Days` | `cr_prioritydays` |
+> | `General Follow-Up Days` | `cr_generaldays` |
+> | `Nudges Enabled` | `cr_nudgesenabled` |
+> | `Config Label` | `cr_configlabel` |
+
 ## 3. Add the Main Screen Controls
 
 Create a single screen named `scrSettings` with these controls:
@@ -162,10 +174,10 @@ Set(
         'Nudge Configurations',
         varConfigRecord,
         {
-            'Internal Follow-Up Days': Max(1, Min(30, Value(txtInternalDays.Text))),
-            'External Follow-Up Days': Max(1, Min(30, Value(txtExternalDays.Text))),
-            'Priority Follow-Up Days': Max(1, Min(30, Value(txtPriorityDays.Text))),
-            'General Follow-Up Days': Max(1, Min(30, Value(txtGeneralDays.Text))),
+            'Internal Follow-Up Days': Max(1, Min(30, IfError(Value(txtInternalDays.Text), varDefaultConfig.InternalDays))),
+            'External Follow-Up Days': Max(1, Min(30, IfError(Value(txtExternalDays.Text), varDefaultConfig.ExternalDays))),
+            'Priority Follow-Up Days': Max(1, Min(30, IfError(Value(txtPriorityDays.Text), varDefaultConfig.PriorityDays))),
+            'General Follow-Up Days': Max(1, Min(30, IfError(Value(txtGeneralDays.Text), varDefaultConfig.GeneralDays))),
             'Nudges Enabled': tglNudgesEnabled.Value
         }
     )

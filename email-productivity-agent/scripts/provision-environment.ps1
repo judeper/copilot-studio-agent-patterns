@@ -18,14 +18,11 @@
 .PARAMETER Region
     Deployment region. Default: "unitedstates"
 
-.PARAMETER AdminEmail
-    Admin email to assign as environment admin (optional).
-
 .PARAMETER PublisherPrefix
     Dataverse publisher prefix for custom columns. Default: "cr"
 
 .EXAMPLE
-    .\provision-environment.ps1 -TenantId "abc-123" -AdminEmail "admin@example.com"
+    .\provision-environment.ps1 -TenantId "abc-123"
 #>
 
 param(
@@ -38,8 +35,6 @@ param(
     [string]$EnvironmentType = "Sandbox",
 
     [string]$Region = "unitedstates",
-
-    [string]$AdminEmail,
 
     [string]$PublisherPrefix = "cr"
 )

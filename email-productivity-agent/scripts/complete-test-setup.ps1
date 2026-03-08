@@ -141,6 +141,13 @@ Invoke-PowerShellScript -Path $deployScript -Arguments @(
     "-FlowsToCreate", "Phase2"
 ) | Out-Null
 
+Invoke-PowerShellScript -Path $deployScript -Arguments @(
+    "-OrgUrl", $OrgUrl,
+    "-EnvironmentId", $EnvironmentId,
+    "-PublisherPrefix", $PublisherPrefix,
+    "-FlowsToCreate", "Phase3"
+) | Out-Null
+
 if ($SkipCanvasSourceSync) {
     Write-Host ""
     Write-Host "Skipping canvas app source sync by request." -ForegroundColor Yellow

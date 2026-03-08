@@ -225,6 +225,8 @@ Scope: Scope_Agent_Decision
   Message: "POC mode: skipping Snooze Agent invocation and using the default UNSNOOZE path."
 ```
 
+> **Timezone handling:** Flow 4 resolves the user's timezone from Graph mailbox settings (`/v1.0/me/mailboxSettings`). If that lookup fails, it falls back to **UTC** (not the Eastern Standard Time used by scheduled flows). This is intentional — event-driven flows should use the actual user timezone rather than a hardcoded zone.
+
 **Production enhancement (optional)**:
 
 Reintroduce a Snooze Agent call only when you want suppression logic such as working-hours awareness. The agent should set `unsnoozeAction` to either `UNSNOOZE` or `SUPPRESS`, after which the flow can branch on that value.
