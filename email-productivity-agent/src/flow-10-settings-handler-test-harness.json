@@ -3,17 +3,57 @@
     "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
     "contentVersion": "1.0.0.0",
     "triggers": {
-      "When_someone_responds_to_settings_card": {
-        "type": "OpenApiConnectionWebhook",
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
         "inputs": {
-          "parameters": {
-            "inputsAdaptiveCard": "{}",
-            "CardTypeId": "epa_settings_card"
-          },
-          "host": {
-            "connectionName": "shared_teams",
-            "operationId": "TeamsCardTrigger",
-            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+          "schema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "internalDays": {
+                "type": [
+                  "number",
+                  "string"
+                ]
+              },
+              "externalDays": {
+                "type": [
+                  "number",
+                  "string"
+                ]
+              },
+              "priorityDays": {
+                "type": [
+                  "number",
+                  "string"
+                ]
+              },
+              "generalDays": {
+                "type": [
+                  "number",
+                  "string"
+                ]
+              },
+              "nudgesEnabled": {
+                "type": [
+                  "string",
+                  "boolean"
+                ]
+              },
+              "responderEmail": {
+                "type": "string"
+              },
+              "responderUserPrincipalName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "responderEmail"
+            ]
           }
         }
       }
@@ -22,7 +62,7 @@
       "Parse_Settings_Response": {
         "type": "ParseJson",
         "inputs": {
-          "content": "@triggerOutputs()?['body/data']",
+          "content": "@triggerBody()",
           "schema": {
             "type": "object",
             "properties": {
@@ -68,7 +108,7 @@
         "type": "OpenApiConnection",
         "inputs": {
           "parameters": {
-            "id": "@coalesce(triggerOutputs()?['body/responder/email'], triggerOutputs()?['body/responder/userPrincipalName'])"
+            "id": "@coalesce(triggerBody()?['responderEmail'], triggerBody()?['responderUserPrincipalName'])"
           },
           "host": {
             "connectionName": "shared_office365users",
@@ -213,7 +253,7 @@
           "parameters": {
             "poster": "Flow bot",
             "location": "Chat with Flow bot",
-            "body/recipient": "@{coalesce(outputs('Get_Responder_Profile')?['body/mail'], outputs('Get_Responder_Profile')?['body/userPrincipalName'], triggerOutputs()?['body/responder/email'], triggerOutputs()?['body/responder/userPrincipalName'])}",
+            "body/recipient": "@{coalesce(outputs('Get_Responder_Profile')?['body/mail'], outputs('Get_Responder_Profile')?['body/userPrincipalName'], triggerBody()?['responderEmail'], triggerBody()?['responderUserPrincipalName'])}",
             "body/messageBody": "@{outputs('Compose_Confirmation')}"
           },
           "host": {
@@ -241,7 +281,7 @@
               "parameters": {
                 "poster": "Flow bot",
                 "location": "Chat with Flow bot",
-                "body/recipient": "@{coalesce(triggerOutputs()?['body/responder/email'], triggerOutputs()?['body/responder/userPrincipalName'])}",
+                "body/recipient": "@{coalesce(triggerBody()?['responderEmail'], triggerBody()?['responderUserPrincipalName'])}",
                 "body/messageBody": "@{outputs('Compose_Error')}"
               },
               "host": {
@@ -291,8 +331,8 @@
     }
   },
   "_metadata": {
-    "flowName": "EPA - Flow 7b: Settings Card Handler",
-    "description": "Handles user responses to the EPA Settings Adaptive Card. Validates input values (clamped 1-30), upserts NudgeConfiguration in Dataverse, and confirms via Teams message.",
+    "flowName": "EPA - Flow 10: Settings Handler Test Harness",
+    "description": "HTTP-triggered harness for Flow 7b. Simulates settings card submissions so the Dataverse save/restore logic and confirmation messages can be tested from the CLI.",
     "requiredConnections": [
       "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",

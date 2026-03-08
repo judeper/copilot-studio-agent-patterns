@@ -5,7 +5,7 @@
     "triggers": {
       "manual": {
         "type": "Request",
-        "kind": "Button",
+        "kind": "Http",
         "inputs": {
           "schema": {
             "type": "object"
