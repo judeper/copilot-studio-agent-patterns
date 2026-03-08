@@ -1,4 +1,4 @@
-# Product Positioning — Enterprise Work Assistant
+# Product Positioning — Intelligent Work Layer (IWL)
 
 > **Status:** Approved by AI Council (v3.0 Enhancement Review) and Architecture Council (v2.2 Tech Debt Review).
 > This is the primary product definition document. All marketing copy, demo scripts, and README descriptions should derive from this positioning.
@@ -9,11 +9,11 @@
 
 | Attribute | Value |
 |-----------|-------|
-| **Name** | Enterprise Work Assistant |
+| **Name** | Intelligent Work Layer (IWL) |
 | **Category** | Intelligent Work Layer for Microsoft 365 |
 | **Value Prop** | An intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses before the user ever has to ask. |
 
-> **Why "Enterprise Work Assistant" stays:** The name is embedded in Dataverse table prefixes (`cr_assistantcards`), solution package names, PCF component identifiers, and deployment scripts. Renaming would cascade across every artifact in the solution.
+> **Backward compatibility note:** The Dataverse table prefix `cr_` (e.g., `cr_assistantcards`), the directory name `enterprise-work-assistant/`, solution package names, and PCF component identifiers retain the original "Enterprise Work Assistant" naming for backward compatibility. The product rebrand to "Intelligent Work Layer" (IWL) applies to all user-facing documentation and positioning. The old name "Enterprise Work Assistant" (EWA) is deprecated.
 
 ### What It Is NOT
 
@@ -33,7 +33,7 @@
 | Context switching between tools fragments attention | Cognitive load from toggling Outlook → Teams → Planner → SharePoint degrades response quality |
 | Draft quality varies across interactions | Users repeatedly compose similar responses from scratch; no institutional memory of communication patterns |
 
-The Enterprise Work Assistant addresses these by shifting the default from *compose* to *review*. Instead of starting from a blank page, users start from a researched, scored, drafted card — and decide whether to send, edit, or dismiss.
+The Intelligent Work Layer addresses these by shifting the default from *compose* to *review*. Instead of starting from a blank page, users start from a researched, scored, drafted card — and decide whether to send, edit, or dismiss.
 
 ---
 
@@ -72,7 +72,7 @@ Enterprise knowledge workers on Microsoft 365 who handle high volumes of asynchr
 | 4 | **MARL confidence scoring** | Multi-agent pipeline with calibrated confidence: Triage → Research → Score → Draft → Humanize. Each stage produces a structured contract consumed by the next. Confidence scores (0–100) gate downstream actions. |
 | 5 | **Learning loop** | Episodic memory (`cr_episodicmemories`) captures every decision. Semantic knowledge (`cr_semanticknowledges`) promotes patterns into reusable facts. The system improves over time — draft acceptance rates increase, override rates decrease. |
 
-> **Positioning note:** These differentiators are architectural, not competitive. Copilot for M365 and the Enterprise Work Assistant are complementary — the assistant handles the proactive triage layer; Copilot handles ad-hoc in-app assistance.
+> **Positioning note:** These differentiators are architectural, not competitive. Copilot for M365 and the Intelligent Work Layer are complementary — IWL handles the proactive triage layer; Copilot handles ad-hoc in-app assistance.
 
 ---
 
@@ -179,4 +179,4 @@ Trust is the product's core constraint. Every design decision prioritizes user c
 
 ---
 
-*Last updated: 2025-07-22 — Approved by AI Council (v3.0) and Architecture Council (v2.2)*
+*Last updated: 2026-03-08 — Approved by AI Council (v3.0) and Architecture Council (v2.2). Rebranded to Intelligent Work Layer (IWL).*

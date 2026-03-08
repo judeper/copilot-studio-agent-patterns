@@ -11,6 +11,8 @@
 
 ## Implemented UX Enhancements (v3.0)
 
+> The Work OS contract evolution roadmap (Slices 1–4) is documented in [`agent-contract.md` §8](agent-contract.md#8-ui-evolution-roadmap). These slices enable backward-compatible adoption of the proposed `WorkOsViewModel` contract into the shipped dashboard.
+
 > **Status:** Implemented · **Version:** 3.0
 >
 > These enhancements are implemented in the current PCF codebase. The design is grounded
@@ -487,7 +489,7 @@ value sets.
 ### Phase 2 — Replace Hardcoded Colors
 
 Systematically replace each hex value in `AssistantDashboard.css` and inline styles
-with the corresponding `var(--ewa-*)` token. Also update `EWA_COLORS` in
+with the corresponding `var(--iwl-*)` token. Also update `IWL_COLORS` in
 `constants.ts` to reference CSS custom properties via `getComputedStyle()` where
 values are needed in TypeScript.
 
@@ -593,10 +595,10 @@ value: `"dark"`). The PCF `AppWrapper` component applies `className="ewa-dark"` 
 ### Migration Checklist
 
 - [ ] Phase 1: Add `:root` custom properties block to `AssistantDashboard.css`
-- [ ] Phase 2: Replace all 48 hardcoded hex colors with `var(--ewa-*)` references
-- [ ] Phase 2: Update `EWA_COLORS` in `constants.ts` to use CSS variable fallback
+- [ ] Phase 2: Replace all 48 hardcoded hex colors with `var(--iwl-*)` references
+- [ ] Phase 2: Update `IWL_COLORS` in `constants.ts` to use CSS variable fallback
 - [ ] Phase 3: Add `@media (prefers-color-scheme: dark)` block
-- [ ] Phase 3: Add `.ewa-dark` class block
+- [ ] Phase 3: Add `.iwl-dark` class block
 - [ ] Phase 3: Add `themeOverride` input property handling in `AppWrapper`
 - [ ] Visual regression test: compare light theme before/after variable migration
 
