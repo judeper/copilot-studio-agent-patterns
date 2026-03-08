@@ -11,3 +11,4 @@ export * from "./review";
 export * from "./activity";
 export * from "./copilot";
 export * from "./workOsViewModel";
+export * from "./adapters";
