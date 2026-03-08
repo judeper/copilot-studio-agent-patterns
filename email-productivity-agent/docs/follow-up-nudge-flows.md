@@ -407,33 +407,22 @@ Compose: threadExcerpt
   Expression: take(join(body('extractPreviews'), ' --- '), 2000)
 ```
 
-##### Step 4e: If Still Pending → Invoke Copilot Agent (Optional)
+##### Step 4e: If Still Pending → Build Nudge Decision
 
 ```
-Action: Run a flow from Copilot (or HTTP to agent endpoint)
-Input Variables:
-  CONVERSATION_ID: items('Apply_to_each')?['cr_conversationid']
-  ORIGINAL_SUBJECT: items('Apply_to_each')?['cr_originalsubject']
-  RECIPIENT_EMAIL: items('Apply_to_each')?['cr_recipientemail']
-  RECIPIENT_TYPE: items('Apply_to_each')?['cr_recipienttype']
-  DAYS_SINCE_SENT: div(sub(ticks(utcNow()), ticks(items('Apply_to_each')?['cr_sentdatetime'])), 864000000000)
-  THREAD_EXCERPT: outputs('threadExcerpt')
-  USER_DISPLAY_NAME: outputs('Get_my_profile_(V2)')?['body/displayName']
-
-Note: 864000000000 ticks = 1 day. Power Automate does not have a
-dateDifference() function; use ticks arithmetic instead.
-
-Output:
-  - nudgeAction: "NUDGE" or "SKIP"
-  - skipReason: (only if nudgeAction = "SKIP") why the nudge was suppressed
+Action: Compose (mocked response)
+Current output:
+  - nudgeAction: "NUDGE"
   - threadSummary: Brief summary of the thread context
   - suggestedDraft: Suggested follow-up message text
   - nudgePriority: High / Medium / Low
   - confidence: 0-100 confidence score
 
+The dry-run build keeps this response mocked so Flow 2 can be tested without blocking on Copilot Studio publish/runtime issues. When the live agent path is re-enabled, swap this step back to the Copilot Studio connector and preserve the same response contract.
+
 Condition: nudgeAction equals "SKIP"
   If yes → Update cr_dismissedbyuser = true (agent-skipped), continue to next
-  If no → Proceed to Step 2f
+  If no → Proceed to Step 4f
 ```
 
 ##### Step 4f: Post Adaptive Card (Fire-and-Forget)
@@ -444,7 +433,7 @@ Recipient: Current user (flow connection owner)
 Adaptive Card: See schemas/adaptive-card-nudge.json
 ```
 
-> **MVP Note**: Flow 2 builds the adaptive card inline using Compose actions rather than the template in `schemas/adaptive-card-nudge.json`. This is intentional for the MVP — the inline card omits AI-generated fields (`threadSummary`, `suggestedDraft`) that require Copilot Studio agent integration. When upgrading to the agent-integrated version, replace the inline Compose with template-based rendering using the full schema.
+> **Current dry-run note**: Flow 2 builds the adaptive card inline using Compose actions and feeds it from a mocked nudge decision. This lets us validate Graph reply checks, Dataverse updates, and Teams delivery independently. When the live Copilot step is restored, replace the mocked Compose with the connector call and keep the same output contract so the card rendering remains unchanged.
 
 This posts the card but does NOT wait for a response. Button clicks are handled by a separate flow.
 
