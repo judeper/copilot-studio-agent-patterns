@@ -213,23 +213,17 @@ def _dv_post(auth: Any, org_url: str, path: str, body: dict, extra_headers: dict
 
 def _dv_post_with_retry(
     auth: Any, org_url: str, path: str, body: dict,
-    extra_headers: dict | None = None, max_retries: int = 5, base_delay: int = 10,
+    extra_headers: dict | None = None, max_retries: int = 6, base_delay: int = 10,
 ) -> requests.Response:
     """POST with retry for transient customization-lock errors (400/429)."""
     for attempt in range(max_retries):
         resp = _dv_post(auth, org_url, path, body, extra_headers)
         if resp.status_code in (201, 204, 409):
             return resp
-        # Retry on customization lock or unexpected errors
-        error_text = resp.text or ""
-        is_retryable = (
-            resp.status_code == 429
-            or "EntityCustomization" in error_text
-            or (resp.status_code == 400 and "0x80040216" in error_text)
-        )
-        if is_retryable and attempt < max_retries - 1:
+        # Retry on any 400 or 429 — table customization may still be running
+        if resp.status_code in (400, 429) and attempt < max_retries - 1:
             delay = base_delay * (attempt + 1)
-            console.print(f"    [dim]⏳ Customization in progress, retrying in {delay}s… (attempt {attempt + 2}/{max_retries})[/dim]")
+            console.print(f"    [dim]⏳ Retrying in {delay}s… (attempt {attempt + 2}/{max_retries})[/dim]")
             time.sleep(delay)
             continue
         return resp
@@ -242,8 +236,9 @@ def _wait_for_table_ready(auth: Any, org_url: str, logical_name: str, timeout: i
     while time.time() - start < timeout:
         resp = _dv_get(auth, org_url, f"EntityDefinitions(LogicalName='{logical_name}')?$select=LogicalName")
         if resp.status_code == 200:
-            # Give the background customization job extra time to fully settle
-            time.sleep(10)
+            # Give the background customization job time to fully settle
+            console.print(f"    [dim]Waiting 30s for customization to settle…[/dim]")
+            time.sleep(30)
             return
         time.sleep(5)
     console.print(f"    [yellow]⚠ Table readiness check timed out ({timeout}s) — proceeding anyway[/yellow]")
