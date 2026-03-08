@@ -70,7 +70,8 @@ enterprise-work-assistant/
 │   ├── deployment-guide.md       # End-to-end deployment checklist
 │   ├── learning-enhancements.md  # Learning system design (episodic memory, semantic knowledge, decay)
 │   ├── onenote-integration.md    # OneNote integration design (Phase 1-3)
-│   └── ux-enhancements.md        # UX improvements and WCAG AA compliance
+│   ├── ux-enhancements.md        # UX improvements and WCAG AA compliance
+│   └── agent-contract.md        # Work OS agent-to-UI contract proposal
 ├── prompts/
 │   ├── main-agent-system-prompt.md    # Main agent operating instructions
 │   ├── humanizer-agent-prompt.md      # Tone calibration prompt
@@ -115,12 +116,30 @@ enterprise-work-assistant/
 │   ├── semanticknowledge-table.json   # Semantic Knowledge table definition (knowledge graph)
 │   ├── senderprofile-table.json       # SenderProfile table definition
 │   ├── skillregistry-table.json       # Skill Registry table definition (extensible agent skills)
-│   └── userpersona-table.json         # User Persona table definition (communication preferences)
+│   ├── userpersona-table.json         # User Persona table definition (communication preferences)
+│   └── workos/                        # Work OS JSON Schemas (8 files — agent-to-UI contract)
+
 ├── templates/
 │   ├── onenote-meeting-prep.html      # OneNote meeting prep page template
 │   ├── onenote-daily-briefing.html    # OneNote daily briefing page template
 │   └── onenote-active-todos.html      # OneNote active to-dos page template
+├── mock-api/                          # JSON API payload fixtures for offline Work OS development
 └── src/                               # PCF React component + flow/topic definitions
+    ├── models/                        # Work OS proposal view-model types + adapter layer
+    │   ├── shared.ts                  # Common enums and base types
+    │   ├── scenario.ts                # Scenario/card view-model
+    │   ├── queue.ts                   # Queue and sorting types
+    │   ├── messaging.ts               # Messaging/draft types
+    │   ├── briefings.ts               # Briefing variant types
+    │   ├── review.ts                  # Review and approval types
+    │   ├── activity.ts                # Activity feed types
+    │   ├── copilot.ts                 # Copilot interaction types
+    │   ├── workOsViewModel.ts         # Top-level Work OS view-model
+    │   ├── adapters.ts                # Legacy AssistantCard → Work OS adapters
+    │   ├── index.ts                   # Barrel export
+    │   └── __tests__/
+    │       └── adapters.test.ts       # Adapter unit tests (32 tests)
+    ├── mock-data/                     # Typed Work OS fixtures for development
     ├── AssistantDashboard/
     │   ├── ControlManifest.Input.xml  # PCF manifest (virtual, dataset)
     │   ├── index.ts                   # PCF lifecycle entry point

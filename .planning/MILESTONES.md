@@ -8,7 +8,7 @@
 **Files modified:** 102 (16,100 insertions, 290 deletions)
 **Source LOC:** 2,218 TypeScript/CSS
 
-**Delivered:** Fixed all schema/prompt inconsistencies, code bugs, documentation gaps, and deployment script issues across the Enterprise Work Assistant reference pattern, then added test infrastructure to validate correctness.
+**Delivered:** Fixed all schema/prompt inconsistencies, code bugs, documentation gaps, and deployment script issues across the Intelligent Work Layer (IWL, formerly Enterprise Work Assistant) reference pattern, then added test infrastructure to validate correctness.
 
 **Key accomplishments:**
 1. Unified output schema contract with consistent null convention across JSON schema, prompts, and Dataverse definitions (SCHM-01–07)
@@ -37,7 +37,7 @@
 **Files modified:** 33 (8,207 insertions, 98 deletions)
 **Source LOC after v2.0:** ~59k TypeScript/CSS (handwritten), 387 test cases across 58 test files
 
-**Delivered:** Evolved the Enterprise Work Assistant from a reactive signal processor into a proactive "second brain" with behavioral learning, conversational interaction, sender intelligence, and performance analytics.
+**Delivered:** Evolved the Intelligent Work Layer (IWL) from a reactive signal processor into a proactive "second brain" with behavioral learning, conversational interaction, sender intelligence, and performance analytics.
 
 **Key accomplishments:**
 1. Outcome tracking with send-as-is email flow — fire-and-forget PCF output binding triggers Power Automate for guaranteed audit trail (Sprint 1A)
@@ -70,7 +70,7 @@
 **Timeline:** 2026-02-28 → 2026-03-01
 **Audit result:** 19/19 requirements satisfied, 16 tech debt items documented and triaged
 
-**Delivered:** Comprehensive multi-perspective review of the entire Enterprise Work Assistant codebase across platform architecture, frontend/PCF, and integration/E2E dimensions, followed by targeted remediation of all critical and high-priority findings.
+**Delivered:** Comprehensive multi-perspective review of the entire IWL codebase across platform architecture, frontend/PCF, and integration/E2E dimensions, followed by targeted remediation of all critical and high-priority findings.
 
 **Key accomplishments:**
 1. Platform Architecture Review — reconciled correctness, gaps, and implementability findings into unified verdict (Phase 10)
@@ -128,9 +128,9 @@
 **Phases completed:** 7 phases, 90 items
 **Timeline:** 2026-03-08
 **Files modified:** 48 (+7,273 lines)
-**Build:** Passes — 213 tests across 16 suites (post-UX redesign)
+**Build:** Passes — 233 tests across 16 suites (post-Work OS schema)
 
-**Delivered:** Comprehensive implementation of 115 AI Council findings (mapped to 90 items) across MARL pipeline contracts, Dataverse schemas, PCF quality, new enterprise agent prompts, architecture enhancements, learning system flows, and UX improvements.
+**Delivered:** Comprehensive implementation of 115 AI Council findings (mapped to 90 items) across MARL pipeline contracts, Dataverse schemas, PCF quality, new enterprise agent prompts, architecture enhancements, learning system flows, UX improvements, and the Work OS schema proposal.
 
 **Key accomplishments:**
 1. 15 MARL pipeline data contract fixes — Flow-level chaining pattern (not deep nesting)
@@ -140,13 +140,15 @@
 5. Architecture enhancement design doc — Router Agent for interactive commands (Flow 8)
 6. Learning system — 8 flows documented (Flows 11, 14-16), memory injection capped at ~2000 tokens, weekly reflection for POC
 7. UX enhancement design doc — WCAG AA compliance fixes
-8. Environment "EWA-DryRun-v3" provisioned with all 9 tables and security roles
+8. Environment "IWL-DryRun-v3" provisioned with all 9 tables and security roles
+9. Work OS schema proposal: 9 TypeScript models, 8 JSON schemas, adapter layer, 32 validation tests, agent-contract.md
+10. Rebrand: Enterprise Work Assistant → Intelligent Work Layer (IWL) across 63 files
 
 ### UX Psychology-Driven Redesign (2026-03-08)
 
 **Scope:** 16 UX items across 5 phases | 21 files changed, +1,162 lines | New component: DayGlance.tsx
-**Build:** Passes — 213 tests across 16 suites
-**Research basis:** 8 cognitive science areas applied — Cowan's 4±1 attention slots, Gloria Mark's 23-min interruption cost, Zeigarnik Effect, arXiv 2024 AI trust miscalibration, PMC visual fatigue, and related research
+**Build:** Passes — 233 tests across 16 suites
+**Research basis:**8 cognitive science areas applied — Cowan's 4±1 attention slots, Gloria Mark's 23-min interruption cost, Zeigarnik Effect, arXiv 2024 AI trust miscalibration, PMC visual fatigue, and related research
 
 **Key accomplishments:**
 1. **Card Intelligence** — Three-state confidence (HIGH/MEDIUM/LOW, not percentages) based on trust calibration research; composite sort algorithm; Zeigarnik-aware pending indicators
