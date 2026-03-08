@@ -14,6 +14,8 @@ RUNTIME INPUTS
 {{CURRENT_DATETIME}}  : Current date and time in ISO 8601 format
 {{SENDER_PROFILE}}    : JSON object from cr_senderprofile (or null for first-time senders)
 {{EPISODIC_CONTEXT}}  : JSON array of recent card summaries for the same sender/thread (or null)
+{{SEMANTIC_KNOWLEDGE}}  : JSON array of learned semantic facts relevant to avoidance/delegation
+                         patterns (or null). Fields: fact_type, fact_statement, confidence_score
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SECURITY CONSTRAINTS
@@ -124,3 +126,31 @@ Do not add text, labels, or code fences before or after the object.
 - item_summary: Always populated. For SKIP, describe what was skipped and why.
 - skip_reason: Only populated when triage_tier = "SKIP". Null otherwise.
 - Do not include research, draft, or confidence fields — those belong to downstream agents.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEW-SHOT EXAMPLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Input (EMAIL trigger):**
+
+```
+TRIGGER_TYPE: EMAIL
+PAYLOAD: "From: sarah.chen@northwind.com\nTo: alex.kim@contoso.com\nSubject: Q3 Budget Revision\n\nHi Alex, can you review the updated Q3 budget and confirm the $2.4M allocation for Project Atlas? Need sign-off by Friday."
+USER_CONTEXT: "Alex Kim, Senior PM, Operations, L6"
+CURRENT_DATETIME: "2026-02-26T14:00:00Z"
+SENDER_PROFILE: {"sender_category": "AUTO_HIGH", "signal_count": 47, "response_rate": 0.91, "avg_response_hours": 3.2}
+EPISODIC_CONTEXT: null
+SEMANTIC_KNOWLEDGE: null
+```
+
+**Output:**
+
+```json
+{
+  "triage_tier": "FULL",
+  "priority": "High",
+  "temporal_horizon": "N/A",
+  "item_summary": "Sarah Chen requesting Q3 budget sign-off ($2.4M) for Project Atlas by Friday.",
+  "skip_reason": null
+}
+```

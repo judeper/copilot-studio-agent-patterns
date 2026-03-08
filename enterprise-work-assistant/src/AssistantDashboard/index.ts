@@ -64,6 +64,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private saveDraftAction: string = "";
     private datasetVersion: number = 0;
     private pendingDismissals: Map<string, { attempts: number; timestamp: number }> = new Map();
+    private isProcessingDismissals = false;
 
     // Stable callback references— created once in init, never recreated
     private handleSelectCard: (cardId: string) => void;
@@ -128,19 +129,23 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         this.datasetVersion++;
 
         // Retry pending dismissals that haven't been acknowledged
-        for (const [cardId, info] of this.pendingDismissals) {
-            if (Date.now() - info.timestamp > 5000 && info.attempts < 3) {
-                const sortedIds = dataset.sortedRecordIds;
-                const record = sortedIds.includes(cardId) ? dataset.records[cardId] : null;
-                const outcome = record?.getValue("cr_cardoutcome") as string | null;
-                if (outcome === "DISMISSED") {
-                    this.pendingDismissals.delete(cardId);
-                } else {
-                    this.dismissCardAction = cardId;
-                    this.pendingDismissals.set(cardId, { attempts: info.attempts + 1, timestamp: Date.now() });
-                    this.notifyOutputChanged();
+        if (!this.isProcessingDismissals) {
+            this.isProcessingDismissals = true;
+            for (const [cardId, info] of this.pendingDismissals) {
+                if (Date.now() - info.timestamp > 5000 && info.attempts < 3) {
+                    const sortedIds = dataset.sortedRecordIds;
+                    const record = sortedIds.includes(cardId) ? dataset.records[cardId] : null;
+                    const outcome = record?.getValue("cr_cardoutcome") as string | null;
+                    if (outcome === "DISMISSED") {
+                        this.pendingDismissals.delete(cardId);
+                    } else {
+                        this.dismissCardAction = cardId;
+                        this.pendingDismissals.set(cardId, { attempts: info.attempts + 1, timestamp: Date.now() });
+                        this.notifyOutputChanged();
+                    }
                 }
             }
+            this.isProcessingDismissals = false;
         }
 
         // Read orchestrator response channel properties (F-02)

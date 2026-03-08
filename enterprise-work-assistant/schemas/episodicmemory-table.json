@@ -71,7 +71,10 @@
       "options": [
         { "label": "EMAIL", "value": 100000000 },
         { "label": "TEAMS_MESSAGE", "value": 100000001 },
-        { "label": "CALENDAR_SCAN", "value": 100000002 }
+        { "label": "CALENDAR_SCAN", "value": 100000002 },
+        { "label": "SELF_REMINDER", "value": 100000003 },
+        { "label": "BRIEFING", "value": 100000004 },
+        { "label": "HEARTBEAT", "value": 100000005 }
       ]
     },
     {

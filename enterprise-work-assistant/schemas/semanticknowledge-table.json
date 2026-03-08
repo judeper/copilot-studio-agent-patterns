@@ -109,7 +109,8 @@
       "type": "Boolean",
       "required": false,
       "default": false,
-      "description": "Whether this fact was promoted from an explicit user persona rule. Persona-sourced facts have higher initial confidence."
+      "description": "Whether this fact was promoted from an explicit user persona rule. Persona-sourced facts have higher initial confidence.",
+      "_naming_note": "Recommended name: cr_iscreatedfrompersona (cr_is* prefix convention). Not renamed to avoid breaking existing flow references."
     }
   ],
   "junctionTable": {
@@ -134,7 +135,17 @@
         "required": true,
         "description": "Lookup to the supporting episodic memory event."
       }
-    ]
+    ],
+    "cascadeConfiguration": {
+      "cr_semanticknowledgeid": {
+        "delete": "Cascade",
+        "description": "When a semantic knowledge fact is deleted, all junction rows linking to it are also deleted."
+      },
+      "cr_episodicmemoryid": {
+        "delete": "Cascade",
+        "description": "When an episodic memory event is deleted (e.g., by 90-day retention cleanup), all junction rows linking to it are also deleted."
+      }
+    }
   },
   "notes": {
     "design_rationale": "Facts are upserted using the cr_contexthash alternate key. On each promotion run, the flow computes the hash from the fact's key attributes and upserts — incrementing cr_eventcount and updating cr_confidencescore and cr_lastvalidated. This makes concurrent runs safe and idempotent.",

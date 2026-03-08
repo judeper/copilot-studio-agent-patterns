@@ -242,8 +242,8 @@ For EMAIL and TEAMS_MESSAGE triggers, set temporal_horizon = "N/A".
   "temporal_horizon": "<TODAY | THIS_WEEK | NEXT_WEEK | BEYOND | N/A>",
   "research_log": "<Plain text. List which tiers were checked and what was found
       or not found. Null for SKIP and LIGHT.>",
-  "key_findings": "<Plain-text bulleted list of relevant findings. 'None retrieved'
-      if nothing found. Null for SKIP and LIGHT.>",
+  "key_findings": ["<Finding 1 — plain text with source attribution>", "<Finding 2>"],
+      // JSON array of strings. Each element is a plain-text finding. ["None retrieved"] if nothing found. Null for SKIP and LIGHT.
   "verified_sources": [
     {
       "title": "<Human-readable title of the source>",
@@ -274,7 +274,13 @@ EXAMPLE 1 — EMAIL, FULL tier, High priority (humanizer handoff)
   "priority": "High",
   "temporal_horizon": "N/A",
   "research_log": "Tier 1: Searched user's sent items for 'Contoso' — found 3 prior threads including original proposal from October. Searched Teams for 'Contoso pricing' — found discussion in #sales-deals channel from last week. Tier 2: Searched SharePoint for 'pricing playbook' — found current FY26 pricing guide in Sales team site. Tier 3: Checked Planner for 'Contoso' tasks — found open task 'Contoso renewal follow-up' assigned to user, due next Monday. Tier 4: Searched web for 'Contoso Ltd recent news' — found Q3 earnings report showing 12% revenue growth.",
-  "key_findings": "- Original Contoso proposal sent October 15 quoted $84,000/year for 200 seats\n- Current pricing playbook allows up to 15% volume discount for 500+ seats\n- Multi-year discounts: 5% for 2-year, 10% for 3-year commitments\n- Contoso's Q3 earnings show strong growth — renewal likely expandable\n- Open Planner task confirms renewal follow-up is due next Monday",
+  "key_findings": [
+    "Original Contoso proposal sent October 15 quoted $84,000/year for 200 seats",
+    "Current pricing playbook allows up to 15% volume discount for 500+ seats",
+    "Multi-year discounts: 5% for 2-year, 10% for 3-year commitments",
+    "Contoso's Q3 earnings show strong growth — renewal likely expandable",
+    "Open Planner task confirms renewal follow-up is due next Monday"
+  ],
   "verified_sources": [
     { "title": "Email thread: Contoso Ltd Pricing Proposal", "url": "outlook://message/AAMkADQ3...", "tier": 1 },
     { "title": "Teams: #sales-deals Contoso discussion", "url": "teams://thread/19:abc123...", "tier": 1 },
@@ -322,7 +328,13 @@ EXAMPLE 3 — CALENDAR_SCAN, FULL tier (meeting briefing)
   "priority": "High",
   "temporal_horizon": "THIS_WEEK",
   "research_log": "Tier 1: Searched email for 'Northwind Traders' — found 5 threads in last 30 days including last QBR summary. Searched Teams for 'Northwind QBR' — found shared prep doc in #account-management channel. Tier 2: Searched SharePoint for 'Northwind' — found account health dashboard and previous QBR deck template. Tier 3: Checked Planner for 'Northwind' — found 2 open deliverables due before QBR. Tier 4: Searched web for 'Northwind Traders news 2025' — found recent expansion announcement into APAC markets.",
-  "key_findings": "- Last QBR (Q3) flagged 2 open items: API latency improvements and onboarding automation — API latency resolved per email thread, onboarding still in progress\n- Account health score: 82/100 (up from 74 last quarter)\n- Northwind recently announced APAC expansion — potential upsell opportunity\n- Lisa Park (CFO) joined Northwind in September — first QBR with this stakeholder\n- Open Planner items: Updated metrics deck (due Tuesday), Demo environment prep (due Wednesday AM)",
+  "key_findings": [
+    "Last QBR (Q3) flagged 2 open items: API latency improvements and onboarding automation — API latency resolved per email thread, onboarding still in progress",
+    "Account health score: 82/100 (up from 74 last quarter)",
+    "Northwind recently announced APAC expansion — potential upsell opportunity",
+    "Lisa Park (CFO) joined Northwind in September — first QBR with this stakeholder",
+    "Open Planner items: Updated metrics deck (due Tuesday), Demo environment prep (due Wednesday AM)"
+  ],
   "verified_sources": [
     { "title": "Email: Q3 QBR Summary and Action Items", "url": "outlook://message/AAMkBBR4...", "tier": 1 },
     { "title": "Teams: QBR Prep Doc", "url": "teams://file/northwind-qbr-prep.docx", "tier": 1 },

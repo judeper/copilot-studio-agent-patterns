@@ -6,6 +6,14 @@
   "description": "Stores structured output from the Enterprise Work Assistant agent. Each row represents one processed incoming signal (email, Teams message, or calendar event).",
   "primaryColumn": "cr_itemsummary",
   "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_sourcesignalid_key",
+      "displayName": "Source Signal ID Key",
+      "keyAttributes": ["cr_sourcesignalid"],
+      "purpose": "Enables signal deduplication — prevents duplicate cards for the same incoming signal during concurrent or retried flow runs."
+    }
+  ],
   "columns": [
     {
       "logicalName": "cr_triagetier",
@@ -204,14 +212,18 @@
       "displayName": "OneNote Enabled",
       "type": "Boolean",
       "required": false,
-      "description": "Feature flag for OneNote integration. Stored on a config entity. When false, all OneNote writes are skipped. Used for rollback without redeploying flows."
+      "description": "Feature flag for OneNote integration. Stored on a config entity. When false, all OneNote writes are skipped. Used for rollback without redeploying flows.",
+      "_naming_note": "Recommended name: cr_isonenoteenabled (cr_is* prefix convention). Not renamed to avoid breaking existing flow references.",
+      "_placement_note": "ARCHITECTURAL NOTE: This flag is a global feature toggle, not a per-card attribute. It is an architectural candidate for migration to a per-user configuration entity (cr_userpersona or a dedicated cr_userconfiguration table) in a future version. Acceptable on cr_assistantcard for the POC to avoid additional table provisioning complexity."
     },
     {
       "logicalName": "cr_onenoteoptout",
       "displayName": "OneNote Opt-Out",
       "type": "Boolean",
       "required": false,
-      "description": "Per-user preference to disable OneNote sync. When true, OneNote writes for this user are skipped even if cr_onenoteenabled is true."
+      "description": "Per-user preference to disable OneNote sync. When true, OneNote writes for this user are skipped even if cr_onenoteenabled is true.",
+      "_naming_note": "Recommended name: cr_isonenoteoptout (cr_is* prefix convention). Not renamed to avoid breaking existing flow references.",
+      "_placement_note": "ARCHITECTURAL NOTE: This flag is a per-user preference, not a per-card attribute. It is an architectural candidate for migration to a per-user configuration entity (cr_userpersona or a dedicated cr_userconfiguration table) in a future version. Acceptable on cr_assistantcard for the POC to avoid additional table provisioning complexity."
     },
     {
       "logicalName": "cr_onenotesyncstatus",

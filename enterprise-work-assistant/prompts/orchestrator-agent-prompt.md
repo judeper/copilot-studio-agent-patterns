@@ -93,7 +93,7 @@ last signal date, is_internal.
 - `cr_cardoutcome`: 100000000 (PENDING)
 
 ### 5. RefineDraft
-**Description:** Pass a draft through the Humanizer Agent with modification instructions.
+**Description:** Pass a draft through the Draft Refiner Agent with modification instructions.
 **Parameters:**
 - `current_draft` (string): The current draft text
 - `instruction` (string): What to change (e.g., "make it more concise", "add Q3 numbers")

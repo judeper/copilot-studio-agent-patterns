@@ -50,9 +50,9 @@ describe('CommandBar', () => {
     it('renders quick action chips when not expanded', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         await expandPill();
-        expect(screen.getByText("What's urgent?")).toBeTruthy();
-        expect(screen.getByText('Draft status')).toBeTruthy();
-        expect(screen.getByText('My day')).toBeTruthy();
+        expect(screen.getByText("What needs attention?")).toBeTruthy();
+        expect(screen.getByText('Show high priority')).toBeTruthy();
+        expect(screen.getByText('Daily briefing')).toBeTruthy();
     });
 
     it('renders context-aware default chips when no card selected', async () => {
@@ -148,9 +148,9 @@ describe('CommandBar', () => {
     it('executes quick action on chip click', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         await expandPill();
-        await userEvent.click(screen.getByText("What's urgent?"));
+        await userEvent.click(screen.getByText("What needs attention?"));
         expect(mockExecute).toHaveBeenCalledWith(
-            'What needs my attention right now?',
+            'What needs attention?',
             null,
         );
     });
@@ -253,7 +253,7 @@ describe('CommandBar', () => {
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         await expandPill();
 
-        await userEvent.click(screen.getByText("What's urgent?"));
+        await userEvent.click(screen.getByText("What needs attention?"));
 
         rerender(
             <CommandBar
