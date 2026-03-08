@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Provisions the Power Platform environment and Dataverse table for the Enterprise Work Assistant.
+    Provisions the Power Platform environment and Dataverse table for the Intelligent Work Layer.
 
 .DESCRIPTION
     Creates a Power Platform environment, provisions the AssistantCards Dataverse table
@@ -152,10 +152,10 @@ try {
         Write-Host "  Publisher '$PublisherPrefix' not found. Creating..." -ForegroundColor Yellow
         $publisherDef = @{
             uniquename = "${PublisherPrefix}publisher"
-            friendlyname = "Enterprise Work Assistant Publisher"
+            friendlyname = "Intelligent Work Layer Publisher"
             customizationprefix = $PublisherPrefix
             customizationoptionvalueprefix = 10000
-            description = "Publisher for the Enterprise Work Assistant solution."
+            description = "Publisher for the Intelligent Work Layer solution."
         } | ConvertTo-Json
 
         Invoke-RestMethod -Uri "$apiBase/publishers" -Method Post -Headers $headers -Body $publisherDef
@@ -191,7 +191,7 @@ $entityDef = @{
         "@odata.type" = "Microsoft.Dynamics.CRM.Label"
         LocalizedLabels = @(@{
             "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
-            Label = "Stores structured output from the Enterprise Work Assistant agent."
+            Label = "Stores structured output from the Intelligent Work Layer agent."
             LanguageCode = 1033
         })
     }
@@ -1693,7 +1693,7 @@ $errorLogEntityDef = @{
         "@odata.type" = "Microsoft.Dynamics.CRM.Label"
         LocalizedLabels = @(@{
             "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
-            Label = "Flow error monitoring log for the Enterprise Work Assistant."
+            Label = "Flow error monitoring log for the Intelligent Work Layer."
             LanguageCode = 1033
         })
     }

@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    Creates ownership-based security roles for the Enterprise Work Assistant.
+    Creates ownership-based security roles for the Intelligent Work Layer.
 
 .DESCRIPTION
-    Creates an "Enterprise Work Assistant User" security role granting Basic (user-level)
+    Creates an "Intelligent Work Layer User" security role granting Basic (user-level)
     depth on the AssistantCards table. Each user sees only their own rows.
 
 .PARAMETER OrgUrl
@@ -69,10 +69,10 @@ Write-Host "  Root BU: $($buResult.value[0].name) ($rootBuId)" -ForegroundColor 
 # ─────────────────────────────────────
 # 3. Create Security Role
 # ─────────────────────────────────────
-Write-Host "Creating 'Enterprise Work Assistant User' security role..." -ForegroundColor Cyan
+Write-Host "Creating 'Intelligent Work Layer User' security role..." -ForegroundColor Cyan
 
 $roleDef = @{
-    name = "Enterprise Work Assistant User"
+    name = "Intelligent Work Layer User"
     description = "Grants Basic (user-level) CRUD access to AssistantCards table. Users see only their own rows."
     "businessunitid@odata.bind" = "/businessunits($rootBuId)"
 } | ConvertTo-Json
@@ -83,7 +83,7 @@ try {
     Write-Host "  Role created: $roleId" -ForegroundColor Green
 } catch {
     # Role may already exist
-    $existing = Invoke-RestMethod -Uri "$apiBase/roles?`$filter=name eq 'Enterprise Work Assistant User'&`$select=roleid" -Headers $headers
+    $existing = Invoke-RestMethod -Uri "$apiBase/roles?`$filter=name eq 'Intelligent Work Layer User'&`$select=roleid" -Headers $headers
     if ($existing.value.Count -gt 0) {
         $roleId = $existing.value[0].roleid
         Write-Host "  Role already exists: $roleId" -ForegroundColor Yellow
@@ -484,7 +484,7 @@ Write-Host "══════════════════════�
 Write-Host " SECURITY ROLES CONFIGURED" -ForegroundColor Green
 Write-Host "═══════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Role: Enterprise Work Assistant User" -ForegroundColor White
+Write-Host "Role: Intelligent Work Layer User" -ForegroundColor White
 Write-Host "Tables:" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_assistantcard (Assistant Cards)" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_senderprofile (Sender Profiles) — if provisioned" -ForegroundColor White
@@ -497,6 +497,6 @@ Write-Host "  - ${PublisherPrefix}_errorlog (Error Log) — if provisioned" -For
 Write-Host "Depth: Basic (User-level) — each user sees only their own rows" -ForegroundColor White
 Write-Host ""
 Write-Host "NEXT STEP:" -ForegroundColor Yellow
-Write-Host "  Assign this role to users who will use the Enterprise Work Assistant." -ForegroundColor White
+Write-Host "  Assign this role to users who will use the Intelligent Work Layer." -ForegroundColor White
 Write-Host "  Admin Center → Environments → Settings → Users → [User] → Manage Roles" -ForegroundColor Gray
 Write-Host ""

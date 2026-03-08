@@ -4,7 +4,7 @@
 
 This repo contains production-ready patterns for building autonomous agents on the Microsoft Copilot Studio + Power Platform stack. Each solution is a self-contained folder with prompts, schemas, provisioning scripts, and UI components.
 
-The primary solution is **Enterprise Work Assistant** (`enterprise-work-assistant/`), an intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses autonomously. The data flow is:
+The primary solution is **Intelligent Work Layer** (`enterprise-work-assistant/`), an intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses autonomously. The data flow is:
 
 1. **Power Automate Agent Flows** (10 main flows + 10 agent tool flows, deployed via `scripts/deploy-agent-flows.ps1`):
    - Signal triggers: Flow 1 (Email), Flow 2 (Teams), Flow 3 (Calendar) intercept signals, invoke the Copilot Studio agent via `ExecuteAgentAndWait` (Microsoft Copilot Studio connector), and write results to Dataverse
@@ -14,10 +14,14 @@ The primary solution is **Enterprise Work Assistant** (`enterprise-work-assistan
    - Orchestrator tools: 5 agent tool flows (QueryCards, QuerySenderProfile, UpdateCard, CreateCard, RefineDraft) for command bar actions
 2. **Copilot Studio Agent** — 17 agent prompts (10 original + 7 new: Router, Calendar, Task, Email Compose, Search, Validation, Delegation) organized in a MARL pipeline (Triage→Research→Scorer→DraftGen→Humanizer via Flow-level chaining). Shared prompt patterns in `prompts/patterns/`. Provisioned via `scripts/provision-copilot.ps1`.
 3. **Dataverse** (9 tables: `AssistantCards`, `SenderProfile`, `BriefingSchedule`, `ErrorLog`, `EpisodicMemory`, `SemanticKnowledge`, `UserPersona`, `SkillRegistry`, `SemanticEpisodic`) persists results with ownership-based row-level security
-4. **Canvas App + PCF React Dashboard** (PCF manifest v2.2.0, 213 tests across 16 suites) renders a single-pane-of-glass UI with WCAG AA compliance. The UX is grounded in cognitive science research (Cowan's 4±1 attention slots, Gloria Mark's 23-min interruption cost, Zeigarnik Effect, arXiv 2024 AI trust miscalibration, PMC visual fatigue). Key UX features: three-state confidence display (not percentages), 5-item focused queue with composite sort, quiet mode for focus protection, morning/EOD/meeting briefing variants via DayGlance component, warm-gray palette for sustained use, and `prefers-reduced-motion` support.
+4. **Canvas App + PCF React Dashboard** (PCF manifest v2.2.0, 233 tests across 16 suites) renders a single-pane-of-glass UI with WCAG AA compliance. The UX is grounded in cognitive science research (Cowan's 4±1 attention slots, Gloria Mark's 23-min interruption cost, Zeigarnik Effect, arXiv 2024 AI trust miscalibration, PMC visual fatigue). Key UX features: three-state confidence display (not percentages), 5-item focused queue with composite sort, quiet mode for focus protection, morning/EOD/meeting briefing variants via DayGlance component, warm-gray palette for sustained use, and `prefers-reduced-motion` support.
 5. **OneNote Integration** (optional, Phase 1 write-only) syncs meeting prep, daily briefings, and active to-dos to a structured OneNote notebook via Graph API. Gated by feature flag (`cr_onenoteenabled`) and per-user opt-out (`cr_onenoteoptout`). Uses group-scoped app registration, `{{PLACEHOLDER}}` HTML templates, and fail-safe error handling.
+6. **Work OS proposal models** in `src/models/` (9 TypeScript files + adapter layer) define the next-gen view-model types for scenarios, queues, messaging, briefings, reviews, activity, and Copilot interactions — with adapters that map legacy `AssistantCard` records to the new shapes.
+7. **JSON Schemas** in `schemas/workos/` (8 schema files) define the agent-to-UI contract for Work OS payloads.
+8. **Mock data** in `src/mock-data/` and `mock-api/` provide typed fixtures and JSON API payloads for offline development and testing.
+9. **Agent contract documentation** in `docs/agent-contract.md` specifies the Work OS agent-to-UI contract proposal.
 
-Design documents in `enterprise-work-assistant/docs/`: `architecture-overview.md` (system architecture and positioning), `architecture-enhancements.md` (MARL pipeline design), `learning-enhancements.md` (learning system design), `ux-enhancements.md` (UX improvements and WCAG AA compliance).
+Design documents in `enterprise-work-assistant/docs/`: `architecture-overview.md` (system architecture and positioning), `architecture-enhancements.md` (MARL pipeline design), `learning-enhancements.md` (learning system design), `ux-enhancements.md` (UX improvements and WCAG AA compliance), `agent-contract.md` (Work OS agent-to-UI contract proposal).
 
 The PCF component is a **virtual** React control (shares the platform React tree — does not bundle its own React). It uses a **dataset-type** binding where the Canvas app handles the Dataverse connection and passes pre-filtered records. The PCF emits output actions (send draft, dismiss, save draft, etc.) that the Canvas app handles via OnChange formulas.
 

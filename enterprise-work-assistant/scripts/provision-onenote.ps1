@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Provisions the OneNote notebook structure for the Enterprise Work Assistant.
+    Provisions the OneNote notebook structure for the Intelligent Work Layer.
 
 .DESCRIPTION
     Creates a dedicated Microsoft 365 Group (or uses an existing one), provisions a OneNote
@@ -25,10 +25,10 @@
     Dataverse publisher prefix for custom columns. Defaults to "cr".
 
 .PARAMETER GroupDisplayName
-    Display name for the M365 Group. Defaults to "Enterprise Work Assistant - OneNote".
+    Display name for the M365 Group. Defaults to "Intelligent Work Layer - OneNote".
 
 .PARAMETER NotebookDisplayName
-    Display name for the OneNote notebook. Defaults to "Work Assistant".
+    Display name for the OneNote notebook. Defaults to "Work Layer".
 
 .PARAMETER SkipGroupCreation
     If set, skips M365 Group creation and uses the GroupId parameter instead.
@@ -52,9 +52,9 @@ param(
 
     [string]$PublisherPrefix = "cr",
 
-    [string]$GroupDisplayName = "Enterprise Work Assistant - OneNote",
+    [string]$GroupDisplayName = "Intelligent Work Layer - OneNote",
 
-    [string]$NotebookDisplayName = "Work Assistant",
+    [string]$NotebookDisplayName = "Work Layer",
 
     [switch]$SkipGroupCreation,
 
@@ -98,7 +98,7 @@ if ($SkipGroupCreation) {
     } else {
         $groupParams = @{
             DisplayName     = $GroupDisplayName
-            Description     = "Dedicated group for Enterprise Work Assistant OneNote integration. Do not share externally."
+            Description     = "Dedicated group for Intelligent Work Layer OneNote integration. Do not share externally."
             MailEnabled     = $false
             MailNickname    = "ewa-onenote-$(Get-Random -Maximum 9999)"
             SecurityEnabled = $true

@@ -1,6 +1,6 @@
 # Canvas App Setup Guide
 
-This guide covers creating the Canvas Power App that serves as the user-facing dashboard for the Enterprise Work Assistant.
+This guide covers creating the Canvas Power App that serves as the user-facing dashboard for the Intelligent Work Layer.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ This guide covers creating the Canvas Power App that serves as the user-facing d
 
 1. Go to **make.powerapps.com** → select your environment
 2. Click **+ Create** → **Blank app** → **Blank canvas app**
-3. Name: `Enterprise Work Assistant`
+3. Name: `Intelligent Work Layer`
 4. Format: **Tablet** (recommended for dashboard layout)
 5. Click **Create**
 
@@ -286,7 +286,7 @@ LookUp(
 To embed the Copilot Studio agent for follow-up questions:
 
 1. Click **Insert** → **Copilot (preview)**
-2. Select the "Enterprise Work Assistant" agent
+2. Select the "Intelligent Work Layer" agent
 3. Position below or beside the dashboard
 
 This lets users ask follow-up questions about any card directly from the app.

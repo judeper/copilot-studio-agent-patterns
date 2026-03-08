@@ -2,7 +2,7 @@
 
 > **Status:** Design · **Version:** 0.1 · **Last Updated:** 2025-07-15
 >
-> This document specifies upcoming UX enhancements for the Enterprise Work Assistant
+> This document specifies upcoming UX enhancements for the Intelligent Work Layer
 > dashboard. Each section is self-contained and can be implemented independently unless
 > noted otherwise. Cross-references use Dataverse logical names (`cr_*`) and PCF output
 > conventions established in [canvas-app-setup.md](canvas-app-setup.md).
@@ -10,6 +10,8 @@
 ---
 
 ## Implemented UX Enhancements (v3.0)
+
+> The Work OS contract evolution roadmap (Slices 1–4) is documented in [`agent-contract.md` §8](agent-contract.md#8-ui-evolution-roadmap). These slices enable backward-compatible adoption of the proposed `WorkOsViewModel` contract into the shipped dashboard.
 
 > **Status:** Implemented · **Version:** 3.0
 >
@@ -124,7 +126,7 @@ cr_assistantcard row:
   cr_triggertype    = "ONBOARDING"
   cr_cardstatus     = "SETUP"
   cr_triagetier     = "FULL"
-  cr_itemsummary    = "Welcome to Work Assistant"
+  cr_itemsummary    = "Welcome to Work Layer"
   cr_priority       = "High"
   cr_cardoutcome    = "PENDING"
 ```
@@ -140,7 +142,7 @@ selected. Steps are tracked via local React state (not persisted until completio
 
 #### Step 1 — Welcome
 
-- Brief explanation of what Work Assistant does (3–4 sentences).
+- Brief explanation of what Work Layer does (3–4 sentences).
 - Input field: **Display name** (pre-populated from `Office365Users.MyProfile().DisplayName`).
 - "Next" button advances to Step 2.
 
@@ -288,7 +290,7 @@ on `cr_ownerid`.
 
 ### Purpose
 
-Auto-dismiss cards when the user has already handled the item outside EWA (e.g.,
+Auto-dismiss cards when the user has already handled the item outside IWL (e.g.,
 replied directly in Outlook). This eliminates the most common source of stale cards.
 
 > **Pattern:** Adapted from Email Productivity Agent Flow 2 (Response Detection).
@@ -487,7 +489,7 @@ value sets.
 ### Phase 2 — Replace Hardcoded Colors
 
 Systematically replace each hex value in `AssistantDashboard.css` and inline styles
-with the corresponding `var(--ewa-*)` token. Also update `EWA_COLORS` in
+with the corresponding `var(--iwl-*)` token. Also update `IWL_COLORS` in
 `constants.ts` to reference CSS custom properties via `getComputedStyle()` where
 values are needed in TypeScript.
 
@@ -593,10 +595,10 @@ value: `"dark"`). The PCF `AppWrapper` component applies `className="ewa-dark"` 
 ### Migration Checklist
 
 - [ ] Phase 1: Add `:root` custom properties block to `AssistantDashboard.css`
-- [ ] Phase 2: Replace all 48 hardcoded hex colors with `var(--ewa-*)` references
-- [ ] Phase 2: Update `EWA_COLORS` in `constants.ts` to use CSS variable fallback
+- [ ] Phase 2: Replace all 48 hardcoded hex colors with `var(--iwl-*)` references
+- [ ] Phase 2: Update `IWL_COLORS` in `constants.ts` to use CSS variable fallback
 - [ ] Phase 3: Add `@media (prefers-color-scheme: dark)` block
-- [ ] Phase 3: Add `.ewa-dark` class block
+- [ ] Phase 3: Add `.iwl-dark` class block
 - [ ] Phase 3: Add `themeOverride` input property handling in `AppWrapper`
 - [ ] Visual regression test: compare light theme before/after variable migration
 

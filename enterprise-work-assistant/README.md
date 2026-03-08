@@ -1,4 +1,4 @@
-# Enterprise Work Assistant
+# Intelligent Work Layer
 
 An intelligent work layer for Microsoft 365 that triages incoming emails, Teams messages, and calendar events — conducting automated research and preparing briefings and draft responses before the user ever has to ask.
 
@@ -70,7 +70,8 @@ enterprise-work-assistant/
 │   ├── deployment-guide.md       # End-to-end deployment checklist
 │   ├── learning-enhancements.md  # Learning system design (episodic memory, semantic knowledge, decay)
 │   ├── onenote-integration.md    # OneNote integration design (Phase 1-3)
-│   └── ux-enhancements.md        # UX improvements and WCAG AA compliance
+│   ├── ux-enhancements.md        # UX improvements and WCAG AA compliance
+│   └── agent-contract.md        # Work OS agent-to-UI contract proposal
 ├── prompts/
 │   ├── main-agent-system-prompt.md    # Main agent operating instructions
 │   ├── humanizer-agent-prompt.md      # Tone calibration prompt
@@ -115,12 +116,30 @@ enterprise-work-assistant/
 │   ├── semanticknowledge-table.json   # Semantic Knowledge table definition (knowledge graph)
 │   ├── senderprofile-table.json       # SenderProfile table definition
 │   ├── skillregistry-table.json       # Skill Registry table definition (extensible agent skills)
-│   └── userpersona-table.json         # User Persona table definition (communication preferences)
+│   ├── userpersona-table.json         # User Persona table definition (communication preferences)
+│   └── workos/                        # Work OS JSON Schemas (8 files — agent-to-UI contract)
+
 ├── templates/
 │   ├── onenote-meeting-prep.html      # OneNote meeting prep page template
 │   ├── onenote-daily-briefing.html    # OneNote daily briefing page template
 │   └── onenote-active-todos.html      # OneNote active to-dos page template
+├── mock-api/                          # JSON API payload fixtures for offline Work OS development
 └── src/                               # PCF React component + flow/topic definitions
+    ├── models/                        # Work OS proposal view-model types + adapter layer
+    │   ├── shared.ts                  # Common enums and base types
+    │   ├── scenario.ts                # Scenario/card view-model
+    │   ├── queue.ts                   # Queue and sorting types
+    │   ├── messaging.ts               # Messaging/draft types
+    │   ├── briefings.ts               # Briefing variant types
+    │   ├── review.ts                  # Review and approval types
+    │   ├── activity.ts                # Activity feed types
+    │   ├── copilot.ts                 # Copilot interaction types
+    │   ├── workOsViewModel.ts         # Top-level Work OS view-model
+    │   ├── adapters.ts                # Legacy AssistantCard → Work OS adapters
+    │   ├── index.ts                   # Barrel export
+    │   └── __tests__/
+    │       └── adapters.test.ts       # Adapter unit tests (32 tests)
+    ├── mock-data/                     # Typed Work OS fixtures for development
     ├── AssistantDashboard/
     │   ├── ControlManifest.Input.xml  # PCF manifest (virtual, dataset)
     │   ├── index.ts                   # PCF lifecycle entry point
@@ -239,7 +258,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 
 | Limitation | Mitigation |
 |------------|------------|
-| **POC Boundary — augments, does not replace** | This system augments Outlook and Teams — it does not replace them. Users continue to use their primary tools while EWA surfaces prepared intelligence in a companion dashboard. |
+| **POC Boundary — augments, does not replace** | This system augments Outlook and Teams — it does not replace them. Users continue to use their primary tools while IWL surfaces prepared intelligence in a companion dashboard. |
 | **POC only — not production-hardened** |Full ARIA/screen reader audit, i18n, optimistic concurrency, DataSet paging (100+ cards), and capacity planning are out of scope. See `.planning/ROADMAP.md` for deferred items. |
 | No automated data retention — AssistantCards table stores email subjects, sender PII, behavioral profiles, and communication drafts indefinitely with no cleanup flow | For organizations with data retention requirements, implement a scheduled Power Automate flow to delete/archive cards older than N days based on `cr_createdon`. See the Email Productivity Agent's Flow 5 for a 90-day cleanup reference pattern. |
 | English-only UI and prompts — the PCF component ships with only English localization (`1033.resx`) and all agent prompts are written in English | Non-English email and Teams content is processed correctly, but UI labels remain in English. Add additional `.resx` files for other locales and localize prompts as needed. |

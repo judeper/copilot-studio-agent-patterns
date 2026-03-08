@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "briefing-pack.schema.json",
+  "title": "BriefingPackModel",
+  "description": "A structured briefing pack for a meeting or daily briefing scenario.",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "timeLabel",
+    "summary",
+    "state",
+    "sections",
+    "primaryAction",
+    "sourceContext",
+    "producedBy"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "timeLabel": {
+      "type": "string",
+      "description": "Human-readable time label (e.g. '9:00 AM – 9:30 AM')."
+    },
+    "summary": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["Ready", "Briefed"]
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sectionType", "title", "content"],
+        "properties": {
+          "sectionType": {
+            "type": "string",
+            "enum": ["what_changed", "open_decisions", "talking_points", "risk", "context"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown or plain-text content for this section."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "primaryAction": {
+      "$ref": "shared-defs.schema.json#/$defs/PrimaryAction"
+    },
+    "secondaryActions": {
+      "type": "array",
+      "items": {
+        "$ref": "shared-defs.schema.json#/$defs/SecondaryAction"
+      }
+    },
+    "sourceContext": {
+      "$ref": "shared-defs.schema.json#/$defs/SourceContextRef"
+    },
+    "relatedEntities": {
+      "type": "array",
+      "items": {
+        "$ref": "shared-defs.schema.json#/$defs/RelatedEntityRef"
+      }
+    },
+    "producedBy": {
+      "$ref": "shared-defs.schema.json#/$defs/AgentProducerRef"
+    }
+  },
+  "additionalProperties": false
+}

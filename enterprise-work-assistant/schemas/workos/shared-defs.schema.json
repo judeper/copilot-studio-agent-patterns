@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "shared-defs.schema.json",
+  "title": "Work OS Shared Definitions",
+  "description": "Shared enums, value objects, and reusable definitions for the Work OS agent-to-UI contract.",
+  "$defs": {
+    "SourceSystem": {
+      "type": "string",
+      "enum": ["Outlook", "Teams", "Calendar", "Planner", "Files", "Web", "Internal"]
+    },
+    "PriorityLevel": {
+      "type": "string",
+      "enum": ["Critical", "High", "Medium", "Low"]
+    },
+    "WorkItemState": {
+      "type": "string",
+      "enum": ["Suggested", "Ready", "NeedsApproval", "InFocus", "Sent", "Briefed", "Completed", "Blocked", "Waiting"]
+    },
+    "AgentType": {
+      "type": "string",
+      "enum": ["triage", "planning", "briefing", "calendar", "research", "copilot_orchestrator"]
+    },
+    "SourceContextRef": {
+      "type": "object",
+      "required": ["sourceId", "sourceSystem"],
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "description": "Opaque identifier in the source system."
+        },
+        "sourceSystem": {
+          "$ref": "#/$defs/SourceSystem"
+        },
+        "deepLink": {
+          "type": "string",
+          "format": "uri",
+          "description": "Direct link back to the source item."
+        }
+      },
+      "additionalProperties": false
+    },
+    "RelatedEntityRef": {
+      "type": "object",
+      "required": ["entityType", "displayName"],
+      "properties": {
+        "entityType": {
+          "type": "string",
+          "enum": ["person", "meeting", "task", "customer", "file", "thread"]
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "entityId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentProducerRef": {
+      "type": "object",
+      "required": ["agentType", "promptVersion"],
+      "properties": {
+        "agentType": {
+          "$ref": "#/$defs/AgentType"
+        },
+        "promptVersion": {
+          "type": "string",
+          "description": "Semantic version of the prompt that produced this output."
+        },
+        "traceId": {
+          "type": "string",
+          "description": "Correlation ID for debugging and audit."
+        }
+      },
+      "additionalProperties": false
+    },
+    "GovernanceState": {
+      "type": "object",
+      "required": ["approvalState", "reviewability"],
+      "properties": {
+        "approvalState": {
+          "type": "string",
+          "enum": ["not_required", "pending", "approved", "rejected"]
+        },
+        "reviewability": {
+          "type": "string",
+          "enum": ["full_preview", "summary_preview", "no_preview"]
+        },
+        "approvedBy": {
+          "type": "string",
+          "description": "UPN or display name of the approver, when applicable."
+        },
+        "approvedAtUtc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PrimaryAction": {
+      "type": "object",
+      "required": ["actionType", "label"],
+      "properties": {
+        "actionType": {
+          "type": "string",
+          "enum": ["open_workbench", "approve_and_send", "open_briefing", "resume_focus", "generate_review", "open_source", "convert_to_work_packet"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable button label."
+        }
+      },
+      "additionalProperties": false
+    },
+    "SecondaryAction": {
+      "type": "object",
+      "required": ["actionType", "label"],
+      "properties": {
+        "actionType": {
+          "type": "string",
+          "enum": ["improve_tone", "pause", "capture_resume_marker", "generate_talking_points", "open_source", "rebuild_lane"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable button label."
+        }
+      },
+      "additionalProperties": false
+    },
+    "DraftArtifact": {
+      "type": "object",
+      "required": ["channel", "subject", "bodyHtml"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "enum": ["email", "teams"]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "bodyHtml": {
+          "type": "string",
+          "description": "HTML-formatted draft body."
+        },
+        "to": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cc": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "LaunchPoint": {
+      "type": "object",
+      "required": ["id", "label", "actionType"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "actionType": {
+          "type": "string",
+          "description": "Identifier for the action triggered by this launch point."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional icon name from the UI icon set."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
