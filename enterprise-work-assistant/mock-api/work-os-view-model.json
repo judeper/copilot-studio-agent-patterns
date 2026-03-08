@@ -1,0 +1,295 @@
+{
+  "schemaVersion": "1.0",
+  "session": {
+    "userId": "user@contoso.com",
+    "userDisplayName": "Demo User",
+    "tenantId": "00000000-0000-0000-0000-000000000000",
+    "locale": "en-US",
+    "timeZone": "America/New_York",
+    "generatedAtUtc": "2026-03-08T08:30:00Z"
+  },
+  "shell": {
+    "quietMode": true,
+    "allowedInterruptions": "critical_only",
+    "currentMoment": "morning_briefing",
+    "searchQuery": "",
+    "appliedFilters": [
+      "high-impact",
+      "next-2-hours",
+      "manager-and-customers"
+    ]
+  },
+  "scenario": {
+    "currentMoment": "morning_briefing",
+    "progressIndex": 0,
+    "moments": [
+      {
+        "id": "morning_briefing",
+        "label": "Morning briefing",
+        "timeLabel": "08:30 AM",
+        "eyebrow": "Start the day with clarity",
+        "title": "Your day is already organized before the first click",
+        "body": "The operating system assembles a calm morning briefing with priorities, reply-ready drafts, meeting prep, and protected focus windows before work begins.",
+        "heroMetric": "3 decisions ready",
+        "suggestedCopilotPrompt": "Summarize my day, highlight risks, and protect my best focus window.",
+        "status": "active"
+      },
+      {
+        "id": "protected_focus",
+        "label": "Protected focus mode",
+        "timeLabel": "09:05 AM",
+        "eyebrow": "Deep work in motion",
+        "title": "Quiet mode protects the work that actually moves the day",
+        "body": "Noncritical interruptions stay out. The system preserves resume markers, keeps only the next three actions visible, and surfaces escalation only when it truly matters.",
+        "heroMetric": "2 interruptions allowed",
+        "suggestedCopilotPrompt": "Keep me in flow, capture where I stop, and only allow critical interruptions.",
+        "status": "upcoming"
+      },
+      {
+        "id": "triage_interruption",
+        "label": "Triage interruption",
+        "timeLabel": "09:42 AM",
+        "eyebrow": "Interrupt only with purpose",
+        "title": "A critical thread breaks through with a prepared next action",
+        "body": "The interruption is not a raw notification. It arrives as a summarized decision card with rationale, confidence, and an editable draft that can be approved without context switching.",
+        "heroMetric": "1 SLA risk surfaced",
+        "suggestedCopilotPrompt": "Show me only the interruption that cannot wait and prepare the fastest safe response.",
+        "status": "upcoming"
+      },
+      {
+        "id": "meeting_briefing",
+        "label": "Meeting briefing pack",
+        "timeLabel": "10:45 AM",
+        "eyebrow": "Prepared context",
+        "title": "Walk into the meeting with context already assembled",
+        "body": "The operating system lowers context-switch cost by building a meeting pack with decisions, blockers, related messages, and suggested talking points before the meeting begins.",
+        "heroMetric": "Briefing pack ready",
+        "suggestedCopilotPrompt": "Prepare me for the next meeting with open questions, decisions, and talking points.",
+        "status": "upcoming"
+      },
+      {
+        "id": "end_of_day_review",
+        "label": "End-of-day review",
+        "timeLabel": "05:10 PM",
+        "eyebrow": "Close the loop",
+        "title": "The day ends with decisions captured and tomorrow already shaped",
+        "body": "The operating system closes open loops, records what moved, defers the right items into tomorrow\u2019s focus lane, and generates a concise narrative of progress and remaining risk.",
+        "heroMetric": "Tomorrow prepared",
+        "suggestedCopilotPrompt": "Summarize what moved, what is still open, and what belongs in tomorrow\u2019s focus block.",
+        "status": "upcoming"
+      }
+    ]
+  },
+  "queue": [
+    {
+      "id": "queue-approve-scope-reply",
+      "itemType": "draft_reply",
+      "title": "Approve customer scope reply",
+      "source": "Outlook",
+      "priority": "Critical",
+      "state": "NeedsApproval",
+      "reason": "Reply SLA is approaching and next week workshop scope is still unconfirmed.",
+      "expectedOutcome": "Unblocks workshop planning and protects customer confidence.",
+      "confidence": 93,
+      "estimatedEffort": "6 min",
+      "visibleFromMoment": "morning_briefing",
+      "action": {
+        "id": "act-approve-scope-reply",
+        "label": "Approve and send",
+        "actionType": "approve_and_send",
+        "requiresApproval": true,
+        "reversible": false
+      },
+      "governance": {
+        "approvalRequired": true,
+        "approvalState": "pending",
+        "reviewability": "full_preview",
+        "interventionAllowed": true,
+        "auditVisible": true,
+        "rationaleVisible": true
+      },
+      "sourceContext": [
+        {
+          "id": "outlook-thread-unum-scope",
+          "source": "Outlook",
+          "label": "UNUM follow-up on scope",
+          "deepLink": "msteams://m365/outlook/mail/unum-scope-thread",
+          "previewAvailable": true
+        }
+      ],
+      "relatedEntities": [
+        {
+          "id": "person-derek",
+          "entityType": "person",
+          "label": "Derek D'Amore"
+        }
+      ],
+      "updatedAtUtc": "2026-03-08T08:34:00Z",
+      "producedBy": {
+        "agentId": "triage-agent-01",
+        "agentName": "Communication Triage Agent",
+        "agentType": "triage",
+        "runId": "run-triage-1001"
+      }
+    },
+    {
+      "id": "queue-focus-blueprint",
+      "itemType": "focus_block",
+      "title": "Protect blueprint focus block",
+      "source": "Planner",
+      "priority": "High",
+      "state": "Suggested",
+      "reason": "The most valuable morning work is product-definition writing, and noncritical traffic should not fragment it.",
+      "expectedOutcome": "Preserves deep work and keeps the session resumable.",
+      "confidence": 94,
+      "estimatedEffort": "90 min",
+      "visibleFromMoment": "morning_briefing",
+      "action": {
+        "id": "act-resume-focus",
+        "label": "Resume focus",
+        "actionType": "resume_focus",
+        "requiresApproval": false,
+        "reversible": true
+      },
+      "governance": {
+        "approvalRequired": false,
+        "approvalState": "not_required",
+        "reviewability": "summary_preview",
+        "interventionAllowed": true,
+        "auditVisible": true,
+        "rationaleVisible": true
+      },
+      "updatedAtUtc": "2026-03-08T08:29:00Z",
+      "producedBy": {
+        "agentId": "planning-agent-01",
+        "agentName": "Planning Agent",
+        "agentType": "planning",
+        "runId": "run-plan-3001"
+      }
+    }
+  ],
+  "surfaces": {
+    "morningBriefing": {
+      "summary": "The day is front-loaded around one customer decision, one protected focus block, and one meeting that needs prep.",
+      "preparedItems": []
+    },
+    "focusLane": {
+      "id": "focus-blueprint-session",
+      "title": "Finalize Enterprise Work Assistant product blueprint",
+      "summary": "Open decisions, repository context, and the next three steps are already staged so you can resume without reconstructing the work.",
+      "focusWindow": "09:00 AM - 10:30 AM",
+      "interruptionsHeldCount": 3,
+      "unresolvedDependenciesCount": 1,
+      "resumeMarker": {
+        "title": "Resume marker",
+        "detail": "You last stopped after defining the five product pillars and still need to write the trust model section.",
+        "capturedAtUtc": "2026-03-08T09:12:00Z"
+      },
+      "nextSmallestStep": "Write the one-paragraph product definition before expanding the blueprint sections.",
+      "flowMemory": "When you return later, the operating system will reopen this exact work packet with the same next-step state.",
+      "primaryAction": {
+        "id": "act-resume-focus",
+        "label": "Resume work",
+        "actionType": "resume_focus",
+        "requiresApproval": false,
+        "reversible": true
+      },
+      "secondaryActions": [
+        {
+          "id": "act-capture-resume-marker",
+          "label": "Capture resume marker",
+          "actionType": "capture_resume_marker"
+        },
+        {
+          "id": "act-pause-focus",
+          "label": "Pause focus",
+          "actionType": "pause"
+        }
+      ]
+    }
+  },
+  "activities": [
+    {
+      "id": "activity-morning-summary",
+      "text": "Morning summary generated with focus window recommendation.",
+      "timeLabel": "08:29 AM",
+      "tone": "info",
+      "taskState": "completed",
+      "producedBy": {
+        "agentId": "copilot-orchestrator-01",
+        "agentName": "Work OS Orchestrator",
+        "agentType": "copilot_orchestrator",
+        "runId": "run-orch-0001"
+      }
+    }
+  ],
+  "copilot": {
+    "currentSuggestion": "Summarize what moved today, preserve the final decisions, and carry the right items into tomorrow\u2019s focus lane.",
+    "draftPrompt": "Prepare a concise close-of-day summary and identify the highest-value starting point for tomorrow.",
+    "starterPrompts": [
+      {
+        "id": "starter-summarize-morning",
+        "label": "Summarize what changed since this morning"
+      },
+      {
+        "id": "starter-convert-thread",
+        "label": "Convert the current thread into a work packet"
+      },
+      {
+        "id": "starter-prepare-meeting",
+        "label": "Prepare me for the next meeting"
+      },
+      {
+        "id": "starter-close-day",
+        "label": "Generate a sharper close-of-day summary"
+      }
+    ],
+    "contextualActions": [
+      {
+        "id": "ctx-summarize",
+        "label": "Summarize",
+        "actionType": "summarize"
+      },
+      {
+        "id": "ctx-prepare",
+        "label": "Prepare",
+        "actionType": "prepare"
+      },
+      {
+        "id": "ctx-plan",
+        "label": "Plan",
+        "actionType": "plan"
+      }
+    ]
+  },
+  "launchPoints": [
+    {
+      "id": "launch-outlook",
+      "source": "Outlook",
+      "label": "Open Outlook",
+      "deepLink": "msteams://m365/outlook",
+      "available": true
+    },
+    {
+      "id": "launch-teams",
+      "source": "Teams",
+      "label": "Open Teams",
+      "deepLink": "msteams://teams.microsoft.com",
+      "available": true
+    },
+    {
+      "id": "launch-calendar",
+      "source": "Calendar",
+      "label": "Open Calendar",
+      "deepLink": "msteams://m365/calendar",
+      "available": true
+    },
+    {
+      "id": "launch-planner",
+      "source": "Planner",
+      "label": "Open Planner",
+      "deepLink": "https://planner.cloud.microsoft/",
+      "available": true
+    }
+  ]
+}
