@@ -102,18 +102,23 @@ def _check_pilot_user_role(auth: TokenManager, config: dict) -> tuple[bool, str]
     if not pilot_email:
         return False, "lisa_taylor email not configured"
 
+    # Resolve actual UPN (wizard-suggested email may differ from Entra UPN)
+    from phases.security import _resolve_user_upn
+    real_upn = _resolve_user_upn(pilot_email, "Lisa Taylor")
+    lookup_email = real_upn or pilot_email
+
     resp = requests.get(
         f"{auth.org_url}/api/data/v9.2/systemusers",
         headers=auth.headers("dataverse"),
         params={
-            "$filter": f"internalemailaddress eq '{pilot_email}'",
+            "$filter": f"internalemailaddress eq '{lookup_email}'",
             "$select": "systemuserid",
         },
     )
     resp.raise_for_status()
     users = resp.json().get("value", [])
     if not users:
-        return False, f"User {pilot_email} not found"
+        return False, f"User {lookup_email} not found in environment"
 
     user_id = users[0]["systemuserid"]
 
@@ -162,7 +167,10 @@ def _check_flows(auth: TokenManager, _config: dict) -> tuple[bool, str]:
     flows = resp.json().get("value", [])
 
     found_names = {f["name"] for f in flows}
-    missing = [n for n in EXPECTED_FLOWS if n not in found_names]
+    missing = [
+        n for n in EXPECTED_FLOWS
+        if not any(fn.startswith(n) for fn in found_names)
+    ]
     inactive = [f["name"] for f in flows if f.get("statecode") != 1]
 
     if missing:
