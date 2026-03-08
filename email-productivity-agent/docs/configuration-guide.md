@@ -2,7 +2,7 @@
 
 This guide explains how to customize the Email Productivity Agent's behavior for your needs.
 
-> ⚠️ **Note:** The Canvas App for user-facing settings is planned for a future release. In the current version, administrators can configure settings directly via the **Dataverse maker portal** (Power Apps → Tables → Nudge Configuration) or a **model-driven app**. The instructions below describe the intended UI; use the Dataverse table editor as the interim alternative.
+> **Settings options:** Configure nudge settings via the **Teams Settings Card** (Flow 7), the **Canvas App** (see `docs/canvas-app-setup.md`), or directly in the **Dataverse maker portal** (Power Apps → Tables → Nudge Configuration).
 
 ---
 
