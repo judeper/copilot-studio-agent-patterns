@@ -45,9 +45,8 @@ describe("ConfidenceCalibration", () => {
 
             expect(screen.getByText("Confidence Accuracy")).toBeInTheDocument();
             expect(screen.getByText("90-100")).toBeInTheDocument();
-            expect(screen.getByText("70-89")).toBeInTheDocument();
-            expect(screen.getByText("40-69")).toBeInTheDocument();
-            expect(screen.getByText("0-39")).toBeInTheDocument();
+            expect(screen.getByText("60-89")).toBeInTheDocument();
+            expect(screen.getByText("0-59")).toBeInTheDocument();
         });
 
         it("calculates correct action rate percentages", () => {
@@ -281,9 +280,9 @@ describe("ConfidenceCalibration", () => {
             ];
             renderCalibration(cards);
 
-            // 90-100 bucket has data, other 3 buckets show "No data"
+            // 90-100 bucket has data, other 2 buckets show "No data"
             const noDataTexts = screen.getAllByText("No data");
-            expect(noDataTexts.length).toBe(3);
+            expect(noDataTexts.length).toBe(2);
         });
     });
 });

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Switch } from "@fluentui/react-components";
 import type { AssistantCard } from "./types";
 import { HEARTBEAT_TRIGGER_TYPES } from "./constants";
 
@@ -15,6 +16,7 @@ const SORT_CYCLE: SortMode[] = ["newest", "priority", "staleness"];
 export interface FilterBarProps {
     cards: AssistantCard[];
     onFilteredCards: (cards: AssistantCard[]) => void;
+    onQuietModeChange?: (quiet: boolean, heldCount: number) => void;
 }
 
 function computeCounts(cards: AssistantCard[]) {
@@ -51,9 +53,10 @@ function sortCards(cards: AssistantCard[], mode: SortMode): AssistantCard[] {
     return sorted;
 }
 
-export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards }) => {
+export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, onQuietModeChange }) => {
     const [activeChips, setActiveChips] = React.useState<Set<string>>(() => new Set(["all"]));
     const [sortMode, setSortMode] = React.useState<SortMode>("newest");
+    const [quietMode, setQuietMode] = React.useState(false);
 
     const counts = React.useMemo(() => computeCounts(cards), [cards]);
 
@@ -92,8 +95,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards }) 
                 return false;
             });
         }
+        // Quiet mode: filter out Medium-priority cards
+        let heldCount = 0;
+        if (quietMode) {
+            const before = filtered.length;
+            filtered = filtered.filter((c) => c.priority !== "Medium");
+            heldCount = before - filtered.length;
+        }
         onFilteredCards(sortCards(filtered, sortMode));
-    }, [cards, activeChips, sortMode, onFilteredCards]);
+        onQuietModeChange?.(quietMode, heldCount);
+    }, [cards, activeChips, sortMode, quietMode, onFilteredCards, onQuietModeChange]);
 
     const chips = [
         { key: "all", label: "All", count: cards.length },
@@ -123,6 +134,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards }) 
             >
                 {SORT_LABELS[sortMode]}
             </button>
+            <Switch
+                checked={quietMode}
+                onChange={(_ev, data) => setQuietMode(data.checked)}
+                label="Quiet"
+                style={{ marginLeft: "auto", flexShrink: 0 }}
+            />
         </div>
     );
 };

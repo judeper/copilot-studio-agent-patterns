@@ -6,6 +6,7 @@ import { CardDetail } from "./CardDetail";
 import { BriefingCard } from "./BriefingCard";
 import { CommandBar } from "./CommandBar";
 import { ConfidenceCalibration } from "./ConfidenceCalibration";
+import { DayGlance } from "./DayGlance";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { FilterBar } from "./FilterBar";
 import { StatusBar } from "./StatusBar";
@@ -119,10 +120,17 @@ export const App: React.FC<AppProps> = ({
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery", selectedCardId: null });
     const [localFilteredCards, setLocalFilteredCards] = React.useState<AssistantCard[] | null>(null);
+    const [quietMode, setQuietMode] = React.useState(false);
+    const [quietHeldCount, setQuietHeldCount] = React.useState(0);
     const prefersDark = usePrefersDarkMode();
 
     const handleFilteredCards = React.useCallback((filtered: AssistantCard[]) => {
         setLocalFilteredCards(filtered);
+    }, []);
+
+    const handleQuietModeChange = React.useCallback((quiet: boolean, heldCount: number) => {
+        setQuietMode(quiet);
+        setQuietHeldCount(heldCount);
     }, []);
     const focusRestoreTargetRef = React.useRef<FocusRestoreTarget | null>(null);
     const previousModeRef = React.useRef<ViewState["mode"]>(viewState.mode);
@@ -266,6 +274,18 @@ export const App: React.FC<AppProps> = ({
         (c) => c.card_status === "READY" && c.card_outcome === "PENDING",
     ).length;
 
+    // Derive next meeting time from CALENDAR_SCAN cards
+    const nextMeetingTime = React.useMemo(() => {
+        const now = Date.now();
+        const calendarCards = filteredCards
+            .filter((c) => c.trigger_type === "CALENDAR_SCAN" && c.card_outcome === "PENDING")
+            .map((c) => new Date(c.created_on))
+            .filter((d) => !isNaN(d.getTime()) && d.getTime() > now)
+            .sort((a, b) => a.getTime() - b.getTime());
+        if (calendarCards.length === 0) return null;
+        return calendarCards[0].toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }, [filteredCards]);
+
     return (
         <FluentProvider theme={prefersDark ? webDarkTheme : webLightTheme}>
             <div className="assistant-dashboard" style={{ width, height, display: "flex", flexDirection: "column" }}>
@@ -275,6 +295,9 @@ export const App: React.FC<AppProps> = ({
                     newCount={newCount}
                     memoryActive={cards.length > 0}
                     onSettingsClick={handleShowCalibration}
+                    quietMode={quietMode}
+                    quietHeldCount={quietHeldCount}
+                    nextMeetingTime={nextMeetingTime}
                 />
                 {viewState.mode === "calibration" ? (
                     /* Sprint 4: Confidence calibration analytics */
@@ -288,6 +311,7 @@ export const App: React.FC<AppProps> = ({
                         <FilterBar
                             cards={regularCards}
                             onFilteredCards={handleFilteredCards}
+                            onQuietModeChange={handleQuietModeChange}
                         />
                         {/* UIUX-04: Loading state when cards haven't arrived yet */}
                         {cards.length === 0 && !filterTriggerType && !filterPriority && !filterCardStatus && !filterTemporalHorizon ? (
@@ -302,6 +326,7 @@ export const App: React.FC<AppProps> = ({
                                         <BriefingCard
                                             key={bc.id}
                                             card={bc}
+                                            allCards={cards}
                                             onJumpToCard={handleJumpToCard}
                                             onDismissCard={onDismissCard}
                                             onUpdateSchedule={onUpdateSchedule}
@@ -311,12 +336,14 @@ export const App: React.FC<AppProps> = ({
                                         cards={localFilteredCards ?? regularCards}
                                         onSelectCard={handleSelectCard}
                                     />
+                                    <DayGlance cards={filteredCards} />
                                 </div>
                                 {detailOpen && selectedCard && (
                                     selectedCard.trigger_type === "DAILY_BRIEFING" ? (
                                         <div className="detail-panel">
                                             <BriefingCard
                                                 card={selectedCard}
+                                                allCards={cards}
                                                 onJumpToCard={handleJumpToCard}
                                                 onDismissCard={onDismissCard}
                                                 onUpdateSchedule={onUpdateSchedule}

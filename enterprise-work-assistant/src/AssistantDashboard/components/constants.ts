@@ -45,14 +45,20 @@ export const FEED_SECTIONS = {
 
 // Context-aware command chips
 export const DEFAULT_COMMAND_CHIPS = [
-    'What needs attention?',
-    'Show high priority',
-    'Daily briefing',
+    'What needs my attention now?',
+    'Prepare me for my next meeting',
+    'Summarize what changed today',
 ];
 
+export function getConfidenceState(score: number): { label: string; color: string; bgColor: string } {
+    if (score >= 90) return { label: "Ready to send", color: "#16a34a", bgColor: "#f0fdf4" };
+    if (score >= 60) return { label: "Review suggested", color: "#ca8a04", bgColor: "#fefce8" };
+    return { label: "Draft only", color: "#dc2626", bgColor: "#fef2f2" };
+}
+
 export const DETAIL_COMMAND_CHIPS = [
-    'Summarize this',
-    'Delegate to...',
-    'Remind me in 2h',
-    'Draft reply',
+    'Why is this important?',
+    'Improve this draft',
+    'Find related threads',
+    'Defer to tomorrow',
 ];

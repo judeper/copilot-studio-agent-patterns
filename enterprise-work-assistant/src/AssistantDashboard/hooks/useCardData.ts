@@ -91,6 +91,8 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
                     conversation_cluster_id: record.getValue("cr_conversationclusterid") as string | null,
                     source_signal_id: record.getValue("cr_sourcesignalid") as string | null,
                     hours_stale: typeof parsed.hours_stale === "number" ? parsed.hours_stale : null,
+                    // Phase A — Card Intelligence
+                    urgency_reason: typeof parsed.urgency_reason === "string" ? parsed.urgency_reason : undefined,
                 };
 
                 cards.push(card);
@@ -103,4 +105,21 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
 
         return cards;
     }, [dataset, version]);
+}
+
+const PRIORITY_WEIGHTS: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
+
+export function compositeSort(cards: AssistantCard[]): AssistantCard[] {
+    const hasConfidence = cards.some((c) => c.confidence_score !== null);
+    if (!hasConfidence) return cards;
+
+    return [...cards].sort((a, b) => {
+        const aPriority = PRIORITY_WEIGHTS[a.priority ?? ""] ?? 0;
+        const bPriority = PRIORITY_WEIGHTS[b.priority ?? ""] ?? 0;
+        const aConf = (a.confidence_score ?? 0) / 100;
+        const bConf = (b.confidence_score ?? 0) / 100;
+        const aScore = aPriority * 0.6 + aConf * 0.4;
+        const bScore = bPriority * 0.6 + bConf * 0.4;
+        return bScore - aScore;
+    });
 }

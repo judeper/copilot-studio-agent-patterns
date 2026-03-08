@@ -60,6 +60,11 @@ jest.mock('@fluentui/react-icons', () => ({
     ChevronRightRegular: () => <span data-testid="icon-chevron-right" />,
     CalendarRegular: () => <span data-testid="icon-calendar" />,
     ArrowRightRegular: () => <span data-testid="icon-arrow-right" />,
+    WeatherSunnyRegular: () => <span data-testid="icon-weather-sunny" />,
+    WeatherMoonRegular: () => <span data-testid="icon-weather-moon" />,
+    CheckmarkCircleRegular: () => <span data-testid="icon-checkmark-circle" />,
+    ChatBubblesQuestionRegular: () => <span data-testid="icon-chat-bubbles" />,
+    LightbulbRegular: () => <span data-testid="icon-lightbulb" />,
 }));
 
 describe('ScheduleConfig', () => {

@@ -25,7 +25,7 @@ describe('StatusBar', () => {
     it('displays the correct action count', () => {
         renderWithProviders(<StatusBar {...defaultProps} actionCount={12} />);
 
-        expect(screen.getByText('12 action items')).toBeInTheDocument();
+        expect(screen.getByText('12 decisions ready')).toBeInTheDocument();
     });
 
     it('sets aria-label with action count and new count', () => {
@@ -34,7 +34,7 @@ describe('StatusBar', () => {
         );
 
         expect(
-            screen.getByLabelText('7 action items, 3 new')
+            screen.getByLabelText('7 decisions ready, 3 new')
         ).toBeInTheDocument();
     });
 
@@ -90,7 +90,7 @@ describe('StatusBar', () => {
             <StatusBar {...defaultProps} actionCount={0} newCount={0} />
         );
 
-        expect(screen.getByText('0 action items')).toBeInTheDocument();
-        expect(screen.getByLabelText('0 action items, 0 new')).toBeInTheDocument();
+        expect(screen.getByText('0 decisions ready')).toBeInTheDocument();
+        expect(screen.getByLabelText('0 decisions ready, 0 new')).toBeInTheDocument();
     });
 });
