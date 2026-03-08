@@ -1,0 +1,173 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "user_aad_id": {
+                "type": "string",
+                "description": "Azure AD object ID of the user whose Planner tasks to search"
+              },
+              "query": {
+                "type": "string",
+                "description": "Search query to match against task titles and details"
+              },
+              "max_results": {
+                "type": "integer",
+                "description": "Maximum number of results to return (default 10)"
+              }
+            },
+            "required": [
+              "user_aad_id",
+              "query"
+            ]
+          }
+        },
+        "description": "Search Microsoft Planner tasks assigned to the user. Use for finding open tasks, task owners, due dates, or progress status."
+      }
+    },
+    "actions": {
+      "Scope_Search": {
+        "type": "Scope",
+        "actions": {
+          "Get_Planner_Tasks": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "GET",
+                "request/url": "https://graph.microsoft.com/v1.0/me/planner/tasks?$top=50"
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "runAfter": {}
+          },
+          "Filter_Tasks": {
+            "type": "Query",
+            "inputs": {
+              "from": "@body('Get_Planner_Tasks')?['value']",
+              "where": "@contains(toLower(item()?['title']), toLower(triggerBody()?['query']))"
+            },
+            "runAfter": {
+              "Get_Planner_Tasks": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_Results": {
+            "type": "Compose",
+            "inputs": {
+              "results": "@take(body('Filter_Tasks'), coalesce(triggerBody()?['max_results'], 10))",
+              "count": "@min(length(body('Filter_Tasks')), coalesce(triggerBody()?['max_results'], 10))"
+            },
+            "runAfter": {
+              "Filter_Tasks": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "results_json": "@{string(outputs('Compose_Results')?['results'])}",
+                "result_count": "@outputs('Compose_Results')?['count']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "results_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Results": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Get_Planner_Tasks failed",
+              "flow": "tool-search-planner-tasks",
+              "query": "@triggerBody()?['query']",
+              "timestamp": "@utcNow()"
+            },
+            "runAfter": {}
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "results_json": "[]",
+                "result_count": 0
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "results_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "SearchFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Search": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  }
+}

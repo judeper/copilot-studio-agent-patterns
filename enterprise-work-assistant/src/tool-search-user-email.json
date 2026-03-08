@@ -1,0 +1,161 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "user_aad_id": {
+                "type": "string",
+                "description": "Azure AD object ID of the user whose inbox to search"
+              },
+              "query": {
+                "type": "string",
+                "description": "Search query to find emails matching subject, body, or sender"
+              },
+              "max_results": {
+                "type": "integer",
+                "description": "Maximum number of results to return (default 10)"
+              }
+            },
+            "required": [
+              "user_aad_id",
+              "query"
+            ]
+          }
+        },
+        "description": "Search the user's Outlook inbox for emails matching a query. Use for finding email threads, sender info, or conversation history."
+      }
+    },
+    "actions": {
+      "Scope_Search": {
+        "type": "Scope",
+        "actions": {
+          "Search_User_Email": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "GET",
+                "request/url": "https://graph.microsoft.com/v1.0/me/messages?$search=\"@{triggerBody()?['query']}\"&$select=subject,from,receivedDateTime,bodyPreview,conversationId&$top=@{coalesce(triggerBody()?['max_results'], 10)}"
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "runAfter": {}
+          },
+          "Compose_Results": {
+            "type": "Compose",
+            "inputs": {
+              "results": "@body('Search_User_Email')?['value']",
+              "count": "@length(body('Search_User_Email')?['value'])"
+            },
+            "runAfter": {
+              "Search_User_Email": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "results_json": "@{string(outputs('Compose_Results')?['results'])}",
+                "result_count": "@outputs('Compose_Results')?['count']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "results_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Results": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Search_User_Email failed",
+              "flow": "tool-search-user-email",
+              "query": "@triggerBody()?['query']",
+              "timestamp": "@utcNow()"
+            },
+            "runAfter": {}
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "results_json": "[]",
+                "result_count": 0
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "results_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "SearchFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Search": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  }
+}

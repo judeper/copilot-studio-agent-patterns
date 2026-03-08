@@ -1,0 +1,51 @@
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: BRIEFING_INPUT
+    description: Serialized JSON string containing open_cards (max 50), stale_cards (24h+), today_calendar, sender_profiles, user_context, and current_datetime
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_DATETIME
+    description: Current UTC date/time in ISO 8601 format for temporal calculations
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnToolSelected
+  id: main
+  description: Generates a personalized daily work briefing for the user including prioritized action items, FYI items, and stale alerts
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Briefing
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: <briefing-model-guid>
+
+    - kind: SetVariable
+      id: setVariable_BriefingJSON
+      variable: Topic.BriefingJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Briefing
+
+inputType:
+  properties:
+    BRIEFING_INPUT:
+      displayName: BRIEFING_INPUT
+      description: Serialized JSON string containing open_cards (max 50), stale_cards (24h+), today_calendar, sender_profiles, user_context, and current_datetime
+      type: String
+
+    CURRENT_DATETIME:
+      displayName: CURRENT_DATETIME
+      description: Current UTC date/time in ISO 8601 format for temporal calculations
+      type: String
+
+outputType:
+  properties:
+    BriefingJSON:
+      displayName: BriefingJSON
+      description: Structured JSON conforming to briefing-output-schema.json with briefing_type, day_shape, action_items, fyi_items, stale_alerts
+      type: String

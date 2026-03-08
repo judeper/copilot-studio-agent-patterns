@@ -1,5 +1,11 @@
 # Enterprise Work Assistant Agent — Implementation Design
 
+> **⚠️ v3.0 Update (AI Council):** This document describes the original single-agent implementation design. The current architecture has evolved to a **MARL pipeline** (Triage→Research→Scorer→DraftGen→Humanizer) with **17 agent prompts**, **9 Dataverse tables** (including learning system tables), and a learning subsystem (Flows 11, 14–16). For the current architecture, see:
+> - [`enterprise-work-assistant/README.md`](enterprise-work-assistant/README.md) — updated file map and architecture
+> - [`enterprise-work-assistant/docs/architecture-enhancements.md`](enterprise-work-assistant/docs/architecture-enhancements.md) — MARL pipeline design
+> - [`enterprise-work-assistant/docs/learning-enhancements.md`](enterprise-work-assistant/docs/learning-enhancements.md) — learning system design
+> - [`enterprise-work-assistant/docs/ux-enhancements.md`](enterprise-work-assistant/docs/ux-enhancements.md) — UX improvements and WCAG AA compliance
+
 This document provides the high-level steps required to implement the Enterprise Work Assistant Agent as described in the system prompt specification. Each section maps to the platform components within Microsoft Copilot Studio, Power Automate, Dataverse, and Power Apps (Canvas).
 
 ***

@@ -1,0 +1,154 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "sender_email": {
+                "type": "string",
+                "description": "Email address of the sender to look up"
+              }
+            },
+            "required": ["sender_email"]
+          }
+        },
+        "description": "Look up sender intelligence profile including response rates, categories, and interaction history."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Get_Sender_Profile": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_senderprofiles",
+                "$filter": "cr_senderemail eq '@{triggerBody()?['sender_email']}'",
+                "$top": 1,
+                "$select": "cr_senderprofilesid,cr_senderemail,cr_senderdisplayname,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_lastsignaldate,cr_sendercategory,cr_isinternal,cr_dismisscount,cr_avgeditdistance,cr_responserate,cr_dismissrate"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            }
+          },
+          "Condition_Profile_Found": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('Get_Sender_Profile')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Compose_Found_Profile": {
+                "type": "Compose",
+                "inputs": {
+                  "found": true,
+                  "sender_email": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_senderemail']",
+                  "sender_display_name": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_senderdisplayname']",
+                  "signal_count": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_signalcount']",
+                  "response_count": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_responsecount']",
+                  "avg_response_hours": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_avgresponsehours']",
+                  "last_signal_date": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_lastsignaldate']",
+                  "sender_category": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_sendercategory']",
+                  "is_internal": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_isinternal']",
+                  "dismiss_count": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_dismisscount']",
+                  "avg_edit_distance": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_avgeditdistance']",
+                  "response_rate": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_responserate']",
+                  "dismiss_rate": "@first(outputs('Get_Sender_Profile')?['body/value'])?['cr_dismissrate']"
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Compose_Not_Found": {
+                  "type": "Compose",
+                  "inputs": {
+                    "found": false,
+                    "sender_email": "@{triggerBody()?['sender_email']}"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Get_Sender_Profile": ["Succeeded"]
+            }
+          },
+          "Compose_Final_Profile": {
+            "type": "Compose",
+            "inputs": "@coalesce(outputs('Compose_Found_Profile'), outputs('Compose_Not_Found'))",
+            "runAfter": {
+              "Condition_Profile_Found": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "profile_json": "@{string(outputs('Compose_Final_Profile'))}",
+                "found": "@outputs('Compose_Final_Profile')?['found']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "profile_json": {
+                    "type": "string",
+                    "description": "JSON object with sender profile data"
+                  },
+                  "found": {
+                    "type": "boolean",
+                    "description": "Whether a profile was found for the sender"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Final_Profile": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Tool error: @{result('Scope_Main')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "ToolError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

@@ -32,6 +32,7 @@ function renderApp(overrides: Partial<React.ComponentProps<typeof App>> = {}) {
         onJumpToCard: jest.fn(),
         onExecuteCommand: jest.fn(),
         onSaveDraft: jest.fn(),
+        onUpdateSchedule: jest.fn(),
         orchestratorResponse: null,
         isProcessing: false,
     };
@@ -156,6 +157,7 @@ describe('App view state navigation', () => {
                 onJumpToCard={jest.fn()}
                 onExecuteCommand={jest.fn()}
                 onSaveDraft={jest.fn()}
+                onUpdateSchedule={jest.fn()}
                 orchestratorResponse={null}
                 isProcessing={false}
             />
@@ -181,6 +183,7 @@ describe('App view state navigation', () => {
                 onJumpToCard={jest.fn()}
                 onExecuteCommand={jest.fn()}
                 onSaveDraft={jest.fn()}
+                onUpdateSchedule={jest.fn()}
                 orchestratorResponse={null}
                 isProcessing={false}
             />
