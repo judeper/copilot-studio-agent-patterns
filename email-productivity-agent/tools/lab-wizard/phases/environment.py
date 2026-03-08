@@ -211,6 +211,44 @@ def _dv_post(auth: Any, org_url: str, path: str, body: dict, extra_headers: dict
     return requests.post(f"{org_url}/api/data/v9.2/{path}", headers=headers, json=body)
 
 
+def _dv_post_with_retry(
+    auth: Any, org_url: str, path: str, body: dict,
+    extra_headers: dict | None = None, max_retries: int = 5, base_delay: int = 10,
+) -> requests.Response:
+    """POST with retry for transient customization-lock errors (400/429)."""
+    for attempt in range(max_retries):
+        resp = _dv_post(auth, org_url, path, body, extra_headers)
+        if resp.status_code in (201, 204, 409):
+            return resp
+        # Retry on customization lock or unexpected errors
+        error_text = resp.text or ""
+        is_retryable = (
+            resp.status_code == 429
+            or "EntityCustomization" in error_text
+            or (resp.status_code == 400 and "0x80040216" in error_text)
+        )
+        if is_retryable and attempt < max_retries - 1:
+            delay = base_delay * (attempt + 1)
+            console.print(f"    [dim]⏳ Customization in progress, retrying in {delay}s… (attempt {attempt + 2}/{max_retries})[/dim]")
+            time.sleep(delay)
+            continue
+        return resp
+    return resp
+
+
+def _wait_for_table_ready(auth: Any, org_url: str, logical_name: str, timeout: int = 90):
+    """Poll until a newly created table is queryable for column additions."""
+    start = time.time()
+    while time.time() - start < timeout:
+        resp = _dv_get(auth, org_url, f"EntityDefinitions(LogicalName='{logical_name}')?$select=LogicalName")
+        if resp.status_code == 200:
+            # Give the background customization job extra time to fully settle
+            time.sleep(10)
+            return
+        time.sleep(5)
+    console.print(f"    [yellow]⚠ Table readiness check timed out ({timeout}s) — proceeding anyway[/yellow]")
+
+
 # ── Step 1: Environment via PAC CLI ────────────────────────────────────
 
 def _create_environment(config: dict) -> tuple[str, str]:
@@ -448,21 +486,22 @@ def _create_tables(auth: Any, org_url: str, prefix: str):
             }
             resp = _dv_post(auth, org_url, "EntityDefinitions", body, solution_header)
             if resp.status_code in (201, 204):
-                console.print(f"    [green]✅ Table created[/green]")
+                console.print(f"    [green]✅ Table created — waiting for customization to complete…[/green]")
+                _wait_for_table_ready(auth, org_url, logical)
             elif resp.status_code == 409:
                 console.print(f"    [dim]Table already exists (409)[/dim]")
             else:
                 console.print(f"    [red]❌ Failed ({resp.status_code}): {resp.text[:200]}[/red]")
                 continue
 
-        # Create columns
+        # Create columns (with retry for customization race conditions)
         for col in tdef["columns"]:
             col_logical = col["SchemaName"].lower()
             if _column_exists(auth, org_url, logical, col_logical):
                 console.print(f"    [dim]Column {col_logical} exists[/dim]")
                 continue
 
-            resp = _dv_post(
+            resp = _dv_post_with_retry(
                 auth, org_url,
                 f"EntityDefinitions(LogicalName='{logical}')/Attributes",
                 col, solution_header,
