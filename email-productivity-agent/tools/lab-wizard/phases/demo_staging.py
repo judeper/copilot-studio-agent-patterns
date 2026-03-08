@@ -1,26 +1,37 @@
-"""Demo staging — sends demo emails and stages snooze scenario via Graph API."""
+"""Demo staging - sends demo emails and stages snooze scenario via Graph API.
 
+Uses a bootstrapped Entra app registration with Mail.ReadWrite application
+permission to create drafts in Lisa Taylor's mailbox.  The bootstrap runs
+once (interactive admin consent) and subsequent runs are fully silent.
+"""
+
+import json
 import time
+from pathlib import Path
+
 import msal
 import requests
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Confirm
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from auth import TokenManager, AZURE_CLI_CLIENT_ID
+from auth import TokenManager
 
 console = Console()
+
+MAIL_APP_CONFIG_FILE = "epa-mail-app.json"
 
 DEMO_EMAILS = [
     {
         "recipient_key": "omar_bennett",
         "label": "Omar Bennett (NUDGE target)",
-        "subject": "Q2 Headcount Request — Department Approval Needed",
+        "subject": "Q2 Headcount Request - Department Approval Needed",
         "body": (
             "<p>Hi Omar,</p>"
             "<p>I'd like to move forward with the Q2 headcount request for the Operations team. "
-            "We discussed adding two FTEs — one for IT support and one for the finance compliance project.</p>"
+            "We discussed adding two FTEs - one for IT support and one for the finance compliance project.</p>"
             "<p>Could you confirm whether the budget allocation has been approved on your end? "
             "I need your sign-off before I can submit the requisition to HR.</p>"
             "<p><strong>Please let me know by end of week.</strong></p>"
@@ -30,11 +41,11 @@ DEMO_EMAILS = [
     {
         "recipient_key": "hadar_caspit",
         "label": "Hadar Caspit (SNOOZE target)",
-        "subject": "Q1 Budget Variance — Please Review by Friday",
+        "subject": "Q1 Budget Variance - Please Review by Friday",
         "body": (
             "<p>Hi Hadar,</p>"
             "<p>I've prepared the Q1 budget variance report. There are a few line items in the "
-            "marketing allocation that look off — could you review and let me know if those "
+            "marketing allocation that look off - could you review and let me know if those "
             "numbers are correct?</p>"
             "<p>I'd like to finalize this before the monthly review.</p>"
             "<p>Thanks,<br>Lisa</p>"
@@ -43,11 +54,11 @@ DEMO_EMAILS = [
     {
         "recipient_key": "will_beringer",
         "label": "Will Beringer (SKIP/FYI target)",
-        "subject": "FYI: Updated IT Policy — No Action Needed",
+        "subject": "FYI: Updated IT Policy - No Action Needed",
         "body": (
             "<p>Hi Will,</p>"
             "<p>Just sharing the updated IT security policy document for your reference. "
-            "No action needed on your end — this is purely informational.</p>"
+            "No action needed on your end - this is purely informational.</p>"
             "<p>The changes mainly affect the VPN configuration for remote workers. "
             "I've already coordinated with the vendor.</p>"
             "<p>Just keeping you in the loop.</p>"
@@ -59,7 +70,7 @@ DEMO_EMAILS = [
 SNOOZE_INSTRUCTIONS = (
     "[bold cyan]Manual Snooze Staging Steps[/bold cyan]\n\n"
     "[bold]1.[/bold] Wait for Flow 2 (Response Detection) to run its scheduled check\n"
-    "   — or manually trigger it from the Power Automate portal.\n\n"
+    "   - or manually trigger it from the Power Automate portal.\n\n"
     "[bold]2.[/bold] In Teams, find the nudge card for [cyan]Hadar Caspit[/cyan]'s email\n"
     "   and click [bold yellow]Snooze 2 Days[/bold yellow].\n\n"
     "[bold]3.[/bold] In Outlook (as Lisa), move Hadar's original email to the\n"
@@ -67,95 +78,291 @@ SNOOZE_INSTRUCTIONS = (
     "[bold]4.[/bold] Wait ~20 minutes, then manually trigger [bold]Flow 3[/bold]\n"
     "   (Snooze Detection) to verify the snoozed record is created.\n\n"
     "[bold]5.[/bold] Prepare Hadar's delayed reply email for the unsnooze demo:\n"
-    "   — Log in as Hadar and reply to Lisa's Q1 Budget Variance email."
+    "   - Log in as Hadar and reply to Lisa's Q1 Budget Variance email."
 )
 
+PERSONA_DISPLAY_NAMES = {
+    "lisa_taylor": "Lisa Taylor",
+    "omar_bennett": "Omar Bennett",
+    "hadar_caspit": "Hadar Caspit",
+    "will_beringer": "William Beringer",
+    "sonia_rees": "Sonia Rees",
+}
 
-def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
-    """Get a Graph token that can send mail as Lisa Taylor.
 
-    First tries the admin's existing az CLI token with /users/{id}/sendMail
-    (requires Mail.Send application permission). If that fails, falls back
-    to device-code login as Lisa directly.
+# ---------------------------------------------------------------------------
+# Mail app bootstrap (Solution B - one-time Entra app registration)
+# ---------------------------------------------------------------------------
+
+def _load_mail_app_config() -> dict | None:
+    path = Path(MAIL_APP_CONFIG_FILE)
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    return None
+
+
+def _save_mail_app_config(cfg: dict):
+    Path(MAIL_APP_CONFIG_FILE).write_text(
+        json.dumps(cfg, indent=2), encoding="utf-8"
+    )
+
+
+def _bootstrap_mail_app(tenant_id: str) -> dict | None:
+    """Create a one-time Entra app registration with Mail.ReadWrite permission.
+
+    Uses the admin's az CLI session to call Microsoft Graph and:
+    1. Create an app registration (DemoLabMailBot)
+    2. Create a service principal
+    3. Assign Mail.ReadWrite application permission
+    4. Admin-consent the permission
+    5. Create a client secret
+    6. Save credentials to epa-mail-app.json
     """
     from phases import resolve_cli
     import shutil
+
+    console.print(Panel(
+        "[bold cyan]One-Time Mail App Bootstrap[/bold cyan]\n\n"
+        "Creating an Entra app registration with [bold]Mail.ReadWrite[/bold]\n"
+        "application permission. This allows the wizard to create email\n"
+        "drafts in Lisa Taylor's mailbox without interactive sign-in.\n\n"
+        "[dim]This only runs once - credentials are saved for future use.[/dim]",
+        title="🔧 Mail App Setup",
+        border_style="cyan",
+    ))
 
     az_path = shutil.which("az")
     if not az_path:
         console.print("[red]Azure CLI not found.[/red]")
         return None
 
-    # Try the current az session's Graph token (admin)
-    token_result = resolve_cli(
-        ["az", "account", "get-access-token",
-         "--resource", "https://graph.microsoft.com",
-         "--query", "accessToken", "-o", "tsv"],
+    # Step 1: Create app registration
+    console.print("  [dim]Creating app registration…[/dim]")
+    result = resolve_cli(
+        [az_path, "ad", "app", "create",
+         "--display-name", "EPA-DemoLab-MailBot",
+         "--sign-in-audience", "AzureADMyOrg",
+         "--query", "{appId:appId, id:id}",
+         "-o", "json"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if result.returncode != 0:
+        console.print(f"[red]App creation failed: {(result.stderr or result.stdout or '')[:200]}[/red]")
+        return None
+
+    app_info = json.loads(result.stdout)
+    app_id = app_info["appId"]
+    app_object_id = app_info["id"]
+    console.print(f"  [green]App created: {app_id}[/green]")
+
+    # Step 2: Create service principal
+    console.print("  [dim]Creating service principal…[/dim]")
+    sp_result = resolve_cli(
+        [az_path, "ad", "sp", "create", "--id", app_id,
+         "--query", "id", "-o", "tsv"],
+        capture_output=True, text=True, timeout=30,
+    )
+    sp_id = sp_result.stdout.strip() if sp_result.returncode == 0 else ""
+
+    if not sp_id:
+        # SP may already exist
+        sp_lookup = resolve_cli(
+            [az_path, "ad", "sp", "show", "--id", app_id,
+             "--query", "id", "-o", "tsv"],
+            capture_output=True, text=True, timeout=15,
+        )
+        sp_id = sp_lookup.stdout.strip()
+
+    if not sp_id:
+        console.print("[red]Could not create/find service principal.[/red]")
+        return None
+    console.print(f"  [green]Service principal: {sp_id}[/green]")
+
+    # Step 3: Find Graph SP and Mail.ReadWrite app role
+    console.print("  [dim]Looking up Mail.ReadWrite permission…[/dim]")
+    graph_sp_result = resolve_cli(
+        [az_path, "ad", "sp", "list",
+         "--filter", "appId eq '00000003-0000-0000-c000-000000000000'",
+         "--query", "[0].{id:id, appRoles:appRoles}",
+         "-o", "json"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if graph_sp_result.returncode != 0:
+        console.print("[red]Could not find Microsoft Graph service principal.[/red]")
+        return None
+
+    graph_data = json.loads(graph_sp_result.stdout)
+    graph_sp_id = graph_data["id"]
+    mail_role_id = None
+    for role in graph_data.get("appRoles", []):
+        if role.get("value") == "Mail.ReadWrite":
+            mail_role_id = role["id"]
+            break
+
+    if not mail_role_id:
+        console.print("[red]Mail.ReadWrite app role not found on Graph SP.[/red]")
+        return None
+
+    # Step 4: Assign the permission + admin consent
+    console.print("  [dim]Assigning Mail.ReadWrite and granting admin consent…[/dim]")
+
+    # Add the permission to the app's requiredResourceAccess
+    resolve_cli(
+        [az_path, "ad", "app", "permission", "add",
+         "--id", app_id,
+         "--api", "00000003-0000-0000-c000-000000000000",
+         "--api-permissions", f"{mail_role_id}=Role"],
         capture_output=True, text=True, timeout=30,
     )
 
-    if token_result.returncode == 0 and token_result.stdout.strip():
-        token = token_result.stdout.strip()
-        console.print("[green]✅ Graph token acquired from current session[/green]\n")
-        return token
+    # Grant admin consent
+    consent_result = resolve_cli(
+        [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
+        capture_output=True, text=True, timeout=60,
+    )
+    if consent_result.returncode != 0:
+        console.print(f"  [yellow]Admin consent may need a moment to propagate…[/yellow]")
+        time.sleep(10)
+        # Retry once
+        resolve_cli(
+            [az_path, "ad", "app", "permission", "admin-consent", "--id", app_id],
+            capture_output=True, text=True, timeout=60,
+        )
 
-    console.print("[red]Could not acquire Graph token. Run: az login[/red]")
-    return None
+    console.print("  [green]Mail.ReadWrite permission granted[/green]")
 
-
-def _resolve_lisa_user_id(graph_token: str) -> str | None:
-    """Look up Lisa Taylor's Graph user ID."""
-    from phases.security import _resolve_user_upn
-
-    lisa_upn = _resolve_user_upn("lisataylor@placeholder", "Lisa Taylor")
-    if not lisa_upn:
+    # Step 5: Create client secret
+    console.print("  [dim]Creating client secret…[/dim]")
+    secret_result = resolve_cli(
+        [az_path, "ad", "app", "credential", "reset",
+         "--id", app_id,
+         "--display-name", "EPA-DemoLab-Secret",
+         "--years", "1",
+         "--query", "password",
+         "-o", "tsv"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if secret_result.returncode != 0 or not secret_result.stdout.strip():
+        console.print("[red]Could not create client secret.[/red]")
         return None
 
-    resp = requests.get(
-        f"https://graph.microsoft.com/v1.0/users/{lisa_upn}?$select=id",
-        headers={"Authorization": f"Bearer {graph_token}"},
-        timeout=15,
+    client_secret = secret_result.stdout.strip()
+    console.print("  [green]Client secret created[/green]")
+
+    # Step 6: Save config
+    mail_config = {
+        "client_id": app_id,
+        "client_secret": client_secret,
+        "tenant_id": tenant_id,
+        "app_object_id": app_object_id,
+        "service_principal_id": sp_id,
+    }
+    _save_mail_app_config(mail_config)
+    console.print(f"  [green]Credentials saved to {MAIL_APP_CONFIG_FILE}[/green]\n")
+
+    return mail_config
+
+
+# ---------------------------------------------------------------------------
+# Token acquisition via bootstrapped app
+# ---------------------------------------------------------------------------
+
+def _get_mail_token(mail_config: dict) -> str | None:
+    """Acquire a Graph token using client credentials (silent, no user interaction)."""
+    app = msal.ConfidentialClientApplication(
+        client_id=mail_config["client_id"],
+        client_credential=mail_config["client_secret"],
+        authority=f"https://login.microsoftonline.com/{mail_config['tenant_id']}",
+    )
+    result = app.acquire_token_for_client(
+        scopes=["https://graph.microsoft.com/.default"]
+    )
+    if "access_token" in result:
+        return result["access_token"]
+    console.print(f"[red]Token error: {result.get('error_description', '?')}[/red]")
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Email helpers
+# ---------------------------------------------------------------------------
+
+def _resolve_lisa_upn() -> str | None:
+    from phases.security import _resolve_user_upn
+    return _resolve_user_upn("lisataylor@placeholder", "Lisa Taylor")
+
+
+def _create_draft(token: str, lisa_upn: str, to_address: str,
+                  subject: str, body_html: str) -> bool:
+    """Create a draft email in Lisa's mailbox via Graph application permission."""
+    payload = {
+        "subject": subject,
+        "body": {"contentType": "HTML", "content": body_html},
+        "toRecipients": [{"emailAddress": {"address": to_address}}],
+    }
+    resp = requests.post(
+        f"https://graph.microsoft.com/v1.0/users/{lisa_upn}/messages",
+        json=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        timeout=30,
     )
     if resp.ok:
-        return resp.json().get("id")
-    return None
-    return None
+        return True
+    console.print(f"    [dim]Graph error {resp.status_code}: {resp.text[:200]}[/dim]")
+    return False
 
 
-def _send_email(graph_token: str, from_user_id: str, to_address: str, subject: str, body_html: str) -> bool:
-    """Send an email via Graph API using /users/{id}/sendMail (application permission)
-    with fallback to /me/sendMail (delegated permission)."""
-    payload = {
-        "message": {
-            "subject": subject,
-            "body": {"contentType": "HTML", "content": body_html},
-            "toRecipients": [{"emailAddress": {"address": to_address}}],
-        },
-        "saveToSentItems": True,
-    }
-    headers = {
-        "Authorization": f"Bearer {graph_token}",
-        "Content-Type": "application/json",
-    }
-
-    # Try application-level send via /users/{id}/sendMail
-    if from_user_id:
-        resp = requests.post(
-            f"https://graph.microsoft.com/v1.0/users/{from_user_id}/sendMail",
-            json=payload, headers=headers, timeout=30,
-        )
-        if resp.status_code == 202:
-            return True
-        console.print(f"    [dim]/users send: {resp.status_code} — trying /me fallback…[/dim]")
-
-    # Fallback to /me/sendMail (delegated)
+def _send_draft(token: str, lisa_upn: str, message_id: str) -> bool:
+    """Send an existing draft from Lisa's mailbox."""
     resp = requests.post(
-        "https://graph.microsoft.com/v1.0/me/sendMail",
-        json=payload, headers=headers, timeout=30,
+        f"https://graph.microsoft.com/v1.0/users/{lisa_upn}/messages/{message_id}/send",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=30,
+    )
+    return resp.status_code == 202
+
+
+def _create_and_send(token: str, lisa_upn: str, to_address: str,
+                     subject: str, body_html: str) -> bool:
+    """Create a draft then send it (two-step to land in Sent Items)."""
+    payload = {
+        "subject": subject,
+        "body": {"contentType": "HTML", "content": body_html},
+        "toRecipients": [{"emailAddress": {"address": to_address}}],
+    }
+    # Create draft
+    resp = requests.post(
+        f"https://graph.microsoft.com/v1.0/users/{lisa_upn}/messages",
+        json=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        timeout=30,
     )
     if not resp.ok:
-        console.print(f"    [dim]Graph error {resp.status_code}: {resp.text[:200]}[/dim]")
-    return resp.status_code == 202
+        console.print(f"    [dim]Draft creation failed: {resp.status_code} {resp.text[:200]}[/dim]")
+        return False
+
+    msg_id = resp.json().get("id", "")
+
+    # Send the draft
+    send_resp = requests.post(
+        f"https://graph.microsoft.com/v1.0/users/{lisa_upn}/messages/{msg_id}/send",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=30,
+    )
+    if send_resp.status_code == 202:
+        return True
+
+    console.print(f"    [dim]Send failed: {send_resp.status_code} {send_resp.text[:200]}[/dim]")
+    return False
 
 
 def _verify_tracking(auth: TokenManager, config: dict) -> bool:
@@ -163,7 +370,7 @@ def _verify_tracking(auth: TokenManager, config: dict) -> bool:
     prefix = config.get("publisher_prefix", "cr")
     org_url = config.get("org_url", "")
     if not org_url:
-        console.print("[yellow]⚠ org_url not set — skipping tracking verification.[/yellow]")
+        console.print("[yellow]org_url not set - skipping tracking verification.[/yellow]")
         return False
 
     url = (
@@ -175,12 +382,12 @@ def _verify_tracking(auth: TokenManager, config: dict) -> bool:
         resp = requests.get(url, headers=auth.headers("dataverse"), timeout=30)
         resp.raise_for_status()
     except requests.RequestException as exc:
-        console.print(f"[yellow]⚠ Could not query tracking table: {exc}[/yellow]")
+        console.print(f"[yellow]Could not query tracking table: {exc}[/yellow]")
         return False
 
     records = resp.json().get("value", [])
     if not records:
-        console.print("[yellow]No tracking records found yet — Flow 1 may still be processing.[/yellow]")
+        console.print("[yellow]No tracking records found yet - Flow 1 may still be processing.[/yellow]")
         return False
 
     table = Table(title="Follow-Up Tracking Records", border_style="cyan")
@@ -188,12 +395,16 @@ def _verify_tracking(auth: TokenManager, config: dict) -> bool:
     table.add_column("Subject", style="green")
     for rec in records:
         table.add_row(
-            rec.get(f"{prefix}_recipientemail", "—"),
-            rec.get(f"{prefix}_originalsubject", "—"),
+            rec.get(f"{prefix}_recipientemail", "-"),
+            rec.get(f"{prefix}_originalsubject", "-"),
         )
     console.print(table)
     return True
 
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
 
 def stage_demo(auth: TokenManager, config: dict) -> bool:
     """Send demo emails from Lisa Taylor's account and stage the snooze scenario."""
@@ -201,96 +412,87 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
         "[bold cyan]Demo Staging[/bold cyan]\n\n"
         "This phase sends three demo emails from Lisa Taylor's mailbox\n"
         "and verifies that Flow 1 (Sent Items Tracker) picks them up.",
-        title="📧 Phase 9 — Demo Staging",
+        title="Phase 9 - Demo Staging",
         border_style="cyan",
     ))
 
-    # --- Step 1: Get Graph token and resolve Lisa's user ID ---------------
-    graph_token = _acquire_lisa_graph_token(config["tenant_id"])
-    if not graph_token:
-        console.print("[red]❌ Could not obtain Graph token.[/red]")
-        return False
+    tenant_id = config["tenant_id"]
 
-    lisa_user_id = _resolve_lisa_user_id(graph_token)
-    if lisa_user_id:
-        console.print(f"  [green]Lisa Taylor user ID: {lisa_user_id}[/green]")
+    # --- Step 1: Bootstrap or load mail app credentials ---
+    mail_config = _load_mail_app_config()
+    if mail_config:
+        console.print("[green]Mail app credentials loaded.[/green]")
     else:
-        console.print("  [yellow]⚠ Could not resolve Lisa's user ID — will try /me fallback[/yellow]")
+        console.print("[yellow]No mail app found - running one-time bootstrap…[/yellow]\n")
+        mail_config = _bootstrap_mail_app(tenant_id)
+        if not mail_config:
+            console.print("[red]Bootstrap failed. See errors above.[/red]")
+            return False
 
+    # --- Step 2: Acquire token via client credentials ---
+    console.print("  [dim]Acquiring app token…[/dim]")
+    token = _get_mail_token(mail_config)
+    if not token:
+        console.print("[red]Could not acquire mail token.[/red]")
+        return False
+    console.print("[green]Mail token acquired (app credentials).[/green]\n")
+
+    # --- Step 3: Resolve Lisa's UPN ---
+    lisa_upn = _resolve_lisa_upn()
+    if not lisa_upn:
+        console.print("[red]Could not resolve Lisa Taylor's UPN.[/red]")
+        return False
+    console.print(f"  Lisa Taylor UPN: [cyan]{lisa_upn}[/cyan]")
+
+    # --- Step 4: Send demo emails ---
     demo_users = config.get("demo_users", {})
-
-    # Map persona keys to display names for UPN resolution
-    _persona_names = {
-        "lisa_taylor": "Lisa Taylor",
-        "omar_bennett": "Omar Bennett",
-        "hadar_caspit": "Hadar Caspit",
-        "will_beringer": "William Beringer",
-        "sonia_rees": "Sonia Rees",
-    }
-
     all_sent = True
-    resolved_recipients: dict[str, str] = {}  # recipient_key → resolved UPN
 
     for email_def in DEMO_EMAILS:
         to_addr = demo_users.get(email_def["recipient_key"], "")
         if not to_addr:
-            console.print(f"[red]❌ No email configured for {email_def['recipient_key']}[/red]")
+            console.print(f"[red]No email configured for {email_def['recipient_key']}[/red]")
             all_sent = False
             continue
 
-        # Resolve real UPN in case wizard-suggested email differs
+        # Resolve real UPN
         from phases.security import _resolve_user_upn
-        display = _persona_names.get(email_def["recipient_key"], "")
+        display = PERSONA_DISPLAY_NAMES.get(email_def["recipient_key"], "")
         real_upn = _resolve_user_upn(to_addr, display)
         if real_upn:
             to_addr = real_upn
-        resolved_recipients[email_def["recipient_key"]] = to_addr
 
-        ok = _send_email(graph_token, lisa_user_id, to_addr, email_def["subject"], email_def["body"])
+        ok = _create_and_send(token, lisa_upn, to_addr,
+                              email_def["subject"], email_def["body"])
         if ok:
-            console.print(f"  [green]✅ Sent → {email_def['label']}[/green]  ({to_addr})")
+            console.print(f"  [green]Sent -> {email_def['label']}[/green]  ({to_addr})")
         else:
-            console.print(f"  [dim]⏭ Graph API cannot send (Mail.Send not granted) → {email_def['label']}[/dim]")
+            console.print(f"  [red]Failed -> {email_def['label']}[/red]  ({to_addr})")
             all_sent = False
 
     if not all_sent:
-        console.print()
-        console.print(Panel(
-            "[bold cyan]Manual Email Staging Required[/bold cyan]\n\n"
-            "The Azure CLI does not have [bold]Mail.Send[/bold] permission.\n"
-            "This is expected — sign into Outlook as [bold]Lisa Taylor[/bold]\n"
-            "and send these 3 emails manually:\n\n"
-            + "\n".join(
-                f"  [bold]{i}.[/bold] To: [cyan]{resolved_recipients.get(e['recipient_key'], demo_users.get(e['recipient_key'], e['recipient_key']))}[/cyan]\n"
-                f"     Subject: [green]{e['subject']}[/green]"
-                for i, e in enumerate(DEMO_EMAILS, 1)
-            )
-            + "\n\n[dim]After sending, Flow 1 (Sent Items Tracker) will pick them up automatically.[/dim]",
-            title="📧 Manual Email Staging",
-            border_style="cyan",
-        ))
-        return True  # Don't block — user can send manually
+        console.print("\n[yellow]Some emails could not be sent. Check errors above.[/yellow]")
+        return False
 
-    console.print("\n[green]All demo emails sent successfully.[/green]")
+    console.print("\n[green]All demo emails sent successfully![/green]")
 
-    # --- Step 2: Wait for Flow 1 then verify tracking --------------------
+    # --- Step 5: Wait for Flow 1 then verify tracking ---
     console.print()
     with Progress(
         SpinnerColumn(),
-        TextColumn("[bold cyan]Waiting 30 s for Flow 1 (Sent Items Tracker) to process…[/bold cyan]"),
-        console=console,
-        transient=True,
+        TextColumn("[bold cyan]Waiting 30s for Flow 1 to process…[/bold cyan]"),
+        console=console, transient=True,
     ) as progress:
         progress.add_task("wait", total=None)
         time.sleep(30)
 
     _verify_tracking(auth, config)
 
-    # --- Step 3: Show snooze staging instructions ------------------------
+    # --- Step 6: Show snooze staging instructions ---
     console.print()
     console.print(Panel(
         SNOOZE_INSTRUCTIONS,
-        title="🔧 Next Steps — Snooze Scenario",
+        title="Next Steps - Snooze Scenario",
         border_style="yellow",
         padding=(1, 2),
     ))
