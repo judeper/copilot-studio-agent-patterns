@@ -14,12 +14,12 @@ export const mockInterruptionWorkbench: InterruptionWorkbenchModel = {
       draft: {
         id: "draft-unum-scope",
         content:
-          "Hi Derek,
+          `Hi Derek,
 
 Thank you for the follow-up. I reviewed the current scope and recommend we confirm the workshop objectives, target audience, and expected outputs before finalizing the plan. I can send a revised outline today based on those priorities.
 
 Best regards,
-Jude",
+Jude`,
         channel: "email",
         editable: true,
         version: 1
