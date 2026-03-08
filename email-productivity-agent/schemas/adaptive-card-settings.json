@@ -14,10 +14,9 @@
           "width": "auto",
           "items": [
             {
-              "type": "Image",
-              "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Gear/3D/gear_3d.png",
-              "size": "Small",
-              "altText": "Settings gear icon"
+              "type": "TextBlock",
+              "text": "⚙️",
+              "size": "Large"
             }
           ]
         },

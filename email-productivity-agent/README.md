@@ -86,16 +86,24 @@ email-productivity-agent/
 │   ├── followup-tracking-table.json             # FollowUpTracking Dataverse table
 │   ├── nudge-config-table.json                  # NudgeConfiguration Dataverse table
 │   ├── snoozed-conversations-table.json         # SnoozedConversations Dataverse table
-│   └── adaptive-card-nudge.json                 # Teams Adaptive Card template
+│   ├── adaptive-card-nudge.json                 # Teams nudge card template
+│   └── adaptive-card-settings.json              # Teams settings card template
 ├── scripts/
 │   ├── provision-environment.ps1                # Environment + Dataverse table setup
 │   ├── create-security-roles.ps1                # Ownership-based RLS
 │   ├── assign-security-role.ps1                 # Assign role to users
 │   ├── deploy-agent-flows.ps1                   # Deploy all Power Automate flows via API
-│   ├── invoke-followup-test-harness.ps1         # Trigger Flow 8 by trackingId and wait for run status
-│   └── invoke-http-flow-harness.ps1             # Trigger Flow 9-13 HTTP harnesses and wait for run status
+│   ├── provision-copilot.ps1                    # Create + publish Copilot Studio agent
+│   ├── check-test-readiness.ps1                 # Validate environment readiness (12 checks)
+│   ├── complete-test-setup.ps1                  # Orchestrate full test environment setup
+│   ├── invoke-followup-test-harness.ps1         # Trigger Flow 8 by trackingId
+│   ├── invoke-http-flow-harness.ps1             # Trigger Flow 9-13 HTTP harnesses
+│   └── sync-settings-canvas-app-source.ps1      # Sync canvas app source to repo
 ├── src/
-│   ├── nudge-topic.yaml                         # Copilot Studio topic YAML (paste into code editor)
+│   ├── copilot-base-template.yaml               # Copilot Studio base bot template
+│   ├── kickStartTemplate-1.0.0.json             # Copilot Studio template metadata
+│   ├── nudge-topic.yaml                         # Follow-Up Nudge topic definition
+│   ├── snooze-topic.yaml                        # Snooze Auto-Removal topic definition (POC placeholder model ID)
 │   ├── flow-1-sent-items-tracker.json           # Flow 1: event-driven sent email tracker
 │   ├── flow-2-response-detection.json           # Flow 2: daily reply check + Teams nudge
 │   ├── flow-2b-card-action-handler.json         # Flow 2b: adaptive card button handler
