@@ -13,9 +13,16 @@ def _check_command(cmd: list[str], label: str) -> tuple[bool, str]:
     """Run a command and return (success, version_or_error)."""
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        # PAC CLI prints version info to stdout even when it treats --version
+        # as an unrecognised flag (non-zero exit).  Accept stdout output that
+        # looks like a version banner regardless of the exit code.
+        stdout = result.stdout.strip()
+        if stdout:
+            first_line = stdout.split("\n")[0]
+            if result.returncode == 0 or "version" in first_line.lower() or "cli" in first_line.lower():
+                return True, first_line
         if result.returncode == 0:
-            version = result.stdout.strip().split("\n")[0]
-            return True, version
+            return True, "(no version info)"
         return False, result.stderr.strip().split("\n")[0] if result.stderr else "unknown error"
     except FileNotFoundError:
         return False, "not found on PATH"
