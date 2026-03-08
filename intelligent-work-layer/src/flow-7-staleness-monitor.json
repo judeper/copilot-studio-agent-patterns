@@ -31,14 +31,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "entityName": "cr_assistantcards",
                 "$filter": "cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addHours(utcNow(), -24)}"
               },
@@ -64,14 +56,6 @@
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
-                    "$connections": {
-                      "defaultValue": {},
-                      "type": "Object"
-                    },
-                    "$authentication": {
-                      "defaultValue": {},
-                      "type": "SecureObject"
-                    },
                     "entityName": "cr_assistantcards",
                     "$filter": "cr_sourcesignalid eq '@{outputs('Compose_NudgeSignalId')}'"
                   },
@@ -105,14 +89,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_assistantcards",
                         "item/cr_itemsummary": "⏰ Overdue: @{items('Apply_to_each_overdue')?['cr_itemsummary']}",
                         "item/cr_triggertype": 100000000,
@@ -139,14 +115,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_assistantcards",
                         "recordId": "@items('Apply_to_each_overdue')?['cr_assistantcardid']",
                         "item/cr_cardstatus": 100000004
@@ -191,14 +159,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "entityName": "cr_assistantcards",
                 "$filter": "cr_cardoutcome eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addDays(utcNow(), -7)}"
               },
@@ -219,14 +179,6 @@
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
-                    "$connections": {
-                      "defaultValue": {},
-                      "type": "Object"
-                    },
-                    "$authentication": {
-                      "defaultValue": {},
-                      "type": "SecureObject"
-                    },
                     "entityName": "cr_assistantcards",
                     "recordId": "@items('Apply_to_each_abandoned')?['cr_assistantcardid']",
                     "item/cr_cardoutcome": 100000004
@@ -277,6 +229,16 @@
             "TimedOut"
           ]
         }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
       }
     }
   }

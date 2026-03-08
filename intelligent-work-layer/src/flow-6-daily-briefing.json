@@ -19,14 +19,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "entityName": "cr_briefingschedules",
                 "$filter": "cr_isenabled eq true"
               },
@@ -89,14 +81,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_assistantcards",
                         "$filter": "cr_triggertype eq 100000003 and _ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and createdon ge @{addHours(utcNow(), -20)}"
                       },
@@ -126,14 +110,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "id": "@items('Apply_to_each_schedule')?['_cr_userid_value']"
                           },
                           "host": {
@@ -149,14 +125,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "entityName": "cr_assistantcards",
                             "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and cr_cardoutcome eq 100000000",
                             "$top": 50,
@@ -175,14 +143,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "entityName": "cr_assistantcards",
                             "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}' and cr_cardoutcome eq 100000000 and cr_priority ne 100000003 and createdon lt @{addHours(utcNow(), -24)}"
                           },
@@ -199,14 +159,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "calendarId": "Calendar",
                             "startDateTimeUtc": "@startOfDay(outputs('Compose_UserLocalTime'))",
                             "endDateTimeUtc": "@addDays(startOfDay(outputs('Compose_UserLocalTime')), 1)",
@@ -225,14 +177,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "entityName": "cr_senderprofiles",
                             "$filter": "_ownerid_value eq '@{items('Apply_to_each_schedule')?['_cr_userid_value']}'"
                           },
@@ -281,14 +225,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "botId": "@parameters('BriefingAgentBotId')",
                             "message": "@{string(outputs('Compose_BriefingInput'))}"
                           },
@@ -323,14 +259,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "entityName": "cr_assistantcards",
                             "item/cr_triggertype": 100000003,
                             "item/cr_triagetier": 100000002,
@@ -408,6 +336,16 @@
             "TimedOut"
           ]
         }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
       }
     }
   }

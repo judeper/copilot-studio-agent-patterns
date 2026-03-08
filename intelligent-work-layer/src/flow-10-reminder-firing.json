@@ -19,14 +19,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "entityName": "cr_assistantcards",
                 "$filter": "cr_triggertype eq 100000004 and cr_cardoutcome eq 100000000 and cr_reminderdue le @{utcNow()}"
               },
@@ -60,14 +52,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "id": "@items('Apply_to_each_reminder')?['_ownerid_value']"
                       },
                       "host": {
@@ -83,14 +67,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "poster": "Flow bot",
                         "location": "Chat with Flow bot",
                         "body": {
@@ -117,14 +93,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_assistantcards",
                         "recordId": "@items('Apply_to_each_reminder')?['cr_assistantcardid']",
                         "item/cr_cardoutcome": 100000001,
@@ -192,6 +160,16 @@
             "TimedOut"
           ]
         }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
       }
     }
   },
