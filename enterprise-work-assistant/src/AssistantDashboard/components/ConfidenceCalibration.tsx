@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { Button, Text, Badge, Card, TabList, Tab, tokens } from "@fluentui/react-components";
 import { ArrowLeftRegular } from "@fluentui/react-icons";
 import type { AssistantCard } from "./types";
+import { getConfidenceState } from "./constants";
 
 interface ConfidenceCalibrationProps {
     cards: AssistantCard[];
@@ -49,19 +50,18 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
         [cards],
     );
 
-    // 1. Confidence accuracy buckets
+    // 1. Confidence accuracy buckets — aligned with three-state thresholds
     const accuracyBuckets = useMemo((): AccuracyBucket[] => {
         const buckets: Record<string, { total: number; acted: number; dismissed: number }> = {
             "90-100": { total: 0, acted: 0, dismissed: 0 },
-            "70-89": { total: 0, acted: 0, dismissed: 0 },
-            "40-69": { total: 0, acted: 0, dismissed: 0 },
-            "0-39": { total: 0, acted: 0, dismissed: 0 },
+            "60-89": { total: 0, acted: 0, dismissed: 0 },
+            "0-59": { total: 0, acted: 0, dismissed: 0 },
         };
 
         for (const card of resolvedCards) {
             if (card.confidence_score === null) continue;
             const score = card.confidence_score;
-            const key = score >= 90 ? "90-100" : score >= 70 ? "70-89" : score >= 40 ? "40-69" : "0-39";
+            const key = score >= 90 ? "90-100" : score >= 60 ? "60-89" : "0-59";
             buckets[key].total++;
             if (card.card_outcome === "SENT_AS_IS" || card.card_outcome === "SENT_EDITED") {
                 buckets[key].acted++;
@@ -179,6 +179,7 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
                             <thead>
                                 <tr>
                                     <th>Confidence Range</th>
+                                    <th>State</th>
                                     <th>Cards</th>
                                     <th>Acted On</th>
                                     <th>Dismissed</th>
@@ -186,9 +187,20 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
                                 </tr>
                             </thead>
                             <tbody>
-                                {accuracyBuckets.map((b) => (
+                                {accuracyBuckets.map((b) => {
+                                    const lowerBound = parseInt(b.range.split("-")[0], 10);
+                                    const cs = getConfidenceState(lowerBound);
+                                    return (
                                     <tr key={b.range}>
                                         <td>{b.range}</td>
+                                        <td>
+                                            <span
+                                                className="confidence-pill"
+                                                style={{ color: cs.color, backgroundColor: cs.bgColor }}
+                                            >
+                                                {cs.label}
+                                            </span>
+                                        </td>
                                         <td>{b.total}</td>
                                         <td>{b.acted}</td>
                                         <td>{b.dismissed}</td>
@@ -206,7 +218,8 @@ export const ConfidenceCalibration: React.FC<ConfidenceCalibrationProps> = ({
                                             )}
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

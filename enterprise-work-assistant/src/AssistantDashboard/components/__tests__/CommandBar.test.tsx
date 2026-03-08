@@ -50,26 +50,26 @@ describe('CommandBar', () => {
     it('renders quick action chips when not expanded', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         await expandPill();
-        expect(screen.getByText("What needs attention?")).toBeTruthy();
-        expect(screen.getByText('Show high priority')).toBeTruthy();
-        expect(screen.getByText('Daily briefing')).toBeTruthy();
+        expect(screen.getByText("What needs my attention now?")).toBeTruthy();
+        expect(screen.getByText('Prepare me for my next meeting')).toBeTruthy();
+        expect(screen.getByText('Summarize what changed today')).toBeTruthy();
     });
 
     it('renders context-aware default chips when no card selected', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         await expandPill();
-        expect(screen.getByText('What needs attention?')).toBeTruthy();
-        expect(screen.getByText('Show high priority')).toBeTruthy();
-        expect(screen.getByText('Daily briefing')).toBeTruthy();
+        expect(screen.getByText('What needs my attention now?')).toBeTruthy();
+        expect(screen.getByText('Prepare me for my next meeting')).toBeTruthy();
+        expect(screen.getByText('Summarize what changed today')).toBeTruthy();
     });
 
     it('renders detail chips when selectedCardId is set', async () => {
         renderWithProviders(<CommandBar {...defaultProps} selectedCardId="card-123" />);
         await expandPill();
-        expect(screen.getByText('Summarize this')).toBeTruthy();
-        expect(screen.getByText('Delegate to...')).toBeTruthy();
-        expect(screen.getByText('Remind me in 2h')).toBeTruthy();
-        expect(screen.getByText('Draft reply')).toBeTruthy();
+        expect(screen.getByText('Why is this important?')).toBeTruthy();
+        expect(screen.getByText('Improve this draft')).toBeTruthy();
+        expect(screen.getByText('Find related threads')).toBeTruthy();
+        expect(screen.getByText('Defer to tomorrow')).toBeTruthy();
     });
 
     it('send button is disabled when input is empty', async () => {
@@ -148,9 +148,9 @@ describe('CommandBar', () => {
     it('executes quick action on chip click', async () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
         await expandPill();
-        await userEvent.click(screen.getByText("What needs attention?"));
+        await userEvent.click(screen.getByText("What needs my attention now?"));
         expect(mockExecute).toHaveBeenCalledWith(
-            'What needs attention?',
+            'What needs my attention now?',
             null,
         );
     });
@@ -253,7 +253,7 @@ describe('CommandBar', () => {
         const { rerender } = renderWithProviders(<CommandBar {...defaultProps} />);
         await expandPill();
 
-        await userEvent.click(screen.getByText("What needs attention?"));
+        await userEvent.click(screen.getByText("What needs my attention now?"));
 
         rerender(
             <CommandBar

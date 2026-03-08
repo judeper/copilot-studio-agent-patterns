@@ -13,6 +13,7 @@ import {
     AlertRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard } from "./types";
+import { getConfidenceState } from "./constants";
 
 interface CardItemProps {
     card: AssistantCard;
@@ -75,11 +76,22 @@ function getHoursPending(dateStr: string): number {
     return Math.max(0, (Date.now() - date.getTime()) / 3_600_000);
 }
 
+function extractUrgencyText(card: AssistantCard): string | undefined {
+    if (card.urgency_reason) return card.urgency_reason;
+    if (card.research_log) {
+        const firstSentence = card.research_log.split(". ")[0];
+        return firstSentence ? firstSentence : undefined;
+    }
+    return undefined;
+}
+
 export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
     const isHeartbeat = HEARTBEAT_TRIGGERS.has(card.trigger_type);
     const hoursPending = getHoursPending(card.created_on);
     const isStale = card.card_outcome === "PENDING" && hoursPending > 24;
     const staleHours = Math.floor(hoursPending);
+    const urgencyText = extractUrgencyText(card);
+    const confidenceState = card.confidence_score !== null ? getConfidenceState(card.confidence_score) : null;
 
     const classNames = [
         "assistant-card-item",
@@ -135,6 +147,9 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
             <Text className="card-item-summary" block>
                 {card.item_summary}
             </Text>
+            {urgencyText && (
+                <div className="card-item-rationale">{urgencyText}</div>
+            )}
 
             {/* Footer: badges + open hint */}
             <div className="card-item-footer">
@@ -152,6 +167,14 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
                         <Badge appearance="outline" size="small">
                             {card.temporal_horizon}
                         </Badge>
+                    )}
+                    {confidenceState && (
+                        <span
+                            className="confidence-pill"
+                            style={{ color: confidenceState.color, backgroundColor: confidenceState.bgColor }}
+                        >
+                            {confidenceState.label}
+                        </span>
                     )}
                     {isStale && (
                         <Badge appearance="tint" color="warning" size="small">

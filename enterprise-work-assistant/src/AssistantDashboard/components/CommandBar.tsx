@@ -2,7 +2,7 @@ import * as React from "react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Button, Input, Spinner, Text } from "@fluentui/react-components";
 import { SendRegular, DismissCircleRegular } from "@fluentui/react-icons";
-import type { OrchestratorResponse, CommandCardLink } from "./types";
+import type { OrchestratorResponse, CommandCardLink, CommandSideEffect } from "./types";
 import { DEFAULT_COMMAND_CHIPS, DETAIL_COMMAND_CHIPS } from "./constants";
 import { focusAfterRender } from "../utils/focusUtils";
 
@@ -43,6 +43,8 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     const [conversation, setConversation] = useState<ConversationEntry[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
     const [collapsed, setCollapsed] = useState(true);
+    const [activityLog, setActivityLog] = useState<Array<CommandSideEffect & { timestamp: Date }>>([]);
+    const [activityExpanded, setActivityExpanded] = useState(false);
     const responseRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const sendButtonRef = useRef<FocusableButtonElement>(null);
@@ -91,6 +93,14 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                     },
                 ];
             });
+            // Capture side effects into activity log
+            if (lastResponse.side_effects?.length) {
+                const now = new Date();
+                setActivityLog((prev) => [
+                    ...lastResponse.side_effects.map((se) => ({ ...se, timestamp: now })),
+                    ...prev,
+                ]);
+            }
         }
     }, [lastResponse, isProcessing]);
 
@@ -229,6 +239,35 @@ export const CommandBar: React.FC<CommandBarProps> = ({
                     {isProcessing && (
                         <div className="command-entry command-entry-assistant command-thinking">
                             <Spinner size="tiny" label="Thinking..." labelPosition="after" />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Activity feed — collapsible log of agent side effects */}
+            {isExpanded && activityLog.length > 0 && (
+                <div className="command-activity-section">
+                    <button
+                        className="command-activity-toggle"
+                        onClick={() => setActivityExpanded((v) => !v)}
+                        aria-expanded={activityExpanded}
+                    >
+                        <Text size={200} weight="semibold">Recent activity ({activityLog.length})</Text>
+                        <span style={{ marginLeft: 4, fontSize: 11 }}>{activityExpanded ? "▾" : "▸"}</span>
+                    </button>
+                    {activityExpanded && (
+                        <div className="command-activity-list">
+                            {activityLog.slice(0, 10).map((entry, i) => (
+                                <div key={i} className="command-activity-item">
+                                    <span aria-hidden="true">
+                                        {entry.action === "UPDATE_CARD" ? "✏️" : entry.action === "CREATE_CARD" ? "➕" : "🔄"}
+                                    </span>
+                                    <span>{entry.description}</span>
+                                    <span className="command-activity-time">
+                                        {entry.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
