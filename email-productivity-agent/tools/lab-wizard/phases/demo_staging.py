@@ -78,13 +78,18 @@ def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
     into their lab browser profile. Does NOT auto-open a browser.
     """
     from phases import resolve_cli
+    from phases.security import _resolve_user_upn
     import subprocess
     import shutil
 
+    # Resolve Lisa's actual UPN
+    lisa_upn = _resolve_user_upn("lisataylor@placeholder", "Lisa Taylor")
+    lisa_display = f"Lisa Taylor ({lisa_upn})" if lisa_upn else "Lisa Taylor"
+
     console.print(Panel(
-        "[bold yellow]Lisa Taylor must sign in via device code.[/bold yellow]\n\n"
+        f"[bold yellow]{lisa_display} must sign in via device code.[/bold yellow]\n\n"
         "A code and URL will be shown below. Copy the URL into your\n"
-        "[bold]lab browser profile[/bold], sign in as Lisa Taylor,\n"
+        f"[bold]lab browser profile[/bold], sign in as [cyan]{lisa_display}[/cyan],\n"
         "and enter the code.\n\n"
         "After demo staging completes, re-authenticate as admin:\n"
         "  [cyan]az login[/cyan]",
@@ -97,7 +102,11 @@ def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
         console.print("[red]Azure CLI not found.[/red]")
         return None
 
-    console.print("  [dim]Requesting device code…[/dim]\n")
+    # Clear any cached login so device-code prompts for a fresh sign-in
+    console.print("  [dim]Clearing cached az session…[/dim]")
+    subprocess.run([az_path, "logout"], capture_output=True, timeout=15)
+
+    console.print(f"  [dim]Requesting device code for {lisa_display}…[/dim]\n")
 
     # Let az print directly to terminal so user sees the code and Ctrl+C works
     try:
@@ -152,6 +161,8 @@ def _send_email(graph_token: str, to_address: str, subject: str, body_html: str)
         headers=headers,
         timeout=30,
     )
+    if not resp.ok:
+        console.print(f"    [dim]Graph error {resp.status_code}: {resp.text[:200]}[/dim]")
     return resp.status_code == 202
 
 
