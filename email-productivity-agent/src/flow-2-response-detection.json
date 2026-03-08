@@ -33,6 +33,25 @@
         },
         "runAfter": {}
       },
+      "Lookup_Dataverse_UserId": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "systemusers",
+            "$filter": "azureactivedirectoryobjectid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$select": "systemuserid",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": ["Succeeded"]
+        }
+      },
       "List_NudgeConfig": {
         "type": "OpenApiConnection",
         "inputs": {
@@ -48,9 +67,7 @@
           }
         },
         "runAfter": {
-          "Get_my_profile_(V2)": [
-            "Succeeded"
-          ]
+          "Lookup_Dataverse_UserId": ["Succeeded"]
         }
       },
       "Condition_Nudges_Enabled": {
@@ -93,7 +110,7 @@
         "inputs": {
           "parameters": {
             "entityName": "cr_followuptrackings",
-            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_responsereceived eq false and cr_nudgesent eq false and cr_dismissedbyuser eq false and cr_followupdate le @{utcNow()}",
+            "$filter": "_ownerid_value eq '@{first(outputs('Lookup_Dataverse_UserId')?['body/value'])?['systemuserid']}' and cr_responsereceived eq false and cr_nudgesent eq false and cr_dismissedbyuser eq false and cr_followupdate le @{utcNow()}",
             "$orderby": "cr_followupdate asc",
             "$top": 50
           },
@@ -240,28 +257,12 @@
                           },
                           "actions": {
                             "Get_Thread_Preview": {
-                              "type": "OpenApiConnection",
-                              "inputs": {
-                                "parameters": {
-                                  "request/method": "GET",
-                                  "request/url": "/v1.0/me/messages?$filter=conversationId eq '@{items('Apply_to_each')?['cr_conversationid']}'&$select=bodyPreview,from,receivedDateTime&$orderby=receivedDateTime desc&$top=3"
-                                },
-                                "host": {
-                                  "connectionName": "shared_webcontents",
-                                  "operationId": "InvokeHttp",
-                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
-                                },
-                                "retryPolicy": {
-                                  "type": "exponential",
-                                  "count": 3,
-                                  "interval": "PT10S",
-                                  "maximumInterval": "PT1M"
-                                }
-                              }
+                              "type": "Compose",
+                              "inputs": "@coalesce(items('Apply_to_each')?['cr_originalsubject'], '(No Subject)')"
                             },
                             "Compose_ThreadExcerpt": {
                               "type": "Compose",
-                              "inputs": "@take(join(body('Get_Thread_Preview')?['value'], ' --- '), 2000)",
+                              "inputs": "@outputs('Get_Thread_Preview')",
                               "runAfter": {
                                 "Get_Thread_Preview": [
                                   "Succeeded"
@@ -278,28 +279,9 @@
                               }
                             },
                             "Execute_Agent_and_wait": {
-                              "type": "OpenApiConnectionWebhook",
+                              "type": "Compose",
                               "inputs": {
-                                "parameters": {
-                                  "Copilot": "Email Productivity Agent"
-                                },
-                                "body": {
-                                  "text": "Evaluate this unreplied email for a follow-up nudge and return raw JSON only.",
-                                  "inputVariables": {
-                                    "CONVERSATION_ID": "@{items('Apply_to_each')?['cr_conversationid']}",
-                                    "ORIGINAL_SUBJECT": "@{items('Apply_to_each')?['cr_originalsubject']}",
-                                    "RECIPIENT_EMAIL": "@{items('Apply_to_each')?['cr_recipientemail']}",
-                                    "RECIPIENT_TYPE": "@{items('Apply_to_each')?['cr_recipienttype']}",
-                                    "DAYS_SINCE_SENT": "@{outputs('Compose_DaysSinceSent')}",
-                                    "THREAD_EXCERPT": "@{outputs('Compose_ThreadExcerpt')}",
-                                    "USER_DISPLAY_NAME": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}"
-                                  }
-                                },
-                                "host": {
-                                  "connectionName": "shared_microsoftcopilotstudio",
-                                  "operationId": "ExecuteCopilotAsyncV2",
-                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
-                                }
+                                "lastResponse": "{\"nudgeAction\":\"NUDGE\",\"threadSummary\":\"You sent a message but have not received a reply. It has been overdue based on your configured follow-up timeframe.\",\"suggestedDraft\":\"Hi,\\n\\nJust following up on my previous email. Wanted to check if you had a chance to review it.\\n\\nThanks!\",\"nudgePriority\":\"Medium\",\"confidence\":85}"
                               },
                               "runAfter": {
                                 "Compose_DaysSinceSent": [
@@ -309,7 +291,7 @@
                             },
                             "Compose_AgentResponseJSON": {
                               "type": "Compose",
-                              "inputs": "@coalesce(body('Execute_Agent_and_wait')?['AgentResponseJSON'], body('Execute_Agent_and_wait')?['lastResponse'])",
+                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['lastResponse'], string(outputs('Execute_Agent_and_wait')))",
                               "runAfter": {
                                 "Execute_Agent_and_wait": [
                                   "Succeeded"
@@ -552,12 +534,8 @@
                                       "parameters": {
                                         "poster": "Flow bot",
                                         "location": "Chat with Flow bot",
-                                        "body": {
-                                          "recipient": {
-                                            "to": "@outputs('Get_my_profile_(V2)')?['body/id']"
-                                          },
-                                          "messageBody": "@{outputs('Compose_AdaptiveCard')}"
-                                        }
+                                        "body/recipient": "@{outputs('Get_my_profile_(V2)')?['body/mail']}",
+                                        "body/messageBody": "@{outputs('Compose_AdaptiveCard')}"
                                       },
                                       "host": {
                                         "connectionName": "shared_teams",
@@ -681,11 +659,10 @@
       "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",
       "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
-      "shared_microsoftcopilotstudio (Microsoft Copilot Studio)",
       "shared_teams (Microsoft Teams)"
     ],
     "notes": {
-      "agentInvocation": "Flow 2 invokes the published Email Productivity Agent via the Microsoft Copilot Studio connector, coalesces AgentResponseJSON/lastResponse, suppresses SKIP results, and includes the full suggestedDraft in the Draft action payload for Flow 2b.",
+      "agentInvocation": "Flow 2 currently uses a mocked agent response so the Graph reply check, Dataverse state transitions, and Teams card delivery can be validated independently of Copilot publishing/runtime issues.",
       "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions."
     }
   }

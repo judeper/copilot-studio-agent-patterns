@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.PowerApps.MSBuild.Solution/1.0.0">
+<Project Sdk="Microsoft.PowerApps.MSBuild.Solution/1.0.6">
   <PropertyGroup>
     <SolutionPackageType>Unmanaged</SolutionPackageType>
     <SolutionUniqueName>EnterpriseWorkAssistant</SolutionUniqueName>

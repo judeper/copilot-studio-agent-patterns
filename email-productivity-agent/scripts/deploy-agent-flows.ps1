@@ -41,7 +41,8 @@
 .PARAMETER FlowsToCreate
     Which flows to create. Default: all.
     Valid values: "All", "Phase1" (Flow1,2,2b,5), "Phase2" (Flow3,4,6),
-    or individual: "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6"
+    "Phase3" (Flow7,7b), or individual: "Flow1", "Flow2", "Flow2b",
+    "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8"
 
 .EXAMPLE
     .\deploy-agent-flows.ps1 `
@@ -65,7 +66,7 @@ param(
 
     [string]$TimeZone = "Eastern Standard Time",
 
-    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b")]
+    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8")]
     [string]$FlowsToCreate = "All"
 )
 
@@ -89,7 +90,7 @@ $flowMap = [ordered]@{
     Flow2  = @{
         File        = "flow-2-response-detection.json"
         DisplayName = "EPA - Flow 2: Response Detection"
-        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_microsoftcopilotstudio", "shared_teams")
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
     }
     Flow2b = @{
         File        = "flow-2b-card-action-handler.json"
@@ -120,6 +121,11 @@ $flowMap = [ordered]@{
         File        = "flow-7b-settings-handler.json"
         DisplayName = "EPA - Flow 7b: Settings Card Handler"
         ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_teams")
+    }
+    Flow8  = @{
+        File        = "flow-8-followup-test-harness.json"
+        DisplayName = "EPA - Flow 8: Follow-Up Test Harness"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
     }
 }
 
