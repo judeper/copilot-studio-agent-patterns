@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "work-os-view-model.schema.json",
+  "title": "WorkOsViewModel",
+  "description": "Top-level view model contract between Work OS agents and the UI shell.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "session",
+    "shell",
+    "scenario",
+    "queue",
+    "surfaces",
+    "activities",
+    "copilot",
+    "launchPoints"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "session": {
+      "type": "object",
+      "required": ["userId", "locale", "timezone", "timestampUtc"],
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string",
+          "description": "IETF BCP 47 language tag (e.g. 'en-US')."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone (e.g. 'America/New_York')."
+        },
+        "timestampUtc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "shell": {
+      "type": "object",
+      "required": ["greeting", "currentMomentLabel"],
+      "properties": {
+        "greeting": {
+          "type": "string",
+          "description": "Personalised greeting shown in the UI header."
+        },
+        "currentMomentLabel": {
+          "type": "string",
+          "description": "Human-readable label for the active scenario moment."
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["activeMoment"],
+      "properties": {
+        "activeMoment": {
+          "type": "string",
+          "enum": ["morning_briefing", "protected_focus", "triage_interruption", "meeting_briefing", "end_of_day_review"],
+          "description": "The currently active scenario moment driving the UI layout."
+        }
+      },
+      "additionalProperties": false
+    },
+    "queue": {
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "work-queue-item.schema.json"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "surfaces": {
+      "type": "object",
+      "properties": {
+        "messageDecisions": {
+          "type": "array",
+          "items": {
+            "$ref": "message-decision-item.schema.json"
+          }
+        },
+        "briefingPack": {
+          "$ref": "briefing-pack.schema.json"
+        },
+        "focusLane": {
+          "type": "object",
+          "required": ["id", "title", "summary", "focusWindow", "interruptionsHeldCount", "unresolvedDependenciesCount", "primaryAction"],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "focusWindow": {
+              "type": "string"
+            },
+            "interruptionsHeldCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolvedDependenciesCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "resumeMarker": {
+              "type": "object",
+              "required": ["title", "detail", "capturedAtUtc"],
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "capturedAtUtc": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "additionalProperties": false
+            },
+            "nextSmallestStep": {
+              "type": "string"
+            },
+            "flowMemory": {
+              "type": "string"
+            },
+            "primaryAction": {
+              "$ref": "shared-defs.schema.json#/$defs/PrimaryAction"
+            },
+            "secondaryActions": {
+              "type": "array",
+              "items": {
+                "$ref": "shared-defs.schema.json#/$defs/SecondaryAction"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "closeOfDayReview": {
+          "$ref": "close-of-day-review.schema.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    "activities": {
+      "type": "array",
+      "items": {
+        "$ref": "agent-activity-item.schema.json"
+      }
+    },
+    "copilot": {
+      "$ref": "copilot-panel.schema.json"
+    },
+    "launchPoints": {
+      "type": "array",
+      "items": {
+        "$ref": "shared-defs.schema.json#/$defs/LaunchPoint"
+      }
+    }
+  },
+  "additionalProperties": false
+}

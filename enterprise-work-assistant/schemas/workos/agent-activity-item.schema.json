@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-activity-item.schema.json",
+  "title": "AgentActivityItem",
+  "description": "A single entry in the agent activity feed.",
+  "type": "object",
+  "required": [
+    "id",
+    "text",
+    "timeLabel",
+    "tone",
+    "taskState",
+    "producedBy"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "text": {
+      "type": "string",
+      "description": "Human-readable activity description."
+    },
+    "timeLabel": {
+      "type": "string",
+      "description": "Relative or absolute time label (e.g. '2 min ago')."
+    },
+    "tone": {
+      "type": "string",
+      "enum": ["info", "success", "warning"]
+    },
+    "taskState": {
+      "type": "string",
+      "enum": ["running", "completed", "requires_user_action"]
+    },
+    "producedBy": {
+      "$ref": "shared-defs.schema.json#/$defs/AgentProducerRef"
+    }
+  },
+  "additionalProperties": false
+}

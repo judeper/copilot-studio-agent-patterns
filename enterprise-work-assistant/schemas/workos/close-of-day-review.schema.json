@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "close-of-day-review.schema.json",
+  "title": "CloseOfDayReviewModel",
+  "description": "End-of-day review surface with metrics and carry-forward items.",
+  "type": "object",
+  "required": [
+    "metrics",
+    "carryForward",
+    "primaryAction"
+  ],
+  "properties": {
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "value", "note"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": ["string", "number"],
+            "description": "Metric value — may be a formatted string or a number."
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "carryForward": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "value"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "primaryAction": {
+      "$ref": "shared-defs.schema.json#/$defs/PrimaryAction"
+    }
+  },
+  "additionalProperties": false
+}
