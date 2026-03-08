@@ -12,6 +12,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from phases import resolve_cli
+
 console = Console()
 
 # ── Dataverse label helper ──────────────────────────────────────────────
@@ -195,7 +197,7 @@ def _create_environment(config: dict) -> tuple[str, str]:
     console.print(f"\n[bold]Step 1/5[/bold] — Creating environment [cyan]{env_name}[/cyan]")
 
     domain = env_name.lower().replace(" ", "-").replace("_", "-")
-    result = subprocess.run(
+    result = resolve_cli(
         [
             "pac", "admin", "create",
             "--name", env_name,
@@ -234,7 +236,7 @@ def _create_environment(config: dict) -> tuple[str, str]:
 
 def _find_existing_environment(name: str) -> tuple[str, str]:
     """List all environments and find one matching the given name."""
-    result = subprocess.run(
+    result = resolve_cli(
         ["pac", "admin", "list", "--json"],
         capture_output=True, text=True, timeout=120,
     )
@@ -455,7 +457,7 @@ def _create_tables(auth: Any, org_url: str, prefix: str):
 
     # Publish customizations
     console.print("\n  [dim]Publishing customizations…[/dim]")
-    subprocess.run(
+    resolve_cli(
         ["pac", "org", "publish", "--all"],
         capture_output=True, text=True, timeout=120,
     )
@@ -511,7 +513,7 @@ def provision_environment(auth: Any, config: dict) -> tuple[str, str]:
 
     # Authenticate PAC to the new environment
     console.print("\n  [dim]Authenticating PAC CLI to environment…[/dim]")
-    subprocess.run(
+    resolve_cli(
         ["pac", "auth", "create", "--environment", env_id],
         capture_output=True, text=True, timeout=60,
     )
