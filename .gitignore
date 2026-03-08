@@ -35,3 +35,4 @@ coverage/
 
 # Accidental local paths
 **/~/
+email-productivity-agent/tools/lab-wizard/__pycache__/
