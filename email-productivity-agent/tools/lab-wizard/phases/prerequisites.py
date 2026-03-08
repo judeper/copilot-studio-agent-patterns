@@ -1,5 +1,6 @@
 """Phase 0 — Verify prerequisites (PAC CLI, Azure CLI, Python packages)."""
 
+import shutil
 import subprocess
 import sys
 
@@ -10,9 +11,19 @@ console = Console()
 
 
 def _check_command(cmd: list[str], label: str) -> tuple[bool, str]:
-    """Run a command and return (success, version_or_error)."""
+    """Run a command and return (success, version_or_error).
+
+    On Windows, CLI tools like ``pac`` and ``az`` are often ``.CMD`` batch
+    wrappers that ``subprocess.run`` cannot locate without ``shell=True``.
+    We resolve the executable via ``shutil.which`` first so that ``.CMD``
+    files are found correctly.
+    """
+    resolved = shutil.which(cmd[0])
+    if resolved is None:
+        return False, "not found on PATH"
+    run_cmd = [resolved] + cmd[1:]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        result = subprocess.run(run_cmd, capture_output=True, text=True, timeout=15)
         # PAC CLI prints version info to stdout even when it treats --version
         # as an unrecognised flag (non-zero exit).  Accept stdout output that
         # looks like a version banner regardless of the exit code.

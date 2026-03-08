@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from rich.console import Console
+
+from phases import resolve_cli
 from rich.panel import Panel
 from rich.prompt import Confirm
 
@@ -29,7 +31,7 @@ def _copilot_exists(env_id: str, agent_name: str) -> str | None:
     Returns the copilot ID if found, None otherwise.
     """
     try:
-        result = subprocess.run(
+        result = resolve_cli(
             ["pac", "copilot", "list", "--environment", env_id, "--json"],
             capture_output=True, text=True, timeout=60,
         )
@@ -52,7 +54,7 @@ def _create_copilot(config: dict) -> str | None:
     prefix = config.get("publisher_prefix", "cr")
     env_id = config["environment_id"]
 
-    result = subprocess.run(
+    result = resolve_cli(
         [
             "pac", "copilot", "create",
             "--name", "Email Productivity Agent",
