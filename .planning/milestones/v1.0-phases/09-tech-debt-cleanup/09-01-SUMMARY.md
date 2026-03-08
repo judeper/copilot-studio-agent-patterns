@@ -26,9 +26,9 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/schemas/output-schema.json
-    - enterprise-work-assistant/docs/agent-flows.md
-    - enterprise-work-assistant/docs/deployment-guide.md
+    - intelligent-work-layer/schemas/output-schema.json
+    - intelligent-work-layer/docs/agent-flows.md
+    - intelligent-work-layer/docs/deployment-guide.md
     - .planning/REQUIREMENTS.md
     - .planning/PROJECT.md
     - .planning/v1.0-MILESTONE-AUDIT.md
@@ -72,9 +72,9 @@ Each task was committed atomically:
 2. **Task 2: Fix version annotation, stale requirement text, and log discovered divergence** - `e71901b` (fix)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/schemas/output-schema.json` - Changed priority/temporal_horizon from "N/A" string to null enum convention
-- `enterprise-work-assistant/docs/agent-flows.md` - Fixed relative path to output-schema.json
-- `enterprise-work-assistant/docs/deployment-guide.md` - Updated Bun version annotation to 1.3.8
+- `intelligent-work-layer/schemas/output-schema.json` - Changed priority/temporal_horizon from "N/A" string to null enum convention
+- `intelligent-work-layer/docs/agent-flows.md` - Fixed relative path to output-schema.json
+- `intelligent-work-layer/docs/deployment-guide.md` - Updated Bun version annotation to 1.3.8
 - `.planning/REQUIREMENTS.md` - Corrected DOC-03 text to "Execute Agent and wait"
 - `.planning/PROJECT.md` - Corrected active requirements text to "Execute Agent and wait"
 - `.planning/v1.0-MILESTONE-AUDIT.md` - Marked 4 tech debt items resolved, documented downstream divergence

@@ -23,7 +23,7 @@ re_verification: false
 |---|-------|--------|----------|
 | 1 | output-schema.json priority enum uses null (not N/A) matching types.ts Priority \| null contract | VERIFIED | `priority.type = ["string","null"]`, `priority.enum = ["High","Medium","Low",null]` — confirmed via `node` script and direct file read |
 | 2 | output-schema.json temporal_horizon enum uses null (not N/A) matching types.ts TemporalHorizon \| null contract | VERIFIED | `temporal_horizon.type = ["string","null"]`, `temporal_horizon.enum = ["TODAY","THIS_WEEK","NEXT_WEEK","BEYOND",null]` — confirmed via `node` script and direct file read |
-| 3 | agent-flows.md relative path to output-schema.json resolves to an existing file | VERIFIED | Line 58 contains `../schemas/output-schema.json`; `fs.existsSync(path.resolve('enterprise-work-assistant/docs','../schemas/output-schema.json'))` returns `true`; old broken path `../../schemas/output-schema.json` is absent |
+| 3 | agent-flows.md relative path to output-schema.json resolves to an existing file | VERIFIED | Line 58 contains `../schemas/output-schema.json`; `fs.existsSync(path.resolve('intelligent-work-layer/docs','../schemas/output-schema.json'))` returns `true`; old broken path `../../schemas/output-schema.json` is absent |
 | 4 | deployment-guide.md Tested with annotation says Bun 1.3.8 (not 1.2.x) | VERIFIED | Line 9: `- [ ] **Bun** >= 1.x (Tested with Bun 1.3.8)` |
 | 5 | DOC-03 requirement text says Execute Agent and wait across all planning docs | VERIFIED | REQUIREMENTS.md line 33: `"Execute Agent and wait" action`; PROJECT.md line 23: `"Execute Agent and wait" action location`; no stale "Run a prompt" on requirement description lines |
 
@@ -35,9 +35,9 @@ re_verification: false
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/schemas/output-schema.json` | Nullable enum convention aligned with types.ts | VERIFIED | `"enum": ["High", "Medium", "Low", null]` and `"enum": ["TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", null]` present; `"type": ["string", "null"]` for both fields |
-| `enterprise-work-assistant/docs/agent-flows.md` | Correct relative path to output-schema.json | VERIFIED | `../schemas/output-schema.json` present at line 58; old `../../schemas/output-schema.json` absent |
-| `enterprise-work-assistant/docs/deployment-guide.md` | Accurate Bun version annotation | VERIFIED | `Tested with Bun 1.3.8` present at line 9 |
+| `intelligent-work-layer/schemas/output-schema.json` | Nullable enum convention aligned with types.ts | VERIFIED | `"enum": ["High", "Medium", "Low", null]` and `"enum": ["TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND", null]` present; `"type": ["string", "null"]` for both fields |
+| `intelligent-work-layer/docs/agent-flows.md` | Correct relative path to output-schema.json | VERIFIED | `../schemas/output-schema.json` present at line 58; old `../../schemas/output-schema.json` absent |
+| `intelligent-work-layer/docs/deployment-guide.md` | Accurate Bun version annotation | VERIFIED | `Tested with Bun 1.3.8` present at line 9 |
 | `.planning/REQUIREMENTS.md` | Corrected DOC-03 requirement text | VERIFIED | DOC-03 line reads: `Agent-flows.md documents how to locate and configure the Microsoft Copilot Studio connector "Execute Agent and wait" action` |
 | `.planning/PROJECT.md` | Corrected action location text | VERIFIED | Active requirements section contains: `"Execute Agent and wait" action location` |
 
@@ -47,7 +47,7 @@ re_verification: false
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| `enterprise-work-assistant/schemas/output-schema.json` | `enterprise-work-assistant/src/AssistantDashboard/components/types.ts` | Nullable enum convention alignment | ALIGNED | output-schema.json: `["string","null"]` with `null` in enum; types.ts: `priority: Priority \| null` and `temporal_horizon: TemporalHorizon \| null` — conventions now consistent |
+| `intelligent-work-layer/schemas/output-schema.json` | `intelligent-work-layer/src/AssistantDashboard/components/types.ts` | Nullable enum convention alignment | ALIGNED | output-schema.json: `["string","null"]` with `null` in enum; types.ts: `priority: Priority \| null` and `temporal_horizon: TemporalHorizon \| null` — conventions now consistent |
 
 Note: The PLAN's key_link pattern `type.*\\["string", "null"\\].*enum.*null` was checking for co-occurrence in a single line which is a multi-line match. The alignment is verified through direct inspection: output-schema.json now declares the same nullable contract that types.ts has always used. The ingestion boundary in `useCardData.ts` continues to bridge any runtime `"N/A"` strings from the agent prompt, which remains unchanged per user decision.
 

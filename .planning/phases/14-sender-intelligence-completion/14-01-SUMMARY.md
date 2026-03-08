@@ -19,15 +19,15 @@ tech-stack:
 
 key-files:
   created:
-    - enterprise-work-assistant/src/AssistantDashboard/utils/levenshtein.ts
-    - enterprise-work-assistant/src/AssistantDashboard/utils/__tests__/levenshtein.test.ts
+    - intelligent-work-layer/src/AssistantDashboard/utils/levenshtein.ts
+    - intelligent-work-layer/src/AssistantDashboard/utils/__tests__/levenshtein.test.ts
   modified:
-    - enterprise-work-assistant/src/.eslintrc.json
-    - enterprise-work-assistant/src/package.json
-    - enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/types.ts
-    - enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts
-    - enterprise-work-assistant/src/AssistantDashboard/index.ts
+    - intelligent-work-layer/src/.eslintrc.json
+    - intelligent-work-layer/src/package.json
+    - intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/types.ts
+    - intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts
+    - intelligent-work-layer/src/AssistantDashboard/index.ts
 
 key-decisions:
   - "Used void-reference pattern (void version) to satisfy exhaustive-deps for PCF cache-busting dependency"
@@ -74,14 +74,14 @@ Each task was committed atomically:
 _Note: Task 1 used TDD with separate RED/GREEN commits_
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/AssistantDashboard/utils/levenshtein.ts` - Levenshtein edit distance utility (0 = identical, 100 = complete rewrite)
-- `enterprise-work-assistant/src/AssistantDashboard/utils/__tests__/levenshtein.test.ts` - 9 unit tests covering edge cases
-- `enterprise-work-assistant/src/.eslintrc.json` - Added react-hooks plugin, exhaustive-deps at error level
-- `enterprise-work-assistant/src/package.json` - Added eslint-plugin-react-hooks devDependency
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` - Computes levenshteinRatio on send
-- `enterprise-work-assistant/src/AssistantDashboard/components/types.ts` - Updated onSendDraft signature with editDistanceRatio
-- `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts` - Fixed exhaustive-deps violation with void-reference
-- `enterprise-work-assistant/src/AssistantDashboard/index.ts` - Includes editDistanceRatio in sendDraftAction JSON
+- `intelligent-work-layer/src/AssistantDashboard/utils/levenshtein.ts` - Levenshtein edit distance utility (0 = identical, 100 = complete rewrite)
+- `intelligent-work-layer/src/AssistantDashboard/utils/__tests__/levenshtein.test.ts` - 9 unit tests covering edge cases
+- `intelligent-work-layer/src/.eslintrc.json` - Added react-hooks plugin, exhaustive-deps at error level
+- `intelligent-work-layer/src/package.json` - Added eslint-plugin-react-hooks devDependency
+- `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` - Computes levenshteinRatio on send
+- `intelligent-work-layer/src/AssistantDashboard/components/types.ts` - Updated onSendDraft signature with editDistanceRatio
+- `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts` - Fixed exhaustive-deps violation with void-reference
+- `intelligent-work-layer/src/AssistantDashboard/index.ts` - Includes editDistanceRatio in sendDraftAction JSON
 
 ## Decisions Made
 - Used `void version` pattern in useCardData to satisfy exhaustive-deps rule while keeping the cache-busting dependency -- this avoids eslint-disable comments while documenting the PCF-specific need

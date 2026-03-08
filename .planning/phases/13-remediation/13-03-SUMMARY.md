@@ -25,20 +25,20 @@ tech-stack:
 
 key-files:
   created:
-    - "enterprise-work-assistant/src/AssistantDashboard/components/ErrorBoundary.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/__tests__/index.test.ts"
+    - "intelligent-work-layer/src/AssistantDashboard/components/ErrorBoundary.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/__tests__/index.test.ts"
   modified:
-    - "enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts"
-    - "enterprise-work-assistant/src/AssistantDashboard/ControlManifest.Input.xml"
-    - "enterprise-work-assistant/src/AssistantDashboard/index.ts"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/App.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/types.ts"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/BriefingCard.tsx"
-    - "enterprise-work-assistant/schemas/output-schema.json"
-    - "enterprise-work-assistant/docs/agent-flows.md"
-    - "enterprise-work-assistant/scripts/provision-environment.ps1"
-    - "enterprise-work-assistant/src/test/jest.config.ts"
+    - "intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts"
+    - "intelligent-work-layer/src/AssistantDashboard/ControlManifest.Input.xml"
+    - "intelligent-work-layer/src/AssistantDashboard/index.ts"
+    - "intelligent-work-layer/src/AssistantDashboard/components/App.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/types.ts"
+    - "intelligent-work-layer/src/AssistantDashboard/components/BriefingCard.tsx"
+    - "intelligent-work-layer/schemas/output-schema.json"
+    - "intelligent-work-layer/docs/agent-flows.md"
+    - "intelligent-work-layer/scripts/provision-environment.ps1"
+    - "intelligent-work-layer/src/test/jest.config.ts"
     - ".planning/PROJECT.md"
 
 key-decisions:
@@ -91,20 +91,20 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts` - Reads card_status from discrete Dataverse column via getFormattedValue with JSON blob fallback
-- `enterprise-work-assistant/schemas/output-schema.json` - Added NUDGE to card_status enum
-- `enterprise-work-assistant/src/AssistantDashboard/ControlManifest.Input.xml` - Added orchestratorResponse and isProcessing input properties
-- `enterprise-work-assistant/src/AssistantDashboard/index.ts` - Reads and passes orchestratorResponse/isProcessing through AppWrapper
-- `enterprise-work-assistant/src/AssistantDashboard/components/App.tsx` - Parses orchestratorResponse, passes to CommandBar, wraps content with ErrorBoundary
-- `enterprise-work-assistant/src/AssistantDashboard/components/types.ts` - Added orchestratorResponse and isProcessing to AppProps
-- `enterprise-work-assistant/src/AssistantDashboard/components/CommandBar.tsx` - No changes needed (already accepts lastResponse/isProcessing props)
-- `enterprise-work-assistant/src/AssistantDashboard/components/ErrorBoundary.tsx` - New React class component with getDerivedStateFromError and componentDidCatch
-- `enterprise-work-assistant/src/AssistantDashboard/components/BriefingCard.tsx` - Added TODO comment for deferred schedule configuration
-- `enterprise-work-assistant/docs/agent-flows.md` - Added staleness refresh mechanism (I-17) and error monitoring strategy (I-18)
-- `enterprise-work-assistant/scripts/provision-environment.ps1` - Added cr_ErrorLog table provisioning with all 7 columns
-- `enterprise-work-assistant/src/test/jest.config.ts` - Removed index.ts exclusion from coverage collection
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` - 17 test cases covering all 4 analytics tabs, empty state, division safety, and edge cases
-- `enterprise-work-assistant/src/AssistantDashboard/__tests__/index.test.ts` - 11 test cases covering PCF lifecycle: init, updateView, getOutputs, destroy, and output property fire-reset cycle
+- `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts` - Reads card_status from discrete Dataverse column via getFormattedValue with JSON blob fallback
+- `intelligent-work-layer/schemas/output-schema.json` - Added NUDGE to card_status enum
+- `intelligent-work-layer/src/AssistantDashboard/ControlManifest.Input.xml` - Added orchestratorResponse and isProcessing input properties
+- `intelligent-work-layer/src/AssistantDashboard/index.ts` - Reads and passes orchestratorResponse/isProcessing through AppWrapper
+- `intelligent-work-layer/src/AssistantDashboard/components/App.tsx` - Parses orchestratorResponse, passes to CommandBar, wraps content with ErrorBoundary
+- `intelligent-work-layer/src/AssistantDashboard/components/types.ts` - Added orchestratorResponse and isProcessing to AppProps
+- `intelligent-work-layer/src/AssistantDashboard/components/CommandBar.tsx` - No changes needed (already accepts lastResponse/isProcessing props)
+- `intelligent-work-layer/src/AssistantDashboard/components/ErrorBoundary.tsx` - New React class component with getDerivedStateFromError and componentDidCatch
+- `intelligent-work-layer/src/AssistantDashboard/components/BriefingCard.tsx` - Added TODO comment for deferred schedule configuration
+- `intelligent-work-layer/docs/agent-flows.md` - Added staleness refresh mechanism (I-17) and error monitoring strategy (I-18)
+- `intelligent-work-layer/scripts/provision-environment.ps1` - Added cr_ErrorLog table provisioning with all 7 columns
+- `intelligent-work-layer/src/test/jest.config.ts` - Removed index.ts exclusion from coverage collection
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` - 17 test cases covering all 4 analytics tabs, empty state, division safety, and edge cases
+- `intelligent-work-layer/src/AssistantDashboard/__tests__/index.test.ts` - 11 test cases covering PCF lifecycle: init, updateView, getOutputs, destroy, and output property fire-reset cycle
 - `.planning/PROJECT.md` - Reclassified tech debt #13 as deferred
 
 ## Decisions Made

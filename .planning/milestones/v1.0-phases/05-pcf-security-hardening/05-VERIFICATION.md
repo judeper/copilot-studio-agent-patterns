@@ -22,7 +22,7 @@ re_verification: false
 | 1 | URLs with javascript:, data:, or vbscript: schemes are never rendered as clickable links | VERIFIED | `isSafeUrl()` uses a WHATWG URL constructor with an allowlist of `{"https:", "mailto:"}` — any other protocol (including javascript:, data:, vbscript:) returns `false`; CardDetail.tsx renders `false` results as `<Text>` with no `<a>` tag |
 | 2 | URLs with https: or mailto: schemes render as clickable Link elements | VERIFIED | CardDetail.tsx line 129: `{isSafeUrl(source.url) ? (<Link href={source.url} target="_blank" rel="noopener noreferrer">` — safe URLs produce a Fluent UI `<Link>` with full href |
 | 3 | Unsafe URLs are visible as plain text (not silently stripped, not href='#') | VERIFIED | CardDetail.tsx line 138: `<Text>{source.title}</Text>` — title is rendered; grep confirms zero instances of `href="#"` in CardDetail.tsx; no stripping occurs |
-| 4 | bun run build completes with zero errors and zero warnings | VERIFIED | `bun run build` from `enterprise-work-assistant/src/` exits with "webpack compiled successfully". The `[BABEL] Note:` lines are informational Babel deoptimisation notices about large icon files (pre-existing, not introduced by this phase). No TypeScript errors, no webpack warnings. |
+| 4 | bun run build completes with zero errors and zero warnings | VERIFIED | `bun run build` from `intelligent-work-layer/src/` exits with "webpack compiled successfully". The `[BABEL] Note:` lines are informational Babel deoptimisation notices about large icon files (pre-existing, not introduced by this phase). No TypeScript errors, no webpack warnings. |
 
 **Score:** 4/4 truths verified
 
@@ -30,8 +30,8 @@ re_verification: false
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/src/AssistantDashboard/utils/urlSanitizer.ts` | URL validation utility with protocol allowlist | VERIFIED | Exists, 34 lines (>= min_lines 15). Exports `SAFE_PROTOCOLS` (ReadonlySet containing exactly `"https:"` and `"mailto:"`) and `isSafeUrl()` (URL constructor + allowlist check + try/catch). No regex, no external dependencies. |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` | Conditional Link vs Text rendering for verified_sources URLs | VERIFIED | Exists, 194 lines. Contains `isSafeUrl` import at line 15 and conditional rendering at lines 129-139. No `href="#"` fallback, no regex URL validation. |
+| `intelligent-work-layer/src/AssistantDashboard/utils/urlSanitizer.ts` | URL validation utility with protocol allowlist | VERIFIED | Exists, 34 lines (>= min_lines 15). Exports `SAFE_PROTOCOLS` (ReadonlySet containing exactly `"https:"` and `"mailto:"`) and `isSafeUrl()` (URL constructor + allowlist check + try/catch). No regex, no external dependencies. |
+| `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` | Conditional Link vs Text rendering for verified_sources URLs | VERIFIED | Exists, 194 lines. Contains `isSafeUrl` import at line 15 and conditional rendering at lines 129-139. No `href="#"` fallback, no regex URL validation. |
 
 ### Key Link Verification
 
@@ -95,7 +95,7 @@ The implementation correctly follows OWASP-aligned URL validation best practices
 
 ### Build Status
 
-`bun run build` from `enterprise-work-assistant/src/` completes with:
+`bun run build` from `intelligent-work-layer/src/` completes with:
 - `webpack compiled successfully in 28552 ms`
 - No TypeScript type errors
 - No webpack warnings

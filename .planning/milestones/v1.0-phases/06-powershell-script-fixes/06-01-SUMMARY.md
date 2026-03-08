@@ -22,9 +22,9 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/scripts/deploy-solution.ps1
-    - enterprise-work-assistant/scripts/create-security-roles.ps1
-    - enterprise-work-assistant/docs/deployment-guide.md
+    - intelligent-work-layer/scripts/deploy-solution.ps1
+    - intelligent-work-layer/scripts/create-security-roles.ps1
+    - intelligent-work-layer/docs/deployment-guide.md
 
 key-decisions:
   - "Existence-only prereq checks (no minimum version enforcement) -- build step itself will fail with clear error if wrong version"
@@ -71,9 +71,9 @@ Each task was committed atomically:
 2. **Task 2: Harden create-security-roles.ps1 error handling and update deployment guide Bun commands** - `e586a21` (fix)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/scripts/deploy-solution.ps1` - Production deploy script: Bun commands, SupportsShouldProcess, Start-Transcript, 5 prereq checks, exit codes 0/1/2/3, removed broken pac solution list verification
-- `enterprise-work-assistant/scripts/create-security-roles.ps1` - Security role script: Azure CLI prereq check, throw on missing privilege, throw on failed privilege assignment
-- `enterprise-work-assistant/docs/deployment-guide.md` - Bun added to prerequisites, Phase 5 manual commands changed from npm to bun
+- `intelligent-work-layer/scripts/deploy-solution.ps1` - Production deploy script: Bun commands, SupportsShouldProcess, Start-Transcript, 5 prereq checks, exit codes 0/1/2/3, removed broken pac solution list verification
+- `intelligent-work-layer/scripts/create-security-roles.ps1` - Security role script: Azure CLI prereq check, throw on missing privilege, throw on failed privilege assignment
+- `intelligent-work-layer/docs/deployment-guide.md` - Bun added to prerequisites, Phase 5 manual commands changed from npm to bun
 
 ## Decisions Made
 - Existence-only prereq checks (no minimum version enforcement) -- build step itself will fail with clear error if wrong version installed

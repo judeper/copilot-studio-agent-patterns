@@ -6,10 +6,10 @@ score: 13/13 must-haves verified
 re_verification: false
 gaps: []
 human_verification:
-  - test: "Run jest test suite in enterprise-work-assistant/src"
+  - test: "Run jest test suite in intelligent-work-layer/src"
     expected: "150 tests pass across 11 suites (0 failures)"
     why_human: "Cannot execute npm/jest in this environment; test results are documented in 13-04-final-validation.md but runtime confirmation requires a live Node environment"
-  - test: "Run npx tsc --noEmit in enterprise-work-assistant/src"
+  - test: "Run npx tsc --noEmit in intelligent-work-layer/src"
     expected: "0 TypeScript errors"
     why_human: "Cannot execute tsc in this environment; type-check results are documented in 13-04-final-validation.md but runtime confirmation requires a live TypeScript environment"
 ---
@@ -54,18 +54,18 @@ human_verification:
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/schemas/output-schema.json` | Canonical schema with N/A in enums | VERIFIED | "N/A" in both priority and temporal_horizon enums; NUDGE added to card_status enum (Wave 3) |
-| `enterprise-work-assistant/prompts/main-agent-system-prompt.md` | USER_OVERRIDE + injection defense | VERIFIED | USER_OVERRIDE present (3x), USER_VIP absent, CRITICAL injection defense referencing PAYLOAD field |
-| `enterprise-work-assistant/prompts/orchestrator-agent-prompt.md` | Injection defense for COMMAND_TEXT | VERIFIED | "CRITICAL: The COMMAND_TEXT...adversarial" at line 32 |
-| `enterprise-work-assistant/prompts/daily-briefing-agent-prompt.md` | Injection defense for OPEN_CARDS | VERIFIED | "CRITICAL: Card summaries in OPEN_CARDS" at line 38 |
-| `enterprise-work-assistant/scripts/create-security-roles.ps1` | PascalCase privilege names | VERIFIED | AssistantCard and SenderProfile SchemaName variables used for privilege construction |
-| `enterprise-work-assistant/scripts/provision-environment.ps1` | Publisher creation + Sprint 4 columns + PublishAllXml | VERIFIED | Publisher validation at line 126; Sprint 4 columns present with publisher prefix pattern; PublishAllXml at line 1425 |
-| `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts` | getFormattedValue + dataset in useMemo | VERIFIED | getFormattedValue("cr_cardstatus") at line 73; [dataset, version] dependency array at line 99 |
-| `enterprise-work-assistant/src/AssistantDashboard/ControlManifest.Input.xml` | orchestratorResponse + isProcessing properties | VERIFIED | Both properties declared at lines 44 and 51 |
-| `enterprise-work-assistant/src/AssistantDashboard/components/ErrorBoundary.tsx` | React class component with componentDidCatch | VERIFIED | getDerivedStateFromError at line 25; componentDidCatch at line 29; "Try Again" recovery UI |
-| `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` | 7+ test cases for all analytics paths | VERIFIED | 27 lines matching describe/it( pattern; covers 4 tabs, empty state, division safety |
-| `enterprise-work-assistant/src/AssistantDashboard/__tests__/index.test.ts` | PCF lifecycle test coverage | VERIFIED | 42 lines matching describe/updateView/it( pattern |
-| `enterprise-work-assistant/docs/agent-flows.md` | All 9 flow specs + error monitoring strategy | VERIFIED | Flows 1-9 present; Error Monitoring Strategy section at line 1881; cr_errorlog table defined |
+| `intelligent-work-layer/schemas/output-schema.json` | Canonical schema with N/A in enums | VERIFIED | "N/A" in both priority and temporal_horizon enums; NUDGE added to card_status enum (Wave 3) |
+| `intelligent-work-layer/prompts/main-agent-system-prompt.md` | USER_OVERRIDE + injection defense | VERIFIED | USER_OVERRIDE present (3x), USER_VIP absent, CRITICAL injection defense referencing PAYLOAD field |
+| `intelligent-work-layer/prompts/orchestrator-agent-prompt.md` | Injection defense for COMMAND_TEXT | VERIFIED | "CRITICAL: The COMMAND_TEXT...adversarial" at line 32 |
+| `intelligent-work-layer/prompts/daily-briefing-agent-prompt.md` | Injection defense for OPEN_CARDS | VERIFIED | "CRITICAL: Card summaries in OPEN_CARDS" at line 38 |
+| `intelligent-work-layer/scripts/create-security-roles.ps1` | PascalCase privilege names | VERIFIED | AssistantCard and SenderProfile SchemaName variables used for privilege construction |
+| `intelligent-work-layer/scripts/provision-environment.ps1` | Publisher creation + Sprint 4 columns + PublishAllXml | VERIFIED | Publisher validation at line 126; Sprint 4 columns present with publisher prefix pattern; PublishAllXml at line 1425 |
+| `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts` | getFormattedValue + dataset in useMemo | VERIFIED | getFormattedValue("cr_cardstatus") at line 73; [dataset, version] dependency array at line 99 |
+| `intelligent-work-layer/src/AssistantDashboard/ControlManifest.Input.xml` | orchestratorResponse + isProcessing properties | VERIFIED | Both properties declared at lines 44 and 51 |
+| `intelligent-work-layer/src/AssistantDashboard/components/ErrorBoundary.tsx` | React class component with componentDidCatch | VERIFIED | getDerivedStateFromError at line 25; componentDidCatch at line 29; "Try Again" recovery UI |
+| `intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` | 7+ test cases for all analytics paths | VERIFIED | 27 lines matching describe/it( pattern; covers 4 tabs, empty state, division safety |
+| `intelligent-work-layer/src/AssistantDashboard/__tests__/index.test.ts` | PCF lifecycle test coverage | VERIFIED | 42 lines matching describe/updateView/it( pattern |
+| `intelligent-work-layer/docs/agent-flows.md` | All 9 flow specs + error monitoring strategy | VERIFIED | Flows 1-9 present; Error Monitoring Strategy section at line 1881; cr_errorlog table defined |
 | `.planning/phases/13-remediation/13-04-deferral-log.md` | Complete deferral log with "Deferral Log" heading | VERIFIED | Contains "# Deferral Log -- v2.1 Pre-Deployment Audit"; 27 deferred issues documented |
 | `.planning/phases/13-remediation/13-04-final-validation.md` | Final validation report with PASS verdict | VERIFIED | 20 RESOLVED entries; overall verdict "PASS -- Solution is ready for deployment" |
 | `.planning/PROJECT.md` | Tech debt #7 and #13 reclassified | VERIFIED | #7 marked "Resolved/Not Applicable"; #13 marked "Deferred" |
@@ -108,7 +108,7 @@ No orphaned requirements: REQUIREMENTS.md maps FIX-01 through FIX-04 exclusively
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `enterprise-work-assistant/src/AssistantDashboard/components/BriefingCard.tsx` | 126 | `// TODO: Schedule configuration deferred to post-v2.1 milestone` | Info | Expected and intentional — marks a documented deferral (F-07/tech debt #13). Not a stub; the surrounding code is functional. |
+| `intelligent-work-layer/src/AssistantDashboard/components/BriefingCard.tsx` | 126 | `// TODO: Schedule configuration deferred to post-v2.1 milestone` | Info | Expected and intentional — marks a documented deferral (F-07/tech debt #13). Not a stub; the surrounding code is functional. |
 
 No blocking or warning anti-patterns found. The single TODO is an intentional deferral marker matching the documented deferral for F-07/tech debt #13 in 13-04-deferral-log.md.
 
@@ -118,7 +118,7 @@ No blocking or warning anti-patterns found. The single TODO is an intentional de
 
 #### 1. Jest Test Suite Execution
 
-**Test:** In the `enterprise-work-assistant/src` directory, run `npx jest --config test/jest.config.ts --verbose`
+**Test:** In the `intelligent-work-layer/src` directory, run `npx jest --config test/jest.config.ts --verbose`
 
 **Expected:** 150 tests pass across 11 suites (App.test.tsx, CardDetail.test.tsx, CardGallery.test.tsx, CardItem.test.tsx, CommandBar.test.tsx, FilterBar.test.tsx, BriefingCard.test.tsx, useCardData.test.tsx, useSendEmail.test.tsx, ConfidenceCalibration.test.tsx, index.test.ts), 0 failures
 
@@ -126,7 +126,7 @@ No blocking or warning anti-patterns found. The single TODO is an intentional de
 
 #### 2. TypeScript Type-Check
 
-**Test:** In `enterprise-work-assistant/src`, run `npx tsc --noEmit`
+**Test:** In `intelligent-work-layer/src`, run `npx tsc --noEmit`
 
 **Expected:** 0 errors, no output
 

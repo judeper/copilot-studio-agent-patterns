@@ -100,7 +100,7 @@ Full details: milestones/v2.1-REQUIREMENTS.md, v2.1-MILESTONE-AUDIT.md
 - [x] **Mock Data** — Typed mock data fixtures (`src/mock-data/`, `mock-api/`)
 - [x] **Agent Contract** — `docs/agent-contract.md` documenting the full agent-to-UI contract
 - [x] **Validation Tests** — 32 adapter validation tests (233 total tests, 16 suites)
-- [x] **Rebrand** — Enterprise Work Assistant → Intelligent Work Layer (IWL) across 63 files
+- [x] **Rebrand** — Intelligent Work Layer → Intelligent Work Layer (IWL) across 63 files
 
 **Key artifacts:** 9 models, 8 schemas, 1 adapter layer, 32 new tests | 233 total tests (16 suites) | `docs/agent-contract.md`
 

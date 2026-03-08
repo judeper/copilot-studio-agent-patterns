@@ -28,7 +28,7 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/docs/deployment-guide.md
+    - intelligent-work-layer/docs/deployment-guide.md
 
 key-decisions:
   - "Used function-first language for JSON output config since Copilot Studio UI paths are known to be unstable"
@@ -71,7 +71,7 @@ Each task was committed atomically:
 1. **Task 1: Fix JSON output UI path and update prerequisites** - `7266e72` (docs)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/docs/deployment-guide.md` - Fixed JSON output instructions, grouped prerequisites, added freshness dates and cross-reference
+- `intelligent-work-layer/docs/deployment-guide.md` - Fixed JSON output instructions, grouped prerequisites, added freshness dates and cross-reference
 
 ## Decisions Made
 - Used function-first language for Section 2.2 ("Configure the agent's prompt to output JSON format") rather than exact menu paths, since the Copilot Studio UI is known to change frequently
@@ -95,7 +95,7 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
-- FOUND: enterprise-work-assistant/docs/deployment-guide.md
+- FOUND: intelligent-work-layer/docs/deployment-guide.md
 - FOUND: .planning/phases/07-documentation-accuracy/07-01-SUMMARY.md
 - FOUND: commit 7266e72
 

@@ -59,7 +59,7 @@ None -- no technology choices to make.
 
 ### Fix 1: Schema Enum Convention (output-schema.json)
 
-**Current state:** Lines 37-39 and 41-44 of `enterprise-work-assistant/schemas/output-schema.json`:
+**Current state:** Lines 37-39 and 41-44 of `intelligent-work-layer/schemas/output-schema.json`:
 ```json
 "priority": {
   "type": "string",
@@ -73,7 +73,7 @@ None -- no technology choices to make.
 }
 ```
 
-**Target state (types.ts contract):** Lines 3-4 of `enterprise-work-assistant/src/AssistantDashboard/components/types.ts`:
+**Target state (types.ts contract):** Lines 3-4 of `intelligent-work-layer/src/AssistantDashboard/components/types.ts`:
 ```typescript
 export type Priority = "High" | "Medium" | "Low";
 export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND";
@@ -116,29 +116,29 @@ Per user decision: "Strictly fix only the 4 audit items -- do not fix additional
 
 ### Fix 2: Broken Relative Path (agent-flows.md)
 
-**Current state:** Line 58 of `enterprise-work-assistant/docs/agent-flows.md`:
+**Current state:** Line 58 of `intelligent-work-layer/docs/agent-flows.md`:
 ```markdown
 See [`schemas/output-schema.json`](../../schemas/output-schema.json) for the canonical contract.
 ```
 
 **Directory structure:**
 ```
-enterprise-work-assistant/
+intelligent-work-layer/
   docs/agent-flows.md          <-- FROM here
   schemas/output-schema.json   <-- TO here
 ```
 
-**Correct relative path:** `../schemas/output-schema.json` (one `../` to go from `docs/` up to `enterprise-work-assistant/`, then into `schemas/`)
+**Correct relative path:** `../schemas/output-schema.json` (one `../` to go from `docs/` up to `intelligent-work-layer/`, then into `schemas/`)
 
 The current path `../../schemas/output-schema.json` goes up TWO levels (to the repo root `copilot-studio-agent-patterns/`), where no `schemas/` directory exists.
 
-**Verification:** Run `node -e "const p = require('path'); const from = '<repo>/enterprise-work-assistant/docs'; console.log(require('fs').existsSync(p.resolve(from, '../schemas/output-schema.json')))"` -- should return `true`.
+**Verification:** Run `node -e "const p = require('path'); const from = '<repo>/intelligent-work-layer/docs'; console.log(require('fs').existsSync(p.resolve(from, '../schemas/output-schema.json')))"` -- should return `true`.
 
 **Confidence:** HIGH -- directory structure directly verified.
 
 ### Fix 3: Bun Version Annotation (deployment-guide.md)
 
-**Current state:** Line 9 of `enterprise-work-assistant/docs/deployment-guide.md`:
+**Current state:** Line 9 of `intelligent-work-layer/docs/deployment-guide.md`:
 ```markdown
 - [ ] **Bun** >= 1.x (Tested with Bun 1.2.x)
 ```
@@ -237,7 +237,7 @@ These are the only two planning docs where "Run a prompt" appears as an *instruc
 // Verify relative path from agent-flows.md resolves to output-schema.json
 const path = require("path");
 const fs = require("fs");
-const docsDir = path.resolve(__dirname, "enterprise-work-assistant/docs");
+const docsDir = path.resolve(__dirname, "intelligent-work-layer/docs");
 const target = path.resolve(docsDir, "../schemas/output-schema.json");
 console.log("Resolves to:", target);
 console.log("Exists:", fs.existsSync(target));
@@ -257,9 +257,9 @@ verified: DOC-03 text says "Execute Agent and wait"
 
 | # | File | Change | Lines Affected |
 |---|------|--------|---------------|
-| 1 | `enterprise-work-assistant/schemas/output-schema.json` | Replace "N/A" enum convention with null for priority and temporal_horizon | Lines 37-44 (type, enum, description for both fields) |
-| 2 | `enterprise-work-assistant/docs/agent-flows.md` | Fix relative path from `../../schemas/output-schema.json` to `../schemas/output-schema.json` | Line 58 |
-| 3 | `enterprise-work-assistant/docs/deployment-guide.md` | Change "Tested with Bun 1.2.x" to "Tested with Bun 1.3.8" | Line 9 |
+| 1 | `intelligent-work-layer/schemas/output-schema.json` | Replace "N/A" enum convention with null for priority and temporal_horizon | Lines 37-44 (type, enum, description for both fields) |
+| 2 | `intelligent-work-layer/docs/agent-flows.md` | Fix relative path from `../../schemas/output-schema.json` to `../schemas/output-schema.json` | Line 58 |
+| 3 | `intelligent-work-layer/docs/deployment-guide.md` | Change "Tested with Bun 1.2.x" to "Tested with Bun 1.3.8" | Line 9 |
 | 4 | `.planning/REQUIREMENTS.md` | Change DOC-03 text from "Run a prompt" to "Execute Agent and wait" | Line 33 |
 | 5 | `.planning/PROJECT.md` | Change "Run a prompt" to "Execute Agent and wait" in active requirements | Line 22 |
 
@@ -287,17 +287,17 @@ Not applicable -- this phase involves no technology choices, only text correctio
 ## Sources
 
 ### Primary (HIGH confidence)
-- `enterprise-work-assistant/schemas/output-schema.json` -- current schema with N/A in enums (read directly)
-- `enterprise-work-assistant/src/AssistantDashboard/components/types.ts` -- TypeScript contract with null convention (read directly)
-- `enterprise-work-assistant/docs/agent-flows.md` -- broken relative path on line 58 (read directly)
-- `enterprise-work-assistant/docs/deployment-guide.md` -- stale Bun version on line 9 (read directly)
+- `intelligent-work-layer/schemas/output-schema.json` -- current schema with N/A in enums (read directly)
+- `intelligent-work-layer/src/AssistantDashboard/components/types.ts` -- TypeScript contract with null convention (read directly)
+- `intelligent-work-layer/docs/agent-flows.md` -- broken relative path on line 58 (read directly)
+- `intelligent-work-layer/docs/deployment-guide.md` -- stale Bun version on line 9 (read directly)
 - `.planning/REQUIREMENTS.md` -- stale DOC-03 text on line 33 (read directly)
 - `.planning/PROJECT.md` -- stale "Run a prompt" text on line 22 (read directly)
 - `.planning/STATE.md` -- Phase 3 Bun 1.3.8 decision (read directly)
 - `.planning/v1.0-MILESTONE-AUDIT.md` -- four tech debt items (read directly)
-- `enterprise-work-assistant/src/AssistantDashboard/hooks/useCardData.ts` -- ingestion boundary N/A-to-null conversion (read directly)
-- `enterprise-work-assistant/prompts/main-agent-system-prompt.md` -- agent outputs "N/A" strings (grep verified)
-- `enterprise-work-assistant/schemas/dataverse-table.json` -- N/A Choice values (read directly)
+- `intelligent-work-layer/src/AssistantDashboard/hooks/useCardData.ts` -- ingestion boundary N/A-to-null conversion (read directly)
+- `intelligent-work-layer/prompts/main-agent-system-prompt.md` -- agent outputs "N/A" strings (grep verified)
+- `intelligent-work-layer/schemas/dataverse-table.json` -- N/A Choice values (read directly)
 
 ### Secondary (MEDIUM confidence)
 - [JSON Schema spec issue #258](https://github.com/json-schema-org/json-schema-spec/issues/258) -- confirms null must be in enum array for nullable enums

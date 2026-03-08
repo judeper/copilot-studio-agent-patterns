@@ -35,7 +35,7 @@ tech-stack:
 key-files:
   created: []
   modified:
-    - enterprise-work-assistant/docs/agent-flows.md
+    - intelligent-work-layer/docs/agent-flows.md
 
 key-decisions:
   - "NUDGE status set via discrete cr_cardstatus column on both new nudge card AND original overdue card (not through cr_fulljson)"
@@ -86,7 +86,7 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `enterprise-work-assistant/docs/agent-flows.md` - Fixed all 5 flow specifications: DISMISSED/SENT_EDITED branches, output envelope wrapping, NUDGE discrete column, F-02 response format, dismiss_rate categorization
+- `intelligent-work-layer/docs/agent-flows.md` - Fixed all 5 flow specifications: DISMISSED/SENT_EDITED branches, output envelope wrapping, NUDGE discrete column, F-02 response format, dismiss_rate categorization
 
 ## Decisions Made
 
@@ -104,14 +104,14 @@ Each task was committed atomically:
 - **Found during:** Task 1
 - **Issue:** agent-flows.md contained two complete versions each of Flow 6 (Daily Briefing) and Flow 7 (Staleness Monitor) -- earlier Sprint 2 detailed version and later Sprint 3/4 condensed version. Duplicate specs would cause confusion about which is authoritative.
 - **Fix:** Removed the condensed duplicate versions, kept and enhanced the detailed versions
-- **Files modified:** enterprise-work-assistant/docs/agent-flows.md
+- **Files modified:** intelligent-work-layer/docs/agent-flows.md
 - **Committed in:** 26c5566 (Task 1 commit)
 
 **2. [Rule 2 - Missing Critical] Updated intro text to reflect 9 flows instead of 3**
 - **Found during:** Task 1
 - **Issue:** File intro said "three Power Automate agent flows" but file contains 9 flows
 - **Fix:** Updated intro to say "nine Power Automate flows" with description of all flow categories
-- **Files modified:** enterprise-work-assistant/docs/agent-flows.md
+- **Files modified:** intelligent-work-layer/docs/agent-flows.md
 - **Committed in:** 26c5566 (Task 1 commit)
 
 ---

@@ -108,7 +108,7 @@ Progress: [██████████] 100% (7/7 phases complete, 90/90 item
 - Typed mock data fixtures (`src/mock-data/`, `mock-api/`)
 - Agent contract documentation (`docs/agent-contract.md`)
 - 32 adapter validation tests (233 total tests, 16 suites)
-- Rebrand: Enterprise Work Assistant → Intelligent Work Layer (IWL)
+- Rebrand: Intelligent Work Layer → Intelligent Work Layer (IWL)
 
 **v3.0 UX Psychology-Driven Redesign (16 items, 5 phases):**
 - Phase A — Card Intelligence: three-state confidence (HIGH/MEDIUM/LOW, not percentages), composite sort, Zeigarnik-aware pending indicators

@@ -6,7 +6,7 @@ score: 9/9 must-haves verified
 re_verification: false
 gaps: []
 human_verification:
-  - test: "Run npm run lint from enterprise-work-assistant/src and confirm exit 0 with zero react-hooks errors"
+  - test: "Run npm run lint from intelligent-work-layer/src and confirm exit 0 with zero react-hooks errors"
     expected: "No errors, only the pre-existing no-console warning in ErrorBoundary.tsx"
     why_human: "Lint was confirmed clean by automated run during verification — human sanity-check only"
   - test: "Open the PCF in a Canvas App, edit a draft, click Send, and inspect the sendDraftAction output value"
@@ -42,7 +42,7 @@ All four criteria are met.
 |----|-------|--------|----------|
 | 1  | ESLint react-hooks plugin is installed and both rules (rules-of-hooks, exhaustive-deps) are set to error | VERIFIED | `.eslintrc.json` contains `"react-hooks"` in plugins, `"plugin:react-hooks/recommended"` in extends, and `"react-hooks/exhaustive-deps": "error"` override in rules |
 | 2  | `npm run lint` passes with zero hook-related errors across the entire codebase | VERIFIED | Live lint run returned `0 errors, 1 warning` (the warning is a pre-existing `no-console` in ErrorBoundary.tsx — unrelated to react-hooks) |
-| 3  | A Levenshtein edit distance utility exists that computes a normalized ratio 0-100 | VERIFIED | `enterprise-work-assistant/src/AssistantDashboard/utils/levenshtein.ts` exports `levenshteinRatio(a, b): number`; 9/9 unit tests pass |
+| 3  | A Levenshtein edit distance utility exists that computes a normalized ratio 0-100 | VERIFIED | `intelligent-work-layer/src/AssistantDashboard/utils/levenshtein.ts` exports `levenshteinRatio(a, b): number`; 9/9 unit tests pass |
 | 4  | When user clicks Send on an edited draft, the PCF output includes `editDistanceRatio` in the JSON payload | VERIFIED | `CardDetail.tsx` `handleConfirmSend` computes `levenshteinRatio(originalDraft, finalText)` and passes it to `onSendDraft`; `index.ts` serializes `JSON.stringify({ cardId, finalText, editDistanceRatio })` into `sendDraftAction` |
 | 5  | Sending an unedited draft produces `editDistanceRatio` of 0 | VERIFIED | When `isEditing` is false, `finalText = card.humanized_draft` and `originalDraft = card.humanized_draft ?? ""` — `levenshteinRatio(x, x)` returns 0 by the `if (a === b) return 0` fast-path |
 | 6  | All 3 trigger flows (Email, Teams, Calendar) look up the sender profile and pass SENDER_PROFILE JSON to the agent invocation | VERIFIED | Flow 1 has fully specified steps 3a (List sender profile) and 3b (Compose SENDER_PROFILE) with SENDER_PROFILE in the agent input table; Flows 2 and 3 have explicit Phase 14 "Sender profile passthrough" notes referencing the same steps with flow-specific email keys |
@@ -60,18 +60,18 @@ All four criteria are met.
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/src/.eslintrc.json` | ESLint config with react-hooks plugin | VERIFIED | Contains `"react-hooks"` in plugins, recommended extends, exhaustive-deps at error level, react version detect |
-| `enterprise-work-assistant/src/AssistantDashboard/utils/levenshtein.ts` | Levenshtein edit distance computation | VERIFIED | 42 lines, exports `levenshteinRatio`, two-row O(min(m,n)) algorithm, correct formula |
-| `enterprise-work-assistant/src/AssistantDashboard/utils/__tests__/levenshtein.test.ts` | Unit tests for Levenshtein utility | VERIFIED | 47 lines, 9 test cases covering identical, complete-rewrite, partial edit, empty strings, case-sensitivity, integer return |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CardDetail.tsx` | Edit distance computation on send | VERIFIED | Imports `levenshteinRatio`, computes ratio in `handleConfirmSend`, passes to `onSendDraft` |
-| `enterprise-work-assistant/src/AssistantDashboard/index.ts` | PCF output with editDistanceRatio | VERIFIED | `handleSendDraft` signature updated, JSON payload includes `editDistanceRatio` |
+| `intelligent-work-layer/src/.eslintrc.json` | ESLint config with react-hooks plugin | VERIFIED | Contains `"react-hooks"` in plugins, recommended extends, exhaustive-deps at error level, react version detect |
+| `intelligent-work-layer/src/AssistantDashboard/utils/levenshtein.ts` | Levenshtein edit distance computation | VERIFIED | 42 lines, exports `levenshteinRatio`, two-row O(min(m,n)) algorithm, correct formula |
+| `intelligent-work-layer/src/AssistantDashboard/utils/__tests__/levenshtein.test.ts` | Unit tests for Levenshtein utility | VERIFIED | 47 lines, 9 test cases covering identical, complete-rewrite, partial edit, empty strings, case-sensitivity, integer return |
+| `intelligent-work-layer/src/AssistantDashboard/components/CardDetail.tsx` | Edit distance computation on send | VERIFIED | Imports `levenshteinRatio`, computes ratio in `handleConfirmSend`, passes to `onSendDraft` |
+| `intelligent-work-layer/src/AssistantDashboard/index.ts` | PCF output with editDistanceRatio | VERIFIED | `handleSendDraft` signature updated, JSON payload includes `editDistanceRatio` |
 
 ### Plan 14-02 Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/docs/agent-flows.md` | Updated flow specs with Upsert pattern, SENDER_PROFILE passthrough, pre-computed edit distance | VERIFIED | 20 occurrences of "Upsert", 8 of "SENDER_PROFILE", 10 of "cr_senderemail_key", 5 of "editDistanceRatio/edit distance ratio"; R-17 section fully absent |
-| `enterprise-work-assistant/docs/deployment-guide.md` | SENDER_PROFILE input variable updated | VERIFIED | SENDER_PROFILE row has no "Sprint 4" qualifier; description reflects active population by trigger flows; Sprint 4 checklist marks SENDER_PROFILE passthrough as `[x]` done |
+| `intelligent-work-layer/docs/agent-flows.md` | Updated flow specs with Upsert pattern, SENDER_PROFILE passthrough, pre-computed edit distance | VERIFIED | 20 occurrences of "Upsert", 8 of "SENDER_PROFILE", 10 of "cr_senderemail_key", 5 of "editDistanceRatio/edit distance ratio"; R-17 section fully absent |
+| `intelligent-work-layer/docs/deployment-guide.md` | SENDER_PROFILE input variable updated | VERIFIED | SENDER_PROFILE row has no "Sprint 4" qualifier; description reflects active population by trigger flows; Sprint 4 checklist marks SENDER_PROFILE passthrough as `[x]` done |
 
 ---
 
@@ -128,7 +128,7 @@ No TODO/FIXME/placeholder comments found in Phase 14 modified files. No empty im
 
 ### 2. ESLint clean on developer's machine
 
-**Test:** `cd enterprise-work-assistant/src && npm run lint`
+**Test:** `cd intelligent-work-layer/src && npm run lint`
 
 **Expected:** Exits 0 with the single pre-existing `no-console` warning and no react-hooks errors.
 

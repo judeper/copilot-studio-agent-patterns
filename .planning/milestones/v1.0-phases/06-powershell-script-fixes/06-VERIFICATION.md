@@ -38,9 +38,9 @@ re_verification: false
 
 | Artifact                                                           | Expected                                                                              | Status     | Details                                                                                          |
 |--------------------------------------------------------------------|---------------------------------------------------------------------------------------|------------|--------------------------------------------------------------------------------------------------|
-| `enterprise-work-assistant/scripts/deploy-solution.ps1`            | Production deploy script with WhatIf, logging, prereq checks, exit codes, Bun commands | VERIFIED   | 229 lines. Contains `SupportsShouldProcess`, `Start-Transcript`, Bun prereq check, exit 1/2/3. |
-| `enterprise-work-assistant/scripts/create-security-roles.ps1`      | Hardened security role script with fail-fast and Azure CLI prereq check               | VERIFIED   | 159 lines. Contains `throw.*Privilege` (line 136), `Get-Command az` (line 33). Zero `Write-Warning`. |
-| `enterprise-work-assistant/docs/deployment-guide.md`               | Deployment guide with correct Bun build commands                                      | VERIFIED   | Contains `bun install` (line 210), `bun run build` (line 211), Bun in prerequisites (line 9).   |
+| `intelligent-work-layer/scripts/deploy-solution.ps1`            | Production deploy script with WhatIf, logging, prereq checks, exit codes, Bun commands | VERIFIED   | 229 lines. Contains `SupportsShouldProcess`, `Start-Transcript`, Bun prereq check, exit 1/2/3. |
+| `intelligent-work-layer/scripts/create-security-roles.ps1`      | Hardened security role script with fail-fast and Azure CLI prereq check               | VERIFIED   | 159 lines. Contains `throw.*Privilege` (line 136), `Get-Command az` (line 33). Zero `Write-Warning`. |
+| `intelligent-work-layer/docs/deployment-guide.md`               | Deployment guide with correct Bun build commands                                      | VERIFIED   | Contains `bun install` (line 210), `bun run build` (line 211), Bun in prerequisites (line 9).   |
 
 ---
 

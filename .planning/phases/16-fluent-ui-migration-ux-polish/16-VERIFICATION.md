@@ -39,14 +39,14 @@ re_verification: false
 
 | Artifact | Provides | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/src/AssistantDashboard/components/BriefingCard.tsx` | Fluent UI BriefingCard with Back button | VERIFIED | Exists, substantive (259 lines), imports `@fluentui/react-components`, wired via App.tsx BriefingCard usage |
-| `enterprise-work-assistant/src/AssistantDashboard/components/ConfidenceCalibration.tsx` | Fluent UI ConfidenceCalibration with TabList/Tab and empty state handling | VERIFIED | Exists, substantive (335 lines), imports `@fluentui/react-components` with TabList, wired via App.tsx calibration view |
-| `enterprise-work-assistant/src/AssistantDashboard/components/CommandBar.tsx` | Fluent UI CommandBar with Input, Button, Spinner | VERIFIED | Exists, substantive (207 lines), imports `@fluentui/react-components`, wired in App.tsx at line 234 |
-| `enterprise-work-assistant/src/AssistantDashboard/components/App.tsx` | App with loading state Spinner and Fluent UI Agent Performance button | VERIFIED | Exists, substantive (244 lines), imports Spinner from `@fluentui/react-components`, wires onBack to BriefingCard |
-| `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/BriefingCard.test.tsx` | Updated tests with Back button coverage | VERIFIED | 13 tests including "renders Back button when onBack is provided" and "does not render Back button when onBack is omitted" |
-| `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` | Updated tests with "No data" empty state coverage | VERIFIED | 20 tests including "shows 'No data' instead of 0% with no resolved cards" and "shows 'No data' for empty accuracy buckets with populated cards in other buckets" |
-| `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CommandBar.test.tsx` | Updated tests using renderWithProviders | VERIFIED | 15 tests; uses `getByRole('button', { name: /Send/ })` pattern |
-| `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx` | Updated tests with loading spinner and filtered empty state coverage | VERIFIED | 12 tests including new loading state suite with 2 tests |
+| `intelligent-work-layer/src/AssistantDashboard/components/BriefingCard.tsx` | Fluent UI BriefingCard with Back button | VERIFIED | Exists, substantive (259 lines), imports `@fluentui/react-components`, wired via App.tsx BriefingCard usage |
+| `intelligent-work-layer/src/AssistantDashboard/components/ConfidenceCalibration.tsx` | Fluent UI ConfidenceCalibration with TabList/Tab and empty state handling | VERIFIED | Exists, substantive (335 lines), imports `@fluentui/react-components` with TabList, wired via App.tsx calibration view |
+| `intelligent-work-layer/src/AssistantDashboard/components/CommandBar.tsx` | Fluent UI CommandBar with Input, Button, Spinner | VERIFIED | Exists, substantive (207 lines), imports `@fluentui/react-components`, wired in App.tsx at line 234 |
+| `intelligent-work-layer/src/AssistantDashboard/components/App.tsx` | App with loading state Spinner and Fluent UI Agent Performance button | VERIFIED | Exists, substantive (244 lines), imports Spinner from `@fluentui/react-components`, wires onBack to BriefingCard |
+| `intelligent-work-layer/src/AssistantDashboard/components/__tests__/BriefingCard.test.tsx` | Updated tests with Back button coverage | VERIFIED | 13 tests including "renders Back button when onBack is provided" and "does not render Back button when onBack is omitted" |
+| `intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` | Updated tests with "No data" empty state coverage | VERIFIED | 20 tests including "shows 'No data' instead of 0% with no resolved cards" and "shows 'No data' for empty accuracy buckets with populated cards in other buckets" |
+| `intelligent-work-layer/src/AssistantDashboard/components/__tests__/CommandBar.test.tsx` | Updated tests using renderWithProviders | VERIFIED | 15 tests; uses `getByRole('button', { name: /Send/ })` pattern |
+| `intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx` | Updated tests with loading spinner and filtered empty state coverage | VERIFIED | 12 tests including new loading state suite with 2 tests |
 
 ---
 

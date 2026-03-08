@@ -1,6 +1,6 @@
 # Domain Pitfalls
 
-**Domain:** Power Platform PCF + Copilot Studio Enterprise Work Assistant
+**Domain:** Power Platform PCF + Copilot Studio Intelligent Work Layer
 **Researched:** 2026-02-20
 
 ---

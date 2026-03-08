@@ -48,7 +48,7 @@ az login --tenant "<your-tenant-id>"
 ### 1.2 Create Environment and Dataverse Table
 
 ```powershell
-cd enterprise-work-assistant/scripts
+cd intelligent-work-layer/scripts
 
 .\provision-environment.ps1 `
     -TenantId "<your-tenant-id>" `
@@ -260,7 +260,7 @@ To configure the Humanizer as a Connected Agent: In Copilot Studio, open the mai
 Or manually:
 
 ```bash
-cd enterprise-work-assistant/src
+cd intelligent-work-layer/src
 bun install
 bun run build
 ```

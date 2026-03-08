@@ -47,11 +47,11 @@ human_verification: []
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `enterprise-work-assistant/schemas/output-schema.json` | Canonical output schema contract | VERIFIED | Exists, substantive (152 lines), `"type": "string"` for item_summary confirmed |
-| `enterprise-work-assistant/src/AssistantDashboard/components/types.ts` | TypeScript interfaces matching output schema | VERIFIED | Exists, substantive (55 lines), `item_summary: string;` confirmed |
-| `enterprise-work-assistant/schemas/dataverse-table.json` | Dataverse table definition aligned with schema | VERIFIED | Exists, substantive (115 lines), SKIP write policy confirmed |
-| `enterprise-work-assistant/prompts/main-agent-system-prompt.md` | Agent system prompt with four aligned JSON examples | VERIFIED | Exists, substantive (318 lines), Contoso Weekly example confirmed |
-| `enterprise-work-assistant/prompts/humanizer-agent-prompt.md` | Humanizer agent prompt with draft_type in input contract | VERIFIED | Exists, substantive (107 lines), draft_type field confirmed |
+| `intelligent-work-layer/schemas/output-schema.json` | Canonical output schema contract | VERIFIED | Exists, substantive (152 lines), `"type": "string"` for item_summary confirmed |
+| `intelligent-work-layer/src/AssistantDashboard/components/types.ts` | TypeScript interfaces matching output schema | VERIFIED | Exists, substantive (55 lines), `item_summary: string;` confirmed |
+| `intelligent-work-layer/schemas/dataverse-table.json` | Dataverse table definition aligned with schema | VERIFIED | Exists, substantive (115 lines), SKIP write policy confirmed |
+| `intelligent-work-layer/prompts/main-agent-system-prompt.md` | Agent system prompt with four aligned JSON examples | VERIFIED | Exists, substantive (318 lines), Contoso Weekly example confirmed |
+| `intelligent-work-layer/prompts/humanizer-agent-prompt.md` | Humanizer agent prompt with draft_type in input contract | VERIFIED | Exists, substantive (107 lines), draft_type field confirmed |
 
 ---
 

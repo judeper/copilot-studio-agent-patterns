@@ -35,12 +35,12 @@ key-files:
     - ".planning/phases/13-remediation/13-04-deferral-log.md"
     - ".planning/phases/13-remediation/13-04-final-validation.md"
   modified:
-    - "enterprise-work-assistant/scripts/provision-environment.ps1"
-    - "enterprise-work-assistant/docs/deployment-guide.md"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx"
-    - "enterprise-work-assistant/src/AssistantDashboard/index.ts"
+    - "intelligent-work-layer/scripts/provision-environment.ps1"
+    - "intelligent-work-layer/docs/deployment-guide.md"
+    - "intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx"
+    - "intelligent-work-layer/src/AssistantDashboard/index.ts"
 
 key-decisions:
   - "R-13 (duplicate pac auth) confirmed as false positive -- script has pac auth create (PAC CLI) and az login (Azure CLI), which are distinct required auth mechanisms"
@@ -91,12 +91,12 @@ Each task was committed atomically:
 
 - `.planning/phases/13-remediation/13-04-deferral-log.md` - Comprehensive deferral log with 20 quick-fixed + 27 deferred issues
 - `.planning/phases/13-remediation/13-04-final-validation.md` - Final validation report with BLOCK issue trace and deployment readiness
-- `enterprise-work-assistant/scripts/provision-environment.ps1` - Added PublishAllXml step after all customizations (R-12)
-- `enterprise-work-assistant/docs/deployment-guide.md` - Added SENDER_PROFILE variable (R-16), Humanizer Connected Agent config (R-22), publish verification step (R-37), environment configuration section (I-33)
-- `enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx` - Added NUDGE to status maps (F-15), added DAILY_BRIEFING/COMMAND_RESULT/SELF_REMINDER trigger icons (F-16)
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx` - Added missing orchestratorResponse and isProcessing props
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` - Removed unused fixture imports
-- `enterprise-work-assistant/src/AssistantDashboard/index.ts` - Fixed IInputs type casting through unknown
+- `intelligent-work-layer/scripts/provision-environment.ps1` - Added PublishAllXml step after all customizations (R-12)
+- `intelligent-work-layer/docs/deployment-guide.md` - Added SENDER_PROFILE variable (R-16), Humanizer Connected Agent config (R-22), publish verification step (R-37), environment configuration section (I-33)
+- `intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx` - Added NUDGE to status maps (F-15), added DAILY_BRIEFING/COMMAND_RESULT/SELF_REMINDER trigger icons (F-16)
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx` - Added missing orchestratorResponse and isProcessing props
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx` - Removed unused fixture imports
+- `intelligent-work-layer/src/AssistantDashboard/index.ts` - Fixed IInputs type casting through unknown
 
 ## Decisions Made
 
@@ -114,28 +114,28 @@ Each task was committed atomically:
 - **Found during:** Task 2 (TypeScript type-check)
 - **Issue:** 13-03 added orchestratorResponse and isProcessing to AppProps but did not update App.test.tsx, causing 3 TS2322/TS2739 errors
 - **Fix:** Added `orchestratorResponse: null` and `isProcessing: false` to test default props and inline renders
-- **Files modified:** enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx
+- **Files modified:** intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx
 - **Committed in:** ce285ed (Task 2)
 
 **2. [Rule 1 - Bug] Fixed ConfidenceCalibration.test.tsx unused fixture imports**
 - **Found during:** Task 2 (TypeScript type-check)
 - **Issue:** tier1SkipItem, tier2LightItem, and lowConfidenceItem imported but never used (TS6133)
 - **Fix:** Removed unused imports, keeping only tier3FullItem and dailyBriefingItem
-- **Files modified:** enterprise-work-assistant/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx
+- **Files modified:** intelligent-work-layer/src/AssistantDashboard/components/__tests__/ConfidenceCalibration.test.tsx
 - **Committed in:** ce285ed (Task 2)
 
 **3. [Rule 1 - Bug] Fixed CardItem.tsx unused ClockRegular import**
 - **Found during:** Task 2 (TypeScript type-check)
 - **Issue:** ClockRegular was imported in Task 1 but not used in any trigger icon mapping (TS6133)
 - **Fix:** Removed unused import
-- **Files modified:** enterprise-work-assistant/src/AssistantDashboard/components/CardItem.tsx
+- **Files modified:** intelligent-work-layer/src/AssistantDashboard/components/CardItem.tsx
 - **Committed in:** ce285ed (Task 2)
 
 **4. [Rule 1 - Bug] Fixed index.ts IInputs type casting**
 - **Found during:** Task 2 (TypeScript type-check)
 - **Issue:** Casting IInputs (which lacks index signature) directly to Record<string, ...> produces TS2352
 - **Fix:** Added intermediate `as unknown` cast: `as unknown as Record<string, ...>`
-- **Files modified:** enterprise-work-assistant/src/AssistantDashboard/index.ts
+- **Files modified:** intelligent-work-layer/src/AssistantDashboard/index.ts
 - **Committed in:** ce285ed (Task 2)
 
 ---

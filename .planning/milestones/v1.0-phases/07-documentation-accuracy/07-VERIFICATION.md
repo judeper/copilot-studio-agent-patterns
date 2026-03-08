@@ -45,8 +45,8 @@ human_verification:
 
 | Artifact                                                     | Expected                                                                              | Status     | Details                                                                       |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------- |
-| `enterprise-work-assistant/docs/deployment-guide.md`         | Corrected deployment guide with accurate UI paths, prerequisites, and research tool registration | VERIFIED | File exists, substantive (300 lines), cross-references agent-flows.md      |
-| `enterprise-work-assistant/docs/agent-flows.md`              | Corrected agent flows guide with accurate connector actions, expressions, and fixed schema | VERIFIED  | File exists, substantive (419 lines), "Execute Agent and wait" throughout  |
+| `intelligent-work-layer/docs/deployment-guide.md`         | Corrected deployment guide with accurate UI paths, prerequisites, and research tool registration | VERIFIED | File exists, substantive (300 lines), cross-references agent-flows.md      |
+| `intelligent-work-layer/docs/agent-flows.md`              | Corrected agent flows guide with accurate connector actions, expressions, and fixed schema | VERIFIED  | File exists, substantive (419 lines), "Execute Agent and wait" throughout  |
 
 ### Key Link Verification
 
@@ -74,15 +74,15 @@ human_verification:
 
 | File                                            | Location        | Pattern                                                                            | Severity | Impact                                                                                                       |
 | ----------------------------------------------- | --------------- | ---------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
-| `enterprise-work-assistant/docs/agent-flows.md` | Line 58         | `../../schemas/output-schema.json` — path two levels up resolves outside repo structure; correct path is `../schemas/output-schema.json` | Warning | Link would 404 in rendered Markdown (GitHub, docs site); does not affect developer instructions in the guide |
-| `enterprise-work-assistant/docs/agent-flows.md` | Lines 70, 392   | "Invoke agent" used as a shorthand label in the error-handling scope diagram and Flow 3 step 4c | Info | Shorthand pseudo-code only; not instructions to use a specific connector action; adjacent text correctly uses "Execute Agent and wait" |
-| `enterprise-work-assistant/docs/deployment-guide.md` | Lines 179, 265 | "Invoke agent" phrasing in non-instructional paragraphs (publish warning and DLP note) | Info | Not instructions; developer following the guide would not choose the wrong action based on these references |
+| `intelligent-work-layer/docs/agent-flows.md` | Line 58         | `../../schemas/output-schema.json` — path two levels up resolves outside repo structure; correct path is `../schemas/output-schema.json` | Warning | Link would 404 in rendered Markdown (GitHub, docs site); does not affect developer instructions in the guide |
+| `intelligent-work-layer/docs/agent-flows.md` | Lines 70, 392   | "Invoke agent" used as a shorthand label in the error-handling scope diagram and Flow 3 step 4c | Info | Shorthand pseudo-code only; not instructions to use a specific connector action; adjacent text correctly uses "Execute Agent and wait" |
+| `intelligent-work-layer/docs/deployment-guide.md` | Lines 179, 265 | "Invoke agent" phrasing in non-instructional paragraphs (publish warning and DLP note) | Info | Not instructions; developer following the guide would not choose the wrong action based on these references |
 
 ### Human Verification Required
 
 #### 1. JSON Output Configuration UI Flow
 
-**Test:** Open Copilot Studio in a tenant with the Enterprise Work Assistant agent, follow Section 2.2 step-by-step
+**Test:** Open Copilot Studio in a tenant with the Intelligent Work Layer agent, follow Section 2.2 step-by-step
 **Expected:** The Prompt builder is accessible, the JSON output format dropdown exists near "Output:", and the custom schema can be applied
 **Why human:** The guide uses function-first language intentionally because the UI path is unstable. A human must confirm the described controls are still present in the current Copilot Studio release.
 

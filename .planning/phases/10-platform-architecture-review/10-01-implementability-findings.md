@@ -86,7 +86,7 @@ Traced the implementation path for every artifact from specification to deployme
 - **Suggested Fix:** Add a note about NuGet connectivity requirements, or add `dotnet restore` as an explicit step before `dotnet build` with error handling.
 
 **IMP-11: PCF component deployed as Unmanaged solution -- appropriate for dev but not production**
-- **Artifact:** `enterprise-work-assistant/src/Solutions/Solution.cdsproj` (line 3) and `docs/deployment-guide.md` (line 253)
+- **Artifact:** `intelligent-work-layer/src/Solutions/Solution.cdsproj` (line 3) and `docs/deployment-guide.md` (line 253)
 - **Issue:** The Solution.cdsproj specifies `SolutionPackageType = Unmanaged`. The deployment guide mentions this is for development and suggests changing to Managed for production. An unmanaged solution in a production environment allows users to modify or delete components, which is a governance concern.
 - **Impact:** Non-blocking for development/testing. Needs to be changed for production deployment.
 - **Suggested Fix:** Add a deploy-solution.ps1 parameter `-Managed` that switches the SolutionPackageType before building, or document the manual change needed.

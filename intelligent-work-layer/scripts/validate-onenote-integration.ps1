@@ -19,7 +19,7 @@
 $ErrorCount = 0
 $WarningCount = 0
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$ewaRoot = Join-Path $repoRoot "enterprise-work-assistant"
+$ewaRoot = Join-Path $repoRoot "intelligent-work-layer"
 
 Write-Host "`n━━━ OneNote Integration Validation ━━━" -ForegroundColor Cyan
 

@@ -1,6 +1,6 @@
 # Technology Stack
 
-**Project:** Enterprise Work Assistant -- Production Readiness Remediation
+**Project:** Intelligent Work Layer -- Production Readiness Remediation
 **Researched:** 2026-02-20
 **Mode:** Ecosystem (Stack dimension)
 

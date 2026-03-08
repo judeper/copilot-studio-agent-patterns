@@ -27,7 +27,7 @@ Standardize Dataverse table naming across all files: `cr_assistantcard` (singula
 ### Verification approach
 - Create a reusable PowerShell audit script that checks naming conventions
 - Script reports both violations (incorrect usages) and correct usages as positive confirmation
-- Script lives inside `enterprise-work-assistant/` directory
+- Script lives inside `intelligent-work-layer/` directory
 - PowerShell format to match existing project script conventions
 
 ### Claude's Discretion

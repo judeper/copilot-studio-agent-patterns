@@ -1,12 +1,12 @@
-# Enterprise Work Assistant — Implementation Design
+# Intelligent Work Layer — Implementation Design
 
-> **⚠️ v3.0 Update (AI Council):** This document describes the original single-agent implementation design. The current architecture has evolved to a **MARL pipeline** (Triage→Research→Scorer→DraftGen→Humanizer) with **17 agent prompts**, **9 Dataverse tables** (including learning system tables), and a learning subsystem (Flows 11, 14–16). **For current architecture, see [`enterprise-work-assistant/docs/architecture-overview.md`](enterprise-work-assistant/docs/architecture-overview.md).**
-> - [`enterprise-work-assistant/README.md`](enterprise-work-assistant/README.md) — updated file map and architecture
-> - [`enterprise-work-assistant/docs/architecture-enhancements.md`](enterprise-work-assistant/docs/architecture-enhancements.md) — MARL pipeline design
-> - [`enterprise-work-assistant/docs/learning-enhancements.md`](enterprise-work-assistant/docs/learning-enhancements.md) — learning system design
-> - [`enterprise-work-assistant/docs/ux-enhancements.md`](enterprise-work-assistant/docs/ux-enhancements.md) — UX improvements and WCAG AA compliance
+> **⚠️ v3.0 Update (AI Council):** This document describes the original single-agent implementation design. The current architecture has evolved to a **MARL pipeline** (Triage→Research→Scorer→DraftGen→Humanizer) with **17 agent prompts**, **9 Dataverse tables** (including learning system tables), and a learning subsystem (Flows 11, 14–16). **For current architecture, see [`intelligent-work-layer/docs/architecture-overview.md`](intelligent-work-layer/docs/architecture-overview.md).**
+> - [`intelligent-work-layer/README.md`](intelligent-work-layer/README.md) — updated file map and architecture
+> - [`intelligent-work-layer/docs/architecture-enhancements.md`](intelligent-work-layer/docs/architecture-enhancements.md) — MARL pipeline design
+> - [`intelligent-work-layer/docs/learning-enhancements.md`](intelligent-work-layer/docs/learning-enhancements.md) — learning system design
+> - [`intelligent-work-layer/docs/ux-enhancements.md`](intelligent-work-layer/docs/ux-enhancements.md) — UX improvements and WCAG AA compliance
 
-The Enterprise Work Assistant is an **intelligent work layer** for Microsoft 365 — it intercepts email, Teams, and calendar signals, then triages, researches, and prepares draft responses autonomously. This document provides the original implementation steps mapping to Microsoft Copilot Studio, Power Automate, Dataverse, and Power Apps (Canvas).
+The Intelligent Work Layer is an **intelligent work layer** for Microsoft 365 — it intercepts email, Teams, and calendar signals, then triages, researches, and prepares draft responses autonomously. This document provides the original implementation steps mapping to Microsoft Copilot Studio, Power Automate, Dataverse, and Power Apps (Canvas).
 
 ***
 
@@ -69,7 +69,7 @@ This is the "brain" — a single Copilot Studio agent with generative orchestrat
 
 ### Steps
 
-1. **Create a new Agent** in Copilot Studio within the provisioned environment. Name it "Enterprise Work Assistant."
+1. **Create a new Agent** in Copilot Studio within the provisioned environment. Name it "Intelligent Work Layer."
 2. **Enable Generative Orchestration** so the agent can autonomously select and chain actions (tools) based on the system prompt instructions.[^2]
 3. **Paste the full system prompt** (from the specification) into the agent's system message / instructions field. This instructs the LLM on triage logic, research hierarchy, confidence scoring, and output schema.[^10][^11]
 4. **Enforce JSON output**: In the agent's prompt configuration, specify structured output using a JSON schema that matches the OUTPUT SCHEMA from the specification. Copilot Studio supports JSON output mode where you provide the schema and the model returns conforming JSON.[^12][^11][^10]

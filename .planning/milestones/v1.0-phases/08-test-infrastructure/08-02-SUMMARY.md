@@ -21,15 +21,15 @@ tech-stack:
 
 key-files:
   created:
-    - enterprise-work-assistant/src/AssistantDashboard/hooks/__tests__/useCardData.test.ts
-    - enterprise-work-assistant/src/AssistantDashboard/utils/__tests__/urlSanitizer.test.ts
-    - enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CardItem.test.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CardDetail.test.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CardGallery.test.tsx
-    - enterprise-work-assistant/src/AssistantDashboard/components/__tests__/FilterBar.test.tsx
+    - intelligent-work-layer/src/AssistantDashboard/hooks/__tests__/useCardData.test.ts
+    - intelligent-work-layer/src/AssistantDashboard/utils/__tests__/urlSanitizer.test.ts
+    - intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/__tests__/CardItem.test.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/__tests__/CardDetail.test.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/__tests__/CardGallery.test.tsx
+    - intelligent-work-layer/src/AssistantDashboard/components/__tests__/FilterBar.test.tsx
   modified:
-    - enterprise-work-assistant/src/test/jest.setup.ts
+    - intelligent-work-layer/src/test/jest.setup.ts
 
 key-decisions:
   - "ResizeObserver mock added to jest.setup.ts -- Fluent UI MessageBar uses ResizeObserver for reflow detection which jsdom lacks"
@@ -76,14 +76,14 @@ Each task was committed atomically:
 2. **Task 2: Write component render tests for App, CardItem, CardDetail, CardGallery, FilterBar** - `21f9e79` (test)
 
 ## Files Created/Modified
-- `enterprise-work-assistant/src/AssistantDashboard/hooks/__tests__/useCardData.test.ts` - 11 tests for hook JSON parsing, malformed data, tier-specific fields, N/A boundary, column extraction
-- `enterprise-work-assistant/src/AssistantDashboard/utils/__tests__/urlSanitizer.test.ts` - 12 tests for URL protocol validation and SAFE_PROTOCOLS set
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/App.test.tsx` - 10 tests for filter logic and view state navigation
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CardItem.test.tsx` - 6 tests for card summary, badges, click handler
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CardDetail.test.tsx` - 21 tests for all sections, draft variants, action buttons, null-field hiding
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/CardGallery.test.tsx` - 3 tests for card rendering, empty state, click propagation
-- `enterprise-work-assistant/src/AssistantDashboard/components/__tests__/FilterBar.test.tsx` - 5 tests for card count, filter badges
-- `enterprise-work-assistant/src/test/jest.setup.ts` - Added ResizeObserver mock for Fluent UI MessageBar
+- `intelligent-work-layer/src/AssistantDashboard/hooks/__tests__/useCardData.test.ts` - 11 tests for hook JSON parsing, malformed data, tier-specific fields, N/A boundary, column extraction
+- `intelligent-work-layer/src/AssistantDashboard/utils/__tests__/urlSanitizer.test.ts` - 12 tests for URL protocol validation and SAFE_PROTOCOLS set
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/App.test.tsx` - 10 tests for filter logic and view state navigation
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/CardItem.test.tsx` - 6 tests for card summary, badges, click handler
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/CardDetail.test.tsx` - 21 tests for all sections, draft variants, action buttons, null-field hiding
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/CardGallery.test.tsx` - 3 tests for card rendering, empty state, click propagation
+- `intelligent-work-layer/src/AssistantDashboard/components/__tests__/FilterBar.test.tsx` - 5 tests for card count, filter badges
+- `intelligent-work-layer/src/test/jest.setup.ts` - Added ResizeObserver mock for Fluent UI MessageBar
 
 ## Decisions Made
 - **ResizeObserver mock:** Fluent UI MessageBar uses ResizeObserver for reflow detection. jsdom does not implement ResizeObserver. Added a no-op mock class in jest.setup.ts rather than mocking the MessageBar component (aligns with user decision to render real Fluent UI components).
@@ -98,7 +98,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (CardDetail test with lowConfidenceItem)
 - **Issue:** Fluent UI MessageBar internally uses ResizeObserver for reflow detection. jsdom does not implement ResizeObserver, causing "win.ResizeObserver is not a constructor" error.
 - **Fix:** Added ResizeObserverMock class with no-op observe/unobserve/disconnect methods to jest.setup.ts
-- **Files modified:** enterprise-work-assistant/src/test/jest.setup.ts
+- **Files modified:** intelligent-work-layer/src/test/jest.setup.ts
 - **Verification:** All tests including low confidence warning test pass
 - **Committed in:** 21f9e79 (Task 2 commit)
 

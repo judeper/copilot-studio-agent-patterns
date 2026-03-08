@@ -88,7 +88,7 @@ bun install
 
 ### Current File Structure (No Changes Needed)
 ```
-enterprise-work-assistant/src/
+intelligent-work-layer/src/
 ├── .eslintrc.json              # ESLint config (already exists)
 ├── package.json                # Dependencies (needs Bun lockfile)
 ├── tsconfig.json               # TypeScript config (strict already enabled)
