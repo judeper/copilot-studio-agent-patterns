@@ -73,32 +73,39 @@ pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate MainFlows
 
 ## Provision and Deploy (Email Productivity Agent)
 
+### Option A: Lab Wizard (Recommended)
+
+The Python lab wizard automates the full deployment in one interactive session:
+
+```shell
+cd email-productivity-agent/tools/lab-wizard
+pip install -r requirements.txt
+python wizard.py
+```
+
+The wizard runs 9 phases: Environment → Security Roles → Copilot Agent → Connections → Deploy Flows → Assign User Roles → Validation Check → Demo Staging.
+
+Runtime config is saved to `epa-config.json` (gitignored). Demo staging bootstraps an Entra app registration (`epa-mail-app.json`, also gitignored) with `Mail.ReadWrite` + `Mail.Send` for sending demo emails from Lisa Taylor's mailbox.
+
+### Option B: Manual Scripts
+
 All commands run from `email-productivity-agent/scripts/`:
 
 ```shell
 # 1. Provision environment + Dataverse tables
-pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@domain.com>"
+pwsh provision-environment.ps1 -TenantId "<tenant-id>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 
-# 2. Deploy Phase 1 flows (follow-up nudges)
+# 2. Deploy flows (Phase1 → Phase2 → Phase3)
 pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase1"
-
-# 3. Deploy Phase 2 flows (snooze auto-removal)
 pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase2"
-
-# 4. Deploy Phase 3 flows (settings UX)
 pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase3"
 
-# 5. Optional: deploy and invoke the regression harness flows
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow8"
-pwsh invoke-followup-test-harness.ps1 -EnvironmentId "<env-id>" -TrackingId "<cr_followuptrackingid-guid>" -ForceNudge
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow9"
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow10"
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow11"
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow12"
-pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow13"
-pwsh invoke-http-flow-harness.ps1 -EnvironmentId "<env-id>" -FlowDisplayName "EPA - Flow 10: Settings Handler Test Harness" -BodyJson '{"action":"restore_defaults","responderEmail":"<user@domain.com>","responderUserPrincipalName":"<user@domain.com>"}'
+# 3. Optional: deploy regression harness flows (Flow8-Flow13)
+foreach ($flow in @("Flow8","Flow9","Flow10","Flow11","Flow12","Flow13")) {
+    pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate $flow
+}
 ```
 
 Requires: PowerShell 7+, PAC CLI, Azure CLI (`az login` for token acquisition).

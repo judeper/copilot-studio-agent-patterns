@@ -35,4 +35,10 @@ coverage/
 
 # Accidental local paths
 **/~/
-email-productivity-agent/tools/lab-wizard/__pycache__/
+# Python
+__pycache__/
+*.pyc
+
+# Lab wizard runtime config (generated per-environment)
+epa-config.json
+epa-mail-app.json
