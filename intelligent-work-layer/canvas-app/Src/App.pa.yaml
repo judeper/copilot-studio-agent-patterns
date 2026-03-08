@@ -1,0 +1,15 @@
+App:
+  Properties:
+    StartScreen: =Screen1
+    DesignWidth: =1366
+    DesignHeight: =768
+
+DataSources:
+  cr_assistantcards:
+    Type: Table
+    Parameters:
+      TableLogicalName: cr_assistantcards
+
+EditorState:
+  ScreensOrder:
+    - Screen1

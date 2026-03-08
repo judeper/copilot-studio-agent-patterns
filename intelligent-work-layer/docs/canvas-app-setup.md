@@ -6,8 +6,11 @@ This guide covers creating the Canvas Power App that serves as the user-facing d
 
 - Power Platform environment provisioned with Dataverse
 - `Assistant Cards` table created (run `scripts/provision-environment.ps1`)
-- Power Apps Component Framework (PCF) component deployed (run `scripts/deploy-solution.ps1`)
-- PCF for Canvas apps enabled in environment settings (must be enabled manually — see [deployment-guide.md](deployment-guide.md), Phase 1)
+- Power Apps Component Framework (PCF) component deployed via `pac pcf push --publisher-prefix cr` (or `scripts/deploy-solution.ps1`)
+- **PCF for Canvas apps enabled** — Admin Center → Environments → select environment → Settings → Product → Features → **"Allow publishing of canvas apps with code components"** → On → Save
+- **PCF solution imported** — The component must be imported into Dataverse via Solutions before it appears in the Code tab. If you used `pac pcf push`, this is done automatically.
+
+> **⚠️ Important:** After enabling the PCF feature toggle, **close and re-open** the Canvas App editor. The "Code components" section and "Get more components" link in the Insert panel only appear after the editor reloads with the feature enabled. Allow 1-2 minutes for propagation.
 
 ---
 

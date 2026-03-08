@@ -1,0 +1,79 @@
+Screens:
+  Screen1:
+    Properties:
+      Height: =Max(App.Height, App.MinScreenHeight)
+      Width: =Max(App.Width, App.MinScreenWidth)
+      Fill: =RGBA(250, 250, 248, 1)
+
+    Children:
+      # ─── Header Label ────────────────────────────────────────────────────
+      - lblTitle:
+          Control: Label
+          Properties:
+            Text: ="Intelligent Work Layer"
+            X: =20
+            Y: =5
+            Width: =400
+            Height: =32
+            Size: =16
+            FontWeight: =FontWeight.Bold
+            Color: =RGBA(50, 50, 50, 1)
+
+      # ─── Dropdown 1: Trigger Type ────────────────────────────────────────
+      - drpTriggerType:
+          Control: DropDown
+          Properties:
+            Items: =["", "EMAIL", "TEAMS_MESSAGE", "CALENDAR_SCAN"]
+            X: =20
+            Y: =40
+            Width: =260
+            Height: =36
+            Default: =""
+
+      # ─── Dropdown 2: Priority ────────────────────────────────────────────
+      - drpPriority:
+          Control: DropDown
+          Properties:
+            Items: =["", "High", "Medium", "Low"]
+            X: =300
+            Y: =40
+            Width: =220
+            Height: =36
+            Default: =""
+
+      # ─── Dropdown 3: Card Status ─────────────────────────────────────────
+      - drpCardStatus:
+          Control: DropDown
+          Properties:
+            Items: =["", "READY", "LOW_CONFIDENCE", "SUMMARY_ONLY"]
+            X: =540
+            Y: =40
+            Width: =240
+            Height: =36
+            Default: =""
+
+      # ─── Dropdown 4: Temporal Horizon ────────────────────────────────────
+      - drpTemporalHorizon:
+          Control: DropDown
+          Properties:
+            Items: =["", "TODAY", "THIS_WEEK", "NEXT_WEEK", "BEYOND"]
+            X: =800
+            Y: =40
+            Width: =240
+            Height: =36
+            Default: =""
+
+      # ─── PCF Dataset Control: AssistantDashboard ─────────────────────────
+      - AssistantDashboard1:
+          Control: CodeComponent
+          ComponentName: cr_EnterpriseWorkAssistant.AssistantDashboard
+          Properties:
+            Items: =cr_assistantcards
+            filterTriggerType: =drpTriggerType.Selected.Value
+            filterPriority: =drpPriority.Selected.Value
+            filterCardStatus: =drpCardStatus.Selected.Value
+            filterTemporalHorizon: =drpTemporalHorizon.Selected.Value
+            X: =20
+            Y: =84
+            Width: =1326
+            Height: =676
