@@ -117,7 +117,7 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 - **Topic definitions** (`src/*-topic.yaml`): Copilot Studio Adaptive Dialog YAML. Use `InvokeAIBuilderModelAction` for AI prompts (referenced by `aIModelId` GUID — environment-specific). Use `InvokeFlowAction` for tool actions (referenced by `flowId` GUID — environment-specific).
 - **Agent invocation**: Prompt assets remain in the repo, but the current validated POC deployment keeps Flow 2 mocked and Flow 4 bypassed; only re-enabled live-agent variants should use `shared_microsoftcopilotstudio`.
 - **5 connectors required in the tested deployment**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized). Add Microsoft Copilot Studio only when re-enabling live agent calls.
-- **MCP servers** (Tier 4-5: Bing WebSearch, Microsoft Learn): UI-only configuration in Copilot Studio — cannot be automated via scripts.
+- **MCP servers** (Tier 4-5): Add from the built-in catalog in Copilot Studio → Tools. Microsoft Learn Docs MCP Server replaces the retired Bing WebSearch MCP. Cannot be automated via scripts.
 
 ### PCF Component Patterns
 

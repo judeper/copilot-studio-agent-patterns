@@ -291,9 +291,10 @@ pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
 This creates the Intelligent Work Layer copilot with 4 topics (Main Triage, Humanizer, Daily Briefing, Orchestrator) and publishes it.
 
 **Manual steps after provisioning:**
-1. In Copilot Studio → Tools → Add MCP server for Bing WebSearch (Streamable transport)
-2. In Copilot Studio → Tools → Add MCP server for Microsoft Learn (Streamable transport)
-3. In Humanizer Agent → Settings → Enable "Let other agents connect to and use this one"
+1. In Copilot Studio → Tools → Add **Microsoft Learn Docs MCP Server** from the built-in catalog
+2. (Optional) Add additional MCP servers from the built-in catalog as needed (e.g., Dataverse, Microsoft Search)
+
+> **Note:** Bing WebSearch MCP was retired (December 2024). Microsoft Learn Docs MCP replaces the learn.microsoft.com search capability. The Humanizer is provisioned as a **topic within the main agent**, not a standalone agent — no separate agent-sharing configuration is needed.
 
 ### Step 3b: Deploy Agent Flows
 
