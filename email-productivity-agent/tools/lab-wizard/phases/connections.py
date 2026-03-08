@@ -15,7 +15,7 @@ console = Console()
 REQUIRED_CONNECTIONS = [
     {"key": "shared_office365", "name": "Office 365 Outlook", "premium": False},
     {"key": "shared_office365users", "name": "Office 365 Users", "premium": False},
-    {"key": "shared_microsoftcopilot", "name": "Microsoft Copilot Studio", "premium": False},
+    {"key": "shared_microsoftcopilotstudio", "name": "Microsoft Copilot Studio", "premium": False},
     {"key": "shared_teams", "name": "Microsoft Teams", "premium": False},
     {"key": "shared_commondataserviceforapps", "name": "Microsoft Dataverse", "premium": False},
     {"key": "shared_webcontents", "name": "HTTP with Microsoft Entra ID", "premium": True},
