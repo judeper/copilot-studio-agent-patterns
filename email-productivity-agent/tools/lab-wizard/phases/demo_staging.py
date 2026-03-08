@@ -82,22 +82,30 @@ def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
 
     console.print(Panel(
         "[bold yellow]Lisa Taylor must sign in via Azure CLI.[/bold yellow]\n\n"
-        "A browser window will open for Lisa to sign in.\n"
-        "After demo staging completes, you can re-authenticate as admin\n"
-        "by running: [cyan]az login[/cyan]",
+        "A device code will be shown below. Open the URL in your browser,\n"
+        "sign in as [cyan]Lisa Taylor[/cyan], and enter the code.\n\n"
+        "After demo staging completes, re-authenticate as admin:\n"
+        "  [cyan]az login[/cyan]",
         title="📧 Lisa Taylor — Graph Authentication",
         border_style="yellow",
     ))
 
-    # Try az login for Lisa
-    console.print("  [dim]Opening browser for Lisa Taylor sign-in…[/dim]")
-    login_result = resolve_cli(
-        ["az", "login", "--allow-no-subscriptions"],
-        capture_output=True, text=True, timeout=120,
+    # Use device-code flow — must run interactively so user sees the code
+    console.print("  [dim]Starting device-code sign-in for Lisa Taylor…[/dim]\n")
+    import subprocess
+    import shutil
+    az_path = shutil.which("az")
+    if not az_path:
+        console.print("[red]Azure CLI not found.[/red]")
+        return None
+
+    login_result = subprocess.run(
+        [az_path, "login", "--use-device-code", "--allow-no-subscriptions"],
+        timeout=180,
     )
 
     if login_result.returncode != 0:
-        console.print(f"[red]az login failed: {(login_result.stderr or login_result.stdout or '')[:200]}[/red]")
+        console.print("[red]az login failed.[/red]")
         return None
 
     # Get Graph token
