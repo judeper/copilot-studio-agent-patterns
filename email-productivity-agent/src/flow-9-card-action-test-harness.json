@@ -222,7 +222,7 @@
       "shared_commondataserviceforapps (Microsoft Dataverse)"
     ],
     "notes": {
-      "draftAction": "The 'Draft Follow-Up' button is a placeholder in MVP. To enable full AI drafting, add a Copilot agent invocation before the reply message that generates a complete email draft.",
+      "draftAction": "The 'Create Draft' button is a placeholder in MVP. To enable full AI drafting, add a Copilot agent invocation before the reply message that generates a complete email draft.",
       "trigger": "The 'When someone responds to an adaptive card' trigger fires for ALL adaptive card responses in Teams. If you have multiple flows posting cards, add a condition to check for the expected action values."
     }
   }

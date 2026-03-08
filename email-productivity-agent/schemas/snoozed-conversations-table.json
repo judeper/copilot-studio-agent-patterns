@@ -21,7 +21,7 @@
       "type": "Text",
       "maxLength": 36,
       "required": true,
-      "description": "The systemuserid GUID of the owning user. Used as alternate key since ownerid is not supported in Dataverse alternate keys."
+      "description": "The Azure AD object ID of the owning user (from Office 365 Users connector body/id). Used as alternate key since ownerid is not supported in Dataverse alternate keys."
     },
     {
       "logicalName": "cr_conversationid",
