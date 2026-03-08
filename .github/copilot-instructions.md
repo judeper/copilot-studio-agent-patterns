@@ -4,7 +4,7 @@
 
 This repo contains production-ready patterns for building autonomous agents on the Microsoft Copilot Studio + Power Platform stack. Each solution is a self-contained folder with prompts, schemas, provisioning scripts, and UI components.
 
-The primary solution is **Enterprise Work Assistant** (`enterprise-work-assistant/`), an AI assistant that triages emails, Teams messages, and calendar events. The data flow is:
+The primary solution is **Enterprise Work Assistant** (`enterprise-work-assistant/`), an intelligent work layer that intercepts email, Teams, and calendar signals — triaging, researching, and preparing draft responses autonomously. The data flow is:
 
 1. **Power Automate Agent Flows** (10 main flows + 10 agent tool flows, deployed via `scripts/deploy-agent-flows.ps1`):
    - Signal triggers: Flow 1 (Email), Flow 2 (Teams), Flow 3 (Calendar) intercept signals, invoke the Copilot Studio agent via `ExecuteAgentAndWait` (Microsoft Copilot Studio connector), and write results to Dataverse
@@ -17,7 +17,7 @@ The primary solution is **Enterprise Work Assistant** (`enterprise-work-assistan
 4. **Canvas App + PCF React Dashboard** (PCF manifest v2.2.0, 201 tests across 15 suites) renders a single-pane-of-glass UI with WCAG AA compliance
 5. **OneNote Integration** (optional, Phase 1 write-only) syncs meeting prep, daily briefings, and active to-dos to a structured OneNote notebook via Graph API. Gated by feature flag (`cr_onenoteenabled`) and per-user opt-out (`cr_onenoteoptout`). Uses group-scoped app registration, `{{PLACEHOLDER}}` HTML templates, and fail-safe error handling.
 
-Design documents in `enterprise-work-assistant/docs/`: `architecture-enhancements.md` (MARL pipeline design), `learning-enhancements.md` (learning system design), `ux-enhancements.md` (UX improvements and WCAG AA compliance).
+Design documents in `enterprise-work-assistant/docs/`: `architecture-overview.md` (system architecture and positioning), `architecture-enhancements.md` (MARL pipeline design), `learning-enhancements.md` (learning system design), `ux-enhancements.md` (UX improvements and WCAG AA compliance).
 
 The PCF component is a **virtual** React control (shares the platform React tree — does not bundle its own React). It uses a **dataset-type** binding where the Canvas app handles the Dataverse connection and passes pre-filtered records. The PCF emits output actions (send draft, dismiss, save draft, etc.) that the Canvas app handles via OnChange formulas.
 
