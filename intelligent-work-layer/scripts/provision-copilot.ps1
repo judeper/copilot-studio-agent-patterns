@@ -763,9 +763,10 @@ try {
     Write-Host "Copilot ID: $botId" -ForegroundColor Gray
 
     Write-Host "`n⚠️  Manual steps required:" -ForegroundColor Yellow
-    Write-Host "  1. Copilot Studio → Tools → Add MCP server for Bing WebSearch (Streamable transport)" -ForegroundColor Yellow
-    Write-Host "  2. Copilot Studio → Tools → Add MCP server for Microsoft Learn (Streamable transport)" -ForegroundColor Yellow
-    Write-Host "  3. Humanizer Agent → Settings → Enable 'Let other agents connect'" -ForegroundColor Yellow
+    Write-Host "  1. Copilot Studio → Tools → Add 'Microsoft Learn Docs MCP Server' (built-in catalog)" -ForegroundColor Yellow
+    Write-Host "  2. (Optional) Add additional MCP servers from the built-in catalog as needed" -ForegroundColor Yellow
+    Write-Host "  Note: Bing WebSearch MCP was retired. Microsoft Learn Docs MCP replaces the learn.microsoft.com search capability." -ForegroundColor Yellow
+    Write-Host "  Note: Humanizer is provisioned as a topic within the main agent, not a separate agent." -ForegroundColor Yellow
 }
 finally {
     if (Test-Path $workDir) {
