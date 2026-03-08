@@ -74,8 +74,10 @@ email-productivity-agent/
 ├── README.md                                    # This file
 ├── docs/
 │   ├── deployment-guide.md                      # End-to-end deployment checklist
+│   ├── demo-walkthrough.md                      # Step-by-step demo guide
 │   ├── follow-up-nudge-flows.md                 # Flow 1, 2, 2b, 5 step-by-step specs
 │   ├── snooze-auto-removal-flows.md             # Flow 3, 4, 6 step-by-step specs
+│   ├── canvas-app-setup.md                      # Settings Canvas App build guide
 │   └── configuration-guide.md                   # User-facing settings documentation
 ├── prompts/
 │   ├── nudge-agent-system-prompt.md             # Follow-up nudge agent instructions
@@ -109,6 +111,13 @@ email-productivity-agent/
 │   ├── flow-11-snooze-detection-test-harness.json # Flow 11: HTTP-triggered Flow 3 harness
 │   ├── flow-12-auto-unsnooze-test-harness.json  # Flow 12: HTTP-triggered Flow 4 harness
 │   └── flow-13-snooze-seed-test-harness.json    # Flow 13: seed a real snoozed message for Flow 11/12 testing
+├── tools/
+│   └── lab-wizard/                              # Python CLI deployment wizard
+│       ├── wizard.py                            # Main entry point (menu-driven)
+│       ├── auth.py                              # MSAL + Azure CLI token management
+│       ├── config.py                            # Interactive config collection
+│       ├── requirements.txt                     # Python dependencies (rich, requests, msal)
+│       └── phases/                              # 9 deployment phases
 ```
 
 ## Quick Start
@@ -118,10 +127,23 @@ email-productivity-agent/
 - [PAC CLI](https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction) (`dotnet tool install --global Microsoft.PowerApps.CLI.Tool`)
 - [Azure CLI](https://aka.ms/installazurecli)
 - [PowerShell 7+](https://github.com/PowerShell/PowerShell)
+- [Python 3.9+](https://www.python.org/) (for the lab wizard)
 - Power Platform environment (Copilot Studio capacity is only required if you plan to re-enable live agent steps)
 - Copilot Studio license is optional in the current POC build and only needed when re-enabling live agent decisioning
 
-### Deploy
+### Deploy (Lab Wizard — Recommended)
+
+The lab wizard automates all deployment phases interactively:
+
+```powershell
+cd email-productivity-agent/tools/lab-wizard
+pip install -r requirements.txt
+python wizard.py
+```
+
+The wizard handles: environment creation, Dataverse tables, security roles, Copilot agent provisioning, connections, flow deployment, user role assignment, validation, and demo email staging. See [docs/demo-walkthrough.md](docs/demo-walkthrough.md) for the step-by-step demo guide.
+
+### Deploy (Manual Scripts)
 
 ```powershell
 # 1. Provision environment and Dataverse tables
