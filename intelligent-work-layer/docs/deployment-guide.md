@@ -78,7 +78,18 @@ This must be done manually — there is no CLI command:
 .\create-security-roles.ps1 -OrgUrl "https://<your-org>.crm.dynamics.com"
 ```
 
-### 1.5 Verify Table Naming Consistency
+### 1.5 Assign Security Role to Demo User
+
+The IWL is a single-user experience — the agent processes signals on behalf of the dashboard owner. Only the **person presenting the demo** needs the role. Senders whose emails/Teams messages trigger the agent do **not** need it.
+
+1. **Power Platform Admin Center** → **Environments** → select your environment
+2. Click **Settings** → expand **Users + permissions** → click **Users**
+3. Click on the demo presenter's user (e.g., the admin account)
+4. Click **Manage security roles** (top toolbar)
+5. Check ✅ **"Intelligent Work Layer User"**
+6. Click **Save**
+
+### 1.6 Verify Table Naming Consistency
 
 ```powershell
 .\audit-table-naming.ps1
