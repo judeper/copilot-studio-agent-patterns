@@ -1,0 +1,362 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_someone_is_mentioned": {
+        "type": "OpenApiConnectionNotification",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_teams",
+            "operationId": "OnNewMention",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+          }
+        }
+      }
+    },
+    "actions": {
+      "Scope_Process_Teams_Message": {
+        "type": "Scope",
+        "actions": {
+          "Get_my_profile_(V2)": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {},
+              "host": {
+                "connectionName": "shared_office365users",
+                "operationId": "MyProfile_V2",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+              }
+            },
+            "runAfter": {}
+          },
+          "Compose_SenderEmail": {
+            "type": "Compose",
+            "inputs": "@triggerOutputs()?['body/from']?['user']?['email']",
+            "runAfter": {
+              "Get_my_profile_(V2)": ["Succeeded"]
+            }
+          },
+          "Condition_Skip_Bot": {
+            "type": "If",
+            "expression": {
+              "or": [
+                {
+                  "contains": [
+                    "@toLower(coalesce(triggerOutputs()?['body/from']?['user']?['userIdentityType'], ''))",
+                    "bot"
+                  ]
+                },
+                {
+                  "contains": [
+                    "@toLower(coalesce(triggerOutputs()?['body/from']?['application']?['displayName'], ''))",
+                    "bot"
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Terminate_Bot_Sender": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Succeeded"
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Compose_SenderEmail": ["Succeeded"]
+            }
+          },
+          "List_SenderProfile": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_senderprofiles",
+                "$filter": "cr_senderemail eq '@{outputs('Compose_SenderEmail')}'",
+                "$top": 1
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Condition_Skip_Bot": ["Succeeded"]
+            }
+          },
+          "Compose_SenderProfile": {
+            "type": "Compose",
+            "inputs": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), string(first(outputs('List_SenderProfile')?['body/value'])), 'null')",
+            "runAfter": {
+              "List_SenderProfile": ["Succeeded"]
+            }
+          },
+          "Compose_ClusterId": {
+            "type": "Compose",
+            "inputs": "@coalesce(triggerOutputs()?['body/channelIdentity']?['threadId'], triggerOutputs()?['body/id'])",
+            "runAfter": {
+              "Compose_SenderProfile": ["Succeeded"]
+            }
+          },
+          "Compose_AgentPayload": {
+            "type": "Compose",
+            "inputs": {
+              "TRIGGER_TYPE": "TEAMS_MESSAGE",
+              "PAYLOAD": {
+                "messageBody": "@triggerOutputs()?['body/body']?['content']",
+                "channelName": "@coalesce(triggerOutputs()?['body/channelIdentity']?['channelName'], '')",
+                "teamName": "@coalesce(triggerOutputs()?['body/channelIdentity']?['teamName'], '')",
+                "from": {
+                  "email": "@outputs('Compose_SenderEmail')",
+                  "displayName": "@coalesce(triggerOutputs()?['body/from']?['user']?['displayName'], '')"
+                },
+                "mentions": "@coalesce(triggerOutputs()?['body/mentions'], json('[]'))",
+                "timestamp": "@triggerOutputs()?['body/createdDateTime']",
+                "threadId": "@coalesce(triggerOutputs()?['body/channelIdentity']?['threadId'], '')",
+                "messageId": "@triggerOutputs()?['body/id']"
+              },
+              "USER_CONTEXT": {
+                "userId": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                "userEmail": "@outputs('Get_my_profile_(V2)')?['body/mail']",
+                "userDisplayName": "@outputs('Get_my_profile_(V2)')?['body/displayName']",
+                "userDomain": "@split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]"
+              },
+              "CURRENT_DATETIME": "@utcNow()",
+              "SENDER_PROFILE": "@outputs('Compose_SenderProfile')"
+            },
+            "runAfter": {
+              "Compose_ClusterId": ["Succeeded"]
+            }
+          },
+          "Execute_EWA_Agent": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "botId": "<ewa-agent-schema-name>",
+                "message": "@{string(outputs('Compose_AgentPayload'))}"
+              },
+              "host": {
+                "connectionName": "shared_microsoftcopilotstudio",
+                "operationId": "ExecuteAgentAndWait",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 2,
+                "interval": "PT15S"
+              }
+            },
+            "runAfter": {
+              "Compose_AgentPayload": ["Succeeded"]
+            }
+          },
+          "Parse_Agent_Response": {
+            "type": "ParseJson",
+            "inputs": {
+              "content": "@{outputs('Execute_EWA_Agent')?['body/lastResponse']}",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "triage_tier": { "type": "string" },
+                  "item_summary": { "type": "string" },
+                  "priority": { "type": "string" },
+                  "temporal_horizon": { "type": "string" },
+                  "confidence_score": { "type": "integer" },
+                  "card_status": { "type": "string" },
+                  "trigger_type": { "type": "string" },
+                  "original_sender_email": { "type": "string" },
+                  "original_sender_display": { "type": "string" },
+                  "original_subject": { "type": "string" },
+                  "conversation_cluster_id": { "type": "string" },
+                  "source_signal_id": { "type": "string" },
+                  "full_json": { "type": "string" },
+                  "draft_payload": { "type": "object" }
+                }
+              }
+            },
+            "runAfter": {
+              "Execute_EWA_Agent": ["Succeeded"]
+            }
+          },
+          "Condition_Not_Skip": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@body('Parse_Agent_Response')?['triage_tier']",
+                      "SKIP"
+                    ]
+                  }
+                }
+              ]
+            },
+            "actions": {
+              "Create_AssistantCard": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_assistantcards",
+                    "item/cr_itemsummary": "@take(coalesce(body('Parse_Agent_Response')?['item_summary'], ''), 300)",
+                    "item/cr_triagetier": "@if(equals(body('Parse_Agent_Response')?['triage_tier'], 'FULL'), 100000002, if(equals(body('Parse_Agent_Response')?['triage_tier'], 'LIGHT'), 100000001, 100000000))",
+                    "item/cr_triggertype": 100000001,
+                    "item/cr_priority": "@if(equals(body('Parse_Agent_Response')?['priority'], 'High'), 100000000, if(equals(body('Parse_Agent_Response')?['priority'], 'Medium'), 100000001, if(equals(body('Parse_Agent_Response')?['priority'], 'Low'), 100000002, 100000003)))",
+                    "item/cr_cardstatus": "@if(equals(body('Parse_Agent_Response')?['card_status'], 'READY'), 100000000, if(equals(body('Parse_Agent_Response')?['card_status'], 'LOW_CONFIDENCE'), 100000001, if(equals(body('Parse_Agent_Response')?['card_status'], 'SUMMARY_ONLY'), 100000002, 100000003)))",
+                    "item/cr_temporalhorizon": "@if(equals(body('Parse_Agent_Response')?['temporal_horizon'], 'TODAY'), 100000000, if(equals(body('Parse_Agent_Response')?['temporal_horizon'], 'THIS_WEEK'), 100000001, if(equals(body('Parse_Agent_Response')?['temporal_horizon'], 'NEXT_WEEK'), 100000002, if(equals(body('Parse_Agent_Response')?['temporal_horizon'], 'BEYOND'), 100000003, 100000004))))",
+                    "item/cr_confidencescore": "@body('Parse_Agent_Response')?['confidence_score']",
+                    "item/cr_fulljson": "@coalesce(body('Parse_Agent_Response')?['full_json'], string(body('Parse_Agent_Response')))",
+                    "item/cr_originalsenderemail": "@body('Parse_Agent_Response')?['original_sender_email']",
+                    "item/cr_originalsenderdisplay": "@body('Parse_Agent_Response')?['original_sender_display']",
+                    "item/cr_originalsubject": "@body('Parse_Agent_Response')?['original_subject']",
+                    "item/cr_conversationclusterid": "@outputs('Compose_ClusterId')",
+                    "item/cr_sourcesignalid": "@triggerOutputs()?['body/id']",
+                    "item/cr_cardoutcome": 100000000,
+                    "item/ownerid": "@outputs('Get_my_profile_(V2)')?['body/id']"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "CreateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {}
+              },
+              "Condition_Humanizer": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@body('Parse_Agent_Response')?['triage_tier']",
+                        "FULL"
+                      ]
+                    },
+                    {
+                      "greaterOrEquals": [
+                        "@body('Parse_Agent_Response')?['confidence_score']",
+                        40
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Compose_HumanizerInput": {
+                    "type": "Compose",
+                    "inputs": {
+                      "draft_payload": "@body('Parse_Agent_Response')?['draft_payload']",
+                      "original_subject": "@body('Parse_Agent_Response')?['original_subject']",
+                      "original_sender_display": "@body('Parse_Agent_Response')?['original_sender_display']",
+                      "triage_tier": "@body('Parse_Agent_Response')?['triage_tier']",
+                      "item_summary": "@body('Parse_Agent_Response')?['item_summary']"
+                    },
+                    "runAfter": {}
+                  },
+                  "Execute_Humanizer_Agent": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "botId": "<humanizer-agent-schema-name>",
+                        "message": "@{string(outputs('Compose_HumanizerInput'))}"
+                      },
+                      "host": {
+                        "connectionName": "shared_microsoftcopilotstudio",
+                        "operationId": "ExecuteAgentAndWait",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+                      },
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 2,
+                        "interval": "PT15S"
+                      }
+                    },
+                    "runAfter": {
+                      "Compose_HumanizerInput": ["Succeeded"]
+                    }
+                  },
+                  "Update_Card_Humanized": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "recordId": "@outputs('Create_AssistantCard')?['body/cr_assistantcardid']",
+                        "item/cr_humanizeddraft": "@outputs('Execute_Humanizer_Agent')?['body/lastResponse']"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {
+                      "Execute_Humanizer_Agent": ["Succeeded"]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "Create_AssistantCard": ["Succeeded"]
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Parse_Agent_Response": ["Succeeded"]
+            }
+          },
+          "Upsert_SenderProfile": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_senderprofiles",
+                "recordId": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), first(outputs('List_SenderProfile')?['body/value'])?['cr_senderprofileid'], null)",
+                "item/cr_senderemail": "@outputs('Compose_SenderEmail')",
+                "item/cr_senderdisplayname": "@coalesce(triggerOutputs()?['body/from']?['user']?['displayName'], outputs('Compose_SenderEmail'))",
+                "item/cr_signalcount": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), add(first(outputs('List_SenderProfile')?['body/value'])?['cr_signalcount'], 1), 1)",
+                "item/cr_lastsignaldate": "@utcNow()",
+                "item/cr_isinternal": "@contains(toLower(coalesce(outputs('Compose_SenderEmail'), '')), toLower(split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]))"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Condition_Not_Skip": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "flowName": "EWA-Flow-2-TeamsTrigger",
+              "errorTimestamp": "@utcNow()",
+              "triggerMessageId": "@coalesce(triggerOutputs()?['body/id'], 'Unknown')",
+              "triggerFrom": "@coalesce(triggerOutputs()?['body/from']?['user']?['displayName'], 'Unknown')",
+              "errorMessage": "Teams trigger flow failed during processing. Check run history for details."
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Scope_Process_Teams_Message": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

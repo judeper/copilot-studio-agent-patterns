@@ -1,0 +1,121 @@
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: CONVERSATION_ID
+    description: The Microsoft Graph conversationId of the snoozed email thread that received a new reply
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: NEW_MESSAGE_SENDER
+    description: Email address of the sender who authored the new reply that triggered auto-unsnooze evaluation
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: NEW_MESSAGE_SENDER_NAME
+    description: Display name of the sender who authored the new reply that triggered auto-unsnooze evaluation
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: NEW_MESSAGE_SUBJECT
+    description: Subject line of the newly received reply message
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: NEW_MESSAGE_EXCERPT
+    description: Plain text excerpt of the new reply, up to 500 characters, used to detect out-of-office responses and urgency
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SNOOZED_SUBJECT
+    description: Subject line of the original snoozed conversation
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SNOOZE_UNTIL
+    description: Snooze expiration timestamp for the tracked conversation, if one exists
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_TIMEZONE
+    description: User timezone identifier from Microsoft 365 or a fallback default, used for working-hours suppression
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_DATETIME
+    description: Current UTC timestamp when the flow invokes the Snooze Agent
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_snooze
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: REPLACE_WITH_SNOOZE_AI_MODEL_ID
+
+    - kind: SetVariable
+      id: setVariable_snoozeResponse
+      variable: Topic.AgentResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_snooze
+
+inputType:
+  properties:
+    CONVERSATION_ID:
+      displayName: CONVERSATION_ID
+      description: The Microsoft Graph conversationId of the snoozed email thread that received a new reply
+      type: String
+
+    NEW_MESSAGE_EXCERPT:
+      displayName: NEW_MESSAGE_EXCERPT
+      description: Plain text excerpt of the new reply, up to 500 characters, used to detect out-of-office responses and urgency
+      type: String
+
+    NEW_MESSAGE_SENDER:
+      displayName: NEW_MESSAGE_SENDER
+      description: Email address of the sender who authored the new reply that triggered auto-unsnooze evaluation
+      type: String
+
+    NEW_MESSAGE_SENDER_NAME:
+      displayName: NEW_MESSAGE_SENDER_NAME
+      description: Display name of the sender who authored the new reply that triggered auto-unsnooze evaluation
+      type: String
+
+    NEW_MESSAGE_SUBJECT:
+      displayName: NEW_MESSAGE_SUBJECT
+      description: Subject line of the newly received reply message
+      type: String
+
+    SNOOZED_SUBJECT:
+      displayName: SNOOZED_SUBJECT
+      description: Subject line of the original snoozed conversation
+      type: String
+
+    SNOOZE_UNTIL:
+      displayName: SNOOZE_UNTIL
+      description: Snooze expiration timestamp for the tracked conversation, if one exists
+      type: String
+
+    USER_TIMEZONE:
+      displayName: USER_TIMEZONE
+      description: User timezone identifier from Microsoft 365 or a fallback default, used for working-hours suppression
+      type: String
+
+    CURRENT_DATETIME:
+      displayName: CURRENT_DATETIME
+      description: Current UTC timestamp when the flow invokes the Snooze Agent
+      type: String
+
+outputType:
+  properties:
+    AgentResponseJSON:
+      displayName: AgentResponseJSON
+      description: Structured JSON with unsnoozeAction, suppressReason, notificationMessage, urgency, and confidence
+      type: String

@@ -115,6 +115,7 @@ export const App: React.FC<AppProps> = ({
     onJumpToCard,
     onExecuteCommand,
     onSaveDraft,
+    onUpdateSchedule,
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery", selectedCardId: null });
     const [localFilteredCards, setLocalFilteredCards] = React.useState<AssistantCard[] | null>(null);
@@ -303,6 +304,7 @@ export const App: React.FC<AppProps> = ({
                                             card={bc}
                                             onJumpToCard={handleJumpToCard}
                                             onDismissCard={onDismissCard}
+                                            onUpdateSchedule={onUpdateSchedule}
                                         />
                                     ))}
                                     <CardGallery
@@ -317,6 +319,7 @@ export const App: React.FC<AppProps> = ({
                                                 card={selectedCard}
                                                 onJumpToCard={handleJumpToCard}
                                                 onDismissCard={onDismissCard}
+                                                onUpdateSchedule={onUpdateSchedule}
                                                 onBack={handleCloseDetail}
                                             />
                                         </div>

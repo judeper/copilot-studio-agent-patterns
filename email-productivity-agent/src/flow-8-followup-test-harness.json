@@ -1,0 +1,697 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "trackingId": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "forceNudge": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "trackingId"
+            ]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "Lookup_Dataverse_UserId": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "systemusers",
+            "$filter": "azureactivedirectoryobjectid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$select": "systemuserid",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": [
+            "Succeeded"
+          ]
+        }
+      },
+      "List_NudgeConfig": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeconfigurations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Lookup_Dataverse_UserId": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_Nudges_Enabled": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@length(outputs('List_NudgeConfig')?['body/value'])",
+                0
+              ]
+            },
+            {
+              "equals": [
+                "@first(outputs('List_NudgeConfig')?['body/value'])?['cr_nudgesenabled']",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {},
+        "else": {
+          "actions": {
+            "Terminate_Nudges_Disabled": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Succeeded"
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "List_NudgeConfig": [
+            "Succeeded"
+          ]
+        }
+      },
+      "List_Overdue_FollowUps": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_followuptrackings",
+            "$filter": "_ownerid_value eq '@{first(outputs('Lookup_Dataverse_UserId')?['body/value'])?['systemuserid']}' and cr_followuptrackingid eq '@{triggerBody()?['trackingId']}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Condition_Nudges_Enabled": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Scope_Process_FollowUps": {
+        "type": "Scope",
+        "actions": {
+          "Apply_to_each": {
+            "type": "Foreach",
+            "foreach": "@outputs('List_Overdue_FollowUps')?['body/value']",
+            "actions": {
+              "HTTP_Check_Replies": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "GET",
+                    "request/url": "/v1.0/me/messages?$filter=conversationId eq '@{items('Apply_to_each')?['cr_conversationid']}' and receivedDateTime gt @{items('Apply_to_each')?['cr_sentdatetime']}&$select=from,receivedDateTime,internetMessageHeaders,subject&$top=20"
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
+                }
+              },
+              "Condition_HTTP_Success": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@outputs('HTTP_Check_Replies')?['statusCode']",
+                        200
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Filter_Replies_By_Recipient": {
+                    "type": "Query",
+                    "inputs": {
+                      "from": "@body('HTTP_Check_Replies')?['value']",
+                      "where": "@equals(toLower(coalesce(item()?['from']?['emailAddress']?['address'], '')), toLower(coalesce(items('Apply_to_each')?['cr_recipientemail'], '')))"
+                    }
+                  },
+                  "Filter_Exclude_AutoReplies": {
+                    "type": "Query",
+                    "inputs": {
+                      "from": "@body('Filter_Replies_By_Recipient')",
+                      "where": "@not(startsWith(coalesce(item()?['subject'], ''), 'Automatic reply:'))"
+                    },
+                    "runAfter": {
+                      "Filter_Replies_By_Recipient": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Condition_Reply_Found": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(body('Filter_Exclude_AutoReplies'))",
+                            0
+                          ]
+                        },
+                        {
+                          "equals": [
+                            "@coalesce(triggerBody()?['forceNudge'], false)",
+                            false
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Update_Row_Reply_Received": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_followuptrackings",
+                            "recordId": "@items('Apply_to_each')?['cr_followuptrackingid']",
+                            "item/cr_responsereceived": true,
+                            "item/cr_lastchecked": "@utcNow()"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Requery_Row_Guard": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "entityName": "cr_followuptrackings",
+                              "recordId": "@items('Apply_to_each')?['cr_followuptrackingid']"
+                            },
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "GetItem",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            }
+                          }
+                        },
+                        "Condition_Still_Pending": {
+                          "type": "If",
+                          "expression": {
+                            "or": [
+                              {
+                                "equals": [
+                                  "@coalesce(triggerBody()?['forceNudge'], false)",
+                                  true
+                                ]
+                              },
+                              {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@outputs('Requery_Row_Guard')?['body/cr_responsereceived']",
+                                      false
+                                    ]
+                                  },
+                                  {
+                                    "equals": [
+                                      "@outputs('Requery_Row_Guard')?['body/cr_nudgesent']",
+                                      false
+                                    ]
+                                  },
+                                  {
+                                    "equals": [
+                                      "@outputs('Requery_Row_Guard')?['body/cr_dismissedbyuser']",
+                                      false
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Get_Thread_Preview": {
+                              "type": "Compose",
+                              "inputs": "@coalesce(items('Apply_to_each')?['cr_originalsubject'], '(No Subject)')"
+                            },
+                            "Compose_ThreadExcerpt": {
+                              "type": "Compose",
+                              "inputs": "@outputs('Get_Thread_Preview')",
+                              "runAfter": {
+                                "Get_Thread_Preview": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "Compose_DaysSinceSent": {
+                              "type": "Compose",
+                              "inputs": "@if(empty(items('Apply_to_each')?['cr_sentdatetime']), 0, div(sub(ticks(utcNow()), ticks(items('Apply_to_each')?['cr_sentdatetime'])), 864000000000))",
+                              "runAfter": {
+                                "Compose_ThreadExcerpt": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "Execute_Agent_and_wait": {
+                              "type": "Compose",
+                              "inputs": {
+                                "lastResponse": "{\"nudgeAction\":\"NUDGE\",\"threadSummary\":\"You sent a message but have not received a reply. It has been overdue based on your configured follow-up timeframe.\",\"suggestedDraft\":\"Hi,\\n\\nJust following up on my previous email. Wanted to check if you had a chance to review it.\\n\\nThanks!\",\"nudgePriority\":\"Medium\",\"confidence\":85}"
+                              },
+                              "runAfter": {
+                                "Compose_DaysSinceSent": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "Compose_AgentResponseJSON": {
+                              "type": "Compose",
+                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['lastResponse'], string(outputs('Execute_Agent_and_wait')))",
+                              "runAfter": {
+                                "Execute_Agent_and_wait": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "Parse_AgentResponse": {
+                              "type": "ParseJson",
+                              "inputs": {
+                                "content": "@json(outputs('Compose_AgentResponseJSON'))",
+                                "schema": {
+                                  "type": "object",
+                                  "properties": {
+                                    "nudgeAction": {
+                                      "type": "string"
+                                    },
+                                    "skipReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "threadSummary": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "suggestedDraft": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "nudgePriority": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "confidence": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "nudgeAction",
+                                    "confidence"
+                                  ]
+                                }
+                              },
+                              "runAfter": {
+                                "Compose_AgentResponseJSON": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "Condition_Agent_Says_Skip": {
+                              "type": "If",
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@body('Parse_AgentResponse')?['nudgeAction']",
+                                      "SKIP"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "actions": {
+                                "Update_Row_Agent_Skipped": {
+                                  "type": "OpenApiConnection",
+                                  "inputs": {
+                                    "parameters": {
+                                      "entityName": "cr_followuptrackings",
+                                      "recordId": "@items('Apply_to_each')?['cr_followuptrackingid']",
+                                      "item/cr_dismissedbyuser": true,
+                                      "item/cr_lastchecked": "@utcNow()"
+                                    },
+                                    "host": {
+                                      "connectionName": "shared_commondataserviceforapps",
+                                      "operationId": "UpdateRecord",
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                    }
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Compose_SuggestedDraftPreview": {
+                                    "type": "Compose",
+                                    "inputs": "@if(greater(length(coalesce(body('Parse_AgentResponse')?['suggestedDraft'], '')), 500), concat(substring(body('Parse_AgentResponse')?['suggestedDraft'], 0, 500), '...'), coalesce(body('Parse_AgentResponse')?['suggestedDraft'], ''))"
+                                  },
+                                  "Compose_AdaptiveCard": {
+                                    "type": "Compose",
+                                    "inputs": {
+                                      "type": "AdaptiveCard",
+                                      "version": "1.4",
+                                      "body": [
+                                        {
+                                          "type": "ColumnSet",
+                                          "columns": [
+                                            {
+                                              "type": "Column",
+                                              "width": "auto",
+                                              "items": [
+                                                {
+                                                  "type": "Image",
+                                                  "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bell/3D/bell_3d.png",
+                                                  "size": "Small",
+                                                  "altText": "Nudge bell icon"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "Column",
+                                              "width": "stretch",
+                                              "items": [
+                                                {
+                                                  "type": "TextBlock",
+                                                  "text": "Follow-Up Reminder",
+                                                  "weight": "Bolder",
+                                                  "size": "Medium",
+                                                  "color": "Accent"
+                                                },
+                                                {
+                                                  "type": "TextBlock",
+                                                  "text": "No response received \u2014 consider following up",
+                                                  "size": "Small",
+                                                  "isSubtle": true,
+                                                  "spacing": "None"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "Container",
+                                          "style": "emphasis",
+                                          "items": [
+                                            {
+                                              "type": "TextBlock",
+                                              "text": "@{items('Apply_to_each')?['cr_originalsubject']}",
+                                              "weight": "Bolder",
+                                              "wrap": true
+                                            },
+                                            {
+                                              "type": "FactSet",
+                                              "facts": [
+                                                {
+                                                  "title": "To",
+                                                  "value": "@{items('Apply_to_each')?['cr_recipientemail']}"
+                                                },
+                                                {
+                                                  "title": "Sent",
+                                                  "value": "@{if(empty(items('Apply_to_each')?['cr_sentdatetime']), 'N/A', formatDateTime(items('Apply_to_each')?['cr_sentdatetime'], 'MMM dd, yyyy'))}"
+                                                },
+                                                {
+                                                  "title": "Waiting",
+                                                  "value": "@{outputs('Compose_DaysSinceSent')} days"
+                                                },
+                                                {
+                                                  "title": "Priority",
+                                                  "value": "@{body('Parse_AgentResponse')?['nudgePriority']}"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "type": "TextBlock",
+                                          "text": "**Thread Summary**",
+                                          "spacing": "Medium"
+                                        },
+                                        {
+                                          "type": "TextBlock",
+                                          "text": "@{body('Parse_AgentResponse')?['threadSummary']}",
+                                          "wrap": true,
+                                          "isSubtle": true
+                                        },
+                                        {
+                                          "type": "TextBlock",
+                                          "text": "**Suggested Follow-Up Preview**",
+                                          "spacing": "Medium"
+                                        },
+                                        {
+                                          "type": "TextBlock",
+                                          "text": "\u26a0\ufe0f AI-generated draft \u2014 always verify content before sending",
+                                          "size": "Small",
+                                          "color": "Attention",
+                                          "isSubtle": true,
+                                          "spacing": "Small"
+                                        },
+                                        {
+                                          "type": "TextBlock",
+                                          "text": "@{outputs('Compose_SuggestedDraftPreview')}",
+                                          "wrap": true,
+                                          "maxLines": 6
+                                        }
+                                      ],
+                                      "actions": [
+                                        {
+                                          "type": "Action.Submit",
+                                          "title": "\u270f\ufe0f Draft Follow-Up",
+                                          "style": "positive",
+                                          "data": {
+                                            "action": "draft_followup",
+                                            "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}",
+                                            "conversationId": "@{items('Apply_to_each')?['cr_conversationid']}",
+                                            "recipientEmail": "@{items('Apply_to_each')?['cr_recipientemail']}",
+                                            "suggestedDraft": "@{body('Parse_AgentResponse')?['suggestedDraft']}"
+                                          }
+                                        },
+                                        {
+                                          "type": "Action.Submit",
+                                          "title": "\u23f0 Snooze 2 Days",
+                                          "data": {
+                                            "action": "snooze_nudge",
+                                            "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}"
+                                          }
+                                        },
+                                        {
+                                          "type": "Action.Submit",
+                                          "title": "\u2716\ufe0f Dismiss",
+                                          "data": {
+                                            "action": "dismiss_nudge",
+                                            "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}"
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    "runAfter": {
+                                      "Compose_SuggestedDraftPreview": [
+                                        "Succeeded"
+                                      ]
+                                    }
+                                  },
+                                  "Post_Adaptive_Card_To_Teams": {
+                                    "type": "OpenApiConnection",
+                                    "inputs": {
+                                      "parameters": {
+                                        "poster": "Flow bot",
+                                        "location": "Chat with Flow bot",
+                                        "body/recipient": "@{outputs('Get_my_profile_(V2)')?['body/mail']}",
+                                        "body/messageBody": "@{outputs('Compose_AdaptiveCard')}"
+                                      },
+                                      "host": {
+                                        "connectionName": "shared_teams",
+                                        "operationId": "PostCardToConversation",
+                                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                                      }
+                                    },
+                                    "runAfter": {
+                                      "Compose_AdaptiveCard": [
+                                        "Succeeded"
+                                      ]
+                                    }
+                                  },
+                                  "Update_Row_Nudge_Sent": {
+                                    "type": "OpenApiConnection",
+                                    "inputs": {
+                                      "parameters": {
+                                        "entityName": "cr_followuptrackings",
+                                        "recordId": "@items('Apply_to_each')?['cr_followuptrackingid']",
+                                        "item/cr_nudgesent": true,
+                                        "item/cr_lastchecked": "@utcNow()"
+                                      },
+                                      "host": {
+                                        "connectionName": "shared_commondataserviceforapps",
+                                        "operationId": "UpdateRecord",
+                                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                      }
+                                    },
+                                    "runAfter": {
+                                      "Post_Adaptive_Card_To_Teams": [
+                                        "Succeeded"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "Parse_AgentResponse": [
+                                  "Succeeded"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "runAfter": {
+                            "Requery_Row_Guard": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "Filter_Exclude_AutoReplies": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "HTTP_Check_Replies": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runtimeConfiguration": {
+              "concurrency": {
+                "repetitions": 5
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "List_Overdue_FollowUps": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 8 error: @{result('Scope_Process_FollowUps')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Process_FollowUps": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 8: Follow-Up Test Harness",
+    "description": "HTTP-triggered test harness for Flow 2 follow-up logic. Invoke by trackingId to run one record through the nudge pipeline without waiting for the scheduled trigger.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "agentInvocation": "Flow 8 keeps the agent step mocked so CLI-driven tests can isolate Graph reply checks, Dataverse state handling, and Teams card delivery without waiting on Copilot publishing/runtime issues.",
+      "timeZone": "Not applicable. This harness is invoked on demand via HTTP rather than recurrence.",
+      "invocation": "Trigger via HTTP callback URL with JSON body {\"trackingId\":\"<cr_followuptrackingid>\",\"forceNudge\":true}. Omit forceNudge for normal test behavior.",
+      "purpose": "Used for CLI-driven testing and debugging of the follow-up reminder pipeline, including replaying the Teams card path even when a row is already marked sent or replied."
+    }
+  }
+}

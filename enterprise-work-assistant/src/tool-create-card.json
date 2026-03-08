@@ -1,0 +1,142 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "user_aad_id": {
+                "type": "string",
+                "description": "Azure AD object ID of the card owner"
+              },
+              "card_json": {
+                "type": "string",
+                "description": "JSON string with card properties (summary, trigger_type, priority, reminder_due)"
+              }
+            },
+            "required": ["user_aad_id", "card_json"]
+          }
+        },
+        "description": "Create a new assistant card, typically for user reminders or self-generated notes."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Parse_Card_JSON": {
+            "type": "ParseJson",
+            "inputs": {
+              "content": "@triggerBody()?['card_json']",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string"
+                  },
+                  "trigger_type": {
+                    "type": "integer"
+                  },
+                  "priority": {
+                    "type": "integer"
+                  },
+                  "reminder_due": {
+                    "type": "string"
+                  },
+                  "full_json": {
+                    "type": "string"
+                  }
+                },
+                "required": ["summary"]
+              }
+            }
+          },
+          "Create_Card": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "item": {
+                  "cr_itemsummary": "@body('Parse_Card_JSON')?['summary']",
+                  "cr_triggertype": "@coalesce(body('Parse_Card_JSON')?['trigger_type'], 100000004)",
+                  "cr_triagetier": 100000002,
+                  "cr_cardstatus": 100000000,
+                  "cr_cardoutcome": 100000000,
+                  "cr_priority": "@coalesce(body('Parse_Card_JSON')?['priority'], 50)",
+                  "cr_reminderdue": "@body('Parse_Card_JSON')?['reminder_due']",
+                  "cr_fulljson": "@triggerBody()?['card_json']",
+                  "ownerid@odata.bind": "/systemusers(@{triggerBody()?['user_aad_id']})"
+                }
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Parse_Card_JSON": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "new_card_id": "@{outputs('Create_Card')?['body/cr_assistantcardsid']}",
+                "success": true
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "new_card_id": {
+                    "type": "string",
+                    "description": "GUID of the newly created assistant card"
+                  },
+                  "success": {
+                    "type": "boolean",
+                    "description": "Whether the card was created successfully"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Create_Card": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Tool error: @{result('Scope_Main')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "ToolError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

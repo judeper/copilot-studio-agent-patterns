@@ -1,0 +1,380 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_row_is_modified": {
+        "type": "OpenApiConnectionNotification",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_assistantcards",
+            "scope": "Organization",
+            "filterExpression": "",
+            "selectedColumns": "cr_cardoutcome"
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "SubscribeWebhookTrigger",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        }
+      }
+    },
+    "actions": {
+      "Scope_Outcome_Tracker": {
+        "type": "Scope",
+        "actions": {
+          "Get_Modified_Card": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "recordId": "@triggerOutputs()?['body/cr_assistantcardid']"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "GetItem",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {}
+          },
+          "Compose_Outcome": {
+            "type": "Compose",
+            "inputs": "@outputs('Get_Modified_Card')?['body/cr_cardoutcome']",
+            "runAfter": {
+              "Get_Modified_Card": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Switch_On_Outcome": {
+            "type": "Switch",
+            "expression": "@outputs('Compose_Outcome')",
+            "cases": {
+              "Case_Sent_As_Is": {
+                "case": 100000001,
+                "actions": {
+                  "Compose_ResponseHours_SentAsIs": {
+                    "type": "Compose",
+                    "inputs": "@div(sub(ticks(outputs('Get_Modified_Card')?['body/cr_outcometimestamp']), ticks(outputs('Get_Modified_Card')?['body/createdon'])), 36000000000)",
+                    "runAfter": {}
+                  },
+                  "List_SenderProfile_SentAsIs": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_senderprofiles",
+                        "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "ListRecords",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {
+                      "Compose_ResponseHours_SentAsIs": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Condition_Profile_Exists_SentAsIs": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(body('List_SenderProfile_SentAsIs')?['value'])",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Update_SenderProfile_SentAsIs": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_senderprofiles",
+                            "recordId": "@first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_senderprofileid']",
+                            "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 1)",
+                            "item/cr_avgresponsehours": "@div(add(mul(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_avgresponsehours'], first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount']), outputs('Compose_ResponseHours_SentAsIs')), add(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 1))"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        },
+                        "runAfter": {}
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Create_SenderProfile_SentAsIs": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "entityName": "cr_senderprofiles",
+                              "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
+                              "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
+                              "item/cr_responsecount": 1,
+                              "item/cr_dismisscount": 0,
+                              "item/cr_signalcount": 1,
+                              "item/cr_avgresponsehours": "@outputs('Compose_ResponseHours_SentAsIs')",
+                              "item/cr_avgeditdistance": 0,
+                              "item/cr_lastsignaldate": "@utcNow()"
+                            },
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "CreateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            }
+                          },
+                          "runAfter": {}
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "List_SenderProfile_SentAsIs": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                }
+              },
+              "Case_Sent_Edited": {
+                "case": 100000002,
+                "actions": {
+                  "Compose_ResponseHours_SentEdited": {
+                    "type": "Compose",
+                    "inputs": "@div(sub(ticks(outputs('Get_Modified_Card')?['body/cr_outcometimestamp']), ticks(outputs('Get_Modified_Card')?['body/createdon'])), 36000000000)",
+                    "runAfter": {}
+                  },
+                  "List_SenderProfile_SentEdited": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_senderprofiles",
+                        "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "ListRecords",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {
+                      "Compose_ResponseHours_SentEdited": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Compose_NewAvgEditDistance_SentEdited": {
+                    "type": "Compose",
+                    "inputs": "@div(add(mul(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgeditdistance'], first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount']), outputs('Get_Modified_Card')?['body/cr_editdistanceratio']), add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1))",
+                    "runAfter": {}
+                  },
+                  "Condition_Profile_Exists_SentEdited": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(body('List_SenderProfile_SentEdited')?['value'])",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Update_SenderProfile_SentEdited": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_senderprofiles",
+                            "recordId": "@first(body('List_SenderProfile_SentEdited')?['value'])?['cr_senderprofileid']",
+                            "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1)",
+                            "item/cr_avgresponsehours": "@div(add(mul(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgresponsehours'], first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount']), outputs('Compose_ResponseHours_SentEdited')), add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1))",
+                            "item/cr_avgeditdistance": "@outputs('Compose_NewAvgEditDistance_SentEdited')"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        },
+                        "runAfter": {
+                          "Compose_NewAvgEditDistance_SentEdited": [
+                            "Succeeded"
+                          ]
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Create_SenderProfile_SentEdited": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "entityName": "cr_senderprofiles",
+                              "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
+                              "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
+                              "item/cr_responsecount": 1,
+                              "item/cr_dismisscount": 0,
+                              "item/cr_signalcount": 1,
+                              "item/cr_avgresponsehours": "@outputs('Compose_ResponseHours_SentEdited')",
+                              "item/cr_avgeditdistance": "@outputs('Get_Modified_Card')?['body/cr_editdistanceratio']",
+                              "item/cr_lastsignaldate": "@utcNow()"
+                            },
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "CreateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            }
+                          },
+                          "runAfter": {}
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "List_SenderProfile_SentEdited": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                }
+              },
+              "Case_Dismissed": {
+                "case": 100000003,
+                "actions": {
+                  "List_SenderProfile_Dismissed": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_senderprofiles",
+                        "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "ListRecords",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "Condition_Profile_Exists_Dismissed": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(body('List_SenderProfile_Dismissed')?['value'])",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Update_SenderProfile_Dismissed": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_senderprofiles",
+                            "recordId": "@first(body('List_SenderProfile_Dismissed')?['value'])?['cr_senderprofileid']",
+                            "item/cr_dismisscount": "@add(first(body('List_SenderProfile_Dismissed')?['value'])?['cr_dismisscount'], 1)"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        },
+                        "runAfter": {}
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Create_SenderProfile_Dismissed": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "entityName": "cr_senderprofiles",
+                              "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
+                              "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
+                              "item/cr_responsecount": 0,
+                              "item/cr_dismisscount": 1,
+                              "item/cr_signalcount": 1,
+                              "item/cr_avgresponsehours": 0,
+                              "item/cr_avgeditdistance": 0,
+                              "item/cr_lastsignaldate": "@utcNow()"
+                            },
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "CreateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            }
+                          },
+                          "runAfter": {}
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "List_SenderProfile_Dismissed": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                }
+              },
+              "Case_Expired": {
+                "case": 100000004,
+                "actions": {
+                  "Terminate_Expired": {
+                    "type": "Terminate",
+                    "inputs": {
+                      "runStatus": "Succeeded"
+                    },
+                    "runAfter": {}
+                  }
+                }
+              }
+            },
+            "default": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Compose_Outcome": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Error": {
+        "type": "Scope",
+        "actions": {
+          "Terminate_Failed": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "500",
+                "message": "Card outcome tracker failed unexpectedly"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Scope_Outcome_Tracker": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  }
+}

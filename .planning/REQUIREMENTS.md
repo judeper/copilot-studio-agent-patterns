@@ -119,4 +119,56 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after roadmap creation*
+*Last updated: 2026-03-08 after v3.0 AI Council Enhancement Implementation*
+
+---
+
+## v3.0 Requirements
+
+**Source:** 115 AI Council findings mapped to 90 implementation items across 7 phases.
+
+All 90 items are **complete** as of 2026-03-08.
+
+### Phase 1: Critical MARL Fixes (15 items — complete)
+- MARL pipeline data contract corrections
+- Flow-level chaining pattern (not deep nesting)
+
+### Phase 2: Schema/Provisioning Fixes (13 items — complete)
+- 9 Dataverse tables now fully provisioned
+- Schema alignment with agent prompts and flow definitions
+- SenderProfile composite alternate key confirmed
+
+### Phase 3: PCF Component Fixes (14 items — complete)
+- Accessibility improvements (WCAG AA)
+- 16 new tests added (201 total across 15 suites)
+- Code quality improvements
+
+### Phase 4: Enterprise Actions (items — complete)
+- 7 new agent prompts: Router, Calendar, Task, Email Compose, Search, Validation, Delegation
+- 22 agents total (10 existing + 12 new)
+
+### Phase 5: Architecture Enhancements (items — complete)
+- Architecture enhancement design doc
+- Router Agent for interactive commands (Flow 8)
+
+### Phase 6: Learning System (items — complete)
+- 8 learning system flows documented (Flows 11, 14-16)
+- Memory injection capped at ~2000 tokens
+- Weekly reflection sufficient for POC
+
+### Phase 7: UX Enhancements (items — complete)
+- UX enhancement design doc
+- WCAG AA compliance fixes
+
+### Traceability
+
+| Phase | Items | Status |
+|-------|-------|--------|
+| Phase 1: Critical MARL Fixes | 15 | Complete |
+| Phase 2: Schema/Provisioning Fixes | 13 | Complete |
+| Phase 3: PCF Component Fixes | 14 | Complete |
+| Phase 4: Enterprise Actions | — | Complete |
+| Phase 5: Architecture Enhancements | — | Complete |
+| Phase 6: Learning System | — | Complete |
+| Phase 7: UX Enhancements | — | Complete |
+| **Total** | **90** | **All complete** |

@@ -1,0 +1,268 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Button",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "CardId": {
+                "type": "string",
+                "description": "GUID of the assistant card"
+              },
+              "FinalDraftText": {
+                "type": "string",
+                "description": "Email body to send"
+              }
+            },
+            "required": [
+              "CardId",
+              "FinalDraftText"
+            ]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Scope_Send_Email": {
+        "type": "Scope",
+        "actions": {
+          "Get_my_profile_(V2)": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {},
+              "host": {
+                "connectionName": "shared_office365users",
+                "operationId": "MyProfile_V2",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+              }
+            },
+            "runAfter": {}
+          },
+          "Get_Card": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "recordId": "@triggerBody()?['CardId']"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "GetItem",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Get_my_profile_(V2)": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Condition_Ownership_Check": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@outputs('Get_Card')?['body/_ownerid_value']",
+                    "@outputs('Get_my_profile_(V2)')?['body/id']"
+                  ]
+                }
+              ]
+            },
+            "actions": {},
+            "else": {
+              "actions": {
+                "Response_403": {
+                  "type": "Response",
+                  "inputs": {
+                    "statusCode": 403,
+                    "body": {
+                      "success": false,
+                      "message": "Ownership verification failed"
+                    }
+                  },
+                  "runAfter": {}
+                },
+                "Terminate_Forbidden": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "403",
+                      "message": "Card ownership verification failed"
+                    }
+                  },
+                  "runAfter": {
+                    "Response_403": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Get_Card": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Condition_Has_Recipient": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@outputs('Get_Card')?['body/cr_originalsenderemail']",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "equals": [
+                      "@outputs('Get_Card')?['body/cr_originalsenderemail']",
+                      "@null"
+                    ]
+                  }
+                }
+              ]
+            },
+            "actions": {},
+            "else": {
+              "actions": {
+                "Response_400": {
+                  "type": "Response",
+                  "inputs": {
+                    "statusCode": 400,
+                    "body": {
+                      "success": false,
+                      "message": "No recipient email address on card"
+                    }
+                  },
+                  "runAfter": {}
+                },
+                "Terminate_No_Recipient": {
+                  "type": "Terminate",
+                  "inputs": {
+                    "runStatus": "Failed",
+                    "runError": {
+                      "code": "400",
+                      "message": "No recipient email address on card"
+                    }
+                  },
+                  "runAfter": {
+                    "Response_400": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Condition_Ownership_Check": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_ReplySubject": {
+            "type": "Compose",
+            "inputs": "@if(startsWith(outputs('Get_Card')?['body/cr_originalsubject'], 'Re: '), outputs('Get_Card')?['body/cr_originalsubject'], concat('Re: ', outputs('Get_Card')?['body/cr_originalsubject']))",
+            "runAfter": {
+              "Condition_Has_Recipient": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Send_Email": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "emailMessage/To": "@outputs('Get_Card')?['body/cr_originalsenderemail']",
+                "emailMessage/Subject": "@outputs('Compose_ReplySubject')",
+                "emailMessage/Body": "@triggerBody()?['FinalDraftText']",
+                "emailMessage/Importance": "Normal"
+              },
+              "host": {
+                "connectionName": "shared_office365",
+                "operationId": "SendEmailV2",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+              }
+            },
+            "runAfter": {
+              "Compose_ReplySubject": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Update_Card_Outcome": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "recordId": "@triggerBody()?['CardId']",
+                "item/cr_cardoutcome": 100000001,
+                "item/cr_outcometimestamp": "@utcNow()",
+                "item/cr_senttimestamp": "@utcNow()",
+                "item/cr_sentrecipient": "@outputs('Get_Card')?['body/cr_originalsenderemail']"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Send_Email": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Response": {
+            "type": "Response",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "success": true,
+                "message": "Email sent"
+              }
+            },
+            "runAfter": {
+              "Update_Card_Outcome": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Error": {
+        "type": "Scope",
+        "actions": {
+          "Response_500": {
+            "type": "Response",
+            "inputs": {
+              "statusCode": 500,
+              "body": {
+                "success": false,
+                "message": "An unexpected error occurred while sending the email"
+              }
+            },
+            "runAfter": {}
+          }
+        },
+        "runAfter": {
+          "Scope_Send_Email": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  }
+}
