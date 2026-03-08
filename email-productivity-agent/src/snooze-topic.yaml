@@ -56,6 +56,8 @@ beginDialog:
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON
+      # POC placeholder — replace with actual AI Builder model ID before enabling live agent decisioning.
+      # Flow 4 currently bypasses this topic entirely (deterministic UNSNOOZE path).
       aIModelId: REPLACE_WITH_SNOOZE_AI_MODEL_ID
 
     - kind: SetVariable
