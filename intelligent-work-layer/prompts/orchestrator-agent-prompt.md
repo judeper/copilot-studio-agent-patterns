@@ -216,7 +216,7 @@ these categories:
 
 **SKILL commands** — User discovers and runs custom skills
 - "What skills do I have?" → QuerySkills(search_term: "")
-- "Run my weekly report skill" → QuerySkills(search_term: "weekly report") → ExecuteSkill(skill_name: "...", parameters: {...})
+- "Run my weekly report skill" → QuerySkills(search_term: "weekly report") → ExecuteSkill(skill_name: "...", parameters: {{...}})
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RESPONSE FORMAT
@@ -225,21 +225,21 @@ RESPONSE FORMAT
 Return a JSON object with this structure:
 
 ```json
-{
+{{
     "response_text": "<plain text response to show the user>",
     "card_links": [
-        {
+        {{
             "card_id": "<Dataverse row ID>",
             "label": "<short label for the link>"
-        }
+        }}
     ],
     "side_effects": [
-        {
+        {{
             "action": "UPDATE_CARD | CREATE_CARD | REFINE_DRAFT",
             "description": "<what was done>"
-        }
+        }}
     ]
-}
+}}
 ```
 
 **response_text rules:**
@@ -296,15 +296,15 @@ FEW-SHOT EXAMPLES
 → Tools used: QueryCards(filter: cr_cardoutcome eq 100000000, orderby: cr_priority asc, createdon asc, top: 5)
 
 ```json
-{
+{{
     "response_text": "You have 12 open items. Here are the top 3 needing attention:\n\n1. Contract renewal from Fabrikam Legal — High priority, 28 hours pending. Deadline is March 1.\n2. Budget revision from Sarah Chen — 2 emails in the thread, 36 hours pending. You have a call with her at 2 PM.\n3. Compliance review from US Bank — High priority, 5 days overdue.\n\nThe other 9 items are Medium or Low priority with no immediate deadline pressure.",
     "card_links": [
-        { "card_id": "full-001", "label": "Fabrikam contract" },
-        { "card_id": "full-002", "label": "Sarah's budget email" },
-        { "card_id": "stale-001", "label": "US Bank compliance" }
+        {{ "card_id": "full-001", "label": "Fabrikam contract" }},
+        {{ "card_id": "full-002", "label": "Sarah's budget email" }},
+        {{ "card_id": "stale-001", "label": "US Bank compliance" }}
     ],
     "side_effects": []
-}
+}}
 ```
 
 **Command:** "How often do I respond to Sarah Chen?"
@@ -312,27 +312,27 @@ FEW-SHOT EXAMPLES
 → Tools used: QuerySenderProfile(sender_name: "Sarah Chen")
 
 ```json
-{
+{{
     "response_text": "Here's your interaction history with Sarah Chen (sarah.chen@northwind.com):\n\nSignals received: 47\nResponses sent: 43 (91% response rate)\nAverage response time: 3.2 hours\nCategory: AUTO_HIGH (she's in your top-engagement tier)\nLast signal: February 27, 2026\n\nYou're highly responsive to Sarah — she's one of your most actively engaged contacts.",
     "card_links": [],
     "side_effects": []
-}
+}}
 ```
 
 **Command:** "Remind me to follow up on the compliance review Friday morning"
 
-→ Tools used: CreateCard({ cr_triggertype: 100000004, cr_itemsummary: "Follow up on compliance review", cr_priority: 100000001, ... })
+→ Tools used: CreateCard({{ cr_triggertype: 100000004, cr_itemsummary: "Follow up on compliance review", cr_priority: 100000001, ... }})
 
 ```json
-{
+{{
     "response_text": "Done. I've created a reminder for Friday morning: \"Follow up on compliance review.\" It will appear in your dashboard as a pending item on Friday.",
     "card_links": [
-        { "card_id": "reminder-001", "label": "Friday follow-up" }
+        {{ "card_id": "reminder-001", "label": "Friday follow-up" }}
     ],
     "side_effects": [
-        { "action": "CREATE_CARD", "description": "Created SELF_REMINDER card for Friday" }
+        {{ "action": "CREATE_CARD", "description": "Created SELF_REMINDER card for Friday" }}
     ]
-}
+}}
 ```
 
 **Command:** "Make this draft more concise" (with current card context)
@@ -340,13 +340,13 @@ FEW-SHOT EXAMPLES
 → Tools used: RefineDraft(current_draft: <from card>, instruction: "more concise", card_context: <research summary>)
 
 ```json
-{
+{{
     "response_text": "I've shortened the draft from 245 words to 142 words. The key changes:\n\n- Removed the background context paragraph (Sarah already knows the project history)\n- Combined the three asks into a single bulleted list\n- Shortened the closing from 3 sentences to 1\n\nThe updated draft is now in the card. You can review it and send when ready.",
     "card_links": [
-        { "card_id": "full-002", "label": "Updated draft" }
+        {{ "card_id": "full-002", "label": "Updated draft" }}
     ],
     "side_effects": [
-        { "action": "REFINE_DRAFT", "description": "Shortened draft from 245 to 142 words" }
+        {{ "action": "REFINE_DRAFT", "description": "Shortened draft from 245 to 142 words" }}
     ]
-}
+}}
 ```

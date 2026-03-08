@@ -72,7 +72,9 @@ param(
     [string]$TimeZone = "Eastern Standard Time",
 
     [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12", "Flow13")]
-    [string]$FlowsToCreate = "All"
+    [string]$FlowsToCreate = "All",
+
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
@@ -276,11 +278,16 @@ $flowsToProcess = switch ($FlowsToCreate) {
     default  { @($FlowsToCreate) }
 }
 
-# Phase 1 dependency guard: warn if deploying Phase 2 without Phase 1
+# Phase 1 dependency guard: block if deploying Phase 2 without Phase 1
 if ($FlowsToCreate -eq "Phase2") {
     $phase1Flows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EPA') and (contains(name,'Flow 1') or contains(name,'Flow 2:') or contains(name,'Flow 5'))&`$select=name,workflowid" -Headers $dvHeaders
     if ($phase1Flows.value.Count -eq 0) {
-        Write-Warning "Phase 1 flows not found in the solution. Phase 2 depends on Phase 1 tables and flows. Deploy Phase 1 first."
+        if ($Force) {
+            Write-Warning "Phase 1 flows not found — continuing because -Force was specified."
+        }
+        else {
+            throw "Phase 1 flows not found. Phase 2 depends on Phase 1 tables and flows. Deploy Phase 1 first, or use -Force to override."
+        }
     }
 }
 

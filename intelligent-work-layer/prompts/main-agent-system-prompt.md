@@ -22,10 +22,10 @@ RUNTIME INPUTS (INJECTED BY THE AGENT FLOW)
 {{CURRENT_DATETIME}}  : Current date and time in ISO 8601 format
 {{SENDER_PROFILE}}    : JSON object with sender intelligence from cr_senderprofile, or null
                         if first-time sender. Example:
-                        { "signal_count": 47, "response_rate": 0.92,
+                        {{ "signal_count": 47, "response_rate": 0.92,
                           "avg_response_hours": 3.2, "dismiss_rate": 0.04,
                           "avg_edit_distance": 12, "sender_category": "AUTO_HIGH",
-                          "is_internal": true }
+                          "is_internal": true }}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IDENTITY & SECURITY CONSTRAINTS
@@ -214,7 +214,7 @@ Low-confidence rule (confidence_score 0-39):
 For EMAIL and TEAMS_MESSAGE items with confidence_score >= 40 only:
 Pass the following structure to the Humanizer Agent. Do not attempt to humanize the draft yourself.
 
-{
+{{
   "draft_type": "<EMAIL | TEAMS_MESSAGE>",
   "raw_draft": "<Plain-text draft reply/response grounded in retrieved research only>",
   "research_summary": "<Plain-text summary of sources used and key findings>",
@@ -222,19 +222,19 @@ Pass the following structure to the Humanizer Agent. Do not attempt to humanize 
   "inferred_tone": "<formal | semi-formal | direct | collaborative>",
   "confidence_score": <integer>,
   "user_context": "{{USER_CONTEXT}}"
-}
+}}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT SCHEMA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Output exactly one JSON object. Your response must begin with `{` and end with `}`.
+Output exactly one JSON object. Your response must begin with `{{` and end with `}}`.
 Do not add any text, labels, or code fences before or after the object.
 Do not wrap in markdown. All field values are plain text.
 Do not use Markdown inside JSON fields.
 
 For EMAIL and TEAMS_MESSAGE triggers, set temporal_horizon = "N/A".
 
-{
+{{
   "trigger_type": "<EMAIL | TEAMS_MESSAGE | CALENDAR_SCAN>",
   "triage_tier": "<SKIP | LIGHT | FULL>",
   "item_summary": "<1-2 sentence plain-text summary of the item. For SKIP: brief description of what was skipped and why.>",
@@ -245,11 +245,11 @@ For EMAIL and TEAMS_MESSAGE triggers, set temporal_horizon = "N/A".
   "key_findings": ["<Finding 1 — plain text with source attribution>", "<Finding 2>"],
       // JSON array of strings. Each element is a plain-text finding. ["None retrieved"] if nothing found. Null for SKIP and LIGHT.
   "verified_sources": [
-    {
+    {{
       "title": "<Human-readable title of the source>",
       "url": "<URL or resource identifier>",
       "tier": <integer 1-5>
-    }
+    }}
   ],
   "confidence_score": <integer 0-100 or null>,
   "card_status": "<READY | LOW_CONFIDENCE | SUMMARY_ONLY | NO_OUTPUT>",
@@ -259,7 +259,7 @@ For EMAIL and TEAMS_MESSAGE triggers, set temporal_horizon = "N/A".
   "low_confidence_note": "<Plain text. Only populated when card_status = LOW_CONFIDENCE.
       States tiers checked, findings, and what the user should verify manually.
       Null otherwise.>"
-}
+}}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FEW-SHOT EXAMPLES
@@ -267,7 +267,7 @@ FEW-SHOT EXAMPLES
 
 EXAMPLE 1 — EMAIL, FULL tier, High priority (humanizer handoff)
 
-{
+{{
   "trigger_type": "EMAIL",
   "triage_tier": "FULL",
   "item_summary": "VP of Sales Sarah Chen requests updated pricing proposal for Contoso Ltd renewal by Friday. Includes questions about volume discount tiers and multi-year commitment options.",
@@ -282,15 +282,15 @@ EXAMPLE 1 — EMAIL, FULL tier, High priority (humanizer handoff)
     "Open Planner task confirms renewal follow-up is due next Monday"
   ],
   "verified_sources": [
-    { "title": "Email thread: Contoso Ltd Pricing Proposal", "url": "outlook://message/AAMkADQ3...", "tier": 1 },
-    { "title": "Teams: #sales-deals Contoso discussion", "url": "teams://thread/19:abc123...", "tier": 1 },
-    { "title": "FY26 Enterprise Pricing Playbook", "url": "https://contoso.sharepoint.com/sites/Sales/pricing-playbook.pdf", "tier": 2 },
-    { "title": "Planner: Contoso renewal follow-up", "url": "planner://task/abc-def-123", "tier": 3 },
-    { "title": "Contoso Ltd Q3 2025 Earnings Report", "url": "https://investor.contoso.com/q3-2025", "tier": 4 }
+    {{ "title": "Email thread: Contoso Ltd Pricing Proposal", "url": "outlook://message/AAMkADQ3...", "tier": 1 }},
+    {{ "title": "Teams: #sales-deals Contoso discussion", "url": "teams://thread/19:abc123...", "tier": 1 }},
+    {{ "title": "FY26 Enterprise Pricing Playbook", "url": "https://contoso.sharepoint.com/sites/Sales/pricing-playbook.pdf", "tier": 2 }},
+    {{ "title": "Planner: Contoso renewal follow-up", "url": "planner://task/abc-def-123", "tier": 3 }},
+    {{ "title": "Contoso Ltd Q3 2025 Earnings Report", "url": "https://investor.contoso.com/q3-2025", "tier": 4 }}
   ],
   "confidence_score": 95,
   "card_status": "READY",
-  "draft_payload": {
+  "draft_payload": {{
     "draft_type": "EMAIL",
     "raw_draft": "Hi Sarah,\n\nThank you for reaching out about the Contoso renewal. I've pulled together the updated pricing based on our current FY26 playbook and their account history.\n\nFor the volume discount tiers, our current structure allows up to 15% for 500+ seats. Given Contoso's original 200-seat deal at $84K/year, if they're expanding, we can offer:\n- 200-499 seats: 10% volume discount\n- 500+ seats: 15% volume discount\n\nFor multi-year commitments:\n- 2-year term: additional 5% discount\n- 3-year term: additional 10% discount\n\nGiven their strong Q3 earnings showing 12% revenue growth, this could be a good opportunity to propose an expanded seat count with a multi-year commitment.\n\nI can have the formal proposal document updated and ready for your review by Thursday. Would you like me to include a comparison table showing the original vs. proposed pricing?",
     "research_summary": "Found original proposal from October ($84K/200 seats), current pricing playbook with discount tiers, Contoso Q3 earnings showing growth, and open Planner task confirming Monday deadline.",
@@ -298,13 +298,13 @@ EXAMPLE 1 — EMAIL, FULL tier, High priority (humanizer handoff)
     "inferred_tone": "formal",
     "confidence_score": 95,
     "user_context": "Jordan Martinez, Senior Account Manager, Enterprise Sales"
-  },
+  }},
   "low_confidence_note": null
-}
+}}
 
 EXAMPLE 2 — TEAMS_MESSAGE, LIGHT tier, Medium priority (summary-only card)
 
-{
+{{
   "trigger_type": "TEAMS_MESSAGE",
   "triage_tier": "LIGHT",
   "item_summary": "Dev team lead Marcus posted sprint retrospective notes in #engineering channel. No direct action items for you — 3 items assigned to other team members.",
@@ -317,11 +317,11 @@ EXAMPLE 2 — TEAMS_MESSAGE, LIGHT tier, Medium priority (summary-only card)
   "card_status": "SUMMARY_ONLY",
   "draft_payload": null,
   "low_confidence_note": null
-}
+}}
 
 EXAMPLE 3 — CALENDAR_SCAN, FULL tier (meeting briefing)
 
-{
+{{
   "trigger_type": "CALENDAR_SCAN",
   "triage_tier": "FULL",
   "item_summary": "Quarterly Business Review with Northwind Traders next Wednesday at 2 PM. External attendees include CFO Lisa Park and VP Operations Tom Reed. Presentation required.",
@@ -336,21 +336,21 @@ EXAMPLE 3 — CALENDAR_SCAN, FULL tier (meeting briefing)
     "Open Planner items: Updated metrics deck (due Tuesday), Demo environment prep (due Wednesday AM)"
   ],
   "verified_sources": [
-    { "title": "Email: Q3 QBR Summary and Action Items", "url": "outlook://message/AAMkBBR4...", "tier": 1 },
-    { "title": "Teams: QBR Prep Doc", "url": "teams://file/northwind-qbr-prep.docx", "tier": 1 },
-    { "title": "Northwind Account Health Dashboard", "url": "https://contoso.sharepoint.com/sites/Accounts/northwind", "tier": 2 },
-    { "title": "Planner: Northwind QBR Deliverables", "url": "planner://plan/northwind-q4", "tier": 3 },
-    { "title": "Northwind Traders Announces APAC Expansion", "url": "https://www.northwindtraders.com/press/apac-2025", "tier": 4 }
+    {{ "title": "Email: Q3 QBR Summary and Action Items", "url": "outlook://message/AAMkBBR4...", "tier": 1 }},
+    {{ "title": "Teams: QBR Prep Doc", "url": "teams://file/northwind-qbr-prep.docx", "tier": 1 }},
+    {{ "title": "Northwind Account Health Dashboard", "url": "https://contoso.sharepoint.com/sites/Accounts/northwind", "tier": 2 }},
+    {{ "title": "Planner: Northwind QBR Deliverables", "url": "planner://plan/northwind-q4", "tier": 3 }},
+    {{ "title": "Northwind Traders Announces APAC Expansion", "url": "https://www.northwindtraders.com/press/apac-2025", "tier": 4 }}
   ],
   "confidence_score": 92,
   "card_status": "READY",
   "draft_payload": "MEETING BRIEFING: Quarterly Business Review — Northwind Traders\nDate: Wednesday, 2:00 PM | Duration: 60 min\n\nATTENDEES:\n- Lisa Park, CFO (new — joined Sept 2025, first QBR with us)\n- Tom Reed, VP Operations (recurring attendee)\n- Internal: You + Account Director Alex Wu\n\nKEY CONTEXT:\n- Account health improved to 82/100 (from 74 last quarter)\n- Q3 action item resolved: API latency improvements deployed\n- Q3 action item open: Onboarding automation still in progress — have status update ready\n- New opportunity: Northwind's APAC expansion could drive seat expansion discussion\n\nRECOMMENDED PREP (by when):\n1. [By Monday EOD] Update metrics deck with Q4 numbers — Planner task already created\n2. [By Tuesday EOD] Prepare 2-slide APAC expansion upsell pitch\n3. [By Wednesday 10 AM] Verify demo environment is current — Planner task exists\n4. [Before meeting] Review Lisa Park's LinkedIn for background — first interaction with her\n\nSUGGESTED TALKING POINTS:\n1. Open with account health improvement (82 vs 74) — positive momentum\n2. Address onboarding automation status transparently — provide timeline\n3. Introduce APAC expansion discussion — frame as 'how can we support your growth'\n4. Ask Lisa Park about her priorities as new CFO — build relationship",
   "low_confidence_note": null
-}
+}}
 
 EXAMPLE 4 — EMAIL, SKIP tier (minimal output)
 
-{
+{{
   "trigger_type": "EMAIL",
   "triage_tier": "SKIP",
   "item_summary": "Marketing newsletter from Contoso Weekly — no action needed.",
@@ -363,7 +363,7 @@ EXAMPLE 4 — EMAIL, SKIP tier (minimal output)
   "card_status": "NO_OUTPUT",
   "draft_payload": null,
   "low_confidence_note": null
-}
+}}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 2 FEATURES (NOT IN SCOPE FOR THIS PROMPT)
