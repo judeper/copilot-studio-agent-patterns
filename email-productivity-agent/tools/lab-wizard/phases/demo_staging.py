@@ -229,6 +229,7 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
     }
 
     all_sent = True
+    resolved_recipients: dict[str, str] = {}  # recipient_key → resolved UPN
 
     for email_def in DEMO_EMAILS:
         to_addr = demo_users.get(email_def["recipient_key"], "")
@@ -243,27 +244,30 @@ def stage_demo(auth: TokenManager, config: dict) -> bool:
         real_upn = _resolve_user_upn(to_addr, display)
         if real_upn:
             to_addr = real_upn
+        resolved_recipients[email_def["recipient_key"]] = to_addr
 
         ok = _send_email(graph_token, lisa_user_id, to_addr, email_def["subject"], email_def["body"])
         if ok:
             console.print(f"  [green]✅ Sent → {email_def['label']}[/green]  ({to_addr})")
         else:
-            console.print(f"  [red]❌ Failed → {email_def['label']}[/red]  ({to_addr})")
+            console.print(f"  [dim]⏭ Graph API cannot send (Mail.Send not granted) → {email_def['label']}[/dim]")
             all_sent = False
 
     if not all_sent:
-        console.print("\n[yellow]⚠ Could not send emails via Graph API (Mail.Send permission may not be granted).[/yellow]")
+        console.print()
         console.print(Panel(
-            "[bold cyan]Manual Email Staging[/bold cyan]\n\n"
-            "Sign into Outlook as [bold]Lisa Taylor[/bold] and send these 3 emails:\n\n"
+            "[bold cyan]Manual Email Staging Required[/bold cyan]\n\n"
+            "The Azure CLI does not have [bold]Mail.Send[/bold] permission.\n"
+            "This is expected — sign into Outlook as [bold]Lisa Taylor[/bold]\n"
+            "and send these 3 emails manually:\n\n"
             + "\n".join(
-                f"  [bold]{i}.[/bold] To: [cyan]{demo_users.get(e['recipient_key'], e['recipient_key'])}[/cyan]\n"
+                f"  [bold]{i}.[/bold] To: [cyan]{resolved_recipients.get(e['recipient_key'], demo_users.get(e['recipient_key'], e['recipient_key']))}[/cyan]\n"
                 f"     Subject: [green]{e['subject']}[/green]"
                 for i, e in enumerate(DEMO_EMAILS, 1)
             )
             + "\n\n[dim]After sending, Flow 1 (Sent Items Tracker) will pick them up automatically.[/dim]",
-            title="📧 Manual Fallback",
-            border_style="yellow",
+            title="📧 Manual Email Staging",
+            border_style="cyan",
         ))
         return True  # Don't block — user can send manually
 
