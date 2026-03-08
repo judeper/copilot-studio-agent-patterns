@@ -228,6 +228,6 @@
       "nudgesEnabled": "Current cr_nudgesenabled as 'true'/'false' string"
     },
     "compositionPattern": "Flow 7 reads the user's NudgeConfiguration row, substitutes ${...} placeholders with current values, and posts the card. Flow 7b handles the Action.Submit response.",
-    "CardTypeId": "epa_settings_card"
+    "CardTypeId": "epa_settings_card — set on the Teams trigger (CardTypeId parameter), NOT in the action data payload. Flow 7b routes by the 'action' field in the submitted data."
   }
 }
