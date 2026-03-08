@@ -249,6 +249,20 @@ def _deploy_single_flow(
     definition = raw.get("definition", {})
     # _metadata is informational only — not sent to the API
 
+    # Inject $connections and $authentication parameters (required by Flow API)
+    if "parameters" not in definition:
+        definition["parameters"] = {}
+    if "$connections" not in definition["parameters"]:
+        definition["parameters"]["$connections"] = {
+            "defaultValue": {},
+            "type": "Object",
+        }
+    if "$authentication" not in definition["parameters"]:
+        definition["parameters"]["$authentication"] = {
+            "defaultValue": {},
+            "type": "SecureObject",
+        }
+
     # Patch timezone
     _patch_timezone(definition, config.get("timezone", "Eastern Standard Time"))
 
