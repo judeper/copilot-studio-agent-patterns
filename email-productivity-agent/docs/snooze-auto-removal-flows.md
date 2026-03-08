@@ -4,6 +4,8 @@ This document provides detailed specifications for building the Power Automate f
 
 ---
 
+> **Current validated POC state:** The dry-run build keeps Flow 4 deterministic. Flow 11 and Flow 12 are the HTTP harness equivalents of Flow 3 and Flow 4, and Flow 13 seeds a real message into `EPA-Snoozed` so the Phase 2 path can be tested end to end without waiting on manual mailbox actions. The production Snooze Agent pattern is still documented below as an optional future enhancement.
+
 ## Prerequisites
 
 Before building these flows, ensure:
@@ -37,24 +39,35 @@ Before building these flows, ensure:
 
 ```
 Action: Office 365 Users — Get my profile (V2)
-Purpose: Retrieves the current user's systemuserid, which is needed for the
-owner filter in Step 1 and the cr_owneruserid alternate key in the Dataverse upsert (Step 3).
+Purpose: Retrieves the current user's Entra object ID, which is used as the
+owner-scoped key in `cr_nudgeconfiguration.cr_owneruserid` and `cr_snoozedconversation.cr_owneruserid`.
 Output: outputs('Get_my_profile_(V2)')?['body/id']
 ```
 
 #### Step 1: Get or Create Managed Snoozed Folder
 
 ```
-Action: Dataverse — Get a row by ID (or List rows filtered by owner)
+Action: Dataverse — List rows
 Table: Nudge Configurations
-Filter: _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
+Filter: cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
+Top Count: 1
 
 Condition: cr_snoozefolderid is null or empty?
 ```
 
-**If folder ID is null** (first run):
+**If folder ID is null or empty**:
 
 ```
+Action: HTTP with Microsoft Entra ID
+Method: GET
+URI: https://graph.microsoft.com/v1.0/me/mailFolders?$filter=displayName eq 'EPA-Snoozed'&$select=id,displayName
+
+Condition: length(body('Find_Existing_Snoozed_Folder')?['value']) greater than 0
+
+If yes:
+  Compose: snoozeFolderId = first(body('Find_Existing_Snoozed_Folder')?['value'])?['id']
+
+If no:
 Action: HTTP with Microsoft Entra ID
 Method: POST
 URI: https://graph.microsoft.com/v1.0/me/mailFolders
@@ -65,12 +78,21 @@ Body:
 }
 Authentication: Azure AD (delegated, Mail.ReadWrite)
 
-Store response: body('Create_Folder')?['id'] → snooze folder ID
+Compose: snoozeFolderId = body('Create_Folder')?['id']
 
-Action: Dataverse — Update a row
-Table: Nudge Configurations
-Row: <user's config row>
-cr_snoozefolderid: <new folder ID>
+Then persist the resolved folder ID back to Dataverse:
+
+Action: Dataverse — Update a row (if config exists)
+  Table: Nudge Configurations
+  Row: <existing config row>
+  cr_snoozefolderid: @{outputs('Compose_snoozeFolderId')}
+
+OR
+
+Action: Dataverse — Create a new row (if config does not yet exist)
+  Table: Nudge Configurations
+  cr_owneruserid: @{outputs('Get_my_profile_(V2)')?['body/id']}
+  cr_snoozefolderid: @{outputs('Compose_snoozeFolderId')}
 ```
 
 **If folder ID exists**: Use the stored value.
@@ -97,35 +119,41 @@ Authentication: Azure AD (delegated, Mail.Read)
 ```
 Action: Apply to each
 Input: body('List_Snoozed_Messages')?['value']
-Concurrency: 1 (sequential to avoid alternate key conflicts)
+Concurrency: 1 (sequential to avoid overlapping writes)
 ```
 
 Inside the loop:
 
 ```
-Action: HTTP with Microsoft Entra ID (Dataverse Upsert)
-Method: PATCH
-URI: {OrgUrl}/api/data/v9.2/cr_snoozedconversations(
-  cr_conversationid='@{encodeURIComponent(items('Apply_to_each')?['conversationId'])}',
-  cr_owneruserid='@{outputs('Get_my_profile_(V2)')?['body/id']}'
-)
-Headers:
-  Content-Type: application/json
-  (No If-Match header — this enables true upsert behavior: create if not exists, update if exists.
-  If-Match: * would restrict to update-only; If-None-Match: * would restrict to create-only.)
-Body:
-{
-  "cr_conversationid": "@{items('Apply_to_each')?['conversationId']}",
-  "cr_owneruserid": "@{outputs('Get_my_profile_(V2)')?['body/id']}",
-  "cr_originalmessageid": "@{items('Apply_to_each')?['id']}",
-  "cr_currentfolder": "@{variables('snoozeFolderId')}",
-  "cr_originalsubject": "@{take(items('Apply_to_each')?['subject'], 400)}"
-}
+Action: Dataverse — List rows
+Table: Snoozed Conversations
+Filter:
+  cr_conversationid eq '@{items('Apply_to_each')?['conversationId']}'
+  and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
+Top Count: 1
+
+Condition: length(body('List_Existing_SnoozedConversation')?['value']) greater than 0
+
+If yes:
+  Action: Dataverse — Update a row
+  Row ID: first(body('List_Existing_SnoozedConversation')?['value'])?['cr_snoozedconversationid']
+  Fields:
+    cr_originalmessageid = @{items('Apply_to_each')?['id']}
+    cr_currentfolder = @{variables('snoozeFolderId')}
+    cr_originalsubject = @{take(items('Apply_to_each')?['subject'], 400)}
+
+If no:
+  Action: Dataverse — Create a new row
+  Fields:
+    cr_conversationid = @{items('Apply_to_each')?['conversationId']}
+    cr_owneruserid = @{outputs('Get_my_profile_(V2)')?['body/id']}
+    cr_originalmessageid = @{items('Apply_to_each')?['id']}
+    cr_currentfolder = @{variables('snoozeFolderId')}
+    cr_originalsubject = @{take(items('Apply_to_each')?['subject'], 400)}
+    cr_unsnoozedbyagent = false
 ```
 
-> **Note:** The alternate key uses `cr_owneruserid` (a custom text column) instead of `ownerid` because Dataverse does not support the system `ownerid` lookup column in alternate keys.
-
-> **Note:** `cr_unsnoozedbyagent` is intentionally omitted from the upsert body. It defaults to `false` on row creation (via Dataverse column default). Including it here would risk resetting the field to `false` on a row that Flow 4 has already marked as `true` (due to Graph API folder-listing cache propagation delays).
+> **Important:** The Dataverse connector save-time validation requires `cr_unsnoozedbyagent` to be set explicitly on the create path, even though the column also has a Dataverse default.
 
 ### Error Handling
 
@@ -139,6 +167,8 @@ Scope: Scope_Handle_Errors (Run After: has failed)
     - If error is 404 (folder not found): clear cr_snoozefolderid
     - Terminate: Succeeded (don't fail the scheduled run)
 ```
+
+> **Dry-run hardening note:** The validated flow first checks whether `EPA-Snoozed` already exists before creating it. This avoids the Graph `Conflict` response that occurs when the folder exists in Outlook but `cr_snoozefolderid` is blank in Dataverse.
 
 ---
 
@@ -183,28 +213,23 @@ Condition: length(outputs('Check_Snoozed')?['body/value']) equals 0
 If yes → Terminate (no action needed — this is the most common path)
 ```
 
-#### Step 4: If Match Found → Invoke Snooze Agent (Optional)
+#### Step 4: If Match Found → Determine Unsnooze Action
 
-For MVP, you can skip the agent call and always unsnooze. For enhanced behavior:
+**Current validated POC implementation**:
 
 ```
-Action: Run a flow from Copilot (or HTTP to agent)
-Input:
-  CONVERSATION_ID: outputs('newConversationId')
-  NEW_MESSAGE_SENDER: triggerOutputs()?['body/from']?['emailAddress']?['address']
-  NEW_MESSAGE_SENDER_NAME: triggerOutputs()?['body/from']?['emailAddress']?['name']
-  NEW_MESSAGE_SUBJECT: triggerOutputs()?['body/subject']
-  NEW_MESSAGE_EXCERPT: take(triggerOutputs()?['body/bodyPreview'], 500)
-  SNOOZED_SUBJECT: <from Dataverse row>
-  SNOOZE_UNTIL: <from Dataverse row>
-  USER_TIMEZONE: <from user profile or NudgeConfig>
-  CURRENT_DATETIME: utcNow()
+Initialize variable: unsnoozeAction = "UNSNOOZE"
 
-Condition: Agent response unsnoozeAction equals "SUPPRESS"
-  If yes → Exit (don't unsnooze)
+Scope: Scope_Agent_Decision
+  Action: Compose
+  Message: "POC mode: skipping Snooze Agent invocation and using the default UNSNOOZE path."
 ```
 
-#### Step 5: Move Snoozed Message Back to Inbox
+**Production enhancement (optional)**:
+
+Reintroduce a Snooze Agent call only when you want suppression logic such as working-hours awareness. The agent should set `unsnoozeAction` to either `UNSNOOZE` or `SUPPRESS`, after which the flow can branch on that value.
+
+#### Step 5: If Not Suppressed → Move Snoozed Message Back to Inbox
 
 ```
 Action: HTTP with Microsoft Entra ID
@@ -238,26 +263,17 @@ cr_currentfolder: "inbox"
 #### Step 7: Notify User (Optional)
 
 ```
-Action: Microsoft Teams — Post adaptive card as the Flow bot to a user
-Recipient: Current user (flow connection owner)
-Adaptive Card:
-{
-  "type": "AdaptiveCard",
-  "version": "1.4",
-  "body": [
-    {
-      "type": "TextBlock",
-      "text": "@{outputs('Agent_Response')?['notificationMessage']}",
-      "wrap": true
-    }
-  ]
-}
-
-OR for simpler implementation without agent:
-
 Action: Microsoft Teams — Post message as the Flow bot to a user
+Location: Chat with Flow bot
+Recipient: Current user (flow connection owner)
+Parameter shape:
+  body/recipient = @{coalesce(outputs('Get_my_profile_(V2)')?['body/mail'], outputs('Get_my_profile_(V2)')?['body/userPrincipalName'])}
+  body/messageBody = <text payload>
+
 Message: "📬 Unsnoozed: **@{snoozedSubject}** — new reply from @{triggerOutputs()?['body/from']?['emailAddress']?['name']}"
 ```
+
+> **Connector quirk:** For `location = "Chat with Flow bot"`, use `body/recipient` as a flat email/UPN string. Do **not** send a nested `body/recipient/to` object.
 
 ### Error Handling
 
@@ -318,7 +334,7 @@ If the recipient changes the email subject when replying, Graph assigns a new `c
 If a user snoozed multiple messages from the same conversation, the Dataverse alternate key (conversationId + owner) means only one row exists per thread. The most recently detected message's ID is stored. All messages in the thread effectively share one snooze record.
 
 ### Working Hours
-The Snooze Agent can suppress unsnoozing outside working hours (before 7 AM, after 7 PM in user's timezone). This prevents weekend replies from surfacing snoozed emails when the user isn't working. The message will be unsnoozed on the next workday.
+The current validated dry-run build does **not** suppress unsnoozing outside working hours; it always takes the deterministic UNSNOOZE path. Working-hours suppression remains a production enhancement that can be reintroduced when the Snooze Agent is wired back in.
 
 ### Outlook Native Snooze Conflict
 This system uses a **managed folder** (`EPA-Snoozed`), NOT Outlook's native snooze. If a user uses Outlook's built-in "Remind Me" feature, those snoozed emails are in a different folder and will NOT be auto-unsnoozed by this agent. Users should be educated to use the EPA-Snoozed folder (via Canvas App "Snooze" action) for auto-unsnooze behavior.

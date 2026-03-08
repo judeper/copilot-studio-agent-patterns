@@ -25,16 +25,18 @@ The PCF component is a **virtual** React control (shares the platform React tree
 
 The **Agent Cost Governance — PAYGO** solution (`agent-cost-governance-paygo/`) is a Tier-2 Cross-Cutting Governance solution providing leadership-quality PAYGO cost visibility for Copilot Studio agents. It uses Azure Cost Management + Power BI (no PCF component). Key artifacts: DAX measures, PowerShell billing policy script (Power Platform REST API), ARM budget alert template, and FSI regulatory alignment documents (GLBA, SOX, FINRA, OCC). Known limitation: Azure Cost Management reports at environment level, not per-agent.
 
-The **Email Productivity Agent** (`email-productivity-agent/`) is a follow-up nudge and snooze system for Outlook emails. It tracks sent emails, detects missing replies, delivers Teams adaptive card nudges, auto-unsnoozes conversations when replies arrive, and includes an optional CLI-driven Flow 2 regression harness. The architecture is:
+The **Email Productivity Agent** (`email-productivity-agent/`) is a follow-up nudge and snooze system for Outlook emails. It tracks sent emails, detects missing replies, delivers Teams adaptive card nudges, auto-unsnoozes conversations when replies arrive, and now includes a full CLI-driven regression harness set. The architecture is:
 
 1. **9 production Power Automate Flows** deployed via Flow Management API:
    - Phase 1 (Follow-Up Nudges): Flow 1 (Sent Items Tracker), Flow 2 (Response Detection), Flow 2b (Card Action Handler), Flow 5 (Data Retention)
    - Phase 2 (Snooze Auto-Removal): Flow 3 (Snooze Detection), Flow 4 (Auto-Unsnooze), Flow 6 (Snooze Cleanup)
    - Phase 3 (Settings UX): Flow 7 (Settings Card), Flow 7b (Settings Card Handler)
-   - Optional test support: Flow 8 (Follow-Up Test Harness)
-2. **Copilot Studio Agent** with nudge topic for intelligent follow-up draft generation
-3. **3 Dataverse Tables**: `cr_followuptracking`, `cr_nudgeconfiguration`, `cr_snoozedconversation` — all with alternate keys for safe upsert
-4. **6 Connectors**: Office 365 Outlook, Office 365 Users, Microsoft Dataverse, Microsoft Teams, HTTP with Microsoft Entra ID (preauthorized), Microsoft Copilot Studio
+2. **6 optional HTTP regression harness flows**:
+   - Flow 8 (Follow-Up Test Harness), Flow 9 (Card Action Test Harness), Flow 10 (Settings Handler Test Harness)
+   - Flow 11 (Snooze Detection Test Harness), Flow 12 (Auto-Unsnooze Test Harness), Flow 13 (Snooze Seed Test Harness)
+3. **Copilot Studio assets remain in repo** for follow-up and snooze decisioning, but the currently validated POC deployment keeps Flow 2 mocked and Flow 4 on a deterministic UNSNOOZE bypass path so end-to-end automation does not depend on a live agent call
+4. **3 Dataverse Tables**: `cr_followuptracking`, `cr_nudgeconfiguration`, `cr_snoozedconversation` — alternate keys remain in the schema, while some validated flow writes use `ListRecords` + `UpdateRecord`/`CreateRecord` for reliability
+5. **5 connectors** are required by the current tested flow deployment: Office 365 Outlook, Office 365 Users, Microsoft Dataverse, Microsoft Teams, HTTP with Microsoft Entra ID (preauthorized). The Microsoft Copilot Studio connector is only needed if the live agent steps are re-enabled
 
 ## Build, Test, and Lint (PCF Component)
 
@@ -83,9 +85,15 @@ pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -Environmen
 # 4. Deploy Phase 3 flows (settings UX)
 pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase3"
 
-# 5. Optional: deploy and invoke the Flow 8 follow-up test harness
+# 5. Optional: deploy and invoke the regression harness flows
 pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow8"
 pwsh invoke-followup-test-harness.ps1 -EnvironmentId "<env-id>" -TrackingId "<cr_followuptrackingid-guid>" -ForceNudge
+pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow9"
+pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow10"
+pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow11"
+pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow12"
+pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Flow13"
+pwsh invoke-http-flow-harness.ps1 -EnvironmentId "<env-id>" -FlowDisplayName "EPA - Flow 10: Settings Handler Test Harness" -BodyJson '{"action":"restore_defaults","responderEmail":"<user@example.com>","responderUserPrincipalName":"<user@example.com>"}'
 ```
 
 Requires: PowerShell 7+, PAC CLI, Azure CLI (`az login` for token acquisition).
@@ -101,8 +109,8 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 - **Flow definitions** (`src/flow-*.json`): ARM Logic Apps JSON schema with `connectionName` bindings. Deployed via Flow Management API in `scripts/deploy-agent-flows.ps1`.
 - **Agent tool flows** (`src/tool-*.json`): Use `PowerVirtualAgents` trigger (`When an agent calls the flow`) and `PowerVirtualAgentsResponseV2` response. "Asynchronous response" must be OFF.
 - **Topic definitions** (`src/*-topic.yaml`): Copilot Studio Adaptive Dialog YAML. Use `InvokeAIBuilderModelAction` for AI prompts (referenced by `aIModelId` GUID — environment-specific). Use `InvokeFlowAction` for tool actions (referenced by `flowId` GUID — environment-specific).
-- **Agent invocation**: Flows invoke Copilot Studio agents via `shared_microsoftcopilotstudio` connector with `ExecuteAgentAndWait` action. Input is JSON-serialized into the `message` parameter. Response is read from `body/lastResponse`.
-- **6 connectors required**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized), Microsoft Copilot Studio.
+- **Agent invocation**: Prompt assets remain in the repo, but the current validated POC deployment keeps Flow 2 mocked and Flow 4 bypassed; only re-enabled live-agent variants should use `shared_microsoftcopilotstudio`.
+- **5 connectors required in the tested deployment**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized). Add Microsoft Copilot Studio only when re-enabling live agent calls.
 - **MCP servers** (Tier 4-5: Bing WebSearch, Microsoft Learn): UI-only configuration in Copilot Studio — cannot be automated via scripts.
 
 ### PCF Component Patterns
@@ -156,9 +164,10 @@ PowerShell 7+ scripts in `enterprise-work-assistant/scripts/` handle environment
 - **Flow Management API is mandatory**: Flows MUST be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity). Dataverse-created flows never bind connections at runtime regardless of API-level settings.
 - **`state=Started`** during creation activates flows immediately but enforces strict dynamic parameter validation.
 - **Teams connector**: `PostMessageToConversation` and `PostCardToConversation` require `poster` and `location` static params before dynamic `body` params. For `location = "Chat with Flow bot"`, use `body/recipient` as a flat email string and `body/messageBody` for the payload; `body/recipient/to` causes Graph lookup failures.
-- **Dataverse connector**: `UpsertRecord` doesn't exist — use `UpdateRecord` with alternate key in `recordId` for upsert behavior. `Terminate` action does not support `runError` when `runStatus` is `Succeeded`.
+- **Dataverse connector**: `UpsertRecord` doesn't exist. For owner-scoped config and snooze tables, prefer `ListRecords` + `UpdateRecord`/`CreateRecord` over alternate-key writes; `cr_snoozedconversation` creates must explicitly set `item/cr_unsnoozedbyagent`. `Terminate` action does not support `runError` when `runStatus` is `Succeeded`.
 - **Owner-scoped queries**: `cr_followuptracking` uses Dataverse ownership, not a custom `cr_owneruserid` column. Filter on `_ownerid_value` and, when starting from Office 365 Users, translate the AAD object ID to Dataverse `systemuserid` first.
 - **HTTP with Entra ID**: Connector API name is `shared_webcontents` with `InvokeHttp` operationId. Uses `request/method` and `request/url` parameters.
+- **HTTP harness callback URLs**: `listCallbackUrl` requires the `x-ms-client-scope` header and may return the URL under either `value` or `response.value`.
 - **Flow JSON definitions**: Stored in `email-productivity-agent/src/flow-*.json`. Each file contains a `definition` (Logic Apps schema) and `_metadata` block with flow name, description, and required connections.
 
 ### Planning Structure

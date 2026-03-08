@@ -40,7 +40,9 @@
           }
         },
         "runAfter": {
-          "Get_my_profile_(V2)": ["Succeeded"]
+          "Get_my_profile_(V2)": [
+            "Succeeded"
+          ]
         }
       },
       "Condition_No_Config": {
@@ -81,7 +83,9 @@
           "actions": {}
         },
         "runAfter": {
-          "List_NudgeConfig": ["Succeeded"]
+          "List_NudgeConfig": [
+            "Succeeded"
+          ]
         }
       },
       "Init_snoozeFolderId": {
@@ -96,7 +100,9 @@
           ]
         },
         "runAfter": {
-          "Condition_No_Config": ["Succeeded"]
+          "Condition_No_Config": [
+            "Succeeded"
+          ]
         }
       },
       "Init_configRowId": {
@@ -111,7 +117,9 @@
           ]
         },
         "runAfter": {
-          "Init_snoozeFolderId": ["Succeeded"]
+          "Init_snoozeFolderId": [
+            "Succeeded"
+          ]
         }
       },
       "Condition_FolderId_Empty": {
@@ -127,16 +135,12 @@
           ]
         },
         "actions": {
-          "Create_Snoozed_Folder": {
+          "HTTP_Find_Snoozed_Folder": {
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "request/method": "POST",
-                "request/url": "/v1.0/me/mailFolders",
-                "request/body": {
-                  "displayName": "EPA-Snoozed",
-                  "isHidden": false
-                }
+                "request/method": "GET",
+                "request/url": "/v1.0/me/mailFolders?$select=id,displayName&$filter=displayName eq 'EPA-Snoozed'"
               },
               "host": {
                 "connectionName": "shared_webcontents",
@@ -151,14 +155,71 @@
               }
             }
           },
-          "Set_snoozeFolderId_New": {
-            "type": "SetVariable",
-            "inputs": {
-              "name": "snoozeFolderId",
-              "value": "@body('Create_Snoozed_Folder')?['id']"
+          "Condition_Existing_Folder_Found": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(body('HTTP_Find_Snoozed_Folder')?['value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Set_snoozeFolderId_Existing": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "snoozeFolderId",
+                  "value": "@first(body('HTTP_Find_Snoozed_Folder')?['value'])?['id']"
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Create_Snoozed_Folder": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "request/method": "POST",
+                      "request/url": "/v1.0/me/mailFolders",
+                      "request/body": {
+                        "displayName": "EPA-Snoozed",
+                        "isHidden": false
+                      }
+                    },
+                    "host": {
+                      "connectionName": "shared_webcontents",
+                      "operationId": "InvokeHttp",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                    },
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 3,
+                      "interval": "PT10S",
+                      "maximumInterval": "PT1M"
+                    }
+                  }
+                },
+                "Set_snoozeFolderId_New": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "snoozeFolderId",
+                    "value": "@body('Create_Snoozed_Folder')?['id']"
+                  },
+                  "runAfter": {
+                    "Create_Snoozed_Folder": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              }
             },
             "runAfter": {
-              "Create_Snoozed_Folder": ["Succeeded"]
+              "HTTP_Find_Snoozed_Folder": [
+                "Succeeded"
+              ]
             }
           },
           "Update_NudgeConfig_FolderId": {
@@ -176,7 +237,9 @@
               }
             },
             "runAfter": {
-              "Set_snoozeFolderId_New": ["Succeeded"]
+              "Condition_Existing_Folder_Found": [
+                "Succeeded"
+              ]
             }
           }
         },
@@ -184,7 +247,9 @@
           "actions": {}
         },
         "runAfter": {
-          "Init_configRowId": ["Succeeded"]
+          "Init_configRowId": [
+            "Succeeded"
+          ]
         }
       },
       "Scope_Scan_Folder": {
@@ -215,33 +280,96 @@
             "foreach": "@coalesce(body('HTTP_List_Snoozed_Messages')?['value'], json('[]'))",
             "actions": {
               "Upsert_SnoozedConversation": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "greater": [
+                        "@length(outputs('List_Existing_SnoozedConversation')?['body/value'])",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Update_SnoozedConversation": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_snoozedconversations",
+                        "recordId": "@first(outputs('List_Existing_SnoozedConversation')?['body/value'])?['cr_snoozedconversationid']",
+                        "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
+                        "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                        "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
+                        "item/cr_currentfolder": "@variables('snoozeFolderId')",
+                        "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Create_SnoozedConversation": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "entityName": "cr_snoozedconversations",
+                          "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
+                          "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                          "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
+                          "item/cr_currentfolder": "@variables('snoozeFolderId')",
+                          "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)",
+                          "item/cr_unsnoozedbyagent": false
+                        },
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        }
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "List_Existing_SnoozedConversation": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "List_Existing_SnoozedConversation": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
                     "entityName": "cr_snoozedconversations",
-                    "recordId": "@{encodeURIComponent(concat('cr_conversationid=''', encodeURIComponent(items('Apply_to_each_message')?['conversationId']), ''',cr_owneruserid=''', encodeURIComponent(outputs('Get_my_profile_(V2)')?['body/id']), ''''))}",
-                    "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
-                    "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
-                    "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
-                    "item/cr_currentfolder": "@variables('snoozeFolderId')",
-                    "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
+                    "$filter": "cr_conversationid eq '@{items('Apply_to_each_message')?['conversationId']}' and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+                    "$top": 1
                   },
                   "host": {
                     "connectionName": "shared_commondataserviceforapps",
-                    "operationId": "UpdateRecord",
+                    "operationId": "ListRecords",
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
                   }
-                }
+                },
+                "runAfter": {}
               }
             },
             "runAfter": {
-              "HTTP_List_Snoozed_Messages": ["Succeeded"]
+              "HTTP_List_Snoozed_Messages": [
+                "Succeeded"
+              ]
             },
             "operationOptions": "Sequential"
           }
         },
         "runAfter": {
-          "Condition_FolderId_Empty": ["Succeeded"]
+          "Condition_FolderId_Empty": [
+            "Succeeded"
+          ]
         }
       },
       "Scope_Handle_Errors": {
@@ -284,7 +412,9 @@
               "actions": {}
             },
             "runAfter": {
-              "Compose_ErrorDetails": ["Succeeded"]
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
             }
           },
           "Terminate_Graceful": {
@@ -297,12 +427,17 @@
               }
             },
             "runAfter": {
-              "Condition_Folder_404": ["Succeeded"]
+              "Condition_Folder_404": [
+                "Succeeded"
+              ]
             }
           }
         },
         "runAfter": {
-          "Scope_Scan_Folder": ["Failed", "TimedOut"]
+          "Scope_Scan_Folder": [
+            "Failed",
+            "TimedOut"
+          ]
         }
       }
     }
@@ -313,11 +448,11 @@
     "requiredConnections": [
       "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",
-      "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)"
+      "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)"
     ],
     "notes": {
       "folderCreation": "On first run, creates the EPA-Snoozed folder via Graph API and stores its ID in NudgeConfiguration.",
-      "upsertBehavior": "Uses Dataverse UpdateRecord with alternate key (conversationId + owneruserid) for idempotent upsert. cr_unsnoozedbyagent is NOT set by Flow 3 — Dataverse column default (false) handles initial creation, and only Flow 4 sets it to true during auto-unsnooze.",
+      "upsertBehavior": "Uses Dataverse UpdateRecord with alternate key (conversationId + owneruserid) for idempotent upsert. cr_unsnoozedbyagent is NOT set by Flow 3 \u2014 Dataverse column default (false) handles initial creation, and only Flow 4 sets it to true during auto-unsnooze.",
       "error404": "If the snoozed folder is deleted, clears cr_snoozefolderid so it gets recreated on next run.",
       "scanInterval": "Default 15 minutes. Change recurrence interval to adjust.",
       "prerequisite": "NudgeConfiguration row must exist for the flow owner (created by Flow 1 on first sent email)."

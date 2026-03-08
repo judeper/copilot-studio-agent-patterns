@@ -1,0 +1,297 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "subjectPrefix": {
+                "type": "string"
+              },
+              "bodyText": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "List_NudgeConfig": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeconfigurations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_Missing_FolderId": {
+        "type": "If",
+        "expression": {
+          "or": [
+            {
+              "equals": [
+                "@length(outputs('List_NudgeConfig')?['body/value'])",
+                0
+              ]
+            },
+            {
+              "equals": [
+                "@coalesce(first(outputs('List_NudgeConfig')?['body/value'])?['cr_snoozefolderid'], '')",
+                ""
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_Missing_Folder": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "MissingSnoozeFolder",
+                "message": "No EPA-Snoozed folder ID is configured. Run Flow 11 first to recover or create the folder."
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_NudgeConfig": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Compose_Test_Subject": {
+        "type": "Compose",
+        "inputs": "@concat(coalesce(triggerBody()?['subjectPrefix'], 'EPA Snooze Harness'), ' ', guid())",
+        "runAfter": {
+          "Condition_Missing_FolderId": [
+            "Succeeded"
+          ]
+        }
+      },
+      "HTTP_Send_Test_Message": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "request/method": "POST",
+            "request/url": "/v1.0/me/sendMail",
+            "request/body": {
+              "message": {
+                "subject": "@{outputs('Compose_Test_Subject')}",
+                "body": {
+                  "contentType": "Text",
+                  "content": "@{coalesce(triggerBody()?['bodyText'], 'EPA snooze harness test message')}"
+                },
+                "toRecipients": [
+                  {
+                    "emailAddress": {
+                      "address": "@{coalesce(outputs('Get_my_profile_(V2)')?['body/mail'], outputs('Get_my_profile_(V2)')?['body/userPrincipalName'])}"
+                    }
+                  }
+                ]
+              },
+              "saveToSentItems": true
+            }
+          },
+          "host": {
+            "connectionName": "shared_webcontents",
+            "operationId": "InvokeHttp",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+          },
+          "retryPolicy": {
+            "type": "exponential",
+            "count": 3,
+            "interval": "PT10S",
+            "maximumInterval": "PT1M"
+          }
+        },
+        "runAfter": {
+          "Compose_Test_Subject": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Wait_For_Delivery": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 15,
+            "unit": "Second"
+          }
+        },
+        "runAfter": {
+          "HTTP_Send_Test_Message": [
+            "Succeeded"
+          ]
+        }
+      },
+      "HTTP_Find_Inbox_Message": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "request/method": "GET",
+            "request/url": "/v1.0/me/mailFolders/inbox/messages?$select=id,conversationId,subject,receivedDateTime&$orderby=receivedDateTime desc&$top=25"
+          },
+          "host": {
+            "connectionName": "shared_webcontents",
+            "operationId": "InvokeHttp",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+          },
+          "retryPolicy": {
+            "type": "exponential",
+            "count": 3,
+            "interval": "PT10S",
+            "maximumInterval": "PT1M"
+          }
+        },
+        "runAfter": {
+          "Wait_For_Delivery": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_Message_Not_Found": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@length(body('Filter_Inbox_Message'))",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_Message_Not_Found": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "InboxMessageNotFound",
+                "message": "The test message was not found in Inbox after sendMail completed."
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Filter_Inbox_Message": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Compose_Inbox_Message": {
+        "type": "Compose",
+        "inputs": "@first(body('Filter_Inbox_Message'))",
+        "runAfter": {
+          "Condition_Message_Not_Found": [
+            "Succeeded"
+          ]
+        }
+      },
+      "HTTP_Move_To_Snoozed": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "request/method": "POST",
+            "request/url": "/v1.0/me/messages/@{outputs('Compose_Inbox_Message')?['id']}/move",
+            "request/body": {
+              "destinationId": "@{coalesce(first(outputs('List_NudgeConfig')?['body/value'])?['cr_snoozefolderid'], '')}"
+            }
+          },
+          "host": {
+            "connectionName": "shared_webcontents",
+            "operationId": "InvokeHttp",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+          },
+          "retryPolicy": {
+            "type": "exponential",
+            "count": 3,
+            "interval": "PT10S",
+            "maximumInterval": "PT1M"
+          }
+        },
+        "runAfter": {
+          "Compose_Inbox_Message": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Compose_Result": {
+        "type": "Compose",
+        "inputs": {
+          "subject": "@outputs('Compose_Test_Subject')",
+          "conversationId": "@body('HTTP_Move_To_Snoozed')?['conversationId']",
+          "movedMessageId": "@body('HTTP_Move_To_Snoozed')?['id']",
+          "snoozeFolderId": "@coalesce(first(outputs('List_NudgeConfig')?['body/value'])?['cr_snoozefolderid'], '')"
+        },
+        "runAfter": {
+          "HTTP_Move_To_Snoozed": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Filter_Inbox_Message": {
+        "type": "Query",
+        "inputs": {
+          "from": "@body('HTTP_Find_Inbox_Message')?['value']",
+          "where": "@equals(coalesce(item()?['subject'], ''), outputs('Compose_Test_Subject'))"
+        },
+        "runAfter": {
+          "HTTP_Find_Inbox_Message": [
+            "Succeeded"
+          ]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 13: Snooze Seed Test Harness",
+    "description": "HTTP-triggered harness that sends a unique email to the current user, waits for Inbox delivery, and moves that message into the EPA-Snoozed folder so Flows 3 and 4 can be exercised end to end.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)"
+    ],
+    "notes": {
+      "usage": "Invoke over HTTP, then inspect Compose_Result in the run history or query Dataverse after running Flow 11 to see the created snoozed conversation row.",
+      "mailboxPermissions": "Requires the shared_webcontents connection to have delegated Mail.ReadWrite and Mail.Send permissions."
+    }
+  }
+}

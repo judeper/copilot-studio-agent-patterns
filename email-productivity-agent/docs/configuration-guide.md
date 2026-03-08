@@ -88,7 +88,9 @@ The notification includes who replied and a brief context hint from the reply.
 
 ### Working Hours
 
-The snooze agent respects working hours (7 AM - 7 PM in your timezone). If a reply arrives outside working hours and your snooze was about to expire anyway, the agent may defer unsnoozing to avoid disturbing you.
+The current validated dry-run build does **not** suppress unsnoozing outside working hours; when a matching reply arrives, the email is moved back to Inbox immediately and you receive the Teams notification right away.
+
+> **Production option:** The repo still includes the Snooze Agent prompt assets if you later want to re-enable working-hours-aware suppression logic.
 
 ---
 
