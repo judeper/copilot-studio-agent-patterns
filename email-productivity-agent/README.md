@@ -126,7 +126,7 @@ email-productivity-agent/
 ```powershell
 # 1. Provision environment and Dataverse tables
 cd email-productivity-agent/scripts
-pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@domain.com>"
+pwsh provision-environment.ps1 -TenantId "<tenant-id>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 
@@ -150,21 +150,20 @@ pwsh deploy-agent-flows.ps1 `
     -EnvironmentId "<env-id>" `
     -FlowsToCreate "Phase3"
 
-# 6. (Optional) Deploy regression harness flows
-pwsh deploy-agent-flows.ps1 `
-    -OrgUrl "https://<org>.crm.dynamics.com" `
-    -EnvironmentId "<env-id>" `
-    -FlowsToCreate "Flow8"
+# 6. (Optional) Deploy regression harness flows — each must be deployed individually
+#    Valid values: Flow8, Flow9, Flow10, Flow11, Flow12, Flow13
+foreach ($flow in @("Flow8","Flow9","Flow10","Flow11","Flow12","Flow13")) {
+    pwsh deploy-agent-flows.ps1 `
+        -OrgUrl "https://<org>.crm.dynamics.com" `
+        -EnvironmentId "<env-id>" `
+        -FlowsToCreate $flow
+}
 
+# 7. (Optional) Run regression harness examples
 pwsh invoke-followup-test-harness.ps1 `
     -EnvironmentId "<env-id>" `
     -TrackingId "<cr_followuptrackingid-guid>" `
     -ForceNudge
-
-pwsh deploy-agent-flows.ps1 `
-    -OrgUrl "https://<org>.crm.dynamics.com" `
-    -EnvironmentId "<env-id>" `
-    -FlowsToCreate "Flow9"
 
 pwsh invoke-http-flow-harness.ps1 `
     -EnvironmentId "<env-id>" `
