@@ -424,7 +424,9 @@
                                               "width": "auto",
                                               "items": [
                                                 {
-                                                  "type": "TextBlock", "text": "\uD83D\uDD14", "size": "Large"
+                                                  "type": "TextBlock",
+                                                  "text": "🔔",
+                                                  "size": "Large"
                                                 }
                                               ]
                                             },
@@ -441,7 +443,7 @@
                                                 },
                                                 {
                                                   "type": "TextBlock",
-                                                  "text": "No response received \u2014 consider following up",
+                                                  "text": "No response received — consider following up",
                                                   "size": "Small",
                                                   "isSubtle": true,
                                                   "spacing": "None"
@@ -501,7 +503,7 @@
                                         },
                                         {
                                           "type": "TextBlock",
-                                          "text": "\u26a0\ufe0f AI-generated draft \u2014 always verify content before sending",
+                                          "text": "⚠️ AI-generated draft — always verify content before sending",
                                           "size": "Small",
                                           "color": "Attention",
                                           "isSubtle": true,
@@ -517,19 +519,7 @@
                                       "actions": [
                                         {
                                           "type": "Action.Submit",
-                                          "title": "\u270f\ufe0f Create Draft",
-                                          "style": "positive",
-                                          "data": {
-                                            "action": "draft_followup",
-                                            "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}",
-                                            "conversationId": "@{items('Apply_to_each')?['cr_conversationid']}",
-                                            "recipientEmail": "@{items('Apply_to_each')?['cr_recipientemail']}",
-                                            "suggestedDraft": "@{body('Parse_AgentResponse')?['suggestedDraft']}"
-                                          }
-                                        },
-                                        {
-                                          "type": "Action.Submit",
-                                          "title": "\u23f0 Snooze 2 Days",
+                                          "title": "⏰ Snooze 2 Days",
                                           "data": {
                                             "action": "snooze_nudge",
                                             "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}"
@@ -537,7 +527,7 @@
                                         },
                                         {
                                           "type": "Action.Submit",
-                                          "title": "\u2716\ufe0f Dismiss",
+                                          "title": "✖️ Dismiss",
                                           "data": {
                                             "action": "dismiss_nudge",
                                             "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}"
@@ -681,7 +671,7 @@
     "requiredConnections": [
       "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",
-      "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)",
+      "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
       "shared_teams (Microsoft Teams)"
     ],
     "notes": {
