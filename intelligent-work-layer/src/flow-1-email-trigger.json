@@ -7,14 +7,6 @@
         "type": "OpenApiConnectionNotification",
         "inputs": {
           "parameters": {
-            "$connections": {
-              "defaultValue": {},
-              "type": "Object"
-            },
-            "$authentication": {
-              "defaultValue": {},
-              "type": "SecureObject"
-            },
             "folderPath": "Inbox",
             "importance": "Any",
             "fetchOnlyWithAttachment": false,
@@ -38,14 +30,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "messageId": "@triggerOutputs()?['body/id']"
               },
               "host": {
@@ -60,16 +44,7 @@
           "Get_my_profile_(V2)": {
             "type": "OpenApiConnection",
             "inputs": {
-              "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                }
-              },
+              "parameters": {},
               "host": {
                 "operationId": "MyProfile_V2",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
@@ -166,14 +141,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "entityName": "cr_senderprofiles",
                 "$filter": "cr_senderemail eq '@{outputs('Compose_SenderEmail')}'",
                 "$top": 1
@@ -235,14 +202,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "botId": "<ewa-agent-schema-name>",
                 "message": "@{string(outputs('Compose_AgentPayload'))}"
               },
@@ -341,14 +300,6 @@
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
-                    "$connections": {
-                      "defaultValue": {},
-                      "type": "Object"
-                    },
-                    "$authentication": {
-                      "defaultValue": {},
-                      "type": "SecureObject"
-                    },
                     "entityName": "cr_assistantcards",
                     "item/cr_itemsummary": "@take(coalesce(body('Parse_Agent_Response')?['item_summary'], ''), 300)",
                     "item/cr_triagetier": "@if(equals(body('Parse_Agent_Response')?['triage_tier'], 'FULL'), 100000002, if(equals(body('Parse_Agent_Response')?['triage_tier'], 'LIGHT'), 100000001, 100000000))",
@@ -409,14 +360,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "botId": "<humanizer-agent-schema-name>",
                         "message": "@{string(outputs('Compose_HumanizerInput'))}"
                       },
@@ -442,14 +385,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_assistantcards",
                         "recordId": "@outputs('Create_AssistantCard')?['body/cr_assistantcardid']",
                         "item/cr_humanizeddraft": "@outputs('Execute_Humanizer_Agent')?['body/lastResponse']"
@@ -491,14 +426,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "entityName": "cr_senderprofiles",
                 "recordId": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), first(outputs('List_SenderProfile')?['body/value'])?['cr_senderprofileid'], null)",
                 "item/cr_senderemail": "@outputs('Compose_SenderEmail')",
@@ -544,6 +471,16 @@
             "TimedOut"
           ]
         }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
       }
     }
   }

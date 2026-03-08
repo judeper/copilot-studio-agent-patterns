@@ -7,14 +7,6 @@
         "type": "OpenApiConnectionNotification",
         "inputs": {
           "parameters": {
-            "$connections": {
-              "defaultValue": {},
-              "type": "Object"
-            },
-            "$authentication": {
-              "defaultValue": {},
-              "type": "SecureObject"
-            },
             "entityName": "cr_assistantcards",
             "scope": "Organization",
             "filterExpression": "",
@@ -37,14 +29,6 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "$connections": {
-                  "defaultValue": {},
-                  "type": "Object"
-                },
-                "$authentication": {
-                  "defaultValue": {},
-                  "type": "SecureObject"
-                },
                 "entityName": "cr_assistantcards",
                 "recordId": "@triggerOutputs()?['body/cr_assistantcardid']"
               },
@@ -82,14 +66,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_senderprofiles",
                         "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
                       },
@@ -123,14 +99,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_senderprofileid']",
                             "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 1)",
@@ -152,14 +120,6 @@
                           "type": "OpenApiConnection",
                           "inputs": {
                             "parameters": {
-                              "$connections": {
-                                "defaultValue": {},
-                                "type": "Object"
-                              },
-                              "$authentication": {
-                                "defaultValue": {},
-                                "type": "SecureObject"
-                              },
                               "entityName": "cr_senderprofiles",
                               "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
                               "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
@@ -201,14 +161,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_senderprofiles",
                         "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
                       },
@@ -242,14 +194,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_SentEdited')?['value'])?['cr_senderprofileid']",
                             "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1)",
@@ -281,14 +225,6 @@
                           "type": "OpenApiConnection",
                           "inputs": {
                             "parameters": {
-                              "$connections": {
-                                "defaultValue": {},
-                                "type": "Object"
-                              },
-                              "$authentication": {
-                                "defaultValue": {},
-                                "type": "SecureObject"
-                              },
                               "entityName": "cr_senderprofiles",
                               "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
                               "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
@@ -325,14 +261,6 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "$connections": {
-                          "defaultValue": {},
-                          "type": "Object"
-                        },
-                        "$authentication": {
-                          "defaultValue": {},
-                          "type": "SecureObject"
-                        },
                         "entityName": "cr_senderprofiles",
                         "$filter": "cr_senderemail eq '@{outputs('Get_Modified_Card')?['body/cr_originalsenderemail']}'"
                       },
@@ -362,14 +290,6 @@
                         "type": "OpenApiConnection",
                         "inputs": {
                           "parameters": {
-                            "$connections": {
-                              "defaultValue": {},
-                              "type": "Object"
-                            },
-                            "$authentication": {
-                              "defaultValue": {},
-                              "type": "SecureObject"
-                            },
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_Dismissed')?['value'])?['cr_senderprofileid']",
                             "item/cr_dismisscount": "@add(first(body('List_SenderProfile_Dismissed')?['value'])?['cr_dismisscount'], 1)"
@@ -390,14 +310,6 @@
                           "type": "OpenApiConnection",
                           "inputs": {
                             "parameters": {
-                              "$connections": {
-                                "defaultValue": {},
-                                "type": "Object"
-                              },
-                              "$authentication": {
-                                "defaultValue": {},
-                                "type": "SecureObject"
-                              },
                               "entityName": "cr_senderprofiles",
                               "item/cr_senderemail": "@outputs('Get_Modified_Card')?['body/cr_originalsenderemail']",
                               "item/cr_senderdisplayname": "@outputs('Get_Modified_Card')?['body/cr_originalsenderdisplay']",
@@ -473,6 +385,16 @@
             "TimedOut"
           ]
         }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
       }
     }
   }
