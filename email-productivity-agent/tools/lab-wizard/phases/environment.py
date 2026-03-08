@@ -212,8 +212,11 @@ def _create_environment(config: dict) -> tuple[str, str]:
     if result.returncode == 0:
         try:
             data = json.loads(result.stdout)
+            # pac admin create --json may return an array or a single object
+            if isinstance(data, list):
+                data = data[0] if data else {}
             env_id = data.get("EnvironmentId") or data.get("environmentId", "")
-            org_url = data.get("OrgUrl") or data.get("orgUrl", "")
+            org_url = data.get("EnvironmentUrl") or data.get("OrgUrl") or data.get("orgUrl", "")
             if env_id and org_url:
                 console.print(f"  [green]✅ Environment created: {env_id}[/green]")
                 return env_id, org_url.rstrip("/")
@@ -249,7 +252,7 @@ def _find_existing_environment(name: str) -> tuple[str, str]:
         display = (env.get("DisplayName") or env.get("displayName") or "").lower()
         if display == name_lower:
             env_id = env.get("EnvironmentId") or env.get("environmentId", "")
-            org_url = env.get("OrgUrl") or env.get("orgUrl", "")
+            org_url = env.get("EnvironmentUrl") or env.get("OrgUrl") or env.get("orgUrl", "")
             if not org_url:
                 # Some PAC versions use different casing / nested keys
                 org_url = (env.get("LinkedEnvironmentMetadata", {}) or {}).get("InstanceUrl", "")
