@@ -145,3 +145,65 @@ Realistic typed fixtures for all surfaces. Use `mockWorkOsViewModel` for the ful
 - MCP server integration or agent registry wiring
 
 These are future-state items tracked in `architecture-enhancements.md`.
+
+---
+
+## 8. UI Evolution Roadmap
+
+Phased adoption plan for integrating Work OS contract types into the shipped dashboard. Each slice is independently shippable and preserves backward compatibility.
+
+### Slice 1 — Enhanced Agent Activity Feed (Lowest risk)
+
+**What:** Replace the `CommandSideEffect`-based activity log in `CommandBar` with `AgentActivityItem[]` from the proposal contract.
+
+**Why:** The shipped CommandBar already renders a side-effect activity log. The proposal `AgentActivityItem` type adds `tone`, `taskState`, and `producedBy` metadata — enabling richer rendering (color-coded entries, running/completed indicators, agent attribution).
+
+**Bridge:** `toAgentActivityItem()` adapter already exists.
+
+**Files to change:**
+- `CommandBar.tsx` — import `AgentActivityItem`, use adapter in `useEffect` for `lastResponse.side_effects`
+- `CommandBar.test.tsx` — verify new activity rendering
+
+**Feature flag:** `enableWorkOsActivityFeed` (Canvas app input property)
+
+### Slice 2 — Governance Metadata on Cards
+
+**What:** Surface `GovernanceState` information on `CardItem` and `CardDetail` — show approval-required indicators and reviewability badges.
+
+**Why:** The shipped three-state confidence (Ready to send / Review suggested / Draft only) is a simplified version of the governance model. Adding explicit governance metadata enables the UI to distinguish "auto-sendable" from "requires human approval" with clear visual indicators.
+
+**Bridge:** `toWorkQueueItem()` adapter produces `governance` for every card.
+
+**Files to change:**
+- `CardItem.tsx` — add approval-required indicator (lock icon or badge)
+- `CardDetail.tsx` — show governance state in detail header
+- `types.ts` — extend `AssistantCard` with optional `governance?: GovernanceState`
+
+**Feature flag:** `enableGovernanceMetadata`
+
+### Slice 3 — Shell State Awareness
+
+**What:** Lift quiet mode and interruption policy into a `ShellState`-shaped object at the `App` level, replacing the current ad-hoc state threading between `FilterBar` → `App` → `StatusBar`.
+
+**Why:** The current quiet mode is local React state in `FilterBar`, threaded upward via callbacks. A `ShellState` object at `App` level provides a single source of truth that all components can consume, and aligns with the proposal contract.
+
+**Bridge:** `toShellState()` adapter already exists.
+
+**Files to change:**
+- `App.tsx` — introduce `ShellState` context or prop, replace `quietMode`/`quietHeldCount` state
+- `FilterBar.tsx` — emit `ShellState` changes instead of raw booleans
+- `StatusBar.tsx` — consume from `ShellState` instead of individual props
+
+**Feature flag:** None (internal refactor, no user-visible change)
+
+### Slice 4 — Enriched Briefing Model (Future)
+
+**What:** Extend `BriefingCard` to accept `BriefingPackModel` as an alternative data source alongside the current `DailyBriefing` JSON.
+
+**Why:** The current briefing data is inline JSON parsed from `draft_payload`. The proposal `BriefingPackModel` adds structured sections, source context, and agent attribution — enabling richer meeting prep with deep links and talking points.
+
+**Deferred until:** The agent pipeline produces `BriefingPackModel` output (requires Copilot Studio prompt changes).
+
+### Ordering rationale
+
+Slices are ordered by risk (lowest first) and independence (no slice depends on a previous one). Each slice can be shipped behind a feature flag and reverted independently.
