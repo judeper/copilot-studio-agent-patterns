@@ -3,6 +3,7 @@ import * as React from "react";
 import { App } from "./components/App";
 import { useCardData } from "./hooks/useCardData";
 import type { AssistantCard } from "./components/types";
+import type { BriefingScheduleConfig } from "./components/types";
 
 /**
  * AppWrapper — functional component that bridges the PCF dataset API
@@ -26,6 +27,7 @@ const AppWrapper: React.FC<{
     onJumpToCard: (cardId: string) => void;
     onExecuteCommand: (command: string, currentCardId: string | null) => void;
     onSaveDraft: (cardId: string, editedText: string) => void;
+    onUpdateSchedule: (config: BriefingScheduleConfig) => void;
 }> = (props) => {
     // Cast PCF DataSet to the hook's expected interface shape
     const cards: AssistantCard[] = useCardData(
@@ -50,6 +52,7 @@ const AppWrapper: React.FC<{
         onJumpToCard: props.onJumpToCard,
         onExecuteCommand: props.onExecuteCommand,
         onSaveDraft: props.onSaveDraft,
+        onUpdateSchedule: props.onUpdateSchedule,
     });
 };
 
@@ -62,6 +65,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private jumpToCardAction: string = "";
     private commandAction: string = "";
     private saveDraftAction: string = "";
+    private updateScheduleAction: string = "";
     private datasetVersion: number = 0;
     private pendingDismissals: Map<string, { attempts: number; timestamp: number }> = new Map();
     private isProcessingDismissals = false;
@@ -74,6 +78,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private handleJumpToCard: (cardId: string) => void;
     private handleExecuteCommand: (command: string, currentCardId: string | null) => void;
     private handleSaveDraft: (cardId: string, editedText: string) => void;
+    private handleUpdateSchedule: (config: BriefingScheduleConfig) => void;
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -114,6 +119,10 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         };
         this.handleSaveDraft = (cardId: string, editedText: string) => {
             this.saveDraftAction = JSON.stringify({ cardId, editedText });
+            this.notifyOutputChanged();
+        };
+        this.handleUpdateSchedule = (config: BriefingScheduleConfig) => {
+            this.updateScheduleAction = JSON.stringify(config);
             this.notifyOutputChanged();
         };
     }
@@ -170,6 +179,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             onJumpToCard: this.handleJumpToCard,
             onExecuteCommand: this.handleExecuteCommand,
             onSaveDraft: this.handleSaveDraft,
+            onUpdateSchedule: this.handleUpdateSchedule,
         });
     }
 
@@ -182,6 +192,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             jumpToCardAction: this.jumpToCardAction,
             commandAction: this.commandAction,
             saveDraftAction: this.saveDraftAction,
+            updateScheduleAction: this.updateScheduleAction,
         };
 
         // Reset action outputs after reading to prevent stale re-fires
@@ -191,6 +202,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         this.jumpToCardAction = "";
         this.commandAction = "";
         this.saveDraftAction = "";
+        this.updateScheduleAction = "";
 
         return outputs;
     }

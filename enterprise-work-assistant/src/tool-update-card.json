@@ -1,0 +1,146 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "card_id": {
+                "type": "string",
+                "description": "GUID of the assistant card row to update"
+              },
+              "update_json": {
+                "type": "string",
+                "description": "JSON string with field names and values to update (e.g. cr_priority, cr_cardoutcome, cr_humanizeddraft, cr_cardstatus, cr_outcometimestamp)"
+              }
+            },
+            "required": ["card_id", "update_json"]
+          }
+        },
+        "description": "Modify an assistant card's properties such as priority, outcome, draft text, or status."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Parse_Update_JSON": {
+            "type": "ParseJson",
+            "inputs": {
+              "content": "@triggerBody()?['update_json']",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cr_priority": {
+                    "type": "integer"
+                  },
+                  "cr_cardoutcome": {
+                    "type": "integer"
+                  },
+                  "cr_humanizeddraft": {
+                    "type": "string"
+                  },
+                  "cr_cardstatus": {
+                    "type": "integer"
+                  },
+                  "cr_outcometimestamp": {
+                    "type": "string"
+                  },
+                  "cr_itemsummary": {
+                    "type": "string"
+                  },
+                  "cr_confidencescore": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "Update_Card": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "recordId": "@triggerBody()?['card_id']",
+                "item": {
+                  "cr_priority": "@body('Parse_Update_JSON')?['cr_priority']",
+                  "cr_cardoutcome": "@body('Parse_Update_JSON')?['cr_cardoutcome']",
+                  "cr_humanizeddraft": "@body('Parse_Update_JSON')?['cr_humanizeddraft']",
+                  "cr_cardstatus": "@body('Parse_Update_JSON')?['cr_cardstatus']",
+                  "cr_outcometimestamp": "@body('Parse_Update_JSON')?['cr_outcometimestamp']",
+                  "cr_itemsummary": "@body('Parse_Update_JSON')?['cr_itemsummary']",
+                  "cr_confidencescore": "@body('Parse_Update_JSON')?['cr_confidencescore']"
+                }
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Parse_Update_JSON": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "success": true,
+                "card_id": "@{triggerBody()?['card_id']}"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "description": "Whether the update succeeded"
+                  },
+                  "card_id": {
+                    "type": "string",
+                    "description": "GUID of the updated card"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Update_Card": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Tool error: @{result('Scope_Main')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "ToolError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

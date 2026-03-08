@@ -1,0 +1,137 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "user_aad_id": {
+                "type": "string",
+                "description": "Azure AD object ID of the card owner"
+              },
+              "filter_expression": {
+                "type": "string",
+                "description": "OData $filter expression for querying assistant cards"
+              },
+              "max_results": {
+                "type": "integer",
+                "description": "Maximum number of cards to return",
+                "default": 20
+              }
+            },
+            "required": ["user_aad_id", "filter_expression"]
+          }
+        },
+        "description": "Search the user's assistant cards by filter criteria. Returns matching cards for navigation or analysis."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Set_MaxResults": {
+            "type": "Compose",
+            "inputs": "@coalesce(triggerBody()?['max_results'], 20)"
+          },
+          "List_Cards": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "@{triggerBody()?['filter_expression']} and _ownerid_value eq '@{triggerBody()?['user_aad_id']}'",
+                "$top": "@outputs('Set_MaxResults')",
+                "$orderby": "createdon desc",
+                "$select": "cr_assistantcardsid,cr_itemsummary,cr_triagetier,cr_priority,cr_cardstatus,cr_confidencescore,cr_triggertype,createdon,cr_cardoutcome"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Set_MaxResults": ["Succeeded"]
+            }
+          },
+          "Compose_Results": {
+            "type": "Select",
+            "inputs": {
+              "from": "@outputs('List_Cards')?['body/value']",
+              "select": {
+                "card_id": "@item()?['cr_assistantcardsid']",
+                "summary": "@item()?['cr_itemsummary']",
+                "triage_tier": "@item()?['cr_triagetier']",
+                "priority": "@item()?['cr_priority']",
+                "status": "@item()?['cr_cardstatus']",
+                "confidence_score": "@item()?['cr_confidencescore']",
+                "trigger_type": "@item()?['cr_triggertype']",
+                "outcome": "@item()?['cr_cardoutcome']",
+                "created_on": "@item()?['createdon']"
+              }
+            },
+            "runAfter": {
+              "List_Cards": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "cards_json": "@{string(body('Compose_Results'))}",
+                "result_count": "@length(outputs('List_Cards')?['body/value'])"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cards_json": {
+                    "type": "string",
+                    "description": "JSON array of matching assistant cards"
+                  },
+                  "result_count": {
+                    "type": "integer",
+                    "description": "Number of cards returned"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Results": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Tool error: @{result('Scope_Main')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "ToolError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

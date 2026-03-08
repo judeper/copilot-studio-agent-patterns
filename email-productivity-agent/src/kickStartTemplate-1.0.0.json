@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "_version.comment": "{locked}",
+  "metadata": {
+    "templateName": "kickStartTemplate",
+    "_templateName.comment": "{locked}",
+    "templateVersion": "1.0.0",
+    "_templateVersion.comment": "{locked}",
+    "name": "Email Productivity Agent",
+    "description": "Email Productivity Agent for follow-up nudges and snooze auto-removal.",
+    "source": "CopilotStudio",
+    "_source.comment": "{locked}",
+    "quality": "PrivatePreview",
+    "_quality.comment": "{locked}",
+    "iconBase64": null,
+    "_iconBase64.comment": "{locked}",
+    "iconAltText": null,
+    "isGpt": false,
+    "_isGpt.comment": "{locked}",
+    "documentationUri": null,
+    "_documentationUri.comment": "{locked}",
+    "supportedLanguages": [],
+    "_supportedLanguages.comment": "{locked}",
+    "industries": [],
+    "categories": []
+  },
+  "content": {
+    "displayName": "Email Productivity Agent",
+    "description": "Evaluates unreplied emails and snoozed replies and returns raw JSON decisions to Power Automate flows.",
+    "instructions": "When invoked by automated flows, use the active topic instructions and return raw JSON only.",
+    "conversationStarters": []
+  },
+  "customizations": {
+    "schema": {
+      "type": "object",
+      "_type.comment": "{locked}",
+      "properties": {}
+    }
+  },
+  "spec": {
+    "connectors": []
+  }
+}

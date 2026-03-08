@@ -100,6 +100,13 @@ Shipped v2.0 with ~59k LOC TypeScript/CSS (handwritten) across the reference pat
 | Sender-adaptive triage thresholds | 80% response + <8h turnaround = AUTO_HIGH; 40% response or 60% dismiss = AUTO_LOW | ✓ Good — empirically defensible boundaries |
 | 30-day rolling window for sender profiles | Balances recency (captures relationship changes) against statistical stability | ✓ Good — sufficient sample size without stale data |
 | Confidence score modifiers (+10/-10/+5) | Temporal urgency, edit distance penalty, engagement bonus add relational context | ✓ Good — meaningful signal adjustments |
+| Escape-key dismissals restore focus | Consistent keyboard navigation — invoking element regains focus after overlay close | ✓ Good — CardDetail, BriefingCard, CommandBar all restore focus |
+| MARL pipeline uses Flow-level chaining | Deep nesting creates brittle contracts; flow-level chaining simplifies data handoffs | ✓ Good — 15 data contract fixes applied consistently |
+| Router Agent for interactive commands (Flow 8) | Centralizes command routing instead of embedding logic in the orchestrator | ✓ Good — clean separation of routing and execution |
+| 22 agents total (10 existing + 12 new) | AI Council identified gaps in agent coverage for calendar, task, search, and delegation scenarios | ✓ Good — 7 new prompts added (Router, Calendar, Task, Email Compose, Search, Validation, Delegation) |
+| Memory injection capped at ~2000 tokens | Prevents context window exhaustion while providing sufficient behavioral history | ✓ Good — balances recency vs. cost |
+| SenderProfile composite alternate key confirmed | Ensures race-safe upserts across concurrent signals from the same sender | ✓ Good — validated during v3.0 schema/provisioning fixes |
+| Weekly reflection sufficient for POC | Daily reflection adds overhead without proportional value at POC scale | ✓ Good — learning system flows (Flows 11, 14-16) use weekly cadence |
 
 ---
-*Last updated: 2026-03-07 after Phase 17 accessibility completion*
+*Last updated: 2026-03-08 after v3.0 AI Council Enhancement Implementation*

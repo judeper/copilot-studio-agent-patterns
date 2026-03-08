@@ -98,6 +98,12 @@
               of-type="SingleLine.Text"
               usage="output" />
 
+    <property name="updateScheduleAction"
+              display-name-key="UpdateScheduleAction_DisplayName"
+              description-key="Persists briefing schedule config to BriefingSchedule Dataverse table"
+              of-type="SingleLine.Text"
+              usage="output" />
+
     <!-- Platform libraries: share the platform React tree (virtual control) -->
     <platform-library name="React" version="18.2.0" />
     <platform-library name="Fluent" version="9.46.2" />
