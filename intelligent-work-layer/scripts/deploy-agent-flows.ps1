@@ -3,10 +3,19 @@
     Deploys Power Automate flows for the Intelligent Work Layer.
 
 .DESCRIPTION
-    Creates all 20 flows (10 tool flows + 10 main flows) programmatically via the
-    Flow Management API, then adds them to a Dataverse solution:
+    Deploys main flows programmatically via the Flow Management API, then adds
+    them to a Dataverse solution.
 
-    Tool Flows (agent research/action tools):
+    KNOWN LIMITATION — TOOL FLOWS:
+    The 10 agent tool flows (tool-*.json) use the "When an agent calls the flow"
+    trigger with kind "PowerVirtualAgents". The Flow Management API REJECTS this
+    trigger kind — it is not in the FlowTemplateOperationKind enum. Tool flows
+    must instead be created via:
+      (a) Copilot Studio → add Actions to the agent (auto-creates the flows), or
+      (b) pac solution export/import from a source environment
+    The tool-*.json files in src/ serve as REFERENCE DEFINITIONS only.
+
+    Tool Flows (reference only — cannot be API-deployed):
       - IWL - SearchUserEmail          (tool-search-user-email.json)
       - IWL - SearchSentItems          (tool-search-sent-items.json)
       - IWL - SearchTeamsMessages      (tool-search-teams-messages.json)
@@ -18,7 +27,7 @@
       - IWL - CreateCard               (tool-create-card.json)
       - IWL - RefineDraft              (tool-refine-draft.json)
 
-    Main Flows (triggers, orchestration, scheduled):
+    Main Flows (deployed via this script):
       - IWL - Flow 1: EMAIL Trigger
       - IWL - Flow 2: TEAMS_MESSAGE Trigger
       - IWL - Flow 3: CALENDAR_SCAN Trigger
@@ -30,17 +39,16 @@
       - IWL - Flow 9: Sender Profile Analyzer
       - IWL - Flow 10: Reminder Firing
 
+    NOTE: Main flow JSON definitions are POC scaffolding. Some may require
+    manual building or correction in the Power Automate designer following
+    the step-by-step specs in docs/agent-flows.md.
+
     The script:
       1. Creates (or reuses) an "EnterpriseWorkAssistant" Dataverse solution
       2. Creates connection references in the solution (for ALM export/import)
       3. Discovers connections in the target environment
       4. Creates flows via the Flow Management API with connection bindings
       5. Adds each flow to the solution
-
-    IMPORTANT: Flows MUST be created via the Flow Management API (not Dataverse
-    workflows entity) with connectionName bindings. The Dataverse API accepts any
-    definition but connections never bind at the Flow runtime level, making flows
-    impossible to activate without manual designer interaction.
 
 .PARAMETER EnvironmentId
     Power Platform environment ID (GUID). Found in admin.powerplatform.microsoft.com.

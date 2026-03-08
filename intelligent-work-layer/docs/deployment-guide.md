@@ -297,18 +297,24 @@ This creates the Intelligent Work Layer copilot with 4 topics (Main Triage, Huma
 
 ### Step 3b: Deploy Agent Flows
 
+#### Tool Flows (10 agent tool flows)
+
+> **⚠️ IMPORTANT:** Agent tool flows use the `PowerVirtualAgents` trigger kind (`"When an agent calls the flow"`), which **cannot** be created via the Flow Management API. The API rejects this trigger kind with a deserialization error. Tool flows must be created via one of:
+>
+> 1. **Copilot Studio (recommended for POC):** Add Actions to the agent in the Copilot Studio designer — this auto-creates the tool flows
+> 2. **Solution export/import (recommended for CI/CD):** `pac solution export` from a source environment → `pac solution import` to target. Post-import, re-associate the `botcomponent_workflow` N:N relationship via Dataverse API
+>
+> The `src/tool-*.json` files serve as **reference definitions** documenting the expected trigger schema, inputs, outputs, and action steps for each tool flow.
+
+#### Main Flows (10 operational flows)
+
 ```bash
-# Deploy tool flows first (agents need these registered)
-pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate ToolFlows
-
-# Then deploy main flows
-pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -FlowsToCreate MainFlows
-
-# Or deploy all at once
-pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>"
+pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -OrgUrl "https://<org>.crm.dynamics.com" -FlowsToCreate MainFlows
 ```
 
-This deploys 20 Power Automate flows (10 agent tool flows + 10 main flows) via the Flow Management API. Required connectors: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio.
+This deploys the 10 main flows (signal triggers, operations, scheduled tasks) via the Flow Management API. The JSON definitions in `src/flow-*.json` are POC scaffolding — some flows may require manual building or correction in the Power Automate designer following the step-by-step specs in `docs/agent-flows.md`.
+
+Required connectors: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio.
 
 ---
 
