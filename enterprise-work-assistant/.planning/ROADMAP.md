@@ -1,8 +1,8 @@
-# Enterprise Work Assistant — Roadmap
+# Intelligent Work Layer — Roadmap
 
 ## Current State (v2.2 POC)
 
-The Enterprise Work Assistant is a POC-scoped solution. All core features are implemented:
+The Intelligent Work Layer is a POC-scoped solution. All core features are implemented:
 - Main Agent (triage, research, scoring, JSON output)
 - Humanizer Agent (Connected Agent for tone calibration)
 - Daily Briefing Agent (action items, FYI, stale alerts)

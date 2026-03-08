@@ -1,6 +1,6 @@
 # Phase 5 — Architecture Enhancements
 
-Design document covering architectural improvements for scalability, resilience, and cross-solution integration in the Enterprise Work Assistant.
+Design document covering architectural improvements for scalability, resilience, and cross-solution integration in the Intelligent Work Layer.
 
 > **Status**: Design — not yet implemented. These enhancements build on the v2.2 baseline and assume all Phase 1–4 artifacts (Dataverse tables, agent prompts, Power Automate flows, PCF dashboard) are deployed.
 
@@ -263,7 +263,7 @@ The `cr_agentregistry.cr_version` column tracks the currently deployed version o
 
 ### Cross-Solution Link
 
-The Email Productivity Agent (EPA) and Enterprise Work Assistant (EWA) share a common signal source — email. This integration connects them via a foreign key relationship.
+The Email Productivity Agent (EPA) and Intelligent Work Layer (IWL) share a common signal source — email. This integration connects them via a foreign key relationship.
 
 ### Schema
 
@@ -271,13 +271,13 @@ The Email Productivity Agent (EPA) and Enterprise Work Assistant (EWA) share a c
 cr_followuptracking.cr_relatedcardid  →  cr_assistantcard.cr_cardid
 ```
 
-The `cr_relatedcardid` column is a lookup (nullable) on the EPA's `cr_followuptracking` table that references the EWA's `cr_assistantcard` table.
+The `cr_relatedcardid` column is a lookup (nullable) on the EPA's `cr_followuptracking` table that references the IWL's `cr_assistantcard` table.
 
 ### Behavior
 
 When the EPA detects a missing reply on a tracked email:
 
-1. **Query EWA**: Check if an `cr_assistantcard` row exists for the same `cr_conversationclusterid`
+1. **Query IWL**: Check if an `cr_assistantcard` row exists for the same `cr_conversationclusterid`
 2. **If card exists**:
    - Update the existing card with a nudge indicator (`cr_hasnudge = true`)
    - Append nudge details to `cr_processingnotes`
@@ -296,7 +296,7 @@ The PCF dashboard can display a nudge badge on cards where `cr_hasnudge eq true`
 
 ### Purpose
 
-Surface Copilot Studio cost alerts directly in the Enterprise Work Assistant dashboard, connecting the [Agent Cost Governance — PAYGO](../../agent-cost-governance-paygo/) solution to the card-based workflow.
+Surface Copilot Studio cost alerts directly in the Intelligent Work Layer dashboard, connecting the [Agent Cost Governance — PAYGO](../../agent-cost-governance-paygo/) solution to the card-based workflow.
 
 ### New Trigger Type
 

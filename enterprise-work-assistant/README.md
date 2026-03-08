@@ -1,4 +1,4 @@
-# Enterprise Work Assistant
+# Intelligent Work Layer
 
 An intelligent work layer for Microsoft 365 that triages incoming emails, Teams messages, and calendar events — conducting automated research and preparing briefings and draft responses before the user ever has to ask.
 
@@ -239,7 +239,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 
 | Limitation | Mitigation |
 |------------|------------|
-| **POC Boundary — augments, does not replace** | This system augments Outlook and Teams — it does not replace them. Users continue to use their primary tools while EWA surfaces prepared intelligence in a companion dashboard. |
+| **POC Boundary — augments, does not replace** | This system augments Outlook and Teams — it does not replace them. Users continue to use their primary tools while IWL surfaces prepared intelligence in a companion dashboard. |
 | **POC only — not production-hardened** |Full ARIA/screen reader audit, i18n, optimistic concurrency, DataSet paging (100+ cards), and capacity planning are out of scope. See `.planning/ROADMAP.md` for deferred items. |
 | No automated data retention — AssistantCards table stores email subjects, sender PII, behavioral profiles, and communication drafts indefinitely with no cleanup flow | For organizations with data retention requirements, implement a scheduled Power Automate flow to delete/archive cards older than N days based on `cr_createdon`. See the Email Productivity Agent's Flow 5 for a 90-day cleanup reference pattern. |
 | English-only UI and prompts — the PCF component ships with only English localization (`1033.resx`) and all agent prompts are written in English | Non-English email and Teams content is processed correctly, but UI labels remain in English. Add additional `.resx` files for other locales and localize prompts as needed. |

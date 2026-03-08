@@ -44,7 +44,7 @@
     <value>Assistant Dashboard</value>
   </data>
   <data name="AssistantDashboard_Description" xml:space="preserve">
-    <value>Enterprise Work Assistant dashboard displaying AI-generated briefing cards with research, findings, and drafts.</value>
+    <value>Intelligent Work Layer dashboard displaying AI-generated briefing cards with research, findings, and drafts.</value>
   </data>
   <!-- Dataset -->
   <data name="CardDataset_DisplayName" xml:space="preserve">

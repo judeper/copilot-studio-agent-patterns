@@ -46,7 +46,7 @@ describe('CardGallery', () => {
         );
 
         expect(screen.getByText("You're all caught up")).toBeInTheDocument();
-        expect(screen.getByText(/Ask EWA about anything/)).toBeInTheDocument();
+        expect(screen.getByText(/Ask IWL about anything/)).toBeInTheDocument();
     });
 
     it('propagates card click to onSelectCard', async () => {

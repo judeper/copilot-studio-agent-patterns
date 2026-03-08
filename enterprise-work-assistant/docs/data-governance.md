@@ -1,8 +1,8 @@
 # Data Governance Runbook
 
-Operational procedures for data retention, GDPR/CCPA erasure, classification, and audit in the Enterprise Work Assistant.
+Operational procedures for data retention, GDPR/CCPA erasure, classification, and audit in the Intelligent Work Layer.
 
-> **Scope**: This runbook covers the Dataverse tables and OneNote integration owned by the Enterprise Work Assistant. It does not cover platform-level telemetry (Power Platform analytics, Application Insights) — those are governed by tenant-wide policies.
+> **Scope**: This runbook covers the Dataverse tables and OneNote integration owned by the Intelligent Work Layer. It does not cover platform-level telemetry (Power Platform analytics, Application Insights) — those are governed by tenant-wide policies.
 
 ---
 
@@ -73,7 +73,7 @@ The script will prompt for confirmation. Type `DELETE` to proceed. For automated
 
 If OneNote integration is enabled (`cr_onenoteenabled = true`), the script automatically purges user-specific OneNote sections via Graph API. If the automated purge fails, manually delete the user's sections:
 
-1. Open the Enterprise Work Assistant OneNote notebook in the M365 Group
+1. Open the Intelligent Work Layer OneNote notebook in the M365 Group
 2. Search for sections named after the user
 3. Delete all matching sections and empty the OneNote recycle bin
 
@@ -183,7 +183,7 @@ When OneNote integration is enabled (`cr_onenoteenabled = true` and `cr_onenoteo
 
 **Manual follow-up** (if automated purge is insufficient):
 
-1. Navigate to the M365 Group: **Admin Center → Groups → Enterprise Work Assistant - OneNote**
+1. Navigate to the M365 Group: **Admin Center → Groups → Intelligent Work Layer - OneNote**
 2. Open the group's OneNote notebook
 3. Search for the user's name and email across all sections
 4. Delete any pages containing the user's data

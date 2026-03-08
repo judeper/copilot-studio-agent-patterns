@@ -16,10 +16,10 @@ describe('StatusBar', () => {
         jest.clearAllMocks();
     });
 
-    it('renders the "Work Assistant" title', () => {
+    it('renders the "Work Layer" title', () => {
         renderWithProviders(<StatusBar {...defaultProps} />);
 
-        expect(screen.getByText('Work Assistant')).toBeInTheDocument();
+        expect(screen.getByText('Work Layer')).toBeInTheDocument();
     });
 
     it('displays the correct action count', () => {

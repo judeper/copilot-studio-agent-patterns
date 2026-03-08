@@ -1,6 +1,6 @@
 <!-- Status: IMPLEMENTED (v3.0) · Last validated: 2026-03-08 -->
 
-# Architecture Overview — Enterprise Work Assistant
+# Architecture Overview — Intelligent Work Layer
 
 Current-state architecture document describing what is deployed today. For future-state Phase 5 designs, see [`architecture-enhancements.md`](architecture-enhancements.md).
 
@@ -8,9 +8,9 @@ Current-state architecture document describing what is deployed today. For futur
 
 ## 1. System Identity
 
-The **Enterprise Work Assistant (EWA)** is an **Intelligent Work Layer** for Microsoft 365.
+The **Intelligent Work Layer (IWL)** is an **Intelligent Work Layer** for Microsoft 365.
 
-- **Augments** Outlook, Teams, and Calendar — does **not** replace them. Users continue working in their familiar apps; EWA intercepts signals and surfaces prepared intelligence.
+- **Augments** Outlook, Teams, and Calendar — does **not** replace them. Users continue working in their familiar apps; IWL intercepts signals and surfaces prepared intelligence.
 - **Built entirely on the customer's existing Microsoft investment**: Power Platform, Copilot Studio, Dataverse. No external SaaS dependencies.
 - **Core value**: Converts raw signals (emails, messages, calendar events) into triaged, researched, confidence-scored cards with AI-drafted responses — before the user ever has to ask.
 
@@ -20,7 +20,7 @@ The **Enterprise Work Assistant (EWA)** is an **Intelligent Work Layer** for Mic
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  SIGNAL SOURCES  (External — not owned by EWA)                      │
+│  SIGNAL SOURCES  (External — not owned by IWL)                      │
 │    Outlook (email)  ·  Teams (messages)  ·  Calendar (events)       │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 │  Signal capture via Power Automate triggers
@@ -85,9 +85,9 @@ Stateless workers. Each flow run is idempotent — it reads from Dataverse, invo
 
 Progressive-disclosure dashboard. Users review, edit, and act on agent-prepared cards. The PCF emits output actions (`onSendDraft`, `onDismissCard`, `onSaveDraft`, `onExecuteCommand`, etc.) that the Canvas app handles via `OnChange` formulas.
 
-### What EWA is NOT
+### What IWL is NOT
 
-EWA is **not** the system of record for email or calendar — Outlook and Teams remain canonical. EWA creates *derived intelligence* (cards, research, drafts) stored in Dataverse. If a user replies directly from Outlook, the External Action Detection flow (Flow 5) auto-updates the corresponding EWA card outcome.
+IWL is **not** the system of record for email or calendar — Outlook and Teams remain canonical. IWL creates *derived intelligence* (cards, research, drafts) stored in Dataverse. If a user replies directly from Outlook, the External Action Detection flow (Flow 5) auto-updates the corresponding IWL card outcome.
 
 ---
 
@@ -227,7 +227,7 @@ Shows which `output-schema.json` fields are populated for each trigger/tier comb
 
 ### User Experience Model
 
-Users continue to use Outlook and Teams as their **primary tools**. EWA intercepts signals **from** those apps and surfaces prepared cards on the dashboard. If a user acts directly in the source app (e.g., replies from Outlook inbox), the Outcome Tracker flow (Flow 5) detects the external action and auto-updates the corresponding EWA card status to reflect the action taken.
+Users continue to use Outlook and Teams as their **primary tools**. IWL intercepts signals **from** those apps and surfaces prepared cards on the dashboard. If a user acts directly in the source app (e.g., replies from Outlook inbox), the Outcome Tracker flow (Flow 5) detects the external action and auto-updates the corresponding IWL card status to reflect the action taken.
 
 ---
 

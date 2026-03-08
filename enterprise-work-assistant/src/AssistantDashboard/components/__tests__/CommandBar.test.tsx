@@ -23,13 +23,13 @@ describe('CommandBar', () => {
     });
 
     async function expandPill() {
-        const pill = screen.getByText(/Ask EWA/);
+        const pill = screen.getByText(/Ask IWL/);
         await userEvent.click(pill);
     }
 
     it('renders collapsed pill by default', () => {
         renderWithProviders(<CommandBar {...defaultProps} />);
-        expect(screen.getByText(/Ask EWA/)).toBeTruthy();
+        expect(screen.getByText(/Ask IWL/)).toBeTruthy();
     });
 
     it('renders input field and send button after expanding pill', async () => {
@@ -172,7 +172,7 @@ describe('CommandBar', () => {
         await userEvent.click(screen.getByText('Send'));
         await userEvent.click(screen.getByTitle('Clear conversation'));
         // Should return to collapsed pill
-        expect(screen.getByText(/Ask EWA/)).toBeTruthy();
+        expect(screen.getByText(/Ask IWL/)).toBeTruthy();
     });
 
     it('renders card links from response', async () => {
@@ -238,7 +238,7 @@ describe('CommandBar', () => {
         fireEvent.keyDown(document, { key: 'Escape' });
 
         await waitFor(() => {
-            expect(screen.getByText(/Ask EWA/)).toBeTruthy();
+            expect(screen.getByText(/Ask IWL/)).toBeTruthy();
             expect(screen.queryByPlaceholderText('Type a command...')).not.toBeInTheDocument();
         });
     });
@@ -271,7 +271,7 @@ describe('CommandBar', () => {
 
         await waitFor(() => {
             expect(screen.queryByText('Test card →')).not.toBeInTheDocument();
-            expect(screen.getByText(/Ask EWA/)).toBeTruthy();
+            expect(screen.getByText(/Ask IWL/)).toBeTruthy();
         });
     });
 });

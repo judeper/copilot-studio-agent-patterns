@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Erases all user data from the Enterprise Work Assistant for GDPR right-to-erasure compliance.
+    Erases all user data from the Intelligent Work Layer for GDPR right-to-erasure compliance.
 
 .DESCRIPTION
     Deletes all Dataverse records owned by (or associated with) a specific user across all
-    Enterprise Work Assistant tables. Optionally purges the user's OneNote sections if OneNote
+    Intelligent Work Layer tables. Optionally purges the user's OneNote sections if OneNote
     integration is enabled. Designed to satisfy GDPR Article 17 (Right to Erasure) and CCPA
     deletion requests within the 72-hour SLA.
 
@@ -207,7 +207,7 @@ try {
 # ─────────────────────────────────────
 Write-Host "`nPhase 2: Deleting records..." -ForegroundColor Cyan
 $actionLabel = if ($WhatIf) { "Scanning" } else { "Deleting" }
-Write-Host "  $actionLabel across all Enterprise Work Assistant tables..." -ForegroundColor Yellow
+Write-Host "  $actionLabel across all Intelligent Work Layer tables..." -ForegroundColor Yellow
 
 # 5a. Junction table first (references both episodic + semantic)
 $totalDeleted += (Remove-UserRecords `
@@ -300,8 +300,8 @@ if ($oneNoteEnabled) {
             "Content-Type"  = "application/json"
         }
 
-        # Find notebooks in groups that match the EWA pattern
-        $groupsResult = Invoke-RestMethod -Uri "https://graph.microsoft.com/v1.0/groups?`$filter=startswith(displayName,'Enterprise Work Assistant')&`$select=id,displayName" -Headers $graphHeaders
+        # Find notebooks in groups that match the IWL pattern
+        $groupsResult = Invoke-RestMethod -Uri "https://graph.microsoft.com/v1.0/groups?`$filter=startswith(displayName,'Intelligent Work Layer')&`$select=id,displayName" -Headers $graphHeaders
         $oneNoteSectionsDeleted = 0
 
         foreach ($group in $groupsResult.value) {

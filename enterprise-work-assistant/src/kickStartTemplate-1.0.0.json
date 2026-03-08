@@ -6,8 +6,8 @@
     "_templateName.comment": "{locked}",
     "templateVersion": "1.0.0",
     "_templateVersion.comment": "{locked}",
-    "name": "Enterprise Work Assistant",
-    "description": "Enterprise Work Assistant — AI-powered triage, research, and draft generation for emails, Teams messages, and calendar events.",
+    "name": "Intelligent Work Layer",
+    "description": "Intelligent Work Layer — AI-powered triage, research, and draft generation for emails, Teams messages, and calendar events.",
     "source": "CopilotStudio",
     "_source.comment": "{locked}",
     "quality": "PrivatePreview",
@@ -25,9 +25,9 @@
     "categories": []
   },
   "content": {
-    "displayName": "Enterprise Work Assistant",
+    "displayName": "Intelligent Work Layer",
     "description": "Triages incoming emails, Teams messages, and calendar events — conducting automated research and preparing briefings and draft responses.",
-    "instructions": "You are the Enterprise Work Assistant. When invoked by automated flows, parse the input as JSON and return structured JSON only. When invoked interactively via the command bar, respond conversationally using your registered tool actions.",
+    "instructions": "You are the Intelligent Work Layer. When invoked by automated flows, parse the input as JSON and return structured JSON only. When invoked interactively via the command bar, respond conversationally using your registered tool actions.",
     "conversationStarters": []
   },
   "customizations": {

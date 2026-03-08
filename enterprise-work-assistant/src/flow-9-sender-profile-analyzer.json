@@ -158,7 +158,7 @@
     }
   },
   "_metadata": {
-    "flowName": "EWA - Flow 9: Sender Profile Analyzer",
+    "flowName": "IWL - Flow 9: Sender Profile Analyzer",
     "description": "Weekly recurrence (Sunday 3 AM ET). Recalculates response rates, dismiss rates, and auto-categorization for all sender profiles with >= 5 signals. Skips USER_OVERRIDE profiles.",
     "requiredConnections": [
       "shared_commondataserviceforapps (Microsoft Dataverse)"
