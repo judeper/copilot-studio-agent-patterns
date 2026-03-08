@@ -867,3 +867,42 @@ export type CardOutcome =
 > **Important:** Dataverse option sets must be updated to include these new values
 > before deploying the corresponding flows or PCF changes. See
 > [deployment-guide.md](deployment-guide.md) for option set update procedures.
+
+---
+
+## Interaction Patterns
+
+- **Progressive Disclosure (Glance → Act → Go Deep)**:
+  - Glance: CardItem shows priority badge, sender, subject, 1-line summary
+  - Act: CardDetail expands to research log, key findings, sources, humanized draft, action buttons
+  - Go Deep: Command bar for natural language queries, thread view for conversation history
+- **Pull-Based Interruption Model**: Cards appear in dashboard (user opens app). No push notifications. Daily briefing is opt-in via schedule. Stale alerts shown in briefing card, not separate notifications.
+- **Inline Actions**: Send (EMAIL FULL only, explicit click required), Edit (inline with autosave), Dismiss, Copy, Snooze
+- **Command Pattern**: Natural language input → structured response + side effects. No auto-execution of complex commands.
+- **What stays hidden**: SKIP items not surfaced. Low-confidence research shown with warning badge, not hidden.
+
+---
+
+## Graduated Trust Tiers (Future Design)
+
+Design for production deployment — extending the tone inference gating pattern:
+
+| Trust Tier | Trigger | Capability |
+|-----------|---------|------------|
+| **Observe** (Day 0-14) | Default for new users | Triage + research only. Summaries shown, no drafts generated. System builds sender profiles silently. |
+| **Assist** (Day 15-30) | Acceptance rate ≥ 30% | Drafts generated but behind "Show Draft" click. Learning suggestions enabled. |
+| **Partner** (Day 31+) | Acceptance rate ≥ 50%, override rate ≤ 20% | Full capability. Drafts shown inline. Active learning triggers. |
+| **Never auto-send** | Permanent | Send always requires explicit user action. Inviolable. |
+
+Implementation: Extend cr_userpersona with cr_trusttier (Choice) and cr_trusttierchangedon (DateTime). Flow 5 evaluates tier advancement criteria on each outcome event.
+
+---
+
+## SKIP Audit Log (Future Design)
+
+Address the biggest trust gap: "What if it skips something important?"
+
+- Lightweight logging table: cr_skipaudit with columns: cr_signalid, cr_senderaddress, cr_subjectline, cr_skipreason, cr_createdon
+- Retention: 7 days (short — just enough to verify nothing was missed)
+- UI: "View skipped items" link in StatusBar showing last 24 hours
+- Privacy: Store subject line hash + sender, not full email body

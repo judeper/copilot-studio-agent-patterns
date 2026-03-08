@@ -1,0 +1,359 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "List_NudgeConfig": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeconfigurations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_No_Config": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@length(outputs('List_NudgeConfig')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Create_Default_NudgeConfig": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_nudgeconfigurations",
+                "item/cr_configlabel": "Default Nudge Config",
+                "item/cr_internaldays": 3,
+                "item/cr_externaldays": 5,
+                "item/cr_prioritydays": 1,
+                "item/cr_generaldays": 7,
+                "item/cr_nudgesenabled": true,
+                "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_NudgeConfig": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Init_snoozeFolderId": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "snoozeFolderId",
+              "type": "string",
+              "value": "@coalesce(first(outputs('List_NudgeConfig')?['body/value'])?['cr_snoozefolderid'], '')"
+            }
+          ]
+        },
+        "runAfter": {
+          "Condition_No_Config": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Init_configRowId": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "configRowId",
+              "type": "string",
+              "value": "@first(outputs('List_NudgeConfig')?['body/value'])?['cr_nudgeconfigurationid']"
+            }
+          ]
+        },
+        "runAfter": {
+          "Init_snoozeFolderId": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_FolderId_Empty": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@variables('snoozeFolderId')",
+                ""
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Create_Snoozed_Folder": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "POST",
+                "request/url": "/v1.0/me/mailFolders",
+                "request/body": {
+                  "displayName": "EPA-Snoozed",
+                  "isHidden": false
+                }
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
+            }
+          },
+          "Set_snoozeFolderId_New": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "snoozeFolderId",
+              "value": "@body('Create_Snoozed_Folder')?['id']"
+            },
+            "runAfter": {
+              "Create_Snoozed_Folder": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Update_NudgeConfig_FolderId": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_nudgeconfigurations",
+                "recordId": "@variables('configRowId')",
+                "item/cr_snoozefolderid": "@variables('snoozeFolderId')"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Set_snoozeFolderId_New": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Init_configRowId": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Scope_Scan_Folder": {
+        "type": "Scope",
+        "actions": {
+          "HTTP_List_Snoozed_Messages": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "GET",
+                "request/url": "/v1.0/me/mailFolders/@{variables('snoozeFolderId')}/messages?$select=id,conversationId,subject,receivedDateTime&$top=50"
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
+            }
+          },
+          "Apply_to_each_message": {
+            "type": "Foreach",
+            "foreach": "@coalesce(body('HTTP_List_Snoozed_Messages')?['value'], json('[]'))",
+            "actions": {
+              "Upsert_SnoozedConversation": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_snoozedconversations",
+                    "recordId": "@{encodeURIComponent(concat('cr_conversationid=''', encodeURIComponent(items('Apply_to_each_message')?['conversationId']), ''',cr_owneruserid=''', encodeURIComponent(outputs('Get_my_profile_(V2)')?['body/id']), ''''))}",
+                    "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
+                    "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                    "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
+                    "item/cr_currentfolder": "@variables('snoozeFolderId')",
+                    "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "HTTP_List_Snoozed_Messages": [
+                "Succeeded"
+              ]
+            },
+            "operationOptions": "Sequential"
+          }
+        },
+        "runAfter": {
+          "Condition_FolderId_Empty": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 3 snooze detection error: @{result('Scope_Scan_Folder')}"
+          },
+          "Condition_Folder_404": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "contains": [
+                    "@string(result('Scope_Scan_Folder'))",
+                    "404"
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Clear_Stale_FolderId": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_nudgeconfigurations",
+                    "recordId": "@variables('configRowId')",
+                    "item/cr_snoozefolderid": ""
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Condition_Folder_404": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Scan_Folder": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 11: Snooze Detection Test Harness",
+    "description": "HTTP-triggered harness for Flow 3. Runs the EPA-Snoozed folder scan on demand so Dataverse upsert behavior can be validated from the CLI without waiting for the recurrence window.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)"
+    ],
+    "notes": {
+      "folderCreation": "On first run, creates the EPA-Snoozed folder via Graph API and stores its ID in NudgeConfiguration.",
+      "upsertBehavior": "Uses Dataverse UpdateRecord with alternate key (conversationId + owneruserid) for idempotent upsert. cr_unsnoozedbyagent is NOT set by Flow 3 \u2014 Dataverse column default (false) handles initial creation, and only Flow 4 sets it to true during auto-unsnooze.",
+      "error404": "If the snoozed folder is deleted, clears cr_snoozefolderid so it gets recreated on next run.",
+      "scanInterval": "Default 15 minutes. Change recurrence interval to adjust.",
+      "prerequisite": "NudgeConfiguration row must exist for the flow owner (created by Flow 1 on first sent email).",
+      "trigger": "Invoke over HTTP to run the folder scan immediately. The request body is optional and is only present to satisfy the Request trigger schema.",
+      "timeZone": "Not applicable. This harness is invoked on demand via HTTP rather than recurrence."
+    }
+  }
+}

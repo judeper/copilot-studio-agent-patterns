@@ -1,0 +1,583 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "conversationId": {
+                "type": "string"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "bodyPreview": {
+                "type": "string"
+              },
+              "from": {
+                "type": "object",
+                "properties": {
+                  "emailAddress": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "address"
+                    ]
+                  }
+                },
+                "required": [
+                  "emailAddress"
+                ]
+              }
+            },
+            "required": [
+              "conversationId",
+              "from"
+            ]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Compose_newConversationId": {
+        "type": "Compose",
+        "inputs": "@triggerBody()?['conversationId']",
+        "runAfter": {}
+      },
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {
+          "Compose_newConversationId": [
+            "Succeeded"
+          ]
+        }
+      },
+      "List_Matching_Snoozed": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_snoozedconversations",
+            "$filter": "cr_conversationid eq '@{outputs('Compose_newConversationId')}' and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_unsnoozedbyagent eq false",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_No_Match": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@length(outputs('List_Matching_Snoozed')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_No_Match": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded"
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_Matching_Snoozed": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Compose_snoozedRow": {
+        "type": "Compose",
+        "inputs": "@first(outputs('List_Matching_Snoozed')?['body/value'])",
+        "runAfter": {
+          "Condition_No_Match": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Init_userTimeZone": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "userTimeZone",
+              "type": "string",
+              "value": "UTC"
+            }
+          ]
+        },
+        "runAfter": {
+          "Compose_snoozedRow": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Init_unsnoozeAction": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "unsnoozeAction",
+              "type": "string",
+              "value": "UNSNOOZE"
+            }
+          ]
+        },
+        "runAfter": {
+          "Init_userTimeZone": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Init_notificationMessage": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "notificationMessage",
+              "type": "string",
+              "value": "@concat('\ud83d\udcec Unsnoozed: ', outputs('Compose_snoozedRow')?['cr_originalsubject'], ' \u2014 new reply from ', triggerBody()?['from']?['emailAddress']?['name'])"
+            }
+          ]
+        },
+        "runAfter": {
+          "Init_unsnoozeAction": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Scope_Auto_Unsnooze": {
+        "type": "Scope",
+        "actions": {
+          "Scope_Resolve_User_Timezone": {
+            "type": "Scope",
+            "actions": {
+              "HTTP_Get_MailboxSettings": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "GET",
+                    "request/url": "/v1.0/me/mailboxSettings?$select=timeZone"
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
+                }
+              },
+              "Set_userTimeZone_From_MailboxSettings": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "userTimeZone",
+                  "value": "@coalesce(body('HTTP_Get_MailboxSettings')?['timeZone'], 'UTC')"
+                },
+                "runAfter": {
+                  "HTTP_Get_MailboxSettings": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Scope_Ignore_Timezone_Error": {
+            "type": "Scope",
+            "actions": {
+              "Compose_Timezone_Fallback": {
+                "type": "Compose",
+                "inputs": "Proceeding with UTC fallback for snooze agent timezone resolution."
+              }
+            },
+            "runAfter": {
+              "Scope_Resolve_User_Timezone": [
+                "Failed",
+                "TimedOut"
+              ]
+            }
+          },
+          "Scope_Agent_Decision": {
+            "type": "Scope",
+            "actions": {
+              "Execute_Agent_and_wait": {
+                "type": "OpenApiConnectionWebhook",
+                "inputs": {
+                  "parameters": {
+                    "Copilot": "Email Productivity Agent"
+                  },
+                  "body": {
+                    "text": "Decide whether this snoozed conversation should be unsnoozed and return raw JSON only.",
+                    "inputVariables": {
+                      "CONVERSATION_ID": "@{outputs('Compose_newConversationId')}",
+                      "NEW_MESSAGE_SENDER": "@{triggerBody()?['from']?['emailAddress']?['address']}",
+                      "NEW_MESSAGE_SENDER_NAME": "@{triggerBody()?['from']?['emailAddress']?['name']}",
+                      "NEW_MESSAGE_SUBJECT": "@{triggerBody()?['subject']}",
+                      "NEW_MESSAGE_EXCERPT": "@{take(coalesce(triggerBody()?['bodyPreview'], ''), 500)}",
+                      "SNOOZED_SUBJECT": "@{outputs('Compose_snoozedRow')?['cr_originalsubject']}",
+                      "SNOOZE_UNTIL": "@{outputs('Compose_snoozedRow')?['cr_snoozeuntil']}",
+                      "USER_TIMEZONE": "@{variables('userTimeZone')}",
+                      "CURRENT_DATETIME": "@utcNow()"
+                    }
+                  },
+                  "host": {
+                    "connectionName": "shared_microsoftcopilotstudio",
+                    "operationId": "ExecuteCopilotAsyncV2",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+                  }
+                }
+              },
+              "Compose_AgentResponseJSON": {
+                "type": "Compose",
+                "inputs": "@coalesce(body('Execute_Agent_and_wait')?['AgentResponseJSON'], body('Execute_Agent_and_wait')?['lastResponse'])",
+                "runAfter": {
+                  "Execute_Agent_and_wait": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Parse_AgentResponse": {
+                "type": "ParseJson",
+                "inputs": {
+                  "content": "@json(outputs('Compose_AgentResponseJSON'))",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "unsnoozeAction": {
+                        "type": "string"
+                      },
+                      "suppressReason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "notificationMessage": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "urgency": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "confidence": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "unsnoozeAction",
+                      "confidence"
+                    ]
+                  }
+                },
+                "runAfter": {
+                  "Compose_AgentResponseJSON": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Set_unsnoozeAction_From_Agent": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "unsnoozeAction",
+                  "value": "@coalesce(body('Parse_AgentResponse')?['unsnoozeAction'], 'UNSNOOZE')"
+                },
+                "runAfter": {
+                  "Parse_AgentResponse": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Set_notificationMessage_From_Agent": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "notificationMessage",
+                  "value": "@coalesce(body('Parse_AgentResponse')?['notificationMessage'], concat('\ud83d\udcec Unsnoozed: ', outputs('Compose_snoozedRow')?['cr_originalsubject'], ' \u2014 new reply from ', triggerBody()?['from']?['emailAddress']?['name']))"
+                },
+                "runAfter": {
+                  "Set_unsnoozeAction_From_Agent": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Scope_Resolve_User_Timezone": [
+                "Succeeded",
+                "Failed",
+                "TimedOut"
+              ],
+              "Scope_Ignore_Timezone_Error": [
+                "Succeeded",
+                "Skipped"
+              ]
+            }
+          },
+          "Scope_Ignore_Agent_Error": {
+            "type": "Scope",
+            "actions": {
+              "Compose_Agent_Fallback": {
+                "type": "Compose",
+                "inputs": "Proceeding with default UNSNOOZE fallback because the snooze agent decision step failed."
+              }
+            },
+            "runAfter": {
+              "Scope_Agent_Decision": [
+                "Failed",
+                "TimedOut"
+              ]
+            }
+          },
+          "Condition_Suppress_Unsnooze": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@variables('unsnoozeAction')",
+                    "SUPPRESS"
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Compose_Suppressed": {
+                "type": "Compose",
+                "inputs": "@concat('Snooze agent suppressed unsnoozing for ', outputs('Compose_snoozedRow')?['cr_originalsubject'])"
+              }
+            },
+            "else": {
+              "actions": {
+                "HTTP_Move_To_Inbox": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "request/method": "POST",
+                      "request/url": "/v1.0/me/messages/@{outputs('Compose_snoozedRow')?['cr_originalmessageid']}/move",
+                      "request/body": {
+                        "destinationId": "inbox"
+                      }
+                    },
+                    "host": {
+                      "connectionName": "shared_webcontents",
+                      "operationId": "InvokeHttp",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                    },
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 3,
+                      "interval": "PT10S",
+                      "maximumInterval": "PT1M"
+                    }
+                  },
+                  "runAfter": {}
+                },
+                "Compose_newMessageId": {
+                  "type": "Compose",
+                  "inputs": "@body('HTTP_Move_To_Inbox')?['id']",
+                  "runAfter": {
+                    "HTTP_Move_To_Inbox": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Update_SnoozedConversation": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "entityName": "cr_snoozedconversations",
+                      "recordId": "@outputs('Compose_snoozedRow')?['cr_snoozedconversationid']",
+                      "item/cr_unsnoozedbyagent": true,
+                      "item/cr_unsnoozeddatetime": "@utcNow()",
+                      "item/cr_originalmessageid": "@outputs('Compose_newMessageId')",
+                      "item/cr_currentfolder": "inbox"
+                    },
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    }
+                  },
+                  "runAfter": {
+                    "Compose_newMessageId": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "Post_Unsnooze_Notification": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "poster": "Flow bot",
+                      "location": "Chat with Flow bot",
+                      "body/recipient": "@{coalesce(outputs('Get_my_profile_(V2)')?['body/mail'], outputs('Get_my_profile_(V2)')?['body/userPrincipalName'])}",
+                      "body/messageBody": "@{variables('notificationMessage')}"
+                    },
+                    "host": {
+                      "connectionName": "shared_teams",
+                      "operationId": "PostMessageToConversation",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                    }
+                  },
+                  "runAfter": {
+                    "Update_SnoozedConversation": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Scope_Agent_Decision": [
+                "Succeeded",
+                "Failed",
+                "TimedOut"
+              ],
+              "Scope_Ignore_Agent_Error": [
+                "Succeeded",
+                "Skipped"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Init_notificationMessage": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 4 auto-unsnooze error: @{result('Scope_Auto_Unsnooze')}"
+          },
+          "Condition_Move_404": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "contains": [
+                    "@string(result('Scope_Auto_Unsnooze'))",
+                    "404"
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Mark_As_Handled": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_snoozedconversations",
+                    "recordId": "@outputs('Compose_snoozedRow')?['cr_snoozedconversationid']",
+                    "item/cr_unsnoozedbyagent": true
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Condition_Move_404": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Auto_Unsnooze": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 12: Auto-Unsnooze Test Harness",
+    "description": "HTTP-triggered harness for Flow 4. Simulates a new Inbox email payload so auto-unsnooze matching, Graph move, Dataverse updates, and Teams notifications can be tested from the CLI.",
+    "requiredConnections": [
+      "shared_office365 (Office 365 Outlook)",
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)",
+      "shared_microsoftcopilotstudio (Microsoft Copilot Studio)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "agentDecisioning": "Flow 4 now invokes the Snooze Agent via the Microsoft Copilot Studio connector, defaults to UNSNOOZE on agent failure, and suppresses auto-unsnooze when the agent returns SUPPRESS.",
+      "timezoneLookup": "The flow tries to read /me/mailboxSettings timeZone and falls back to UTC if mailbox settings are unavailable.",
+      "messageIdInvalidation": "CRITICAL: Graph move operation invalidates the original message ID. The new ID from the response MUST be captured and stored in Dataverse.",
+      "error404Handling": "If the snoozed message no longer exists (manually moved/deleted), marks the Dataverse row as handled to prevent infinite retries.",
+      "teamsNotification": "Notifications use the agent-supplied message when available; otherwise the flow falls back to a deterministic text message.",
+      "trigger": "Invoke with a JSON body that mirrors the subset of the Outlook trigger payload used by Flow 4: conversationId, subject, bodyPreview, and from.emailAddress.{address,name}."
+    }
+  }
+}

@@ -42,7 +42,8 @@
     Which flows to create. Default: all.
     Valid values: "All", "Phase1" (Flow1,2,2b,5), "Phase2" (Flow3,4,6),
     "Phase3" (Flow7,7b), or individual: "Flow1", "Flow2", "Flow2b",
-    "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8"
+    "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8",
+    "Flow9", "Flow10", "Flow11", "Flow12"
 
 .EXAMPLE
     .\deploy-agent-flows.ps1 `
@@ -66,7 +67,7 @@ param(
 
     [string]$TimeZone = "Eastern Standard Time",
 
-    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8")]
+    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12")]
     [string]$FlowsToCreate = "All"
 )
 
@@ -126,6 +127,26 @@ $flowMap = [ordered]@{
         File        = "flow-8-followup-test-harness.json"
         DisplayName = "EPA - Flow 8: Follow-Up Test Harness"
         ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+    }
+    Flow9  = @{
+        File        = "flow-9-card-action-test-harness.json"
+        DisplayName = "EPA - Flow 9: Card Action Test Harness"
+        ConnRefs    = @("shared_commondataserviceforapps", "shared_teams")
+    }
+    Flow10 = @{
+        File        = "flow-10-settings-handler-test-harness.json"
+        DisplayName = "EPA - Flow 10: Settings Handler Test Harness"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_teams")
+    }
+    Flow11 = @{
+        File        = "flow-11-snooze-detection-test-harness.json"
+        DisplayName = "EPA - Flow 11: Snooze Detection Test Harness"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents")
+    }
+    Flow12 = @{
+        File        = "flow-12-auto-unsnooze-test-harness.json"
+        DisplayName = "EPA - Flow 12: Auto-Unsnooze Test Harness"
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_microsoftcopilotstudio", "shared_teams")
     }
 }
 

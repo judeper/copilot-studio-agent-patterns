@@ -1,6 +1,6 @@
 # Enterprise Work Assistant
 
-An AI-powered assistant that triages incoming emails, Teams messages, and calendar events — conducting automated research and preparing briefings and draft responses before the user ever has to ask.
+An intelligent work layer for Microsoft 365 that triages incoming emails, Teams messages, and calendar events — conducting automated research and preparing briefings and draft responses before the user ever has to ask.
 
 ## What It Does
 
@@ -64,6 +64,7 @@ enterprise-work-assistant/
 ├── docs/
 │   ├── agent-flows.md            # Step-by-step flow building guide
 │   ├── architecture-enhancements.md # v3.0 MARL pipeline architecture design
+│   ├── architecture-overview.md  # System architecture and "Intelligent Work Layer" positioning
 │   ├── canvas-app-setup.md       # Canvas app + PCF configuration
 │   ├── data-governance.md        # Data retention policies, PII handling, GDPR/CCPA erasure procedures
 │   ├── deployment-guide.md       # End-to-end deployment checklist
@@ -236,7 +237,8 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 
 | Limitation | Mitigation |
 |------------|------------|
-| **POC only — not production-hardened** | Full ARIA/screen reader audit, i18n, optimistic concurrency, DataSet paging (100+ cards), and capacity planning are out of scope. See `.planning/ROADMAP.md` for deferred items. |
+| **POC Boundary — augments, does not replace** | This system augments Outlook and Teams — it does not replace them. Users continue to use their primary tools while EWA surfaces prepared intelligence in a companion dashboard. |
+| **POC only — not production-hardened** |Full ARIA/screen reader audit, i18n, optimistic concurrency, DataSet paging (100+ cards), and capacity planning are out of scope. See `.planning/ROADMAP.md` for deferred items. |
 | No automated data retention — AssistantCards table stores email subjects, sender PII, behavioral profiles, and communication drafts indefinitely with no cleanup flow | For organizations with data retention requirements, implement a scheduled Power Automate flow to delete/archive cards older than N days based on `cr_createdon`. See the Email Productivity Agent's Flow 5 for a 90-day cleanup reference pattern. |
 | English-only UI and prompts — the PCF component ships with only English localization (`1033.resx`) and all agent prompts are written in English | Non-English email and Teams content is processed correctly, but UI labels remain in English. Add additional `.resx` files for other locales and localize prompts as needed. |
 | OneNote Phase 2-3 not implemented — read-back, annotation promotion, and bi-directional sync are planned but not yet available | Phase 1 (write-only) is fully functional. See [`docs/onenote-integration.md`](docs/onenote-integration.md) for the roadmap. |
