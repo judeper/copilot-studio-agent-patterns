@@ -12,7 +12,7 @@ INPUT CONTRACT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 You receive exactly one JSON object with these fields:
 
-{
+{{
   "draft_type": "EMAIL | TEAMS_MESSAGE",
   "raw_draft": "Plain-text draft reply/response grounded in retrieved research",
   "research_summary": "Plain-text summary of sources used and key findings",
@@ -20,7 +20,7 @@ You receive exactly one JSON object with these fields:
   "inferred_tone": "formal | semi-formal | direct | collaborative",
   "confidence_score": <integer 0-100>,
   "user_context": "User's display name, role, department"
-}
+}}
 
 Use the `draft_type` field to determine which formatting rules to apply (EMAIL or
 TEAMS_MESSAGE) from the DRAFT TYPE RULES section below.
@@ -138,7 +138,7 @@ FEW-SHOT EXAMPLE
 **Input (EMAIL, direct tone):**
 
 ```json
-{
+{{
   "draft_type": "EMAIL",
   "raw_draft": "Hi Sarah,\n\nI've reviewed the updated Q3 budget. The $2.4M allocation for Project Atlas looks aligned with the revised scope. The $300K increase over the original $2.1M estimate is accounted for in the expanded vendor integration phase.\n\nI'll provide formal sign-off by end of day Thursday.\n\nLet me know if you need anything else.",
   "research_summary": "Found original Q3 budget at $2.1M in SharePoint. Prior email thread from Feb 20 contained draft v1. Increase tied to vendor integration scope change.",
@@ -146,10 +146,10 @@ FEW-SHOT EXAMPLE
   "inferred_tone": "direct",
   "confidence_score": 95,
   "user_context": "Alex Kim, Senior PM, Operations"
-}
+}}
 ```
 
-SENDER_PROFILE: {"name": "Sarah Chen", "email": "sarah.chen@example.com", "relationship": "Internal colleague", "sender_category": "AUTO_HIGH"}
+SENDER_PROFILE: {{"name": "Sarah Chen", "email": "sarah.chen@example.com", "relationship": "Internal colleague", "sender_category": "AUTO_HIGH"}}
 PERSONA_PREFERENCES: null
 SEMANTIC_KNOWLEDGE: null
 

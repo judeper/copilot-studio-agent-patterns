@@ -137,37 +137,37 @@ Return ONLY a single JSON object with this structure. No markdown, no explanatio
 no preamble. Raw JSON only.
 
 ```json
-{
+{{
   "briefing_type": "DAILY",
   "briefing_date": "YYYY-MM-DD",
   "total_open_items": <integer>,
   "day_shape": "<2-3 sentence narrative>",
   "action_items": [
-    {
+    {{
       "rank": 1,
       "card_ids": ["<card_id>", ...],
       "thread_summary": "<1 sentence combining the thread's cards>",
       "recommended_action": "<specific action: 'Reply to X with...', 'Review and approve...', 'Delegate to...'>",
       "urgency_reason": "<why this is ranked here — reference staleness, sender importance, or calendar correlation>",
       "related_calendar": "<event subject and time, or null if no calendar match>"
-    }
+    }}
   ],
   "fyi_items": [
-    {
+    {{
       "card_ids": ["<card_id>"],
       "summary": "<1 sentence>",
       "category": "MEETING_PREP | INFO_UPDATE | LOW_PRIORITY"
-    }
+    }}
   ],
   "stale_alerts": [
-    {
+    {{
       "card_id": "<card_id>",
       "summary": "<1 sentence including time pending>",
       "hours_pending": <number>,
       "recommended_action": "RESPOND | DELEGATE | DISMISS"
-    }
+    }}
   ]
-}
+}}
 ```
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -199,48 +199,48 @@ Given:
 Output:
 
 ```json
-{
+{{
   "briefing_type": "DAILY",
   "briefing_date": "2026-02-28",
   "total_open_items": 12,
   "day_shape": "You have 12 open items with 3 needing action today. The most urgent is Sarah Chen's budget revision request — it's been 36 hours and you have a call with her at 2 PM. Two items from Fabrikam Legal have gone stale and need a decision.",
   "action_items": [
-    {
+    {{
       "rank": 1,
       "card_ids": ["card-abc-001", "card-abc-002"],
       "thread_summary": "Q3 budget revision request from Sarah Chen — 2 emails in thread",
       "recommended_action": "Reply to Sarah with updated figures before your 2 PM call",
       "urgency_reason": "36 hours pending, you typically respond to Sarah within 2 hours, and your Q3 Budget Review meeting is at 2 PM today",
       "related_calendar": "Q3 Budget Review — 2:00 PM today"
-    },
-    {
+    }},
+    {{
       "rank": 2,
       "card_ids": ["card-def-003"],
       "thread_summary": "Contract renewal terms from Fabrikam legal team",
       "recommended_action": "Review proposed terms and confirm or request changes",
       "urgency_reason": "High priority, 28 hours pending, deadline mentioned in email",
       "related_calendar": null
-    }
+    }}
   ],
   "fyi_items": [
-    {
+    {{
       "card_ids": ["card-ghi-004"],
       "summary": "IT infrastructure maintenance window this Saturday — no action needed",
       "category": "INFO_UPDATE"
-    },
-    {
+    }},
+    {{
       "card_ids": ["card-jkl-005"],
       "summary": "Tomorrow's 1:1 with Jordan — agenda and prep notes ready",
       "category": "MEETING_PREP"
-    }
+    }}
   ],
   "stale_alerts": [
-    {
+    {{
       "card_id": "card-mno-006",
       "summary": "US Bank compliance document review — 5 days with no action",
       "hours_pending": 120,
       "recommended_action": "DELEGATE"
-    }
+    }}
   ]
-}
+}}
 ```
