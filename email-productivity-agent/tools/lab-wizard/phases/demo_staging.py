@@ -72,41 +72,48 @@ SNOOZE_INSTRUCTIONS = (
 
 
 def _acquire_lisa_graph_token(tenant_id: str) -> str | None:
-    """Run a device-code flow for Lisa Taylor to get a delegated Graph token."""
+    """Get a Graph token for Lisa Taylor using Azure CLI.
+
+    Since the MSAL device-code flow is blocked in some tenants, this
+    function uses ``az login`` to sign in as Lisa, acquires a Graph
+    token, then returns it.  The admin can re-authenticate afterward.
+    """
+    from phases import resolve_cli
+
     console.print(Panel(
-        "[bold yellow]Lisa Taylor must authenticate for Graph API.[/bold yellow]\n\n"
-        "The demo emails will be sent [cyan]from Lisa's mailbox[/cyan] using\n"
-        "delegated permissions. Please complete the device-code flow below\n"
-        "using Lisa Taylor's credentials.",
+        "[bold yellow]Lisa Taylor must sign in via Azure CLI.[/bold yellow]\n\n"
+        "A browser window will open for Lisa to sign in.\n"
+        "After demo staging completes, you can re-authenticate as admin\n"
+        "by running: [cyan]az login[/cyan]",
         title="📧 Lisa Taylor — Graph Authentication",
         border_style="yellow",
     ))
 
-    app = msal.PublicClientApplication(
-        AZURE_CLI_CLIENT_ID,
-        authority=f"https://login.microsoftonline.com/{tenant_id}",
+    # Try az login for Lisa
+    console.print("  [dim]Opening browser for Lisa Taylor sign-in…[/dim]")
+    login_result = resolve_cli(
+        ["az", "login", "--allow-no-subscriptions"],
+        capture_output=True, text=True, timeout=120,
     )
 
-    scopes = ["https://graph.microsoft.com/Mail.Send"]
-    flow = app.initiate_device_flow(scopes=scopes)
-    if "user_code" not in flow:
-        console.print(f"[red]Failed to create device flow: {flow.get('error_description', 'Unknown')}[/red]")
+    if login_result.returncode != 0:
+        console.print(f"[red]az login failed: {(login_result.stderr or login_result.stdout or '')[:200]}[/red]")
         return None
 
-    console.print(Panel(
-        f"[bold yellow]Visit:[/bold yellow]  [bold white]{flow['verification_uri']}[/bold white]\n"
-        f"[bold yellow]Code:[/bold yellow]   [bold green]{flow['user_code']}[/bold green]",
-        title="🔐 Sign in as Lisa Taylor",
-        border_style="yellow",
-    ))
+    # Get Graph token
+    token_result = resolve_cli(
+        ["az", "account", "get-access-token",
+         "--resource", "https://graph.microsoft.com",
+         "--query", "accessToken", "-o", "tsv"],
+        capture_output=True, text=True, timeout=30,
+    )
 
-    result = app.acquire_token_by_device_flow(flow)
-    if "access_token" not in result:
-        console.print(f"[red]Authentication failed: {result.get('error_description', 'Unknown')}[/red]")
-        return None
+    if token_result.returncode == 0 and token_result.stdout.strip():
+        console.print("[green]✅ Graph token acquired[/green]\n")
+        return token_result.stdout.strip()
 
-    console.print("[green]✅ Authenticated as Lisa Taylor[/green]\n")
-    return result["access_token"]
+    console.print("[red]Could not acquire Graph token after login.[/red]")
+    return None
 
 
 def _send_email(graph_token: str, to_address: str, subject: str, body_html: str) -> bool:
