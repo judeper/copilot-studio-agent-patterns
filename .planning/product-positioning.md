@@ -120,7 +120,7 @@ Trust is the product's core constraint. Every design decision prioritizes user c
 |-----------|---------------|
 | **The system NEVER sends anything without explicit user action** | Drafts are prepared and displayed. The user must click Send (or press Enter in CommandBar). There is no auto-send, no scheduled send, no background send. Power Automate Flow 4 fires only on explicit PCF output binding. |
 | **Source attribution** | Every research finding includes tier attribution (Tier 1–5) and clickable source links via `verified_sources[]` typed array. The PCF renders these as navigable hyperlinks with URL allowlist validation (https: and mailto: only). |
-| **Confidence transparency** | 0–100 score displayed on every FULL-tier card. Cards below the confidence threshold show a `LOW_CONFIDENCE` visual indicator via `ConfidenceCalibration.tsx`. Users can see exactly how confident the system is. |
+| **Confidence transparency** | Three-state confidence display (HIGH / MEDIUM / LOW) on every FULL-tier card — based on arXiv 2024 AI trust miscalibration research showing users make better decisions with categorical confidence than raw percentages. Cards below the confidence threshold show a `LOW_CONFIDENCE` visual indicator via `ConfidenceCalibration.tsx`. |
 | **Audit trail** | Three-layer audit: (1) Power Automate flow run history (28-day platform default), (2) Episodic memory in `cr_episodicmemories` (90-day retention), (3) Dataverse platform audit logs (tenant-configured). |
 | **Right to erasure** | Scripted GDPR Article 17 / CCPA §1798.105 procedure via `user-data-erasure.ps1` with dry-run mode, OneNote cleanup, and 72-hour SLA. See `docs/data-governance.md` for the full runbook. |
 | **Sender override** | Users can force FULL / LIGHT / SKIP per sender at any time. Explicit overrides (`USER_EXPLICIT`, `USER_OVERRIDE`) are preserved across learning resets and role changes. |
@@ -146,7 +146,7 @@ Trust is the product's core constraint. Every design decision prioritizes user c
 - ✅ **Daily briefings with calendar context** — Daily Briefing Agent generates composite-scored briefings with action items, FYI items, stale alerts, and schedule configuration
 - ✅ **Sender behavioral profiling** — EWMA-weighted sender profiles with automatic category inference (AUTO_HIGH, AUTO_LOW, AUTO_MEDIUM)
 - ✅ **Learning architecture** — Schemas, table definitions, and flow documentation for episodic memory, semantic knowledge, edit analysis, and active learning patterns are complete
-- ✅ **Single-pane dashboard** — PCF React virtual control with CardGallery, CardDetail, BriefingCard, CommandBar, FilterBar, StatusBar, and ConfidenceCalibration
+- ✅ **Single-pane dashboard** — PCF React virtual control with CardGallery, CardDetail, BriefingCard, CommandBar, FilterBar, StatusBar, ConfidenceCalibration, and DayGlance. UX grounded in cognitive science: 5-item focused queue (Cowan's 4±1 attention slots), quiet mode for focus protection (Gloria Mark's 23-min interruption cost), morning/EOD/meeting briefing variants, warm-gray palette for 8-hour sustained use (PMC visual fatigue), and `prefers-reduced-motion` support
 - ✅ **Data governance runbook** — Retention policies, PII inventory, GDPR/CCPA erasure procedure, OneNote purge, and compliance mapping
 - ✅ **22-agent MARL pipeline design** — Router, Calendar, Task, Email Compose, Search, Validation, and Delegation agents designed and documented
 

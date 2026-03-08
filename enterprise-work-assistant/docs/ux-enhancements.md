@@ -9,6 +9,76 @@
 
 ---
 
+## Implemented UX Enhancements (v3.0)
+
+> **Status:** Implemented · **Version:** 3.0
+>
+> These enhancements are implemented in the current PCF codebase. The design is grounded
+> in cognitive science and AI trust research:
+> - **Cowan (2001)** — 4±1 working memory capacity → 5-item focused queue cap
+> - **Gloria Mark (2023)** — 23-minute context-switch recovery → quiet mode, attention protection
+> - **Zeigarnik effect** — open-loop cognitive load → draft ownership framing ("Your draft")
+> - **arXiv 2024 AI trust calibration** — three-state confidence labels outperform numeric scores
+> - **PMC visual fatigue** — warm-gray palette, animation budget, typography sustainability
+
+### Card Intelligence
+
+| Feature | Component | Details |
+|---------|-----------|---------|
+| Why-now urgency rationale | `CardItem` | Each card displays a brief rationale explaining why this item needs attention now |
+| Three-state confidence | `CardItem` | Confidence displayed as **Ready to send** / **Review suggested** / **Draft only** (replaces raw numeric score) |
+| Quick-win badges | `CardItem` | Visual badges highlight items that can be resolved quickly |
+| Composite sort | `CardGallery` | Cards sorted by urgency×confidence composite score via `compositeSort()` in `useCardData.ts` |
+| 5-item focused queue | `CardGallery` | Gallery shows 5 cards at a time with "Show next 5" pagination (Cowan 4±1 capacity limit) |
+| Draft ownership framing | `CardDetail` | Draft section titled "Your draft" with cursor positioned mid-text for immediate editing |
+| Learning feedback | `CardDetail` | "Draft preference noted" confirmation when user edits reinforce the learning system |
+
+### Attention Protection
+
+| Feature | Component | Details |
+|---------|-----------|---------|
+| Quiet mode toggle | `FilterBar` | Fluent Switch that filters to Medium+ priority items, reducing low-priority noise |
+| Day metrics bar | `StatusBar` | Shows decisions ready, focus status, drafts ready, and next meeting at a glance |
+| State transitions | Cards | Visual transition feedback when cards change state |
+
+### Briefing Variants
+
+| Variant | Type | Content |
+|---------|------|---------|
+| Morning briefing | `MORNING` | Start-of-day summary with key priorities and schedule overview |
+| End-of-day review | `END_OF_DAY` | Day review with carry-forward items for tomorrow |
+| Enhanced meeting prep | `MEETING_PREP` | What changed since last meeting, decisions needed, talking points |
+
+All three variants are rendered by `BriefingCard.tsx`. Types defined in `types.ts` as `BriefingType`, with supporting interfaces `MorningBriefingData`, `EndOfDayData`, and `MorningMetric`.
+
+### Contextual Intelligence
+
+| Feature | Component | Details |
+|---------|-----------|---------|
+| Context-aware prompt chips | `CommandBar` | Prompt suggestions update based on current card context and time of day |
+| Agent activity feed | `CommandBar` | Section showing recent agent activity and processing status |
+| Today-at-a-glance calendar | `DayGlance` | NEW component showing today's calendar events with meeting prep status |
+
+### Visual Sustainability
+
+| Feature | Details |
+|---------|---------|
+| Warm-gray palette | `#fafaf8` base color replacing cooler tones to reduce visual fatigue |
+| `prefers-reduced-motion` | CSS respects user motion preferences; animations disabled when requested |
+| Animation budget | Controlled animation usage across all components |
+| Typography sustainability | 14–15px body text, 1.5 line-height for comfortable extended reading |
+
+### Supporting Code Changes
+
+| File | Changes |
+|------|---------|
+| `constants.ts` | `getConfidenceState()` helper function, updated command prompt chips |
+| `types.ts` | `BriefingType` enum, `MorningBriefingData`, `EndOfDayData`, `MorningMetric` interfaces |
+| `useCardData.ts` | `compositeSort()` function for urgency×confidence ranking |
+| `AssistantDashboard.css` | Warm-gray palette, `prefers-reduced-motion` media query, animation budget, typography updates |
+
+---
+
 ## Table of Contents
 
 1. [First-Run Onboarding](#1-first-run-onboarding)
@@ -26,6 +96,8 @@
 ---
 
 ## 1. First-Run Onboarding
+
+> **Status: Design** — not yet implemented.
 
 ### Purpose
 
@@ -115,6 +187,8 @@ the onboarding card.
 
 ## 2. Sender Management UI
 
+> **Status: Design** — not yet implemented.
+
 ### Purpose
 
 Let users override triage behavior per sender. A user who always wants emails from
@@ -166,6 +240,8 @@ The Canvas app `OnChange` handler upserts `cr_senderprofile` (alternate key:
 
 ## 3. Card Auto-Archive
 
+> **Status: Design** — not yet implemented.
+
 ### Purpose
 
 Prevent the dashboard from accumulating stale LIGHT-tier cards. Cards that received no
@@ -207,6 +283,8 @@ on `cr_ownerid`.
 ---
 
 ## 4. External Action Detection
+
+> **Status: Design** — not yet implemented.
 
 ### Purpose
 
@@ -250,6 +328,8 @@ replied directly in Outlook). This eliminates the most common source of stale ca
 ---
 
 ## 5. Skill Registry Management UI
+
+> **Status: Design** — not yet implemented.
 
 ### Purpose
 
@@ -317,6 +397,8 @@ Values sourced from `cr_usagecount`, `cr_successrate`, `cr_avgexecutiontime`.
 ---
 
 ## 6. CSS Dark Mode Design
+
+> **Status: Design** — not yet implemented. Note: the v3.0 warm-gray palette and CSS custom properties (see "Implemented UX Enhancements" above) provide groundwork for future dark mode support.
 
 ### Problem
 
@@ -522,6 +604,8 @@ value: `"dark"`). The PCF `AppWrapper` component applies `className="ewa-dark"` 
 
 ## 7. Keyboard Shortcuts
 
+> **Status: Design** — not yet implemented.
+
 ### Shortcut Map
 
 | Key | Action | Context |
@@ -584,6 +668,8 @@ by `Escape` or clicking outside. Rendered as a new `KeyboardShortcutsHelp` compo
 ---
 
 ## 8. Card Thread View
+
+> **Status: Design** — not yet implemented.
 
 ### Purpose
 
@@ -657,6 +743,8 @@ the existing `onSelectCard` mechanism.
 
 ## 9. Card Pin/Star Feature
 
+> **Status: Design** — not yet implemented.
+
 ### Purpose
 
 Let users pin important cards to the top of the feed for quick access without
@@ -716,6 +804,8 @@ onPinCard: JSON {
 
 ## 10. Snooze with Wake-Up Time
 
+> **Status: Design** — not yet implemented.
+
 ### Purpose
 
 Allow users to temporarily hide a card and have it resurface at a chosen time. This
@@ -773,6 +863,8 @@ reuses the existing `SELF_REMINDER` infrastructure (Flow 10: Reminder Firing).
 ---
 
 ## 11. Batch Actions
+
+> **Status: Design** — not yet implemented.
 
 ### Purpose
 

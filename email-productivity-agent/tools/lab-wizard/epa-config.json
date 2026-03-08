@@ -1,0 +1,16 @@
+{
+  "tenant_id": "987b59f0-485a-431f-8208-29c2f19a8175",
+  "admin_email": "admin@m365cpi57786004.onmicrosoft.com",
+  "environment_name": "EPA-Dry02",
+  "publisher_prefix": "cr",
+  "timezone": "Eastern Standard Time",
+  "demo_users": {
+    "lisa_taylor": "lisataylor@m365cpi57786004.onmicrosoft.com",
+    "omar_bennett": "omarbennett@m365cpi57786004.onmicrosoft.com",
+    "hadar_caspit": "hadarcaspit@m365cpi57786004.onmicrosoft.com",
+    "will_beringer": "willberinger@m365cpi57786004.onmicrosoft.com",
+    "sonia_rees": "soniarees@m365cpi57786004.onmicrosoft.com"
+  },
+  "environment_id": "",
+  "org_url": ""
+}

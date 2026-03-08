@@ -188,6 +188,11 @@ If(
 > - The `SendEmailFlow` must be created as an instant flow with "Run only users" configured so each user provides their own Outlook connection. See [agent-flows.md](agent-flows.md) for the flow specification.
 > - For Dismiss, the Canvas app writes the outcome directly (no flow needed). The `Card Status` column is NOT changed on dismiss — Card Status and Card Outcome are orthogonal dimensions.
 
+> **v3.0 UX Redesign Notes:**
+> - **Quiet mode**: The PCF `FilterBar` now includes a quiet mode toggle (Fluent Switch) that filters the gallery to Medium+ priority items. When quiet mode is active, low-priority cards are hidden from the feed. No Canvas app formula changes needed — filtering is handled entirely within the PCF component.
+> - **5-item pagination**: The `CardGallery` displays a focused queue of 5 cards at a time with a "Show next 5" button, replacing the previous scrollable list. Cards are sorted by a composite urgency×confidence score. This is internal to the PCF — the Canvas app dataset binding remains unchanged.
+> - **DayGlance calendar**: A new `DayGlance` component renders today's calendar events with meeting prep status. It consumes calendar data already present in the PCF dataset from CALENDAR_SCAN cards.
+
 > **Sprint 2 Notes:**
 > - **Inline editing**: The PCF CardDetail component now allows users to edit the humanized draft before sending. The `sendDraftAction` JSON includes the final (possibly edited) text. The Send Email flow receives whatever text the user confirmed — no distinction needed at the flow level.
 > - **SENT_EDITED tracking**: To distinguish AS_IS from EDITED sends, the Send Email flow should be updated to compare the final text against the stored `cr_humanizeddraft` column value. If they differ, set `cr_cardoutcome = SENT_EDITED` (100000002) instead of `SENT_AS_IS`. This comparison happens server-side in the flow.
