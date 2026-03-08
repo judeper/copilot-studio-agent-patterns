@@ -1,0 +1,137 @@
+**********************
+PowerShell transcript start
+Start time: 20260308162739
+**********************
+Transcript started, output file is C:\Dev\copilot-studio-agent-patterns\intelligent-work-layer\scripts\deploy-20260308-162739.log
+Validating prerequisites...
+  Bun: 1.3.10
+  Node.js: v24.13.0
+  .NET SDK: 10.0.103
+  PAC CLI: Microsoft PowerPlatform CLI Version: 1.52.1+gcca51f4 (.NET Framework 4.8.9221.0) Online documentation: https://aka.ms/PowerPlatformCLI Feedback, Suggestions, Issues: https://github.com/microsoft/powerplatform-build-tools/discussions  Error: Not a valid command. Try running 'pac [command] help'.  Hints:    Parse failed on:            --version   Current command:            (None)   Is this a known command?    No, was it misspelled?   Is this a known argument?   Yes   Was it quote wrapped?       No, be sure to wrap values that contain spaces.  Usage: pac [admin] [application] [auth] [canvas] [catalog] [code] [connection] [connector] [copilot] [data] [env] [help] [managed-identity] [modelbuilder] [package] [pages] [pcf] [pipeline] [plugin] [power-fx] [solution] [telemetry] [test] [tool]    admin                       Work with your Power Platform Admin Account   application                 Commands for listing and installing available Dataverse applications from AppSource   auth                        Manage how you authenticate to various services   canvas                      Operating with Power Apps .msapp files   catalog                     Commands for working with Catalog in Power Platform   code                        (Preview) Commands to manage your Code apps.   connection                  Commands for working with Dataverse connection.   connector                   Commands for working with Power Platform Connectors   copilot                     Tools and utilities for copilot management   data                        Import and export data from Dataverse.   env                         Work with your Dataverse organization.   help                        Show help for the Microsoft Power Platform CLI.   managed-identity            Commands for managing Managed Identity records for Dataverse components   modelbuilder                Code Generator for Dataverse APIs and Tables   package                     Commands for working with Dataverse package projects   pages                       Commands for working with Power Pages website.   pcf                         Commands for working with Power Apps component framework projects   pipeline                    Work with Pipelines   plugin                      Commands for working with Dataverse plug-in class library   power-fx                    (Preview) Commands for working with Power Fx   solution                    Commands for working with Dataverse solution projects   telemetry                   Manage telemetry settings.   test                        (Preview) Execution of automated tests for a Power App   tool                        Power Platform tools that can be installed and launched.
+  PAC auth: OK
+  Solution path: C:\Dev\copilot-studio-agent-patterns\intelligent-work-layer\src
+Installing dependencies...
+bun install v1.3.10 (30e609e0)
+
+$ node scripts/patch-manifest-schema.js
+
+Checked 910 installs across 888 packages (no changes) [28.19s]
+  Dependencies installed.
+Building PCF component...
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-11.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-21.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-22.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-18.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-27.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\react-dom\cjs\react-dom.development.js as it exceeds the max of 500KB.
+[Webpack stats]:
+asset bundle.js 4.69 MiB [emitted] (name: main)
+orphan modules 16.4 MiB [orphan] 1757 modules
+runtime modules 2.4 KiB 7 modules
+cacheable modules 3.57 MiB
+  modules by path ./node_modules/@fluentui/ 2.82 MiB 183 modules
+  modules by path ./node_modules/@griffel/ 121 KiB 93 modules
+  modules by path ./AssistantDashboard/ 112 KiB 17 modules
+  modules by path ./node_modules/stylis/src/*.js 26.6 KiB 7 modules
+  modules by path ./node_modules/react/ 140 KiB 4 modules
+  modules by path ./node_modules/rtl-css-js/dist/esm/*.js 21.4 KiB 2 modules
+  modules by path ./node_modules/scheduler/ 19.2 KiB 2 modules
+  ./node_modules/keyborg/dist/esm/index.js 13.5 KiB [built] [code generated]
+  ./node_modules/tabster/dist/tabster.esm.js 307 KiB [built] [code generated]
+  ./node_modules/@emotion/hash/dist/emotion-hash.esm.js 1.58 KiB [built] [code generated]
+webpack 5.105.2 compiled successfully in 36233 ms
+[4:29:00 PM] [build] Generating build outputs...
+[4:29:00 PM] [build] Succeeded
+  Build successful.
+Packing solution...
+  Restoring NuGet packages...
+latform Connectors   copilot                     Tools and utilities for copilot management   data
+  Import and export data from Dataverse.   env                         Work with your Dataverse organization.   help
+                    Show help for the Microsoft Power Platform CLI.   managed-identity            Commands for managing
+Managed Identity records for Dataverse components   modelbuilder                Code Generator for Dataverse APIs and Ta
+bles   package                     Commands for working with Dataverse package projects   pages                       Co
+mmands for working with Power Pages website.   pcf                         Commands for working with Power Apps componen
+t framework projects   pipeline                    Work with Pipelines   plugin                      Commands for workin
+g with Dataverse plug-in class library   power-fx                    (Preview) Commands for working with Power Fx   solu
+tion                    Commands for working with Dataverse solution projects   telemetry                   Manage telem
+etry settings.   test                        (Preview) Execution of automated tests for a Power App   tool
+          Power Platform tools that can be installed and launched.
+  PAC auth: OK
+  Solution path: C:\Dev\copilot-studio-agent-patterns\intelligent-work-layer\src
+Installing dependencies...
+bun install v1.3.10 (30e609e0)
+
+$ node scripts/patch-manifest-schema.js
+
+Checked 910 installs across 888 packages (no changes) [28.19s]
+  Dependencies installed.
+Building PCF component...
+$ pcf-scripts build
+[4:28:16 PM] [build] Initializing...
+[4:28:16 PM] [build] Validating manifest...
+[4:28:16 PM] [build] Validating control...
+[4:28:18 PM] [build] Generating manifest types...
+[4:28:18 PM] [build] Generating design types...
+[4:28:18 PM] [build] Running ESLint...
+
+C:\Dev\copilot-studio-agent-patterns\intelligent-work-layer\src\AssistantDashboard\components\ErrorBoundary.tsx
+  31:9  warning  Unexpected console statement  no-console
+
+✖ 1 problem (0 errors, 1 warning)
+
+[4:28:21 PM] [build] Compiling and bundling control...
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-24.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-10.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-6.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-3.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-0.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-11.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-21.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-22.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-18.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\@fluentui\react-icons\lib\sizedIcons\chunk-27.js as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of C:\Dev\copilot-studio-agent-patterns\intelligent-work-la
+yer\src\node_modules\react-dom\cjs\react-dom.development.js as it exceeds the max of 500KB.
+[Webpack stats]:
+asset bundle.js 4.69 MiB [emitted] (name: main)
+orphan modules 16.4 MiB [orphan] 1757 modules
+runtime modules 2.4 KiB 7 modules
+cacheable modules 3.57 MiB
+  modules by path ./node_modules/@fluentui/ 2.82 MiB 183 modules
+  modules by path ./node_modules/@griffel/ 121 KiB 93 modules
+  modules by path ./AssistantDashboard/ 112 KiB 17 modules
+  modules by path ./node_modules/stylis/src/*.js 26.6 KiB 7 modules
+  modules by path ./node_modules/react/ 140 KiB 4 modules
+  modules by path ./node_modules/rtl-css-js/dist/esm/*.js 21.4 KiB 2 modules
+  modules by path ./node_modules/scheduler/ 19.2 KiB 2 modules
+  ./node_modules/keyborg/dist/esm/index.js 13.5 KiB [built] [code generated]
+  ./node_modules/tabster/dist/tabster.esm.js 307 KiB [built] [code generated]
+  ./node_modules/@emotion/hash/dist/emotion-hash.esm.js 1.58 KiB [built] [code generated]
+webpack 5.105.2 compiled successfully in 36233 ms
+[4:29:00 PM] [build] Generating build outputs...
+[4:29:00 PM] [build] Succeeded
+  Build successful.
+Packing solution...
+  Restoring NuGet packages...
+Build failed with 1 error(s) in 0.2s
+Solution build failed.
+**********************
+PowerShell transcript end
+End time: 20260308162902
+**********************
