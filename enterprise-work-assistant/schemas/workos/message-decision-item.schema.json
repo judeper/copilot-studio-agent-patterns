@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "message-decision-item.schema.json",
+  "title": "MessageDecisionItem",
+  "description": "A message requiring a user decision, with an agent-generated draft response.",
+  "type": "object",
+  "required": [
+    "id",
+    "source",
+    "senderDisplayName",
+    "title",
+    "summary",
+    "rationale",
+    "confidence",
+    "draft",
+    "governance",
+    "sourceContext",
+    "producedBy"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["Outlook", "Teams"]
+    },
+    "senderDisplayName": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Agent-generated summary of the inbound message."
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Agent reasoning for the recommended action."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Agent confidence score (0–1) in the draft."
+    },
+    "draft": {
+      "$ref": "shared-defs.schema.json#/$defs/DraftArtifact"
+    },
+    "governance": {
+      "$ref": "shared-defs.schema.json#/$defs/GovernanceState"
+    },
+    "sourceContext": {
+      "$ref": "shared-defs.schema.json#/$defs/SourceContextRef"
+    },
+    "relatedEntities": {
+      "type": "array",
+      "items": {
+        "$ref": "shared-defs.schema.json#/$defs/RelatedEntityRef"
+      }
+    },
+    "producedBy": {
+      "$ref": "shared-defs.schema.json#/$defs/AgentProducerRef"
+    },
+    "updatedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

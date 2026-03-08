@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "copilot-panel.schema.json",
+  "title": "CopilotPanelModel",
+  "description": "State model for the Copilot side-panel UI.",
+  "type": "object",
+  "required": [
+    "currentSuggestion",
+    "starterPrompts"
+  ],
+  "properties": {
+    "currentSuggestion": {
+      "type": "string",
+      "description": "The current proactive suggestion shown in the panel."
+    },
+    "starterPrompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "contextualActions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "actionType"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "actionType": {
+            "type": "string",
+            "enum": ["summarize", "prepare", "convert", "rewrite", "plan"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
