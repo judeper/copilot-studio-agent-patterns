@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: AI Council Enhancement Implementation
 status: complete
-last_updated: "2026-03-08T00:00:00Z"
+last_updated: "2026-03-09T00:00:00Z"
 progress:
   total_phases: 7
   completed_phases: 7
@@ -110,6 +110,16 @@ Progress: [██████████] 100% (7/7 phases complete, 90/90 item
 - 32 adapter validation tests (233 total tests, 16 suites)
 - Rebrand: Intelligent Work Layer → Intelligent Work Layer (IWL)
 
+### Code App Migration (2026-03-09)
+- Migrated IWL dashboard from PCF Virtual Control + Canvas App to Vite Code App (`code-app/`)
+- Phases 1-4 complete: infrastructure, data layer, components, testing
+- 12 React components ported as-is (no PCF dependencies)
+- New data layer: `CardDataService` interface + `MockCardDataService` + `useCards()` hook
+- `compositeSort` extracted to `src/utils/cardTransforms.ts` (pure function)
+- 170 tests pass across 14 files (Vitest + RTL, migrated from Jest)
+- Production build: 528 KB bundle via Vite
+- Phase 5 (CI/CD + `pac-sdk push`) pending deployment credentials
+
 **v3.0 UX Psychology-Driven Redesign (16 items, 5 phases):**
 - Phase A — Card Intelligence: three-state confidence (HIGH/MEDIUM/LOW, not percentages), composite sort, Zeigarnik-aware pending indicators
 - Phase B — Attention Protection: 5-item focused queue (Cowan's 4±1), quiet mode for focus protection (Gloria Mark's 23-min cost)
@@ -121,7 +131,8 @@ Progress: [██████████] 100% (7/7 phases complete, 90/90 item
 
 ### Pending Todos
 
-None — v3.0 complete.
+- Phase 5 CI/CD: GitHub Actions workflow + `pac-sdk push` deployment (requires environment credentials)
+- Connect `CardDataService` to live Dataverse via `pac-sdk add-data-source` generated services
 
 ### Blockers/Concerns
 
@@ -129,6 +140,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: Completed v3.0 AI Council Enhancement Implementation + UX Psychology-Driven Redesign + Work OS Schema Proposal — 233 tests
+Last session: 2026-03-09
+Stopped at: Code App migration Phases 1-4 complete — 170 tests (Vitest), production build passes, docs updated
 Resume file: .planning/ROADMAP.md

@@ -47,6 +47,12 @@ An intelligent work layer for Microsoft 365 that triages incoming emails, Teams 
 │  ┌─────────────────────────────────────────────────┐        │
 │  │      CANVAS APP + PCF REACT DASHBOARD           │        │
 │  │  Gallery → Detail → Edit & Send                  │        │
+│  │  (Legacy — migrating to Code App below)           │        │
+│  └────────────────────┬────────────────────────────┘        │
+│                       │                                      │
+│  ┌─────────────────────────────────────────────────┐        │
+│  │     CODE APP (Vite + React 18) — Forward Path   │        │
+│  │  Same components, direct Dataverse SDK access    │        │
 │  └────────────────────┬────────────────────────────┘        │
 │                       │ (optional, feature-flagged)          │
 │                       ▼                                      │
@@ -61,11 +67,19 @@ An intelligent work layer for Microsoft 365 that triages incoming emails, Teams 
 
 ```
 intelligent-work-layer/
+├── code-app/                      # Forward-architecture Code App (Vite + React 18)
+│   ├── src/components/            # All 12 React components (migrated from PCF)
+│   ├── src/hooks/useCards.ts      # Data hook replacing PCF useCardData
+│   ├── src/services/              # CardDataService interface + MockCardDataService
+│   ├── src/utils/                 # focusUtils, levenshtein, urlSanitizer, cardTransforms
+│   ├── src/fixtures/sampleCards.ts # 7 sample cards for offline development
+│   └── src/styles/                # AssistantDashboard.css (full stylesheet)
 ├── docs/
 │   ├── agent-flows.md            # Step-by-step flow building guide
 │   ├── architecture-enhancements.md # v3.0 MARL pipeline architecture design
 │   ├── architecture-overview.md  # System architecture and "Intelligent Work Layer" positioning
 │   ├── canvas-app-setup.md       # Canvas app + PCF configuration
+│   ├── code-app-migration.md     # Code App migration plan and status
 │   ├── data-governance.md        # Data retention policies, PII handling, GDPR/CCPA erasure procedures
 │   ├── deployment-guide.md       # End-to-end deployment checklist
 │   ├── learning-enhancements.md  # Learning system design (episodic memory, semantic knowledge, decay)
