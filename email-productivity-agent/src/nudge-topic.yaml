@@ -42,7 +42,14 @@ beginDialog:
   actions:
     - kind: InvokeAIBuilderModelAction
       id: invokeAIBuilderModelAction_yHlEYU
-      input: {}
+      input:
+        CONVERSATION_ID: =Topic.CONVERSATION_ID
+        ORIGINAL_SUBJECT: =Topic.ORIGINAL_SUBJECT
+        RECIPIENT_EMAIL: =Topic.RECIPIENT_EMAIL
+        RECIPIENT_TYPE: =Topic.RECIPIENT_TYPE
+        DAYS_SINCE_SENT: =Topic.DAYS_SINCE_SENT
+        THREAD_EXCERPT: =Topic.THREAD_EXCERPT
+        USER_DISPLAY_NAME: =Topic.USER_DISPLAY_NAME
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON

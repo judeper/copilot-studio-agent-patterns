@@ -52,12 +52,21 @@ beginDialog:
   actions:
     - kind: InvokeAIBuilderModelAction
       id: invokeAIBuilderModelAction_snooze
-      input: {}
+      input:
+        CONVERSATION_ID: =Topic.CONVERSATION_ID
+        NEW_MESSAGE_SENDER: =Topic.NEW_MESSAGE_SENDER
+        NEW_MESSAGE_SENDER_NAME: =Topic.NEW_MESSAGE_SENDER_NAME
+        NEW_MESSAGE_SUBJECT: =Topic.NEW_MESSAGE_SUBJECT
+        NEW_MESSAGE_EXCERPT: =Topic.NEW_MESSAGE_EXCERPT
+        SNOOZED_SUBJECT: =Topic.SNOOZED_SUBJECT
+        SNOOZE_UNTIL: =Topic.SNOOZE_UNTIL
+        USER_TIMEZONE: =Topic.USER_TIMEZONE
+        CURRENT_DATETIME: =Topic.CURRENT_DATETIME
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON
-      # POC placeholder — replace with actual AI Builder model ID before enabling live agent decisioning.
-      # Flow 4 currently bypasses this topic entirely (deterministic UNSNOOZE path).
+      # Create the Snooze AI Builder prompt model in Copilot Studio AI Hub,
+      # then replace this placeholder with the resulting GUID.
       aIModelId: REPLACE_WITH_SNOOZE_AI_MODEL_ID
 
     - kind: SetVariable
