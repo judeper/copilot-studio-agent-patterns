@@ -395,11 +395,31 @@ Write-Host "`n[4/6] Creating flows via Flow Management API..." -ForegroundColor 
 $createdFlows = @()
 $failedFlows = @()
 
-# Check existing flows
+# Check existing flows in Dataverse (by exact name)
 $existingFlows = @{}
 try {
     $epaFlows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EPA')&`$select=name,workflowid,statecode" -Headers $dvHeaders
     foreach ($ef in $epaFlows.value) { $existingFlows[$ef.name] = @{ id = $ef.workflowid; state = $ef.statecode } }
+} catch {}
+
+# Also check Flow API for duplicates (catches name-variant duplicates that Dataverse misses)
+$existingFlowApiFlows = @{}
+try {
+    $apiFlows = Invoke-RestMethod -Method Get -Uri "$flowApiBase/flows?api-version=2016-11-01" -Headers $flowHeaders
+    foreach ($af in $apiFlows.value) {
+        $dn = $af.properties.displayName
+        if (-not $existingFlowApiFlows.ContainsKey($dn)) {
+            $existingFlowApiFlows[$dn] = @()
+        }
+        $existingFlowApiFlows[$dn] += @{ id = $af.name; state = $af.properties.state; created = $af.properties.createdTime }
+    }
+
+    # Warn about duplicate-named flows
+    foreach ($dn in $existingFlowApiFlows.Keys) {
+        if ($existingFlowApiFlows[$dn].Count -gt 1) {
+            Write-Host "  ⚠ Duplicate flows detected: '$dn' ($($existingFlowApiFlows[$dn].Count) copies)" -ForegroundColor Yellow
+        }
+    }
 } catch {}
 
 foreach ($flowKey in $flowsToProcess) {
