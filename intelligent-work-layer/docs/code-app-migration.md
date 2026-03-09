@@ -131,10 +131,19 @@ Copy in dependency order: types → utils → hooks → leaf components → comp
 - `index.test.ts` PCF lifecycle tests → rewritten for hook/service mocks
 
 ## Demo Strategy
-For the demo before Code App is complete:
+
+### Code App Demo (offline, 5 minutes)
+1. `cd code-app && npm install && npm run dev` — dashboard loads at http://localhost:3000
+2. Walk through the **9 sample cards**: email drafts, meeting prep, stale tasks, proactive alerts
+3. Show **card detail panel**: research log, key findings, draft editing, send confirmation
+4. Show **filtering**: Email/Teams/Calendar chips, quiet mode, sort cycling
+5. Show **command bar**: "Ask IWL..." prompt with mock orchestrator response
+6. Show **calibration dashboard**: Settings gear → agent performance analytics
+7. Show **test suite**: `npm run test` → 199 passing tests across 18 files
+
+### Full Infrastructure Demo (requires Power Platform environment)
 1. Show the **full infrastructure**: environment, 9 tables, 19 flows, Copilot agent, OneNote
 2. Show the **Copilot Studio agent** processing signals in the test pane
-3. Show the **Dataverse data**: 2 test cards with full metadata
-4. Show the **React codebase**: `npm run test` → 245 passing tests
-5. Show the **Code App plan**: forward architecture on Microsoft's GA platform
-6. Show the **design specs**: cognitive science-grounded UX in docs/ux-enhancements.md
+3. Show the **Dataverse data**: test cards with full metadata
+4. Show the **Code App plan**: forward architecture on Microsoft's GA platform
+5. Show the **design specs**: cognitive science-grounded UX in docs/ux-enhancements.md

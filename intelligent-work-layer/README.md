@@ -216,32 +216,37 @@ intelligent-work-layer/
 
 ## Quick Start
 
-### Prerequisites
-
-- [PAC CLI](https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction) (`dotnet tool install --global Microsoft.PowerApps.CLI.Tool`)
-- [Bun 1.x+](https://bun.sh) — JavaScript runtime used by the build scripts
-- [Node.js 20+](https://nodejs.org) — Required for PCF tooling
-- [PowerShell 7+](https://github.com/PowerShell/PowerShell)
-- Power Platform environment with Copilot Studio capacity
-
-### Deploy
+### Run the Dashboard Locally (5 minutes, no Power Platform needed)
 
 ```bash
-# 1. Provision environment and Dataverse table
+cd code-app
+npm install
+npm run dev          # Opens http://localhost:3000 with 9 sample cards
+npm run test         # 199 tests across 18 files
+```
+
+The Code App ships with mock data — no credentials, environment, or Dataverse required. See [`code-app/README.md`](code-app/README.md) for details.
+
+### Deploy Full IWL Infrastructure (requires Power Platform)
+
+Prerequisites: [PAC CLI](https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction), [Node.js 20+](https://nodejs.org), [PowerShell 7+](https://github.com/PowerShell/PowerShell), Power Platform environment with Copilot Studio capacity.
+
+```bash
+# 1. Provision environment and Dataverse tables
 cd scripts
 pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@example.com>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 
 # 2. Configure Copilot Studio agent (see deployment-guide.md)
 
-# 3. Build and deploy PCF component
-pwsh deploy-solution.ps1 -EnvironmentId "<env-id>"
+# 3. Deploy Code App to Power Platform
+cd ../code-app
+npm run build
+pac code push
 
-# 4. Create Canvas app (see canvas-app-setup.md)
-
-# 5. (Optional) Provision OneNote integration
+# 4. (Optional) Provision OneNote integration
+cd ../scripts
 pwsh provision-onenote.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -GroupId "<m365-group-id>"
-pwsh validate-onenote-integration.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 ```
 
 See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-step checklist.
@@ -250,6 +255,8 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 
 | Decision | Rationale |
 |----------|-----------|
+| **Code App as forward UI architecture** | Full React 18 ownership, Vite build, direct Dataverse SDK — replaces PCF + Canvas App (legacy) |
+| `CardDataService` abstraction | Decouples UI from data source — `MockCardDataService` for offline dev, swap in Dataverse-backed implementation for production |
 | Full JSON blob + discrete filter columns | Avoids schema drift; Canvas app uses `ParseJSON()` for detail rendering |
 | Canvas app owns filter state | Passes to PCF via input props; reduces unnecessary API calls |
 | Virtual PCF control type | Shares platform React tree — no duplicate React instances |
