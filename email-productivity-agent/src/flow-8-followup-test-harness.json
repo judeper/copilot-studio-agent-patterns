@@ -324,11 +324,17 @@
                             "Execute_Agent_and_wait": {
                               "type": "OpenApiConnectionWebhook",
                               "inputs": {
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
+                                  "connectionName": "shared_microsoftcopilotstudio",
+                                  "operationId": "ExecuteCopilotAsyncV2"
+                                },
                                 "parameters": {
                                   "Copilot": "cr_emailproductivityagent",
-                                  "environmentId": "17ff9327-3e56-e4e7-bf44-47287f6c9f0c",
-                                  "message": "@{string(outputs('Compose_NudgeAgentPayload'))}"
+                                  "body/message": "@{string(outputs('Compose_NudgeAgentPayload'))}"
                                 },
+                                "authentication": "@parameters('$authentication')"
+                              },
                                 "host": {
                                   "operationId": "ExecuteCopilotAsyncV2",
                                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
@@ -343,7 +349,7 @@
                             },
                             "Compose_AgentResponseJSON": {
                               "type": "Compose",
-                              "inputs": "@coalesce(first(outputs('Execute_Agent_and_wait')?['body/outputVariables'])?['value'], outputs('Execute_Agent_and_wait')?['body/lastResponse'])",
+                              "inputs": "@outputs('Execute_Agent_and_wait')?['body/lastResponse']",
                               "runAfter": {
                                 "Execute_Agent_and_wait": [
                                   "Succeeded"
