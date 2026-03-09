@@ -37,7 +37,7 @@ The **Email Productivity Agent** (`email-productivity-agent/`) provides Gmail-li
 - **POC state**: Flow 2 mocked, Flow 4 deterministic bypass; Copilot assets available for re-enabling
 - **Lab wizard** (`tools/lab-wizard/wizard.py`): Python CLI automating full deployment in 9 phases
 
-## Build, Test, and Lint (PCF Component)
+## Build, Test, and Lint (PCF Component — Legacy)
 
 All commands run from `intelligent-work-layer/src/`:
 
@@ -50,6 +50,23 @@ npm run test:coverage # jest with 80% per-file threshold
 
 # Single test file:
 npx jest --config test/jest.config.ts AssistantDashboard/components/__tests__/CardItem.test.tsx
+```
+
+## Build, Test, and Lint (Code App — Forward Architecture)
+
+All commands run from `intelligent-work-layer/code-app/`:
+
+```shell
+npm install
+npm run build        # tsc + vite build → dist/
+npm run dev          # vite dev server on port 3000
+npm run test         # vitest (170 tests, 14 files)
+npm run test:watch   # vitest in watch mode
+npm run test:coverage # vitest with 80% per-file threshold
+npm run lint         # eslint src --ext .ts,.tsx
+
+# Single test file:
+npx vitest run src/components/__tests__/CardItem.test.tsx
 
 # Deploy solution (from intelligent-work-layer/scripts/):
 pwsh deploy-solution.ps1 -EnvironmentId "<env-id>"

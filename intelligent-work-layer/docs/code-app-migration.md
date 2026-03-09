@@ -63,41 +63,45 @@ npx pac-sdk run      # port 8080 — auth proxy + SDK tunnel
 
 ## Phased Implementation (3-5 Days)
 
-### Phase 1 — Infrastructure (Day 1-2)
-- [ ] Install `@microsoft/power-apps` SDK
-- [ ] `npx pac-sdk init` with Vite + React 18.2.0 + TypeScript
-- [ ] Install Fluent UI 9 with direct-path icon imports (tree-shaking)
+> **Status:** Phases 1-4 complete. The `code-app/` directory contains a fully functional
+> Vite + React 18 + TypeScript app with 170 passing tests (14 test files). Build produces
+> a production bundle in `dist/`. Phase 5 (CI/CD + `pac-sdk push`) is pending deployment credentials.
+
+### Phase 1 — Infrastructure ✅
+- [x] Scaffold Vite + React 18.2.0 + TypeScript project in `code-app/`
+- [x] Install Fluent UI 9 (`@fluentui/react-components`, `@fluentui/react-icons`)
+- [x] Configure `tsconfig.json`, `.eslintrc.json`, `vitest.config.ts`
+- [x] Create entry point (`index.html`, `src/main.tsx`)
 - [ ] Deploy Hello World via `npx pac-sdk push` — validate environment, auth, and app launcher
 - [ ] `npx pac-sdk add-data-source` for: `cr_assistantcards`, `cr_senderprofiles`, `cr_briefingschedule`
 - [ ] Commit generated typed service files to source control
 
-### Phase 2 — Data Layer (Day 3-5)
-- [ ] Extract `compositeSort`, `getConfidenceState`, filter logic from `useCardData.ts` → `src/utils/cardTransforms.ts` (pure functions, no PCF deps)
-- [ ] Create `src/hooks/useCards.ts` wrapping `CrAssistantcardsService.getAll()`
-- [ ] Match output shape to what existing components expect (`AssistantCard[]`)
-- [ ] Write unit tests for `useCards` (mock `CrAssistantcardsService`)
-- [ ] Write unit tests for `cardTransforms` (pure function tests, drop-in from existing)
+### Phase 2 — Data Layer ✅
+- [x] Extract `compositeSort`, `getConfidenceState`, filter logic → `src/utils/cardTransforms.ts` (pure functions, no PCF deps)
+- [x] Create `src/services/CardDataService.ts` interface
+- [x] Create `src/services/MockCardDataService.ts` with fixture data
+- [x] Create `src/hooks/useCards.ts` wrapping the service
+- [x] Match output shape to what existing components expect (`AssistantCard[]`)
 
-### Phase 3 — Component Migration (Day 5-7)
+### Phase 3 — Component Migration ✅
 Copy in dependency order: types → utils → hooks → leaf components → composed layouts → App.tsx
 
-- [ ] `types.ts`, `constants.ts` — copy as-is
-- [ ] `cardTransforms.ts` — already extracted in Phase 2
-- [ ] `useCards.ts` — already built in Phase 2
-- [ ] Leaf components: `CardItem`, `ConfidenceCalibration`, `ErrorBoundary`, `StatusBar` — copy as-is
-- [ ] Composed components: `CardGallery`, `CardDetail`, `FilterBar`, `CommandBar` — copy as-is
-- [ ] Layout components: `BriefingCard`, `DayGlance` — copy as-is
-- [ ] `App.tsx` — **rewrite** (replace PCF bridge props with `useCards()` hook)
-- [ ] `AssistantDashboard.css` — copy as-is
-- [ ] Verify each component renders with mock data before moving up the tree
+- [x] `types.ts`, `constants.ts` — copied as-is
+- [x] `cardTransforms.ts` — extracted in Phase 2
+- [x] `useCards.ts` — built in Phase 2
+- [x] Leaf components: `CardItem`, `ConfidenceCalibration`, `ErrorBoundary`, `StatusBar`, `DayGlance` — copied as-is
+- [x] Composed components: `CardGallery`, `CardDetail`, `FilterBar`, `CommandBar` — copied as-is
+- [x] Layout components: `BriefingCard` — copied as-is
+- [x] `App.tsx` — **rewritten** (replaced PCF bridge props with `useCards()` hook)
+- [x] `AssistantDashboard.css` — copied as-is
 
-### Phase 4 — Testing (Day 7-8)
-| Test Category | Current | Target |
+### Phase 4 — Testing ✅
+| Test Category | PCF (Before) | Code App (After) |
 |--------------|---------|--------|
-| Unit: cardTransforms, sort, filter | Vitest + PCF mocks | Vitest + plain object mocks (drop-in) |
-| Unit: React components | Vitest + RTL | Same, no changes needed |
-| Integration: useCards hook | PCF context mock | Mock CrAssistantcardsService |
-| E2E: full app | None (PCF limitation) | **Playwright** at real URL |
+| Unit: cardTransforms, sort, filter | Jest + PCF mocks | Vitest + plain object mocks |
+| Unit: React components (170 tests) | Jest + RTL | Vitest + RTL (14 test files) |
+| Integration: useCards hook | PCF context mock | Mock CardDataService |
+| E2E: full app | None (PCF limitation) | **Playwright** at real URL (Phase 5) |
 
 ### Phase 5 — CI/CD (Day 8-9)
 ```yaml
