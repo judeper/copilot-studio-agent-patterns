@@ -12,7 +12,7 @@ See `../docs/code-app-migration.md` for the full migration rationale and status.
 npm install
 npm run dev          # Vite dev server on port 3000
 npm run build        # tsc + vite build → dist/
-npm run test         # vitest (170 tests, 14 files)
+npm run test         # vitest (199 tests, 18 files)
 npm run test:watch   # vitest in watch mode
 npm run test:coverage # vitest with 80% per-file threshold
 npm run lint         # eslint src --ext .ts,.tsx

@@ -239,8 +239,9 @@ export const App: React.FC = () => {
 
     // Action handlers — in the Code App these interact with the service directly
     const handleSendDraft = useCallback(
-        (cardId: string, _finalText: string, _editDistanceRatio: number) => {
-            cardService.updateCardOutcome(cardId, 'SENT_AS_IS');
+        (cardId: string, _finalText: string, editDistanceRatio: number) => {
+            const outcome = editDistanceRatio > 0 ? 'SENT_EDITED' : 'SENT_AS_IS';
+            cardService.updateCardOutcome(cardId, outcome);
         },
         [],
     );

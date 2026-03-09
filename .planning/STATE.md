@@ -116,7 +116,7 @@ Progress: [██████████] 100% (7/7 phases complete, 90/90 item
 - 12 React components ported as-is (no PCF dependencies)
 - New data layer: `CardDataService` interface + `MockCardDataService` + `useCards()` hook
 - `compositeSort` extracted to `src/utils/cardTransforms.ts` (pure function)
-- 170 tests pass across 14 files (Vitest + RTL, migrated from Jest)
+- 199 tests pass across 18 files (Vitest + RTL, migrated from Jest)
 - Production build: 528 KB bundle via Vite
 - Phase 5 (CI/CD + `pac-sdk push`) pending deployment credentials
 
@@ -141,5 +141,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Code App migration Phases 1-4 complete — 170 tests (Vitest), production build passes, docs updated
+Stopped at: Code App migration Phases 1-4 complete — 199 tests (Vitest), production build passes, AI Council Round 2 clean
 Resume file: .planning/ROADMAP.md

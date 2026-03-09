@@ -103,7 +103,7 @@ Copy in dependency order: types → utils → hooks → leaf components → comp
 | Test Category | PCF (Before) | Code App (After) |
 |--------------|---------|--------|
 | Unit: cardTransforms, sort, filter | Jest + PCF mocks | Vitest + plain object mocks |
-| Unit: React components (170 tests) | Jest + RTL | Vitest + RTL (14 test files) |
+| Unit: React components (199 tests) | Jest + RTL | Vitest + RTL (18 test files) |
 | Integration: useCards hook | PCF context mock | Mock CardDataService |
 | E2E: full app | None (PCF limitation) | **Playwright** at real URL (Phase 5) |
 

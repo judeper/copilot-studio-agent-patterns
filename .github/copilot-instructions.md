@@ -16,7 +16,7 @@ The primary solution is **Intelligent Work Layer** (`intelligent-work-layer/`), 
 2. **Copilot Studio Agent** — 17 agent prompts (10 original + 7 new: Router, Calendar, Task, Email Compose, Search, Validation, Delegation) organized in a MARL pipeline (Triage→Research→Scorer→DraftGen→Humanizer via Flow-level chaining). Shared prompt patterns in `prompts/patterns/`. Provisioned via `scripts/provision-copilot.ps1`.
 3. **Dataverse** (9 tables: `AssistantCards`, `SenderProfile`, `BriefingSchedule`, `ErrorLog`, `EpisodicMemory`, `SemanticKnowledge`, `UserPersona`, `SkillRegistry`, `SemanticEpisodic`) persists results with ownership-based row-level security
 4. **Canvas App + PCF React Dashboard** (PCF manifest v2.2.0, 233 tests across 16 suites) renders a single-pane-of-glass UI with WCAG AA compliance. **Migrating to Code App** — see item 4a. The UX is grounded in cognitive science research (Cowan's 4±1 attention slots, Gloria Mark's 23-min interruption cost, Zeigarnik Effect, arXiv 2024 AI trust miscalibration, PMC visual fatigue). Key UX features: three-state confidence display (not percentages), 5-item focused queue with composite sort, quiet mode for focus protection, morning/EOD/meeting briefing variants via DayGlance component, warm-gray palette for sustained use, and `prefers-reduced-motion` support.
-4a. **Code App Dashboard** (`code-app/`) — forward-architecture Vite + React 18 + TypeScript app replacing the PCF + Canvas App approach. All 12 React components migrated as-is; data layer replaced with `CardDataService` interface + `useCards()` hook. 170 tests (14 files, Vitest). See `docs/code-app-migration.md`.
+4a. **Code App Dashboard** (`code-app/`) — forward-architecture Vite + React 18 + TypeScript app replacing the PCF + Canvas App approach. All 12 React components migrated as-is; data layer replaced with `CardDataService` interface + `useCards()` hook. 199 tests (18 files, Vitest). See `docs/code-app-migration.md`.
 5. **OneNote Integration** (optional, Phase 1 write-only) syncs meeting prep, daily briefings, and active to-dos to a structured OneNote notebook via Graph API. Gated by feature flag (`cr_onenoteenabled`) and per-user opt-out (`cr_onenoteoptout`). Uses group-scoped app registration, `{{PLACEHOLDER}}` HTML templates, and fail-safe error handling.
 6. **Work OS proposal models** in `src/models/` (9 TypeScript files + adapter layer) define the next-gen view-model types for scenarios, queues, messaging, briefings, reviews, activity, and Copilot interactions — with adapters that map legacy `AssistantCard` records to the new shapes.
 7. **JSON Schemas** in `schemas/workos/` (8 schema files) define the agent-to-UI contract for Work OS payloads.
@@ -63,7 +63,7 @@ All commands run from `intelligent-work-layer/code-app/`:
 npm install
 npm run build        # tsc + vite build → dist/
 npm run dev          # vite dev server on port 3000
-npm run test         # vitest (170 tests, 14 files)
+npm run test         # vitest (199 tests, 18 files)
 npm run test:watch   # vitest in watch mode
 npm run test:coverage # vitest with 80% per-file threshold
 npm run lint         # eslint src --ext .ts,.tsx
