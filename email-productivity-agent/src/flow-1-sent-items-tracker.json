@@ -240,31 +240,87 @@
                   "Compose_followUpDays": ["Succeeded"]
                 }
               },
-              "Upsert_FollowUpTracking": {
+              "List_FollowUpTracking_Records": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
                     "entityName": "cr_followuptrackings",
-                    "recordId": "@{encodeURIComponent(concat('cr_sourcesignalid=''', encodeURIComponent(triggerOutputs()?['body/internetMessageId']), ''',cr_recipientemail=''', encodeURIComponent(trim(items('Apply_to_each_recipient'))), ''''))}",
-                    "item/cr_sourcesignalid": "@triggerOutputs()?['body/internetMessageId']",
-                    "item/cr_conversationid": "@triggerOutputs()?['body/conversationId']",
-                    "item/cr_sentdatetime": "@triggerOutputs()?['body/sentDateTime']",
-                    "item/cr_recipientemail": "@trim(items('Apply_to_each_recipient'))",
-                    "item/cr_recipienttype": "@variables('recipientType')",
-                    "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
-                    "item/cr_followupdate": "@outputs('Compose_followUpDate')",
-                    "item/cr_responsereceived": false,
-                    "item/cr_nudgesent": false,
-                    "item/cr_dismissedbyuser": false
+                    "$filter": "@{concat('cr_sourcesignalid eq ''', triggerOutputs()?['body/internetMessageId'], ''' and cr_recipientemail eq ''', trim(items('Apply_to_each_recipient')), '''')}",
+                    "$top": 1,
+                    "$select": "cr_followuptrackingid"
                   },
                   "host": {
                     "connectionName": "shared_commondataserviceforapps",
-                    "operationId": "UpdateRecord",
+                    "operationId": "ListRecords",
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
                   }
                 },
                 "runAfter": {
                   "Compose_followUpDate": ["Succeeded"]
+                }
+              },
+              "Check_Existing_Record": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "equals": [
+                        "@length(body('List_FollowUpTracking_Records')?['value'])",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Create_FollowUpTracking_Record": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_followuptrackings",
+                        "item/cr_sourcesignalid": "@triggerOutputs()?['body/internetMessageId']",
+                        "item/cr_conversationid": "@triggerOutputs()?['body/conversationId']",
+                        "item/cr_sentdatetime": "@coalesce(outputs('Get_email_(V2)')?['body/sentDateTime'], outputs('Get_email_(V2)')?['body/receivedDateTime'])",
+                        "item/cr_recipientemail": "@trim(items('Apply_to_each_recipient'))",
+                        "item/cr_recipienttype": "@variables('recipientType')",
+                        "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
+                        "item/cr_followupdate": "@outputs('Compose_followUpDate')",
+                        "item/cr_responsereceived": false,
+                        "item/cr_nudgesent": false,
+                        "item/cr_dismissedbyuser": false
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "CreateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Update_FollowUpTracking_Record": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "entityName": "cr_followuptrackings",
+                          "recordId": "@{first(body('List_FollowUpTracking_Records')?['value'])?['cr_followuptrackingid']}",
+                          "item/cr_followupdate": "@outputs('Compose_followUpDate')",
+                          "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
+                          "item/cr_recipienttype": "@variables('recipientType')"
+                        },
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        }
+                      },
+                      "runAfter": {}
+                    }
+                  }
+                },
+                "runAfter": {
+                  "List_FollowUpTracking_Records": ["Succeeded"]
                 }
               }
             },
