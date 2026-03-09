@@ -328,7 +328,16 @@
                                   "Copilot": "cr_emailproductivityagent"
                                 },
                                 "body": {
-                                  "text": "@{string(outputs('Compose_NudgeAgentPayload'))}"
+                                  "text": "Process this follow-up nudge request",
+                                  "inputVariables": [
+                                    { "name": "CONVERSATION_ID", "value": "@{items('Apply_to_each')?['cr_conversationid']}" },
+                                    { "name": "ORIGINAL_SUBJECT", "value": "@{items('Apply_to_each')?['cr_originalsubject']}" },
+                                    { "name": "RECIPIENT_EMAIL", "value": "@{items('Apply_to_each')?['cr_recipientemail']}" },
+                                    { "name": "RECIPIENT_TYPE", "value": "@{items('Apply_to_each')?['cr_recipienttype']}" },
+                                    { "name": "DAYS_SINCE_SENT", "value": "@{outputs('Compose_DaysSinceSent')}" },
+                                    { "name": "THREAD_EXCERPT", "value": "@{outputs('Compose_ThreadExcerpt')}" },
+                                    { "name": "USER_DISPLAY_NAME", "value": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}" }
+                                  ]
                                 },
                                 "host": {
                                   "operationId": "ExecuteCopilotAsyncV2",
@@ -344,7 +353,7 @@
                             },
                             "Compose_AgentResponseJSON": {
                               "type": "Compose",
-                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['body/lastResponse'], string(outputs('Execute_Agent_and_wait')?['body']))",
+                              "inputs": "@coalesce(first(outputs('Execute_Agent_and_wait')?['body/outputVariables'])?['value'], outputs('Execute_Agent_and_wait')?['body/lastResponse'])",
                               "runAfter": {
                                 "Execute_Agent_and_wait": [
                                   "Succeeded"

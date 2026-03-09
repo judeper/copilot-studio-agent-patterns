@@ -233,7 +233,18 @@
                     "Copilot": "cr_emailproductivityagent"
                   },
                   "body": {
-                    "text": "@{string(outputs('Compose_SnoozeAgentPayload'))}"
+                    "text": "Process this snooze auto-removal request",
+                    "inputVariables": [
+                      { "name": "CONVERSATION_ID", "value": "@{outputs('Compose_snoozedRow')?['cr_conversationid']}" },
+                      { "name": "NEW_MESSAGE_SENDER", "value": "@{triggerOutputs()?['body/from']?['emailAddress']?['address']}" },
+                      { "name": "NEW_MESSAGE_SENDER_NAME", "value": "@{triggerOutputs()?['body/from']?['emailAddress']?['name']}" },
+                      { "name": "NEW_MESSAGE_SUBJECT", "value": "@{triggerOutputs()?['body/subject']}" },
+                      { "name": "NEW_MESSAGE_EXCERPT", "value": "@{take(coalesce(triggerOutputs()?['body/bodyPreview'], ''), 500)}" },
+                      { "name": "SNOOZED_SUBJECT", "value": "@{outputs('Compose_snoozedRow')?['cr_originalsubject']}" },
+                      { "name": "SNOOZE_UNTIL", "value": "@{outputs('Compose_snoozedRow')?['cr_snoozeuntil']}" },
+                      { "name": "USER_TIMEZONE", "value": "@{variables('userTimeZone')}" },
+                      { "name": "CURRENT_DATETIME", "value": "@{utcNow()}" }
+                    ]
                   },
                   "host": {
                     "operationId": "ExecuteCopilotAsyncV2",
@@ -250,7 +261,7 @@
               "Parse_Snooze_Agent_Response": {
                 "type": "ParseJson",
                 "inputs": {
-                  "content": "@json(coalesce(outputs('Execute_Snooze_Agent')?['body/lastResponse'], string(outputs('Execute_Snooze_Agent')?['body'])))",
+                  "content": "@json(coalesce(first(outputs('Execute_Snooze_Agent')?['body/outputVariables'])?['value'], outputs('Execute_Snooze_Agent')?['body/lastResponse']))",
                   "schema": {
                     "type": "object",
                     "properties": {
