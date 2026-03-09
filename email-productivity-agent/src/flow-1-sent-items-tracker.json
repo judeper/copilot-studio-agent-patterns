@@ -206,7 +206,7 @@
         "actions": {
           "Compose_safeToRecipients": {
             "type": "Compose",
-            "inputs": "@if(empty(outputs('Get_email_(V2)')?['body/toRecipients']), json('[]'), if(startsWith(string(outputs('Get_email_(V2)')?['body/toRecipients']), '['), outputs('Get_email_(V2)')?['body/toRecipients'], split(outputs('Get_email_(V2)')?['body/toRecipients'], ';')))"
+            "inputs": "@if(empty(outputs('Get_email_(V2)')?['body/toRecipients']), json('[]'), split(string(outputs('Get_email_(V2)')?['body/toRecipients']), ';'))"
           },
           "Apply_to_each_recipient": {
             "type": "Foreach",
@@ -214,7 +214,7 @@
             "actions": {
               "Compose_recipientDomain": {
                 "type": "Compose",
-                "inputs": "@split(coalesce(items('Apply_to_each_recipient')?['emailAddress']?['address'], trim(string(items('Apply_to_each_recipient')))), '@')[1]"
+                "inputs": "@split(trim(items('Apply_to_each_recipient')), '@')[1]"
               },
               "Set_recipientType": {
                 "type": "SetVariable",
@@ -245,11 +245,11 @@
                 "inputs": {
                   "parameters": {
                     "entityName": "cr_followuptrackings",
-                    "recordId": "@{encodeURIComponent(concat('cr_sourcesignalid=''', encodeURIComponent(triggerOutputs()?['body/internetMessageId']), ''',cr_recipientemail=''', encodeURIComponent(coalesce(items('Apply_to_each_recipient')?['emailAddress']?['address'], trim(string(items('Apply_to_each_recipient'))))), ''''))}",
+                    "recordId": "@{encodeURIComponent(concat('cr_sourcesignalid=''', encodeURIComponent(triggerOutputs()?['body/internetMessageId']), ''',cr_recipientemail=''', encodeURIComponent(trim(items('Apply_to_each_recipient'))), ''''))}",
                     "item/cr_sourcesignalid": "@triggerOutputs()?['body/internetMessageId']",
                     "item/cr_conversationid": "@triggerOutputs()?['body/conversationId']",
                     "item/cr_sentdatetime": "@triggerOutputs()?['body/sentDateTime']",
-                    "item/cr_recipientemail": "@coalesce(items('Apply_to_each_recipient')?['emailAddress']?['address'], trim(string(items('Apply_to_each_recipient'))))",
+                    "item/cr_recipientemail": "@trim(items('Apply_to_each_recipient'))",
                     "item/cr_recipienttype": "@variables('recipientType')",
                     "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
                     "item/cr_followupdate": "@outputs('Compose_followUpDate')",
