@@ -8,7 +8,7 @@ An intelligent work layer for Microsoft 365 that triages incoming emails, Teams 
 - **Researches** across 5 tiers: personal email/Teams history, SharePoint/internal wikis, project tools, public web, official documentation
 - **Scores confidence** (0-100) based on evidence strength and source reliability
 - **Prepares drafts** for emails and Teams replies, calibrated to recipient relationship and tone
-- **Surfaces everything** on a single-pane-of-glass Canvas app dashboard with a Power Apps Component Framework (PCF) React component
+- **Surfaces everything** on a single-pane-of-glass dashboard — **Code App** (Vite + React 18, forward architecture) or Canvas App + PCF React component (legacy)
 - **Syncs to OneNote** (optional) — meeting prep, daily briefings, and active to-dos are written to a structured OneNote notebook for offline access, annotation, and Microsoft Search indexing
 
 ## Architecture

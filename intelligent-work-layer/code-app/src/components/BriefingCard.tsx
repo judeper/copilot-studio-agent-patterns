@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Text, Badge, Card, Select, Checkbox, Switch } from "@fluentui/react-components";
 import { ArrowLeftRegular, DismissRegular, ChevronDownRegular, ChevronRightRegular, CalendarRegular, ArrowRightRegular, WeatherSunnyRegular, WeatherMoonRegular, CheckmarkCircleRegular, ChatBubblesQuestionRegular, LightbulbRegular } from "@fluentui/react-icons";
 import type { AssistantCard, DailyBriefing, BriefingActionItem, BriefingFyiItem, BriefingStaleAlert, BriefingScheduleConfig, MorningBriefingData, EndOfDayData } from "./types";
@@ -462,7 +462,7 @@ export const BriefingCard: React.FC<BriefingCardProps> = ({
     const [briefed, setBriefed] = useState(false);
     const briefing = parseBriefing(card);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (!onBack) return;
         const handleEscapeKey = (e: KeyboardEvent) => {
             if (e.defaultPrevented || e.key !== "Escape") return;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { AssistantCard } from '../components/types';
 import type { CardDataService } from '../services/CardDataService';
 
@@ -15,25 +15,36 @@ export function useCards(service: CardDataService): {
     const [cards, setCards] = useState<AssistantCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const isMountedRef = useRef(true);
 
     const refresh = useCallback(() => {
         setLoading(true);
         service
             .getCards()
             .then((result) => {
-                setCards(result);
-                setError(null);
+                if (isMountedRef.current) {
+                    setCards(result);
+                    setError(null);
+                }
             })
             .catch((err) => {
-                setError(err instanceof Error ? err : new Error(String(err)));
+                if (isMountedRef.current) {
+                    setError(err instanceof Error ? err : new Error(String(err)));
+                }
             })
             .finally(() => {
-                setLoading(false);
+                if (isMountedRef.current) {
+                    setLoading(false);
+                }
             });
     }, [service]);
 
     useEffect(() => {
+        isMountedRef.current = true;
         refresh();
+        return () => {
+            isMountedRef.current = false;
+        };
     }, [refresh]);
 
     return { cards, loading, error, refresh };

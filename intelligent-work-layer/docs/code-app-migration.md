@@ -20,13 +20,17 @@ Migrate from PCF Virtual Control + Canvas App to a **Power Platform Code App** (
 
 ## Critical Setup Notes
 
-### Use npm SDK, Not `pac code`
-`pac code` commands are being deprecated. Use the npm-based SDK:
+### SDK Status
+`pac code` commands are being deprecated in favor of the npm-based SDK. The current implementation uses a **vanilla Vite scaffold** (not the `@microsoft/power-apps` npm package) with a `CardDataService` abstraction layer. For Phase 5 Dataverse integration, use the `pac code add-data-source` or `npx pac-sdk add-data-source` command to generate typed services, then implement `CardDataService` against them.
+
 ```bash
-npm install @microsoft/power-apps --save-dev
-npx pac-sdk init        # replaces pac code init
-npx pac-sdk run         # replaces pac code run (auth proxy)
-npx pac-sdk push        # replaces pac code push
+# Current approach (Phases 1-4):
+npm create vite             # scaffold
+npm install                 # install deps
+npm run build && pac code push  # deploy
+
+# Phase 5 (Dataverse integration):
+pac code add-data-source -a "shared_commondataserviceforapps" -c "<connection-id>" -t "cr_assistantcards"
 ```
 
 ### React Version

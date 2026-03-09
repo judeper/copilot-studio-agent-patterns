@@ -130,10 +130,18 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 
 ### Testing
 
+#### PCF (Legacy — `intelligent-work-layer/src/`)
 - Tests live in `__tests__/` directories colocated with the code they test (e.g., `components/__tests__/`, `hooks/__tests__/`, `utils/__tests__/`)
 - Jest + jsdom + React Testing Library + `@testing-library/user-event`
 - Test tsconfig: `tsconfig.test.json` (CommonJS output for Jest compatibility)
 - The `test/jest.setup.ts` provides `matchMedia` and `ResizeObserver` mocks required by Fluent UI in jsdom
+
+#### Code App (Forward — `intelligent-work-layer/code-app/`)
+- Same colocated `__tests__/` directory pattern
+- Vitest + jsdom + React Testing Library + `@testing-library/user-event`
+- `vitest.config.ts` with 80% per-file coverage thresholds
+- `src/test/setup.ts` provides `matchMedia` and `ResizeObserver` mocks
+- `src/test/helpers/renderWithProviders.tsx` wraps components in FluentProvider for tests
 
 ### Security
 
