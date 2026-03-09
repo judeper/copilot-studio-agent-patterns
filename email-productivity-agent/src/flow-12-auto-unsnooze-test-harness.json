@@ -264,7 +264,7 @@
                   },
                   "parameters": {
                     "Copilot": "cr_emailproductivityagent",
-                    "body/message": "SNOOZE_REQUEST @{string(outputs('Compose_SnoozeAgentPayload'))}"
+                    "body/message": "Evaluate whether a snoozed email should be unsnoozed because a new reply arrived. Context: @{string(outputs('Compose_SnoozeAgentPayload'))}"
                   },
                   "authentication": "@parameters('$authentication')"
                 },
