@@ -268,12 +268,6 @@
                   },
                   "authentication": "@parameters('$authentication')"
                 },
-                  "host": {
-                    "operationId": "ExecuteCopilotAsyncV2",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
-                    "connectionName": "shared_microsoftcopilotstudio"
-                  }
-                },
                 "runAfter": {
                   "Compose_SnoozeAgentPayload": [
                     "Succeeded"
