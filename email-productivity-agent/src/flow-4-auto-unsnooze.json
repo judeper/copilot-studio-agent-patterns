@@ -230,9 +230,8 @@
                 "type": "OpenApiConnectionWebhook",
                 "inputs": {
                   "parameters": {
-                    "Copilot": "cr_emailproductivityagent"
-                  },
-                  "body": {
+                    "Copilot": "cr_emailproductivityagent",
+                    "environmentId": "17ff9327-3e56-e4e7-bf44-47287f6c9f0c",
                     "message": "@{string(outputs('Compose_SnoozeAgentPayload'))}"
                   },
                   "host": {
