@@ -334,7 +334,7 @@
                 "type": "SetVariable",
                 "inputs": {
                   "name": "notificationMessage",
-                  "value": "@coalesce(body('Parse_Snooze_Agent_Response')?['notificationMessage'], variables('notificationMessage'))"
+                  "value": "@body('Parse_Snooze_Agent_Response')?['notificationMessage']"
                 },
                 "runAfter": {
                   "Set_unsnoozeAction_From_Agent": [
