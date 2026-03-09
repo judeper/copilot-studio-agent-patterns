@@ -309,7 +309,7 @@
                                 },
                                 "parameters": {
                                   "Copilot": "cr_emailproductivityagent",
-                                  "body/message": "@{string(outputs('Compose_NudgeAgentPayload'))}"
+                                  "body/message": "NUDGE_REQUEST @{string(outputs('Compose_NudgeAgentPayload'))}"
                                 },
                                 "authentication": "@parameters('$authentication')"
                               },

@@ -264,7 +264,7 @@
                   },
                   "parameters": {
                     "Copilot": "cr_emailproductivityagent",
-                    "body/message": "@{string(outputs('Compose_SnoozeAgentPayload'))}"
+                    "body/message": "SNOOZE_REQUEST @{string(outputs('Compose_SnoozeAgentPayload'))}"
                   },
                   "authentication": "@parameters('$authentication')"
                 },
