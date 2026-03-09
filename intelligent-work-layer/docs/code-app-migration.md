@@ -68,7 +68,7 @@ npx pac-sdk run      # port 8080 — auth proxy + SDK tunnel
 ## Phased Implementation (3-5 Days)
 
 > **Status:** Phases 1-4 complete. The `code-app/` directory contains a fully functional
-> Vite + React 18 + TypeScript app with 170 passing tests (14 test files). Build produces
+> Vite + React 18 + TypeScript app with 199 passing tests (18 test files). Build produces
 > a production bundle in `dist/`. Phase 5 (CI/CD + `pac-sdk push`) is pending deployment credentials.
 
 ### Phase 1 — Infrastructure ✅
