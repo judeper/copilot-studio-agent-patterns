@@ -4,7 +4,7 @@ This document provides detailed specifications for building the Power Automate f
 
 ---
 
-> **Current validated POC state:** The dry-run build keeps Flow 4 deterministic. Flow 11 and Flow 12 are the HTTP harness equivalents of Flow 3 and Flow 4, and Flow 13 seeds a real message into `EPA-Snoozed` so the Phase 2 path can be tested end to end without waiting on manual mailbox actions. The production Snooze Agent pattern is still documented below as an optional future enhancement.
+> **Current validated state:** Flow 4 invokes the live Copilot Studio Snooze Agent for UNSNOOZE/SUPPRESS decisions with a fail-open fallback to UNSNOOZE. Flow 11 and Flow 12 are the HTTP harness equivalents of Flow 3 and Flow 4, and Flow 13 seeds a real message into `EPA-Snoozed` so the Phase 2 path can be tested end to end without waiting on manual mailbox actions.
 
 ## Prerequisites
 
@@ -168,7 +168,7 @@ Scope: Scope_Handle_Errors (Run After: has failed)
     - Terminate: Succeeded (don't fail the scheduled run)
 ```
 
-> **Dry-run hardening note:** The validated flow first checks whether `EPA-Snoozed` already exists before creating it. This avoids the Graph `Conflict` response that occurs when the folder exists in Outlook but `cr_snoozefolderid` is blank in Dataverse.
+> **Note:** The validated flow first checks whether `EPA-Snoozed` already exists before creating it. This avoids the Graph `Conflict` response that occurs when the folder exists in Outlook but `cr_snoozefolderid` is blank in Dataverse.
 
 ---
 
@@ -215,21 +215,28 @@ If yes → Terminate (no action needed — this is the most common path)
 
 #### Step 4: If Match Found → Determine Unsnooze Action
 
-**Current validated POC implementation**:
+**Current implementation**:
 
 ```
-Initialize variable: unsnoozeAction = "UNSNOOZE"
+Compose payload:
+  - CONVERSATION_ID, NEW_MESSAGE_SENDER, NEW_MESSAGE_SENDER_NAME
+  - NEW_MESSAGE_SUBJECT, NEW_MESSAGE_EXCERPT, SNOOZED_SUBJECT
+  - SNOOZE_UNTIL, USER_TIMEZONE, CURRENT_DATETIME
 
-Scope: Scope_Agent_Decision
-  Action: Compose
-  Message: "POC mode: skipping Snooze Agent invocation and using the default UNSNOOZE path."
+Action: OpenApiConnection (Copilot Studio — ExecuteAgentAndWait)
+  botId: cr_emailproductivityagent
+  message: stringified payload
+
+Parse response → Set unsnoozeAction variable from agent output
+
+Fallback: If agent call fails, defaults to UNSNOOZE (fail-open safety)
 ```
 
 > **Timezone handling:** Flow 4 resolves the user's timezone from Graph mailbox settings (`/v1.0/me/mailboxSettings`). If that lookup fails, it falls back to **UTC** (not the Eastern Standard Time used by scheduled flows). This is intentional — event-driven flows should use the actual user timezone rather than a hardcoded zone.
 
 **Production enhancement (optional)**:
 
-Reintroduce a Snooze Agent call only when you want suppression logic such as working-hours awareness. The agent should set `unsnoozeAction` to either `UNSNOOZE` or `SUPPRESS`, after which the flow can branch on that value.
+Add suppression logic such as working-hours awareness — the agent can set `unsnoozeAction` to `SUPPRESS` to defer unsnoozing outside business hours.
 
 #### Step 5: If Not Suppressed → Move Snoozed Message Back to Inbox
 
@@ -336,7 +343,7 @@ If the recipient changes the email subject when replying, Graph assigns a new `c
 If a user snoozed multiple messages from the same conversation, the Dataverse alternate key (conversationId + owner) means only one row exists per thread. The most recently detected message's ID is stored. All messages in the thread effectively share one snooze record.
 
 ### Working Hours
-The current validated dry-run build does **not** suppress unsnoozing outside working hours; it always takes the deterministic UNSNOOZE path. Working-hours suppression remains a production enhancement that can be reintroduced when the Snooze Agent is wired back in.
+The Snooze Agent can return `SUPPRESS` to defer unsnoozing outside working hours. The current agent prompt does not enforce working-hours suppression by default, but the flow infrastructure supports the `SUPPRESS` action when the agent returns it.
 
 ### Outlook Native Snooze Conflict
 This system uses a **managed folder** (`EPA-Snoozed`), NOT Outlook's native snooze. If a user uses Outlook's built-in "Remind Me" feature, those snoozed emails are in a different folder and will NOT be auto-unsnoozed by this agent. Users should be educated to use the EPA-Snoozed folder (via Canvas App "Snooze" action) for auto-unsnooze behavior.

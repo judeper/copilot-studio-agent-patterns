@@ -102,9 +102,9 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 - `cr_NudgeConfiguration`
 - `cr_SnoozedConversation` (will show a warning if Phase 2 table doesn't exist yet)
 
-### Step 3: Configure Copilot Studio Agent (Optional in the current POC build)
+### Step 3: Configure Copilot Studio Agent (Required)
 
-> **Current tested state:** Flow 2 uses a mocked agent response and Flow 4 bypasses the Snooze Agent entirely, so the dry-run deployment does not require a live Copilot Studio connector. Keep this step for future re-enablement of live agent decisioning.
+> **Note:** Flow 2 invokes the Nudge Agent and Flow 4 invokes the Snooze Agent via the `ExecuteAgentAndWait` connector. The agent must be published before deploying flows.
 
 1. Open [Copilot Studio](https://copilotstudio.microsoft.com) and select the provisioned environment from the environment picker (top-right)
 2. Click **Create** → **New agent** → **Skip to configure** (to bypass the wizard)
@@ -305,10 +305,10 @@ This creates:
 
 **Expected output:** All 3 flows created and running (✓ ON).
 
-> **POC simplifications vs. production:**
-> - Flow 4 always unsnoozes on match (no Snooze Agent invocation for SUPPRESS/UNSNOOZE decisions)
-> - No working-hours check (production would suppress unsnooze outside 7AM-7PM)
-> - Simple Teams text notification (production would use adaptive card with deeplink)
+> **Current behavior:**
+> - Flow 4 invokes the Copilot Studio Snooze Agent for UNSNOOZE/SUPPRESS decisions, with fail-open fallback to UNSNOOZE
+> - Working-hours suppression is supported via the agent's SUPPRESS action (not enforced by default)
+> - Teams text notification with agent-generated message content
 
 ### Step 10: Ensure Mail.ReadWrite Permission
 
@@ -375,14 +375,14 @@ This harness sequence validates the real mailbox move, Dataverse update, and Tea
 
 > **Observed dry-run hardening:** Flow 3 now first checks whether `EPA-Snoozed` already exists before trying to create it, persists the recovered folder ID back into `cr_nudgeconfiguration`, and uses `ListRecords` + `UpdateRecord`/`CreateRecord` for `cr_snoozedconversation` writes. The create path must explicitly set `item/cr_unsnoozedbyagent = false` for the Dataverse connector to save successfully.
 
-### Step 12: Configure Snooze Agent (Optional — Production only)
+### Step 12: Snooze Agent Configuration
 
-For production deployments, you can add intelligent snooze decisions. The current validated dry-run does **not** use this path; Flow 4 is intentionally deterministic so test automation remains stable.
+Flow 4 invokes the Copilot Studio Snooze Agent for UNSNOOZE/SUPPRESS decisions. Ensure the agent has the "Snooze Auto-Removal" topic configured:
 
-1. In Copilot Studio, add a **"Snooze Auto-Removal"** topic
-2. Paste `prompts/snooze-agent-system-prompt.md` as instructions
-3. Define input variables (CONVERSATION_ID, SNOOZED_SUBJECT, NEW_MESSAGE_SENDER, etc.)
-4. Update Flow 4 to invoke the agent before unsnoozing
+1. In Copilot Studio, verify the **"Snooze Auto-Removal"** topic exists
+2. Confirm `prompts/snooze-agent-system-prompt.md` is set as the topic instructions
+3. Verify input variables are defined (CONVERSATION_ID, SNOOZED_SUBJECT, NEW_MESSAGE_SENDER, etc.)
+4. Publish the agent if any changes were made
 
 See `docs/snooze-auto-removal-flows.md` Step 4 for the agent invocation pattern.
 

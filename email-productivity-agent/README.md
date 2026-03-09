@@ -1,6 +1,6 @@
 # Email Productivity Agent
 
-A Copilot Studio pattern that brings Gmail-like email productivity features to Outlook — automatic follow-up nudges for unreplied emails and smart snooze that unsnoozes when someone replies. The current dry-run build keeps Flow 2 deterministic with a mocked agent payload and Flow 4 in POC bypass mode, while the Copilot prompt assets remain in the repo for later re-enablement.
+A Copilot Studio pattern that brings Gmail-like email productivity features to Outlook — automatic follow-up nudges for unreplied emails and smart snooze that unsnoozes when someone replies. The solution uses the live Copilot Studio Nudge Agent for follow-up decisioning and the Snooze Agent for unsnooze/suppress decisions, while the Copilot prompt assets are defined in the `prompts/` directory.
 
 ## What It Does
 
@@ -16,9 +16,9 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 - **Auto-unsnoozes** by moving the email back to Inbox immediately
 - **Notifies** you via Teams with context about who replied and what they said
 
-### Current POC Runtime Mode
-- **Flow 2** uses a mocked agent response so reply detection, Dataverse updates, and Teams card delivery can be regression-tested without a live Copilot dependency
-- **Flow 4** bypasses the live Snooze Agent and always takes the deterministic UNSNOOZE path when a matching snoozed conversation is found
+### Current Runtime Mode
+- **Flow 2** invokes the live Copilot Studio Nudge Agent for dynamic nudge decisions, thread summaries, and suggested follow-up drafts
+- **Flow 4** invokes the live Copilot Studio Snooze Agent for UNSNOOZE/SUPPRESS decisions, with a fail-open fallback to UNSNOOZE if the agent call fails
 - **CLI harness flows (8-13)** provide HTTP-triggered coverage for Flow 2, 2b, 3, 4, 7, and 7b
 
 ## Architecture
@@ -65,7 +65,7 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 └─────────────────────────────────────────────────────────────┘
 ```
 
-> In the currently validated dry-run build, Flow 2 uses mocked agent output and Flow 4 bypasses live Snooze Agent decisioning for stable CLI-driven regression tests.
+> Flow 2 invokes the Copilot Studio Nudge Agent for dynamic nudge decisions and suggested follow-up drafts. Flow 4 invokes the Snooze Agent for UNSNOOZE/SUPPRESS decisions with a fail-open fallback.
 
 ## File Map
 
@@ -241,15 +241,15 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Flow 12: Auto-Unsnooze Test Harness (optional) | HTTP request | Replay Flow 4 matching, Graph move, Dataverse update, and Teams notification from the CLI |
 | Flow 13: Snooze Seed Test Harness (optional) | HTTP request | Send a test email to self and move it into `EPA-Snoozed` so Flow 11/12 can be tested end to end |
 
-## Dry-Run Verification Status
+## Verification Status
 
 - **Flow 1** verified against real sent mail and Dataverse row creation
-- **Flow 2** verified through **Flow 8** with mocked agent output and forced Teams replay support
+- **Flow 2** verified through **Flow 8** with live Copilot Studio Nudge Agent and Teams card delivery
 - **Flow 2b** verified through **Flow 9** for Draft / Dismiss / Snooze actions
 - **Flow 7** verified through direct HTTP invocation
 - **Flow 7b** verified through **Flow 10** for save and restore-defaults persistence
 - **Flow 3** verified through **Flow 11**, including recovery of an existing `EPA-Snoozed` folder ID and owner-scoped snoozed-row persistence
-- **Flow 4** verified through **Flow 12** after reseeding mail with **Flow 13**; the current deployed build uses the deterministic bypass path and no longer relies on a failing live Snooze Agent fallback
+- **Flow 4** verified through **Flow 12** after reseeding mail with **Flow 13**; uses the live Copilot Studio Snooze Agent with fail-open fallback to UNSNOOZE
 
 ## CLI Regression Harnesses
 

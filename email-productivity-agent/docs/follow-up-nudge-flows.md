@@ -412,15 +412,20 @@ Compose: threadExcerpt
 ##### Step 4e: If Still Pending → Build Nudge Decision
 
 ```
-Action: Compose (mocked response)
-Current output:
-  - nudgeAction: "NUDGE"
+Action: OpenApiConnection (Copilot Studio — ExecuteAgentAndWait)
+Compose payload:
+  - CONVERSATION_ID, ORIGINAL_SUBJECT, RECIPIENT_EMAIL, RECIPIENT_TYPE
+  - DAYS_SINCE_SENT, THREAD_EXCERPT, USER_DISPLAY_NAME
+
+Agent output:
+  - nudgeAction: "NUDGE" or "SKIP"
   - threadSummary: Brief summary of the thread context
   - suggestedDraft: Suggested follow-up message text
   - nudgePriority: High / Medium / Low
   - confidence: 0-100 confidence score
 
-The dry-run build keeps this response mocked so Flow 2 can be tested without blocking on Copilot Studio publish/runtime issues. When the live agent path is re-enabled, swap this step back to the Copilot Studio connector and preserve the same response contract.
+The flow invokes the live Copilot Studio Nudge Agent to generate dynamic
+nudge decisions based on thread context and recipient type.
 
 Condition: nudgeAction equals "SKIP"
   If yes → Update cr_dismissedbyuser = true (agent-skipped), continue to next
@@ -435,7 +440,7 @@ Recipient: Current user (flow connection owner)
 Adaptive Card: See schemas/adaptive-card-nudge.json
 ```
 
-> **Current dry-run note**: Flow 2 builds the adaptive card inline using Compose actions and feeds it from a mocked nudge decision. This lets us validate Graph reply checks, Dataverse updates, and Teams delivery independently. When the live Copilot step is restored, replace the mocked Compose with the connector call and keep the same output contract so the card rendering remains unchanged.
+> **Note**: Flow 2 invokes the live Copilot Studio Nudge Agent via `ExecuteAgentAndWait`. The agent dynamically generates the nudge decision, thread summary, and suggested follow-up draft. The adaptive card rendering consumes the same output contract regardless of agent implementation.
 
 This posts the card but does NOT wait for a response. Button clicks are handled by a separate flow.
 

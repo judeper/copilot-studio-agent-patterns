@@ -282,10 +282,16 @@
                                 ]
                               }
                             },
-                            "Execute_Agent_and_wait": {
+                            "Compose_NudgeAgentPayload": {
                               "type": "Compose",
                               "inputs": {
-                                "lastResponse": "{\"nudgeAction\":\"NUDGE\",\"threadSummary\":\"You sent a message but have not received a reply. It has been overdue based on your configured follow-up timeframe.\",\"suggestedDraft\":\"Hi,\\n\\nJust following up on my previous email. Wanted to check if you had a chance to review it.\\n\\nThanks!\",\"nudgePriority\":\"Medium\",\"confidence\":85}"
+                                "CONVERSATION_ID": "@{items('Apply_to_each')?['cr_conversationid']}",
+                                "ORIGINAL_SUBJECT": "@{items('Apply_to_each')?['cr_originalsubject']}",
+                                "RECIPIENT_EMAIL": "@{items('Apply_to_each')?['cr_recipientemail']}",
+                                "RECIPIENT_TYPE": "@{items('Apply_to_each')?['cr_recipienttype']}",
+                                "DAYS_SINCE_SENT": "@{outputs('Compose_DaysSinceSent')}",
+                                "THREAD_EXCERPT": "@{outputs('Compose_ThreadExcerpt')}",
+                                "USER_DISPLAY_NAME": "@{outputs('Get_my_profile_(V2)')?['body/displayName']}"
                               },
                               "runAfter": {
                                 "Compose_DaysSinceSent": [
@@ -293,9 +299,33 @@
                                 ]
                               }
                             },
+                            "Execute_Agent_and_wait": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "botId": "cr_emailproductivityagent",
+                                  "message": "@{string(outputs('Compose_NudgeAgentPayload'))}"
+                                },
+                                "host": {
+                                  "operationId": "ExecuteAgentAndWait",
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
+                                  "connectionName": "shared_microsoftcopilotstudio"
+                                },
+                                "retryPolicy": {
+                                  "type": "exponential",
+                                  "count": 2,
+                                  "interval": "PT15S"
+                                }
+                              },
+                              "runAfter": {
+                                "Compose_NudgeAgentPayload": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
                             "Compose_AgentResponseJSON": {
                               "type": "Compose",
-                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['lastResponse'], string(outputs('Execute_Agent_and_wait')))",
+                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['body/lastResponse'], string(outputs('Execute_Agent_and_wait')?['body']))",
                               "runAfter": {
                                 "Execute_Agent_and_wait": [
                                   "Succeeded"
@@ -650,10 +680,11 @@
       "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",
       "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
-      "shared_teams (Microsoft Teams)"
+      "shared_teams (Microsoft Teams)",
+      "shared_microsoftcopilotstudio (Microsoft Copilot Studio)"
     ],
     "notes": {
-      "agentInvocation": "Flow 2 currently uses a mocked agent response so the Graph reply check, Dataverse state transitions, and Teams card delivery can be validated independently of Copilot publishing/runtime issues.",
+      "agentInvocation": "Flow 2 invokes the live Copilot Studio Nudge Agent via ExecuteAgentAndWait to generate dynamic nudge decisions, thread summaries, and suggested follow-up drafts.",
       "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions."
     }
   }

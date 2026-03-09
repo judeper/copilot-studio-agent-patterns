@@ -126,7 +126,7 @@
             {
               "name": "unsnoozeAction",
               "type": "string",
-              "value": "UNSNOOZE"
+              "value": ""
             }
           ]
         },
@@ -212,9 +212,110 @@
           "Scope_Agent_Decision": {
             "type": "Scope",
             "actions": {
-              "Compose_Agent_Bypass": {
+              "Compose_SnoozeAgentPayload": {
                 "type": "Compose",
-                "inputs": "POC mode: skipping Snooze Agent invocation and using the default UNSNOOZE path."
+                "inputs": {
+                  "CONVERSATION_ID": "@{outputs('Compose_snoozedRow')?['cr_conversationid']}",
+                  "NEW_MESSAGE_SENDER": "@{triggerOutputs()?['body/from']?['emailAddress']?['address']}",
+                  "NEW_MESSAGE_SENDER_NAME": "@{triggerOutputs()?['body/from']?['emailAddress']?['name']}",
+                  "NEW_MESSAGE_SUBJECT": "@{triggerOutputs()?['body/subject']}",
+                  "NEW_MESSAGE_EXCERPT": "@{take(coalesce(triggerOutputs()?['body/bodyPreview'], ''), 500)}",
+                  "SNOOZED_SUBJECT": "@{outputs('Compose_snoozedRow')?['cr_originalsubject']}",
+                  "SNOOZE_UNTIL": "@{outputs('Compose_snoozedRow')?['cr_snoozeuntil']}",
+                  "USER_TIMEZONE": "@{variables('userTimeZone')}",
+                  "CURRENT_DATETIME": "@{utcNow()}"
+                }
+              },
+              "Execute_Snooze_Agent": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "botId": "cr_emailproductivityagent",
+                    "message": "@{string(outputs('Compose_SnoozeAgentPayload'))}"
+                  },
+                  "host": {
+                    "operationId": "ExecuteAgentAndWait",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
+                    "connectionName": "shared_microsoftcopilotstudio"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 2,
+                    "interval": "PT15S"
+                  }
+                },
+                "runAfter": {
+                  "Compose_SnoozeAgentPayload": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Parse_Snooze_Agent_Response": {
+                "type": "ParseJson",
+                "inputs": {
+                  "content": "@json(coalesce(outputs('Execute_Snooze_Agent')?['body/lastResponse'], string(outputs('Execute_Snooze_Agent')?['body'])))",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "unsnoozeAction": {
+                        "type": "string"
+                      },
+                      "suppressReason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "notificationMessage": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "urgency": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "confidence": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "unsnoozeAction"
+                    ]
+                  }
+                },
+                "runAfter": {
+                  "Execute_Snooze_Agent": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Set_unsnoozeAction_From_Agent": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "unsnoozeAction",
+                  "value": "@body('Parse_Snooze_Agent_Response')?['unsnoozeAction']"
+                },
+                "runAfter": {
+                  "Parse_Snooze_Agent_Response": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Set_notificationMessage_From_Agent": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "notificationMessage",
+                  "value": "@coalesce(body('Parse_Snooze_Agent_Response')?['notificationMessage'], variables('notificationMessage'))"
+                },
+                "runAfter": {
+                  "Set_unsnoozeAction_From_Agent": [
+                    "Succeeded"
+                  ]
+                }
               }
             },
             "runAfter": {
@@ -234,7 +335,19 @@
             "actions": {
               "Compose_Agent_Fallback": {
                 "type": "Compose",
-                "inputs": "Proceeding with default UNSNOOZE fallback because the snooze agent decision step failed."
+                "inputs": "Agent call failed; defaulting to UNSNOOZE for fail-open safety."
+              },
+              "Set_unsnoozeAction_Fallback": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "unsnoozeAction",
+                  "value": "UNSNOOZE"
+                },
+                "runAfter": {
+                  "Compose_Agent_Fallback": [
+                    "Succeeded"
+                  ]
+                }
               }
             },
             "runAfter": {
@@ -439,15 +552,16 @@
       "shared_office365 (Office 365 Outlook)",
       "shared_office365users (Office 365 Users)",
       "shared_commondataserviceforapps (Microsoft Dataverse)",
-      "shared_webcontents (HTTP with Microsoft Entra ID \u2014 Base: https://graph.microsoft.com)",
-      "shared_teams (Microsoft Teams)"
+      "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
+      "shared_teams (Microsoft Teams)",
+      "shared_microsoftcopilotstudio (Microsoft Copilot Studio)"
     ],
     "notes": {
-      "agentDecisioning": "POC mode bypasses the Snooze Agent and always takes the default UNSNOOZE path once a matching snoozed conversation is found.",
+      "agentDecisioning": "Flow 4 invokes the live Copilot Studio Snooze Agent via ExecuteAgentAndWait to decide UNSNOOZE vs SUPPRESS. Falls back to UNSNOOZE if the agent call fails (fail-open).",
       "timezoneLookup": "The flow tries to read /me/mailboxSettings timeZone and falls back to UTC if mailbox settings are unavailable.",
       "messageIdInvalidation": "CRITICAL: Graph move operation invalidates the original message ID. The new ID from the response MUST be captured and stored in Dataverse.",
       "error404Handling": "If the snoozed message no longer exists (manually moved/deleted), marks the Dataverse row as handled to prevent infinite retries.",
-      "teamsNotification": "Notifications use the deterministic fallback text message because the Snooze Agent is currently bypassed."
+      "teamsNotification": "Notification message is generated by the Snooze Agent when available, with a fallback to the default text template."
     }
   }
 }

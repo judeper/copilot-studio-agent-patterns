@@ -25,9 +25,8 @@
     definition but connections never bind at the Flow runtime level, making flows
     impossible to activate without manual designer interaction.
 
-    NOTE: The shared_microsoftcopilotstudio connection reference is created by
-    the script but not used by any flow in the current POC deployment. It must
-    be manually connected before re-enabling live Copilot agent steps in Flow 2/4.
+    NOTE: The shared_microsoftcopilotstudio connection is required by Flow 2
+    (Nudge Agent) and Flow 4 (Snooze Agent) for live Copilot Studio decisioning.
 
 .PARAMETER OrgUrl
     Dataverse organization URL (e.g., https://emailproductivityagent.crm.dynamics.com)
@@ -97,7 +96,7 @@ $flowMap = [ordered]@{
     Flow2  = @{
         File        = "flow-2-response-detection.json"
         DisplayName = "EPA - Flow 2: Response Detection"
-        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow2b = @{
         File        = "flow-2b-card-action-handler.json"
@@ -112,7 +111,7 @@ $flowMap = [ordered]@{
     Flow4  = @{
         File        = "flow-4-auto-unsnooze.json"
         DisplayName = "EPA - Flow 4: Auto-Unsnooze"
-        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow6  = @{
         File        = "flow-6-snooze-cleanup.json"
@@ -132,7 +131,7 @@ $flowMap = [ordered]@{
     Flow8  = @{
         File        = "flow-8-followup-test-harness.json"
         DisplayName = "EPA - Flow 8: Follow-Up Test Harness"
-        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow9  = @{
         File        = "flow-9-card-action-test-harness.json"
@@ -152,7 +151,7 @@ $flowMap = [ordered]@{
     Flow12 = @{
         File        = "flow-12-auto-unsnooze-test-harness.json"
         DisplayName = "EPA - Flow 12: Auto-Unsnooze Test Harness"
-        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow13 = @{
         File        = "flow-13-snooze-seed-test-harness.json"
