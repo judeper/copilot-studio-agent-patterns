@@ -227,21 +227,18 @@
                 }
               },
               "Execute_Snooze_Agent": {
-                "type": "OpenApiConnection",
+                "type": "OpenApiConnectionWebhook",
                 "inputs": {
                   "parameters": {
-                    "botId": "cr_emailproductivityagent",
-                    "message": "@{string(outputs('Compose_SnoozeAgentPayload'))}"
+                    "Copilot": "cr_emailproductivityagent"
+                  },
+                  "body": {
+                    "text": "@{string(outputs('Compose_SnoozeAgentPayload'))}"
                   },
                   "host": {
-                    "operationId": "ExecuteAgentAndWait",
+                    "operationId": "ExecuteCopilotAsyncV2",
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio",
                     "connectionName": "shared_microsoftcopilotstudio"
-                  },
-                  "retryPolicy": {
-                    "type": "exponential",
-                    "count": 2,
-                    "interval": "PT15S"
                   }
                 },
                 "runAfter": {
