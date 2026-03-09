@@ -206,7 +206,7 @@
         "actions": {
           "Compose_safeToRecipients": {
             "type": "Compose",
-            "inputs": "@if(empty(outputs('Get_email_(V2)')?['body/toRecipients']), json('[]'), if(equals(outputs('Get_email_(V2)')?['body/toRecipients'], string(outputs('Get_email_(V2)')?['body/toRecipients'])), json(outputs('Get_email_(V2)')?['body/toRecipients']), outputs('Get_email_(V2)')?['body/toRecipients']))"
+            "inputs": "@if(empty(outputs('Get_email_(V2)')?['body/toRecipients']), json('[]'), outputs('Get_email_(V2)')?['body/toRecipients'])"
           },
           "Apply_to_each_recipient": {
             "type": "Foreach",
