@@ -1,3 +1,6 @@
+# Name: Follow-Up Nudge
+# Evaluates unreplied sent emails and generates follow-up nudge recommendations.
+# Invoked by Power Automate Flow 1 (Sent Items Tracker) via ExecuteAgentAndWait.
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput

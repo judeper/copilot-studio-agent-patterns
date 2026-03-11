@@ -1,0 +1,8 @@
+# Agent settings for Email Productivity Agent
+# These map to the BotDefinition entity configuration from the legacy copilot-base-template.yaml
+schemaName: cr_emailproductivityagent
+accessControlPolicy: ChatbotReaders
+authenticationMode: Integrated
+authenticationTrigger: Always
+GenerativeActionsEnabled: generative
+template: kickStartTemplate-1.0.0

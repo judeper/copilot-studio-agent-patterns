@@ -200,18 +200,39 @@ intelligent-work-layer/
     ├── tool-update-card.json           # Agent tool: Modify card properties (Orchestrator)
     ├── tool-create-card.json           # Agent tool: Create new card/reminder (Orchestrator)
     ├── tool-refine-draft.json          # Agent tool: Refine draft via Humanizer (Orchestrator)
-    ├── triage-topic.yaml               # Copilot Studio topic: Main triage (5 inputs → JSON)
-    ├── humanizer-topic.yaml            # Copilot Studio topic: Humanizer connected agent
-    ├── briefing-topic.yaml             # Copilot Studio topic: Daily briefing generation
-    ├── orchestrator-topic.yaml         # Copilot Studio topic: Command execution + tool actions
-    ├── copilot-base-template.yaml      # Copilot Studio base agent template (system topics)
-    ├── kickStartTemplate-1.0.0.json    # PAC CLI kickstart template for agent creation
     ├── Solutions/
     │   └── Solution.cdsproj           # Solution packaging project
     ├── AssistantDashboard.pcfproj     # PCF project file
     ├── package.json
     ├── tsconfig.json
     └── .eslintrc.json
+├── copilot-studio/                    # Copilot Studio agent (VS Code Extension format)
+│   ├── agent.mcs.yml                  # Agent metadata (GptComponentMetadata)
+│   ├── settings.mcs.yml               # Agent settings (auth, generative actions)
+│   ├── copilot-base-template.yaml     # PAC CLI BotDefinition bundle (build artifact)
+│   ├── kickStartTemplate-1.0.0.json   # PAC CLI kickstart template for agent creation
+│   ├── topics/
+│   │   ├── triage.topic.mcs.yml       # Main triage (5 inputs → JSON)
+│   │   ├── humanizer.topic.mcs.yml    # Humanizer connected agent
+│   │   ├── daily-briefing.topic.mcs.yml # Daily briefing generation
+│   │   ├── orchestrator.topic.mcs.yml # Command execution + tool actions
+│   │   ├── conversation-start.topic.mcs.yml
+│   │   ├── greeting.topic.mcs.yml
+│   │   ├── fallback.topic.mcs.yml
+│   │   ├── escalate.topic.mcs.yml
+│   │   ├── on-error.topic.mcs.yml
+│   │   ├── sign-in.topic.mcs.yml
+│   │   ├── goodbye.topic.mcs.yml
+│   │   ├── thank-you.topic.mcs.yml
+│   │   ├── start-over.topic.mcs.yml
+│   │   ├── reset-conversation.topic.mcs.yml
+│   │   ├── end-of-conversation.topic.mcs.yml
+│   │   ├── multiple-topics-matched.topic.mcs.yml
+│   │   └── conversational-boosting.topic.mcs.yml
+│   ├── actions/                       # Connector actions (.action.mcs.yml)
+│   ├── knowledge/                     # Knowledge sources
+│   ├── variables/                     # Global variables
+│   └── agents/                        # Child agents
 ```
 
 ## Quick Start

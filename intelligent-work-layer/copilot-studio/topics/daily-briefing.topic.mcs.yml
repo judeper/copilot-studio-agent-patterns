@@ -1,3 +1,7 @@
+# Name: Daily Briefing
+# Generates a personalized daily work briefing for the user including
+# prioritized action items, FYI items, and stale alerts.
+# Callable as a connected agent tool (OnToolSelected trigger).
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput

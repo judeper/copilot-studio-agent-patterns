@@ -1,3 +1,7 @@
+# Name: Main Triage
+# Primary triage topic that evaluates email, Teams, and calendar signals.
+# Assigns tier (TIER_1–TIER_3 or SKIP), priority, confidence, and conducts research.
+# Invoked by Power Automate flows (Flow 1–3) via ExecuteAgentAndWait.
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput

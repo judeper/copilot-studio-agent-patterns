@@ -100,10 +100,6 @@ email-productivity-agent/
 │   ├── invoke-http-flow-harness.ps1             # Trigger Flow 9-13 HTTP harnesses
 │   └── sync-settings-canvas-app-source.ps1      # Sync canvas app source to repo
 ├── src/
-│   ├── copilot-base-template.yaml               # Copilot Studio base bot template
-│   ├── kickStartTemplate-1.0.0.json             # Copilot Studio template metadata
-│   ├── nudge-topic.yaml                         # Follow-Up Nudge topic definition
-│   ├── snooze-topic.yaml                        # Snooze Auto-Removal topic definition (POC placeholder model ID)
 │   ├── flow-1-sent-items-tracker.json           # Flow 1: event-driven sent email tracker
 │   ├── flow-2-response-detection.json           # Flow 2: daily reply check + Teams nudge
 │   ├── flow-2b-card-action-handler.json         # Flow 2b: adaptive card button handler
@@ -119,6 +115,19 @@ email-productivity-agent/
 │   ├── flow-11-snooze-detection-test-harness.json # Flow 11: HTTP-triggered Flow 3 harness
 │   ├── flow-12-auto-unsnooze-test-harness.json  # Flow 12: HTTP-triggered Flow 4 harness
 │   └── flow-13-snooze-seed-test-harness.json    # Flow 13: seed a real snoozed message for Flow 11/12 testing
+├── copilot-studio/                              # Copilot Studio agent (VS Code Extension format)
+│   ├── agent.mcs.yml                            # Agent metadata (GptComponentMetadata)
+│   ├── settings.mcs.yml                         # Agent settings (auth, generative actions)
+│   ├── copilot-base-template.yaml               # PAC CLI BotDefinition bundle (build artifact)
+│   ├── kickStartTemplate-1.0.0.json             # PAC CLI kickstart template
+│   ├── topics/
+│   │   ├── snooze.topic.mcs.yml                 # Snooze Auto-Removal topic
+│   │   ├── nudge.topic.mcs.yml                  # Follow-Up Nudge topic
+│   │   └── (13 system topics)                   # Standard Copilot Studio system topics
+│   ├── actions/                                 # Connector actions
+│   ├── knowledge/                               # Knowledge sources
+│   ├── variables/                               # Global variables
+│   └── agents/                                  # Child agents
 ├── tools/
 │   └── lab-wizard/                              # Python CLI deployment wizard
 │       ├── wizard.py                            # Main entry point (menu-driven)

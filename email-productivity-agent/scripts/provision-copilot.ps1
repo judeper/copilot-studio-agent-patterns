@@ -480,8 +480,8 @@ function Test-CopilotTemplate {
     }
 }
 
-$baseTemplatePath = Join-Path $PSScriptRoot "..\src\copilot-base-template.yaml"
-$kickStartTemplatePath = Join-Path $PSScriptRoot "..\src\kickStartTemplate-1.0.0.json"
+$baseTemplatePath = Join-Path $PSScriptRoot "..\copilot-studio\copilot-base-template.yaml"
+$kickStartTemplatePath = Join-Path $PSScriptRoot "..\copilot-studio\kickStartTemplate-1.0.0.json"
 $nudgePromptPath = Join-Path $PSScriptRoot "..\prompts\nudge-agent-system-prompt.md"
 $snoozePromptPath = Join-Path $PSScriptRoot "..\prompts\snooze-agent-system-prompt.md"
 

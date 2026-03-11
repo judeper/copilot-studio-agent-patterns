@@ -1,0 +1,17 @@
+# Name: Conversation Start
+# This system topic triggers when the copilot receives an Activity indicating
+# the beginning of a new conversation.
+kind: AdaptiveDialog
+managedProperties:
+  isCustomizable: false
+beginDialog:
+  kind: OnConversationStart
+  id: main
+  actions:
+    - kind: SendActivity
+      id: sendMessage_M0LuhV
+      activity:
+        text:
+          - "Hello, I'm {System.Bot.Name}, your Intelligent Work Layer. I triage incoming emails, Teams messages, and calendar events \u2014 conducting research and preparing briefings. Use the command bar to ask me anything about your work items."
+        speak:
+          - Thanks for calling, how can I help?

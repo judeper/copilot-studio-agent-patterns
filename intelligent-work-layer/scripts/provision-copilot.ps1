@@ -591,8 +591,8 @@ $instructions
 
 # ── Main script ───────────────────────────────────────────────────────────────
 
-$baseTemplatePath = Join-Path $PSScriptRoot "..\src\copilot-base-template.yaml"
-$kickStartTemplatePath = Join-Path $PSScriptRoot "..\src\kickStartTemplate-1.0.0.json"
+$baseTemplatePath = Join-Path $PSScriptRoot "..\copilot-studio\copilot-base-template.yaml"
+$kickStartTemplatePath = Join-Path $PSScriptRoot "..\copilot-studio\kickStartTemplate-1.0.0.json"
 $mainPromptPath = Join-Path $PSScriptRoot "..\prompts\main-agent-system-prompt.md"
 $humanizerPromptPath = Join-Path $PSScriptRoot "..\prompts\humanizer-agent-prompt.md"
 $briefingPromptPath = Join-Path $PSScriptRoot "..\prompts\daily-briefing-agent-prompt.md"

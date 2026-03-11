@@ -1,3 +1,7 @@
+# Name: Orchestrator
+# Processes user commands from the Canvas App command bar.
+# Invokes tool flows (QueryCards, QuerySenderProfile, UpdateCard, CreateCard, RefineDraft)
+# to execute operations on assistant cards and sender profiles.
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput

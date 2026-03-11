@@ -1,3 +1,7 @@
+# Name: Humanizer
+# Rewrites raw AI-generated drafts into natural human-sounding language,
+# calibrated to recipient relationships and communication channel.
+# Callable as a connected agent tool (OnToolSelected trigger).
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput

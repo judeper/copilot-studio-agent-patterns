@@ -1,3 +1,7 @@
+# Name: Snooze Auto-Removal
+# Evaluates snoozed email threads when new replies arrive.
+# Determines whether to auto-unsnooze based on reply content, sender, and urgency.
+# Invoked by Power Automate Flow 4 (Auto-Unsnooze) via ExecuteAgentAndWait.
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput
