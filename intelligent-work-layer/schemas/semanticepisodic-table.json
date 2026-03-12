@@ -1,0 +1,77 @@
+{
+  "tableName": "cr_semanticepisodic",
+  "entitySetName": "cr_semanticepisodics",
+  "displayName": "Semantic Episodic Link",
+  "pluralName": "Semantic Episodic Links",
+  "description": "Junction table linking episodic memory events to semantic knowledge facts. Enables tracing which decisions contributed to which learned knowledge.",
+  "primaryColumn": "cr_linkdescription",
+  "ownershipType": "UserOwned",
+  "columns": [
+    {
+      "logicalName": "cr_linkdescription",
+      "displayName": "Link Description",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Primary column — short description of the relationship between the episodic event and semantic knowledge."
+    },
+    {
+      "logicalName": "cr_episodicmemoryid",
+      "displayName": "Episodic Memory",
+      "type": "Lookup",
+      "required": true,
+      "description": "Reference to the episodic memory event that contributed to this knowledge.",
+      "referencedTable": "cr_episodicmemory"
+    },
+    {
+      "logicalName": "cr_semanticknowledgeid",
+      "displayName": "Semantic Knowledge",
+      "type": "Lookup",
+      "required": true,
+      "description": "Reference to the semantic knowledge fact derived from the episodic event.",
+      "referencedTable": "cr_semanticknowledge"
+    },
+    {
+      "logicalName": "cr_contributiontype",
+      "displayName": "Contribution Type",
+      "type": "Choice",
+      "required": true,
+      "description": "How the episodic event contributed to the semantic knowledge.",
+      "options": [
+        { "label": "CREATED", "value": 100000000 },
+        { "label": "REINFORCED", "value": 100000001 },
+        { "label": "CONTRADICTED", "value": 100000002 },
+        { "label": "REFINED", "value": 100000003 }
+      ]
+    },
+    {
+      "logicalName": "cr_confidenceimpact",
+      "displayName": "Confidence Impact",
+      "type": "Decimal",
+      "minValue": -1.0,
+      "maxValue": 1.0,
+      "precision": 2,
+      "required": false,
+      "description": "How much this episodic event changed the confidence of the linked semantic knowledge. Positive values reinforce, negative values weaken."
+    },
+    {
+      "logicalName": "cr_linkdate",
+      "displayName": "Link Date",
+      "type": "DateTime",
+      "required": true,
+      "description": "Timestamp when this episodic-to-semantic link was established by the knowledge promotion flow."
+    }
+  ],
+  "alternateKeys": [
+    {
+      "name": "cr_episodic_semantic_key",
+      "columns": ["cr_episodicmemoryid", "cr_semanticknowledgeid"],
+      "description": "Prevents duplicate links between the same episodic event and semantic knowledge fact."
+    }
+  ],
+  "notes": {
+    "design_rationale": "Many-to-many junction table. A single user decision (episodic event) can contribute to multiple knowledge facts, and a single knowledge fact can be derived from multiple events. The contribution type and confidence impact enable the learning system to track knowledge provenance.",
+    "retention": "Rows are deleted when either the parent episodic memory or semantic knowledge row is deleted (cascade delete via Dataverse relationship configuration).",
+    "security": "Table uses UserOwned ownership type. Row-level security is inherited — users can only see links between their own episodic and semantic records."
+  }
+}

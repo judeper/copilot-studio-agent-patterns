@@ -185,14 +185,15 @@ if ($PSCmdlet.ShouldProcess($SolutionPath, "Pack solution (dotnet build)")) {
             Write-Host "NuGet restore failed. Check internet connectivity and NuGet sources." -ForegroundColor Red
             exit 2
         }
-        dotnet build
+        $ticks = [System.DateTimeOffset]::UtcNow.Ticks
+        dotnet msbuild -t:PowerAppsPackage -p:BuildStartTick=$ticks
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Solution build failed." -ForegroundColor Red
             exit 2
         }
 
-        # The built solution zip will be in bin/Debug
-        $builtZip = Get-ChildItem -Path (Join-Path $solutionDir "bin" "Debug") -Filter "*.zip" | Select-Object -First 1
+        # The built solution zip will be in bin/ (SolutionPackager output)
+        $builtZip = Get-ChildItem -Path (Join-Path $solutionDir "bin") -Filter "*.zip" | Select-Object -First 1
         if (-not $builtZip) {
             Write-Host "No solution zip found in bin/Debug." -ForegroundColor Red
             exit 2
