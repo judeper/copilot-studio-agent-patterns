@@ -34,7 +34,7 @@
                 "entityName": "cr_senderprofiles",
                 "$filter": "cr_senderemail eq '@{triggerBody()?['sender_email']}'",
                 "$top": 1,
-                "$select": "cr_senderprofilesid,cr_senderemail,cr_senderdisplayname,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_lastsignaldate,cr_sendercategory,cr_isinternal,cr_dismisscount,cr_avgeditdistance,cr_responserate,cr_dismissrate"
+                "$select": "cr_senderprofileid,cr_senderemail,cr_senderdisplayname,cr_signalcount,cr_responsecount,cr_avgresponsehours,cr_lastsignaldate,cr_sendercategory,cr_isinternal,cr_dismisscount,cr_avgeditdistance,cr_responserate,cr_dismissrate"
               },
               "host": {
                 "connectionName": "shared_commondataserviceforapps",
@@ -166,9 +166,9 @@
               "parameters": {
                 "entityName": "cr_errorlogs",
                 "item/cr_flowname": "IWL-Tool-QuerySenderProfile",
-                "item/cr_errortimestamp": "@utcNow()",
-                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
-                "item/cr_severity": "Error"
+                "item/cr_occurredon": "@utcNow()",
+                "item/cr_errordetail": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_errorseverity": "Error"
               },
               "host": {
                 "operationId": "CreateRecord",

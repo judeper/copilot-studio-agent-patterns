@@ -50,7 +50,7 @@
                 "$filter": "@{outputs('Sanitize_Filter')} and _ownerid_value eq '@{triggerBody()?['user_aad_id']}'",
                 "$top": "@outputs('Set_MaxResults')",
                 "$orderby": "createdon desc",
-                "$select": "cr_assistantcardsid,cr_itemsummary,cr_triagetier,cr_priority,cr_cardstatus,cr_confidencescore,cr_triggertype,createdon,cr_cardoutcome"
+                "$select": "cr_assistantcardid,cr_itemsummary,cr_triagetier,cr_priority,cr_cardstatus,cr_confidencescore,cr_triggertype,createdon,cr_cardoutcome"
               },
               "host": {
                 "connectionName": "shared_commondataserviceforapps",
@@ -78,7 +78,7 @@
             "inputs": {
               "from": "@outputs('List_Cards')?['body/value']",
               "select": {
-                "card_id": "@item()?['cr_assistantcardsid']",
+                "card_id": "@item()?['cr_assistantcardid']",
                 "summary": "@item()?['cr_itemsummary']",
                 "triage_tier": "@item()?['cr_triagetier']",
                 "priority": "@item()?['cr_priority']",
@@ -159,9 +159,9 @@
               "parameters": {
                 "entityName": "cr_errorlogs",
                 "item/cr_flowname": "IWL-Tool-QueryCards",
-                "item/cr_errortimestamp": "@utcNow()",
-                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
-                "item/cr_severity": "Error"
+                "item/cr_occurredon": "@utcNow()",
+                "item/cr_errordetail": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_errorseverity": "Error"
               },
               "host": {
                 "operationId": "CreateRecord",

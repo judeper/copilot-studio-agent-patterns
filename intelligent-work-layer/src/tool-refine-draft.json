@@ -127,9 +127,9 @@
               "parameters": {
                 "entityName": "cr_errorlogs",
                 "item/cr_flowname": "IWL-Tool-RefineDraft",
-                "item/cr_errortimestamp": "@utcNow()",
-                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
-                "item/cr_severity": "Error"
+                "item/cr_occurredon": "@utcNow()",
+                "item/cr_errordetail": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_errorseverity": "Error"
               },
               "host": {
                 "operationId": "CreateRecord",
