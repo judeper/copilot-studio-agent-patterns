@@ -237,10 +237,22 @@ beginDialog:
                 binding:
                   USER_COMMAND: Topic.COMMAND_TEXT
                   SENDER_PROFILE: Topic.ProfileJSON
-                  CONVERSATION_CONTEXT: Topic.CONVERSATION_HISTORY
               output:
                 binding:
                   EmailComposeResponseJSON: Topic.DomainResponseJSON
+
+            # Pre-send risk scoring: PII detection, recipient mismatch, external forwarding
+            - kind: BeginDialog
+              id: beginDialog_Validation
+              dialog: cr_intelligentworklayer.topic.Validation
+              input:
+                binding:
+                  DRAFT_CONTENT: Topic.DomainResponseJSON
+                  SENDER_PROFILE: Topic.ProfileJSON
+                  TRIGGER_TYPE: ="EMAIL"
+              output:
+                binding:
+                  ValidationResponseJSON: Topic.ValidationResponseJSON
 
         - id: conditionItem_Search
           condition: =Topic.RouterDomain = "SEARCH"
