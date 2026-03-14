@@ -8,12 +8,16 @@ beginDialog:
   id: main
   intent:
     displayName: Thank you
+    modelDescription: "Handles expressions of gratitude and appreciation from the user"
     includeInOnSelectIntent: false
     triggerQueries:
       - thanks
       - thank you
       - thanks so much
       - ty
+      - appreciate it
+      - thanks a lot
+      - much appreciated
 
   actions:
     - kind: SendActivity

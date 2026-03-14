@@ -6,6 +6,7 @@ managedProperties:
 beginDialog:
   kind: OnUnknownIntent
   id: main
+  priority: -1
   actions:
     - kind: ConditionGroup
       id: conditionGroup_LktzXw

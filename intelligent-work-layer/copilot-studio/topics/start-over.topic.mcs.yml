@@ -7,12 +7,16 @@ beginDialog:
   id: main
   intent:
     displayName: Start Over
+    modelDescription: "Resets the current conversation when the user wants to start fresh or begin again"
     includeInOnSelectIntent: false
     triggerQueries:
       - let's begin again
       - start over
       - start again
       - restart
+      - begin fresh
+      - reset
+      - new conversation
 
   actions:
     - kind: Question

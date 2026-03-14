@@ -8,6 +8,7 @@ beginDialog:
   id: main
   intent:
     displayName: Greeting
+    modelDescription: "Handles casual greetings when the user says hello or starts a conversation"
     includeInOnSelectIntent: false
     triggerQueries:
       - Good afternoon

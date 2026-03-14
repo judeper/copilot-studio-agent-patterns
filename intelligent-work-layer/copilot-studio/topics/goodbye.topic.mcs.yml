@@ -9,13 +9,14 @@ beginDialog:
   id: main
   intent:
     displayName: Goodbye
+    modelDescription: "Handles farewell messages when the user wants to end the conversation"
     includeInOnSelectIntent: false
     triggerQueries:
       - Bye
       - Bye for now
       - Bye now
       - Good bye
-      - No thank you. Goodbye.
+      - No thanks, I'm done
       - See you later
 
   actions:

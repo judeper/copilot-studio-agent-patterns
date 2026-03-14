@@ -2,6 +2,7 @@
 # Primary triage topic that evaluates email, Teams, and calendar signals.
 # Assigns tier (TIER_1–TIER_3 or SKIP), priority, confidence, and conducts research.
 # Invoked by Power Automate flows (Flow 1–3) via ExecuteAgentAndWait.
+# Invocation: API-only — no user-facing triggers
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput
@@ -40,7 +41,7 @@ beginDialog:
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON
-      aIModelId: <main-triage-model-guid>
+      aIModelId: "{{TRIAGE_MODEL_GUID}}"
 
     - kind: SetVariable
       id: setVariable_TriageResponse

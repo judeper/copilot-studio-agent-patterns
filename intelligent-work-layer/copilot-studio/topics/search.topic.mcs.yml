@@ -1,0 +1,78 @@
+# Name: Search
+# Executes federated searches across the user's Microsoft 365 environment.
+# Sources: email, Teams messages, SharePoint documents, OneNote pages, people directory.
+# Returns ranked, deduplicated results with source attribution.
+# Invoked by the Orchestrator topic after the Router classifies the command as SEARCH domain.
+# Returns structured JSON with results array, source breakdown, and total result count.
+# Invocation: API-only — no user-facing triggers
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: USER_QUERY
+    description: The user's natural language search query
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SEARCH_SCOPE
+    description: "JSON array of enabled sources to search, e.g. [\"EMAIL\",\"TEAMS\",\"SHAREPOINT\",\"ONENOTE\",\"PEOPLE\"], or null to search all sources"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_CONTEXT
+    description: "Comma-separated string: display name, job title, department, org level"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_DATETIME
+    description: Current UTC date/time in ISO 8601 format
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Search
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: "{{SEARCH_MODEL_GUID}}"
+
+    - kind: SetVariable
+      id: setVariable_SearchResponse
+      variable: Topic.SearchResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Search
+
+inputType:
+  properties:
+    USER_QUERY:
+      displayName: USER_QUERY
+      description: The user's natural language search query
+      type: String
+
+    SEARCH_SCOPE:
+      displayName: SEARCH_SCOPE
+      description: "JSON array of enabled sources to search (EMAIL|TEAMS|SHAREPOINT|ONENOTE|PEOPLE), or null to search all sources"
+      type: String
+
+    USER_CONTEXT:
+      displayName: USER_CONTEXT
+      description: "Comma-separated string: display name, job title, department, org level"
+      type: String
+
+    CURRENT_DATETIME:
+      displayName: CURRENT_DATETIME
+      description: Current UTC date/time in ISO 8601 format
+      type: String
+
+outputType:
+  properties:
+    SearchResponseJSON:
+      displayName: SearchResponseJSON
+      description: "JSON with query_interpretation, results array (title, source, snippet, url, date, author, relevance_score), source_breakdown object, total_results count, and search_sources_used array"
+      type: String

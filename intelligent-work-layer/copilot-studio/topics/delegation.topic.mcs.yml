@@ -1,0 +1,78 @@
+# Name: Delegation
+# Helps the authenticated user assign work to team members, set up follow-up tracking,
+# and monitor completion status via Microsoft Planner and Teams notifications.
+# Supports: AssignTask, CreateFollowUp, NotifyDelegate, TrackCompletion.
+# Invoked by the Orchestrator topic after the Router classifies the command as DELEGATION domain.
+# Returns structured JSON with delegation details, follow-up schedule, and confirmation flag.
+# Invocation: API-only — no user-facing triggers
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: USER_COMMAND
+    description: The user's natural language delegation command
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: DELEGATE_CONTEXT
+    description: "JSON object with active delegations and their status (delegation_id, task_title, delegate_email, status, delegated_on, due_date, last_check_in), or null if no prior delegations loaded"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_CONTEXT
+    description: "Comma-separated string: display name, job title, department, org level"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: TEAM_MEMBERS
+    description: JSON array of the user's direct reports and frequent collaborators (display_name, email, role, department)
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Delegation
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: "{{DELEGATION_MODEL_GUID}}"
+
+    - kind: SetVariable
+      id: setVariable_DelegationResponse
+      variable: Topic.DelegationResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Delegation
+
+inputType:
+  properties:
+    USER_COMMAND:
+      displayName: USER_COMMAND
+      description: The user's natural language delegation command
+      type: String
+
+    DELEGATE_CONTEXT:
+      displayName: DELEGATE_CONTEXT
+      description: "JSON object with active delegations and their status (delegation_id, task_title, delegate_email, status, delegated_on, due_date, last_check_in), or null if no prior delegations loaded"
+      type: String
+
+    USER_CONTEXT:
+      displayName: USER_CONTEXT
+      description: "Comma-separated string: display name, job title, department, org level"
+      type: String
+
+    TEAM_MEMBERS:
+      displayName: TEAM_MEMBERS
+      description: JSON array of the user's direct reports and frequent collaborators (display_name, email, role, department)
+      type: String
+
+outputType:
+  properties:
+    DelegationResponseJSON:
+      displayName: DelegationResponseJSON
+      description: "JSON with action_taken (AssignTask|CreateFollowUp|NotifyDelegate|TrackCompletion), delegation_details object, tracking_id, follow_up_schedule array, result_summary, and confirmation_needed flag"
+      type: String

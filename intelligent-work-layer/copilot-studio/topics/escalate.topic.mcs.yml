@@ -11,6 +11,7 @@ beginDialog:
   id: main
   intent:
     displayName: Escalate
+    modelDescription: "Transfers the conversation to a human agent when the user requests live support or person-to-person help"
     includeInOnSelectIntent: false
     triggerQueries:
       - Talk to agent

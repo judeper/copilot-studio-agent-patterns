@@ -1,0 +1,67 @@
+# Name: Task
+# Manages tasks in Microsoft Planner and To Do on behalf of the authenticated user.
+# Supports: CreateTask, UpdateTask, CompleteTask, ListTasks, AssignTask.
+# Invoked by the Orchestrator topic after the Router classifies the command as TASK domain.
+# Returns structured JSON with action taken, task details, result summary, and confirmation flag.
+# Invocation: API-only — no user-facing triggers
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: USER_COMMAND
+    description: The user's natural language task command
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: TASK_CONTEXT
+    description: JSON object with the user's recent and relevant tasks from Planner and To Do, or null if no tasks loaded
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_CONTEXT
+    description: "Comma-separated string: display name, job title, department, org level"
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Task
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: "{{TASK_MODEL_GUID}}"
+
+    - kind: SetVariable
+      id: setVariable_TaskResponse
+      variable: Topic.TaskResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Task
+
+inputType:
+  properties:
+    USER_COMMAND:
+      displayName: USER_COMMAND
+      description: The user's natural language task command
+      type: String
+
+    TASK_CONTEXT:
+      displayName: TASK_CONTEXT
+      description: JSON object with the user's recent and relevant tasks from Planner and To Do, or null if no tasks loaded
+      type: String
+
+    USER_CONTEXT:
+      displayName: USER_CONTEXT
+      description: "Comma-separated string: display name, job title, department, org level"
+      type: String
+
+outputType:
+  properties:
+    TaskResponseJSON:
+      displayName: TaskResponseJSON
+      description: "JSON with action_taken (CreateTask|UpdateTask|CompleteTask|ListTasks|AssignTask), task_details object, result_summary, confirmation_needed flag, and task_list array (for ListTasks)"
+      type: String

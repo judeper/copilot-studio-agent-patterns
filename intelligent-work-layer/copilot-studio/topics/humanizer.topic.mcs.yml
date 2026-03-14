@@ -30,7 +30,7 @@ beginDialog:
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON
-      aIModelId: <humanizer-model-guid>
+      aIModelId: "{{HUMANIZER_MODEL_GUID}}"
 
     - kind: SetVariable
       id: setVariable_HumanizedText

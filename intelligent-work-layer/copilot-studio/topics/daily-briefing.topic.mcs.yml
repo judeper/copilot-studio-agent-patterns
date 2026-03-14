@@ -25,7 +25,7 @@ beginDialog:
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON
-      aIModelId: <briefing-model-guid>
+      aIModelId: "{{BRIEFING_MODEL_GUID}}"
 
     - kind: SetVariable
       id: setVariable_BriefingJSON

@@ -6,7 +6,6 @@ managedProperties:
 beginDialog:
   kind: OnUnknownIntent
   id: main
-  priority: -1
   actions:
     - kind: SearchAndSummarizeContent
       id: search-content

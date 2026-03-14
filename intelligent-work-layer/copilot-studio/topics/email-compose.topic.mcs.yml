@@ -1,0 +1,89 @@
+# Name: Email Compose
+# Composes new outbound emails, forwards, and reply-all messages on behalf of the
+# authenticated user in response to user-initiated commands from the command bar.
+# Distinct from Draft Generator Agent (MARL pipeline) which handles inbound signal replies.
+# Invoked by the Orchestrator topic after the Router classifies the command as EMAIL domain
+# with a compose-type intent (NEW, FORWARD, REPLY_ALL).
+# Returns a structured draft with recipient validation, PII warnings, and confirmation flag.
+# Invocation: API-only — no user-facing triggers
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: USER_COMMAND
+    description: The user's natural language compose command
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SENDER_PROFILE
+    description: JSON object with the user's own profile (display name, email, role, department, signature preferences)
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: PERSONA_PREFERENCES
+    description: JSON object with the user's tone, style, and formality preferences, or null for defaults
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SEMANTIC_KNOWLEDGE
+    description: JSON array of learned semantic facts about the user's communication patterns, or null
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CONVERSATION_CONTEXT
+    description: "JSON object with the original thread context for replies and forwards (subject, sender, recipients, body_preview, message_id), or null for new compositions"
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_EmailCompose
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: "{{EMAIL_COMPOSE_MODEL_GUID}}"
+
+    - kind: SetVariable
+      id: setVariable_EmailComposeResponse
+      variable: Topic.EmailComposeResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_EmailCompose
+
+inputType:
+  properties:
+    USER_COMMAND:
+      displayName: USER_COMMAND
+      description: The user's natural language compose command
+      type: String
+
+    SENDER_PROFILE:
+      displayName: SENDER_PROFILE
+      description: JSON object with the user's own profile (display name, email, role, department, signature preferences)
+      type: String
+
+    PERSONA_PREFERENCES:
+      displayName: PERSONA_PREFERENCES
+      description: JSON object with the user's tone, style, and formality preferences, or null for defaults
+      type: String
+
+    SEMANTIC_KNOWLEDGE:
+      displayName: SEMANTIC_KNOWLEDGE
+      description: JSON array of learned semantic facts about the user's communication patterns, or null
+      type: String
+
+    CONVERSATION_CONTEXT:
+      displayName: CONVERSATION_CONTEXT
+      description: "JSON object with the original thread context for replies and forwards (subject, sender, recipients, body_preview, message_id), or null for new compositions"
+      type: String
+
+outputType:
+  properties:
+    EmailComposeResponseJSON:
+      displayName: EmailComposeResponseJSON
+      description: "JSON with compose_type (NEW|FORWARD|REPLY_ALL), draft object (to, cc, bcc, subject, body), recipient_validation, pii_warnings array, attachment_reminder, recipient_suggestions, and confirmation_needed (always true)"
+      type: String

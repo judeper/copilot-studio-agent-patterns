@@ -1,0 +1,88 @@
+# Name: Validation
+# Performs pre-send risk scoring on outbound communications (email drafts, Teams messages,
+# forwarded content) before they leave the user's control.
+# Risk checks: PII exposure, recipient mismatch, external forwarding, tone, missing attachments, reply-all risk.
+# Returns LOW/MEDIUM/HIGH risk level with APPROVE/WARN/BLOCK recommendation.
+# Invoked by the Orchestrator topic before executing send actions (Send Email, Reply, Forward).
+# Invocation: API-only — no user-facing triggers
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: DRAFT_CONTENT
+    description: The full text of the outbound draft to validate
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: RECIPIENTS
+    description: "JSON object with to, cc, and bcc arrays of email addresses"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: TRIGGER_TYPE
+    description: "Communication type: EMAIL | TEAMS_MESSAGE | FORWARD"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SENDER_PROFILE
+    description: "JSON object with the user's profile (display name, email, department, organization domain)"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CONVERSATION_CONTEXT
+    description: "JSON object with the original inbound thread context (subject, sender, recipients, classification), or null for new compositions"
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Validation
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: "{{VALIDATION_MODEL_GUID}}"
+
+    - kind: SetVariable
+      id: setVariable_ValidationResponse
+      variable: Topic.ValidationResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Validation
+
+inputType:
+  properties:
+    DRAFT_CONTENT:
+      displayName: DRAFT_CONTENT
+      description: The full text of the outbound draft to validate
+      type: String
+
+    RECIPIENTS:
+      displayName: RECIPIENTS
+      description: "JSON object with to, cc, and bcc arrays of email addresses"
+      type: String
+
+    TRIGGER_TYPE:
+      displayName: TRIGGER_TYPE
+      description: "Communication type: EMAIL | TEAMS_MESSAGE | FORWARD"
+      type: String
+
+    SENDER_PROFILE:
+      displayName: SENDER_PROFILE
+      description: "JSON object with the user's profile (display name, email, department, organization domain)"
+      type: String
+
+    CONVERSATION_CONTEXT:
+      displayName: CONVERSATION_CONTEXT
+      description: "JSON object with the original inbound thread context (subject, sender, recipients, classification), or null for new compositions"
+      type: String
+
+outputType:
+  properties:
+    ValidationResponseJSON:
+      displayName: ValidationResponseJSON
+      description: "JSON with risk_level (LOW|MEDIUM|HIGH), risk_factors array (category, severity, description, location), recommendation (APPROVE|WARN|BLOCK), warnings array, external_recipient_count, and internal_recipient_count"
+      type: String

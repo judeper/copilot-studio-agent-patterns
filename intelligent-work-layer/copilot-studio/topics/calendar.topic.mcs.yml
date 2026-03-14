@@ -1,0 +1,77 @@
+# Name: Calendar
+# Handles calendar operations via Microsoft Graph on behalf of the authenticated user.
+# Supports: FindAvailableSlots, GetEventDetails, AcceptEvent, DeclineEvent, ProposeNewTime, CreateEvent, UpdateEvent.
+# Invoked by the Orchestrator topic after the Router classifies the command as CALENDAR domain.
+# Returns structured JSON with action taken, affected events, confirmation flag, and suggested slots.
+# Invocation: API-only — no user-facing triggers
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: USER_COMMAND
+    description: The user's natural language calendar command
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CALENDAR_CONTEXT
+    description: JSON object with the user's calendar events for the relevant time window (today + 7 days), or null
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_CONTEXT
+    description: "Comma-separated string: display name, job title, department, org level"
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_DATETIME
+    description: Current UTC date/time in ISO 8601 format
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent: {}
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Calendar
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: "{{CALENDAR_MODEL_GUID}}"
+
+    - kind: SetVariable
+      id: setVariable_CalendarResponse
+      variable: Topic.CalendarResponseJSON
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Calendar
+
+inputType:
+  properties:
+    USER_COMMAND:
+      displayName: USER_COMMAND
+      description: The user's natural language calendar command
+      type: String
+
+    CALENDAR_CONTEXT:
+      displayName: CALENDAR_CONTEXT
+      description: JSON object with the user's calendar events for the relevant time window (today + 7 days), or null
+      type: String
+
+    USER_CONTEXT:
+      displayName: USER_CONTEXT
+      description: "Comma-separated string: display name, job title, department, org level"
+      type: String
+
+    CURRENT_DATETIME:
+      displayName: CURRENT_DATETIME
+      description: Current UTC date/time in ISO 8601 format
+      type: String
+
+outputType:
+  properties:
+    CalendarResponseJSON:
+      displayName: CalendarResponseJSON
+      description: "JSON with action_taken (FindAvailableSlots|GetEventDetails|AcceptEvent|DeclineEvent|ProposeNewTime|CreateEvent|UpdateEvent), result_summary, affected_events array, confirmation_needed flag, and suggested_slots array"
+      type: String

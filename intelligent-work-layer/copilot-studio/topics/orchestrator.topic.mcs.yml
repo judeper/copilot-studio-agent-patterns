@@ -2,6 +2,7 @@
 # Processes user commands from the Canvas App command bar.
 # Invokes tool flows (QueryCards, QuerySenderProfile, UpdateCard, CreateCard, RefineDraft)
 # to execute operations on assistant cards and sender profiles.
+# Invocation: API-only — no user-facing triggers
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput
@@ -29,25 +30,83 @@ inputs:
     description: Current UTC date/time in ISO 8601 format
     shouldPromptUser: false
 
+  - kind: AutomaticTaskInput
+    propertyName: USER_AAD_ID
+    description: Azure AD Object ID of the authenticated user
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CONVERSATION_HISTORY
+    description: JSON array of prior turns in this session, or null if no prior context
+    shouldPromptUser: false
+
 beginDialog:
   kind: OnRecognizedIntent
   id: main
   intent: {}
   actions:
+    # Step 1: AI Builder model analyzes the command and produces operational parameters
     - kind: InvokeAIBuilderModelAction
       id: invokeAIBuilderModelAction_Orchestrator
       input: {}
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON
-      aIModelId: <orchestrator-model-guid>
+      aIModelId: "{{ORCHESTRATOR_MODEL_GUID}}"
 
+    # Step 2: Parse operational parameters from AI model output
+    - kind: SetVariable
+      id: setVariable_OperationType
+      variable: Topic.OperationType
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).operation_type)
+
+    - kind: SetVariable
+      id: setVariable_FilterExpression
+      variable: Topic.FilterExpression
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).filter_expression)
+
+    - kind: SetVariable
+      id: setVariable_SenderEmail
+      variable: Topic.SenderEmail
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).sender_email)
+
+    - kind: SetVariable
+      id: setVariable_CardId
+      variable: Topic.CardId
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).card_id)
+
+    - kind: SetVariable
+      id: setVariable_UpdateJSON
+      variable: Topic.UpdateJSON
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).update_json)
+
+    - kind: SetVariable
+      id: setVariable_CardJSON
+      variable: Topic.CardJSON
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).card_json)
+
+    - kind: SetVariable
+      id: setVariable_DraftText
+      variable: Topic.DraftText
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).draft_text)
+
+    - kind: SetVariable
+      id: setVariable_ModificationInstructions
+      variable: Topic.ModificationInstructions
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).modification_instructions)
+
+    - kind: SetVariable
+      id: setVariable_TargetChannel
+      variable: Topic.TargetChannel
+      value: =Text(ParseJSON(Topic.GeneratedJSON.text).target_channel)
+
+    # Step 3: Context-gathering flows (always run to load user state)
     - kind: InvokeFlowAction
       id: invokeFlowAction_QueryCards
-      flowId: <flow-guid-for-QueryCards>
+      flowId: "{{FLOW_GUID_QUERY_CARDS}}"
       input:
         binding:
-          user_aad_id: Topic.UserAadId
+          user_aad_id: Topic.USER_AAD_ID
           filter_expression: Topic.FilterExpression
       output:
         binding:
@@ -55,7 +114,7 @@ beginDialog:
 
     - kind: InvokeFlowAction
       id: invokeFlowAction_QuerySenderProfile
-      flowId: <flow-guid-for-QuerySenderProfile>
+      flowId: "{{FLOW_GUID_QUERY_SENDER_PROFILE}}"
       input:
         binding:
           sender_email: Topic.SenderEmail
@@ -63,44 +122,160 @@ beginDialog:
         binding:
           profile_json: Topic.ProfileJSON
 
-    - kind: InvokeFlowAction
-      id: invokeFlowAction_UpdateCard
-      flowId: <flow-guid-for-UpdateCard>
+    # Step 4: Conditional write flows (execute only when the operation requires them)
+    - kind: ConditionGroup
+      id: conditionGroup_UpdateCard
+      conditions:
+        - id: conditionItem_UpdateCard
+          condition: =Topic.OperationType = "UPDATE_CARD"
+          actions:
+            - kind: InvokeFlowAction
+              id: invokeFlowAction_UpdateCard
+              flowId: "{{FLOW_GUID_UPDATE_CARD}}"
+              input:
+                binding:
+                  card_id: Topic.CardId
+                  update_json: Topic.UpdateJSON
+              output:
+                binding:
+                  success: Topic.UpdateSuccess
+
+    - kind: ConditionGroup
+      id: conditionGroup_CreateCard
+      conditions:
+        - id: conditionItem_CreateCard
+          condition: =Topic.OperationType = "CREATE_CARD"
+          actions:
+            - kind: InvokeFlowAction
+              id: invokeFlowAction_CreateCard
+              flowId: "{{FLOW_GUID_CREATE_CARD}}"
+              input:
+                binding:
+                  user_aad_id: Topic.USER_AAD_ID
+                  card_json: Topic.CardJSON
+              output:
+                binding:
+                  new_card_id: Topic.NewCardId
+
+    - kind: ConditionGroup
+      id: conditionGroup_RefineDraft
+      conditions:
+        - id: conditionItem_RefineDraft
+          condition: =Topic.OperationType = "REFINE_DRAFT"
+          actions:
+            - kind: InvokeFlowAction
+              id: invokeFlowAction_RefineDraft
+              flowId: "{{FLOW_GUID_REFINE_DRAFT}}"
+              input:
+                binding:
+                  draft_text: Topic.DraftText
+                  modification_instructions: Topic.ModificationInstructions
+                  target_channel: Topic.TargetChannel
+              output:
+                binding:
+                  refined_text: Topic.RefinedText
+
+    # Step 5: Route to domain agent via Router topic
+    - kind: BeginDialog
+      id: beginDialog_Router
+      dialog: cr_intelligentworklayer.topic.Router
       input:
         binding:
-          card_id: Topic.CardId
-          update_json: Topic.UpdateJSON
+          USER_COMMAND: Topic.COMMAND_TEXT
+          CONVERSATION_HISTORY: Topic.CONVERSATION_HISTORY
+          USER_CONTEXT: Topic.USER_CONTEXT
       output:
         binding:
-          success: Topic.UpdateSuccess
+          RouterResponseJSON: Topic.RouterResponseJSON
 
-    - kind: InvokeFlowAction
-      id: invokeFlowAction_CreateCard
-      flowId: <flow-guid-for-CreateCard>
-      input:
-        binding:
-          user_aad_id: Topic.UserAadId
-          card_json: Topic.CardJSON
-      output:
-        binding:
-          new_card_id: Topic.NewCardId
+    # Step 6: Extract domain classification from Router response JSON
+    - kind: SetVariable
+      id: setVariable_RouterDomain
+      variable: Topic.RouterDomain
+      value: =Text(ParseJSON(Topic.RouterResponseJSON).domain)
 
-    - kind: InvokeFlowAction
-      id: invokeFlowAction_RefineDraft
-      flowId: <flow-guid-for-RefineDraft>
-      input:
-        binding:
-          draft_text: Topic.DraftText
-          modification_instructions: Topic.ModificationInstructions
-          target_channel: Topic.TargetChannel
-      output:
-        binding:
-          refined_text: Topic.RefinedText
+    # Step 7: Dispatch to domain agent based on Router classification
+    - kind: ConditionGroup
+      id: conditionGroup_DomainDispatch
+      conditions:
+        - id: conditionItem_Calendar
+          condition: =Topic.RouterDomain = "CALENDAR"
+          actions:
+            - kind: BeginDialog
+              id: beginDialog_Calendar
+              dialog: cr_intelligentworklayer.topic.Calendar
+              input:
+                binding:
+                  USER_COMMAND: Topic.COMMAND_TEXT
+                  USER_CONTEXT: Topic.USER_CONTEXT
+                  CURRENT_DATETIME: Topic.CURRENT_DATETIME
+              output:
+                binding:
+                  CalendarResponseJSON: Topic.DomainResponseJSON
 
+        - id: conditionItem_Task
+          condition: =Topic.RouterDomain = "TASK"
+          actions:
+            - kind: BeginDialog
+              id: beginDialog_Task
+              dialog: cr_intelligentworklayer.topic.Task
+              input:
+                binding:
+                  USER_COMMAND: Topic.COMMAND_TEXT
+                  USER_CONTEXT: Topic.USER_CONTEXT
+              output:
+                binding:
+                  TaskResponseJSON: Topic.DomainResponseJSON
+
+        - id: conditionItem_Email
+          condition: =Topic.RouterDomain = "EMAIL"
+          actions:
+            - kind: BeginDialog
+              id: beginDialog_EmailCompose
+              dialog: cr_intelligentworklayer.topic.EmailCompose
+              input:
+                binding:
+                  USER_COMMAND: Topic.COMMAND_TEXT
+                  SENDER_PROFILE: Topic.ProfileJSON
+                  CONVERSATION_CONTEXT: Topic.CONVERSATION_HISTORY
+              output:
+                binding:
+                  EmailComposeResponseJSON: Topic.DomainResponseJSON
+
+        - id: conditionItem_Search
+          condition: =Topic.RouterDomain = "SEARCH"
+          actions:
+            - kind: BeginDialog
+              id: beginDialog_Search
+              dialog: cr_intelligentworklayer.topic.Search
+              input:
+                binding:
+                  USER_QUERY: Topic.COMMAND_TEXT
+                  USER_CONTEXT: Topic.USER_CONTEXT
+                  CURRENT_DATETIME: Topic.CURRENT_DATETIME
+              output:
+                binding:
+                  SearchResponseJSON: Topic.DomainResponseJSON
+
+        - id: conditionItem_Delegation
+          condition: =Topic.RouterDomain = "DELEGATION"
+          actions:
+            - kind: BeginDialog
+              id: beginDialog_Delegation
+              dialog: cr_intelligentworklayer.topic.Delegation
+              input:
+                binding:
+                  USER_COMMAND: Topic.COMMAND_TEXT
+                  USER_CONTEXT: Topic.USER_CONTEXT
+              output:
+                binding:
+                  DelegationResponseJSON: Topic.DomainResponseJSON
+
+    # Step 8: Set final output from domain response
     - kind: SetVariable
       id: setVariable_OrchestratorResponse
       variable: Topic.OrchestratorResponseJSON
-      value: =Topic.GeneratedJSON.text
+      value: =Topic.DomainResponseJSON
 
     - kind: EndDialog
       id: endDialog_Orchestrator
@@ -130,6 +305,16 @@ inputType:
     CURRENT_DATETIME:
       displayName: CURRENT_DATETIME
       description: Current UTC date/time in ISO 8601 format
+      type: String
+
+    USER_AAD_ID:
+      displayName: USER_AAD_ID
+      description: Azure AD Object ID of the authenticated user
+      type: String
+
+    CONVERSATION_HISTORY:
+      displayName: CONVERSATION_HISTORY
+      description: JSON array of prior turns in this session, or null if no prior context
       type: String
 
 outputType:

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Deployment placeholder mapping for Copilot Studio topic YAML files. Replace empty values with actual GUIDs from your Power Platform environment before deployment.",
+  "placeholders": {
+    "AI_BUILDER_MODELS": {
+      "ORCHESTRATOR_MODEL_GUID": "",
+      "ROUTER_MODEL_GUID": "",
+      "TRIAGE_MODEL_GUID": "",
+      "VALIDATION_MODEL_GUID": "",
+      "CALENDAR_MODEL_GUID": "",
+      "TASK_MODEL_GUID": "",
+      "EMAIL_COMPOSE_MODEL_GUID": "",
+      "SEARCH_MODEL_GUID": "",
+      "DELEGATION_MODEL_GUID": "",
+      "HUMANIZER_MODEL_GUID": "",
+      "BRIEFING_MODEL_GUID": ""
+    },
+    "POWER_AUTOMATE_FLOWS": {
+      "FLOW_GUID_QUERY_CARDS": "",
+      "FLOW_GUID_QUERY_SENDER_PROFILE": "",
+      "FLOW_GUID_UPDATE_CARD": "",
+      "FLOW_GUID_CREATE_CARD": "",
+      "FLOW_GUID_REFINE_DRAFT": ""
+    }
+  },
+  "usage": "Run: scripts/deploy-solution.ps1 -PlaceholderMap copilot-studio/deployment-placeholders.json"
+}
