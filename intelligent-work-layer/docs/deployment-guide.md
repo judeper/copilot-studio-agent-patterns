@@ -2,6 +2,29 @@
 
 End-to-end deployment checklist for the Intelligent Work Layer solution.
 
+---
+
+## Quick-Start Checklist
+
+Condensed deployment sequence for experienced deployers. Each step references the detailed section below.
+
+| # | Step | Command / Action | Section |
+|---|------|-----------------|---------|
+| 1 | **Pre-flight validation** | `.\preflight-check.ps1 -EnvironmentId "..." -OrgUrl "..."` | [Phase 0](#phase-0--pre-flight-validation) |
+| 2 | **Provision environment & tables** | `.\provision-environment.ps1 -TenantId "..."` | [Phase 1.2](#12-create-environment-and-dataverse-table) |
+| 3 | **⚠️ Manual setup** — Enable PCF, create security roles, assign roles, create connections | Portal steps (no CLI) | [Phase 1.3–1.7](#13-enable-pcf-for-canvas-apps) |
+| 4 | **⚠️ Create agents in Copilot Studio** — Main agent, JSON output mode, input variables, research tools, publish | Copilot Studio portal | [Phase 2](#phase-2--copilot-studio-agent-setup) |
+| 5 | **Populate placeholders** — Fill GUIDs in `copilot-studio/deployment-placeholders.json` | Manual edit | [Phase 2.5a](#25a-fill-in-the-placeholder-file) |
+| 6 | **Substitute placeholders** | `.\substitute-placeholders.ps1` (preview with `-WhatIf` first) | [Phase 2.5c](#25c-perform-substitution) |
+| 7 | **Deploy topics** | `.\provision-copilot.ps1 -EnvironmentId "..."` | [Phase 5.2](#52-deploy-copilot-studio-agent) |
+| 8 | **Deploy flows** | `.\deploy-agent-flows.ps1 -EnvironmentId "..." -OrgUrl "..."` | [Phase 5.3](#53-deploy-agent-flows) |
+| 9 | **Deploy PCF + Canvas app** | `.\deploy-solution.ps1 -EnvironmentId "..."` | [Phase 5.1](#51-build-and-deploy) |
+| 10 | **Verify** — Schema drift audit + smoke test | `.\audit-schema-drift.ps1 -OrgUrl "..."` then [Smoke Test](#smoke-test-procedure) | [Phase 6.6](#phase-66--schema-drift-audit) |
+
+> **Tip:** Steps 1–3 are sequential. Steps 4–6 must run in order. Steps 7–9 can run in any order once placeholders are substituted. Always finish with step 10.
+
+---
+
 ## Prerequisites
 
 ### Development Tools
@@ -95,12 +118,15 @@ cd intelligent-work-layer/scripts
 This creates:
 - A Power Platform environment with Dataverse
 - The `cr_assistantcard` table (entity set name `cr_assistantcards`) with all required columns including `cr_triagetier`
+- All 9 Dataverse tables (AssistantCards, SenderProfile, BriefingSchedule, ErrorLog, EpisodicMemory, SemanticKnowledge, UserPersona, SkillRegistry, SemanticEpisodic)
 
 > **Important**: Save the **Environment ID** and **Organization URL** (e.g., `https://orgname.crm.dynamics.com`) from the script output. You will need these values in later steps.
 
-### 1.3 Enable PCF for Canvas Apps
+> **HEARTBEAT trigger type**: The `cr_triggertype` choice column includes `HEARTBEAT` (value `100000006`). This was added to support the background assessment flow (Flow 11). If you are upgrading an existing environment provisioned before this fix, re-run `provision-environment.ps1` to add the missing choice value — the script is additive and will not duplicate existing values.
 
-This must be done manually — there is no CLI command:
+### 1.3 ⚠️ Enable PCF for Canvas Apps
+
+> **Manual step** — there is no CLI command for this setting.
 
 1. Go to **Power Platform Admin Center** → **Environments** → select your environment
 2. Click **Settings** → expand **Product** → click **Features**
@@ -114,7 +140,7 @@ This must be done manually — there is no CLI command:
 .\create-security-roles.ps1 -OrgUrl "https://<your-org>.crm.dynamics.com"
 ```
 
-### 1.5 Assign Security Role to Demo User
+### 1.5 ⚠️ Assign Security Role to Demo User
 
 The IWL is a single-user experience — the agent processes signals on behalf of the dashboard owner. Only the **person presenting the demo** needs the role. Senders whose emails/Teams messages trigger the agent do **not** need it.
 
@@ -133,9 +159,9 @@ The IWL is a single-user experience — the agent processes signals on behalf of
 
 This script verifies that column names, choice values, and references are consistent across all artifacts (schemas, scripts, documentation). Run it after provisioning to catch any drift.
 
-### 1.7 Create Connections
+### 1.7 ⚠️ Create Connections
 
-Manually create connections in Power Automate for:
+⚠️ Manually create connections in Power Automate for:
 
 1. **Office 365 Outlook** — email triggers and send actions
 2. **Microsoft Teams** — message triggers
@@ -151,7 +177,9 @@ Navigate to: Power Automate → Connections → New connection
 
 ## Phase 2 — Copilot Studio Agent Setup
 
-### 2.1 Create the Main Agent
+### 2.1 ⚠️ Create the Main Agent
+
+⚠️ These steps must be performed in the Copilot Studio portal:
 
 1. Open **Copilot Studio** → select the provisioned environment
 2. Create a new agent: **"Intelligent Work Layer"**
@@ -205,7 +233,7 @@ Create four input variables in the agent:
 | CURRENT_DATETIME | Text | ISO 8601 timestamp | Yes | N/A |
 | SENDER_PROFILE | Multi-line text | Serialized sender profile JSON from SenderProfile table, or the string 'null' for first-time senders. Contains signal_count, response_rate, avg_response_hours, dismiss_rate, avg_edit_distance, sender_category, is_internal. Populated by trigger flows (Flows 1-3) before agent invocation. Enables sender-adaptive triage threshold adjustments. | Optional | null if no profile exists |
 
-### 2.4 Register Research Tools (Actions)
+### 2.4 ⚠️ Register Research Tools (Actions)
 
 The main agent's 5-tier research system requires tool actions to access external data. In Copilot Studio, go to **Actions** → **Add an action** for each tool below.
 
@@ -314,7 +342,18 @@ After any topic YAML change (including placeholder substitution), you **must** r
 
 ## Phase 3 — Agent Flow Creation
 
-Build the three agent flows following `docs/agent-flows.md`:
+Build the three signal-trigger flows following `docs/agent-flows.md`:
+
+> **Flow hardening (v2 improvements):** All 10 main flows now include the following production-readiness features. Ensure these are present when building or importing flows:
+>
+> | Improvement | Description |
+> |------------|-------------|
+> | **ErrorLog writes** | Each flow has a `Scope_Handle_Errors` block that writes to the `cr_errorlogs` Dataverse table on failure |
+> | **Retry policies** | All API calls use `exponential` retry (3 attempts, PT10S–PT1M interval) for transient HTTP 429/5xx errors |
+> | **Ownership checks** | Row-creating actions bind `item@odata.bind` to `systemusers({_ownerid_value})` to enforce row-level security |
+> | **OData sanitization** | Filter expressions use parameterized choice integer values (e.g., `100000000`) instead of string labels |
+> | **Null guards** | `coalesce()` wraps nullable fields (e.g., email subject, sender display name) to prevent null-reference failures |
+> | **Admin notification** | Error Scopes send an email to the `AdminNotificationEmail` environment variable on unrecoverable failures |
 
 ### 3.1 EMAIL Flow
 - Trigger: When a new email arrives (V3)
@@ -387,9 +426,9 @@ pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
 
 This creates the Intelligent Work Layer copilot with 4 topics (Main Triage, Humanizer, Daily Briefing, Orchestrator) and publishes it.
 
-**Manual steps after provisioning:**
-1. In Copilot Studio → Tools → Add **Microsoft Learn Docs MCP Server** from the built-in catalog
-2. (Optional) Add additional MCP servers from the built-in catalog as needed (e.g., Dataverse, Microsoft Search)
+⚠️ **Manual steps after provisioning:**
+1. ⚠️ In Copilot Studio → Tools → Add **Microsoft Learn Docs MCP Server** from the built-in catalog
+2. ⚠️ (Optional) Add additional MCP servers from the built-in catalog as needed (e.g., Dataverse, Microsoft Search)
 
 > **Note:** Bing WebSearch MCP was retired (December 2024). Microsoft Learn Docs MCP replaces the learn.microsoft.com search capability. The Humanizer is provisioned as a **topic within the main agent**, not a standalone agent — no separate agent-sharing configuration is needed.
 
@@ -411,6 +450,8 @@ pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -OrgUrl "https://<org>.crm
 ```
 
 This deploys the 10 main flows (signal triggers, operations, scheduled tasks) via the Flow Management API. The JSON definitions in `src/flow-*.json` are POC scaffolding — some flows may require manual building or correction in the Power Automate designer following the step-by-step specs in `docs/agent-flows.md`.
+
+> **v2 flow improvements:** The deployed flow definitions include ErrorLog writes, exponential retry policies, ownership-bound Dataverse rows, OData filter sanitization, and null guards on all nullable trigger fields. If you are building flows manually from `docs/agent-flows.md`, apply these patterns from the JSON reference files. See the [flow hardening table in Phase 3](#phase-3--agent-flow-creation) for the full list.
 
 Required connectors: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio.
 
@@ -704,9 +745,9 @@ After completing all phases, run through this end-to-end test to verify the solu
 
 ---
 
-## Knowledge Source Configuration
+## ⚠️ Knowledge Source Configuration
 
-The Copilot Studio agent requires knowledge sources to research incoming signals. Configure these after publishing the agent.
+The Copilot Studio agent requires knowledge sources to research incoming signals. ⚠️ Configure these manually in the Copilot Studio portal after publishing the agent.
 
 ### Required Knowledge Sources
 
