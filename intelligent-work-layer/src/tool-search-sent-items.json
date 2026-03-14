@@ -147,6 +147,28 @@
                 "Succeeded"
               ]
             }
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Tool-SearchSentItems",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
           }
         },
         "runAfter": {

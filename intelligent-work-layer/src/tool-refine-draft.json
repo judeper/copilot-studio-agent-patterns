@@ -23,7 +23,11 @@
                 "description": "Target delivery channel: EMAIL or TEAMS_MESSAGE"
               }
             },
-            "required": ["draft_text", "modification_instructions", "target_channel"]
+            "required": [
+              "draft_text",
+              "modification_instructions",
+              "target_channel"
+            ]
           }
         },
         "description": "Pass a draft through the Humanizer agent with optional modification instructions for tone or content adjustments."
@@ -58,7 +62,9 @@
               }
             },
             "runAfter": {
-              "Compose_HumanizerInput": ["Succeeded"]
+              "Compose_HumanizerInput": [
+                "Succeeded"
+              ]
             }
           },
           "Respond_to_the_agent": {
@@ -80,7 +86,9 @@
               }
             },
             "runAfter": {
-              "Execute_Humanizer_Agent": ["Succeeded"]
+              "Execute_Humanizer_Agent": [
+                "Succeeded"
+              ]
             }
           }
         }
@@ -102,12 +110,39 @@
               }
             },
             "runAfter": {
-              "Compose_ErrorDetails": ["Succeeded"]
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Tool-RefineDraft",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
             }
           }
         },
         "runAfter": {
-          "Scope_Main": ["Failed", "TimedOut"]
+          "Scope_Main": [
+            "Failed",
+            "TimedOut"
+          ]
         }
       }
     }

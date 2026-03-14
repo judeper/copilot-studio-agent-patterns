@@ -404,31 +404,6 @@
                   ]
                 }
               },
-              "Upsert_SenderProfile": {
-                "type": "OpenApiConnection",
-                "inputs": {
-                  "parameters": {
-                    "entityName": "cr_senderprofiles",
-                    "recordId": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), first(outputs('List_SenderProfile')?['body/value'])?['cr_senderprofileid'], null)",
-                    "item/cr_senderemail": "@outputs('Compose_OrganizerEmail')",
-                    "item/cr_senderdisplayname": "@coalesce(items('Apply_to_each_event')?['organizer']?['emailAddress']?['name'], outputs('Compose_OrganizerEmail'))",
-                    "item/cr_signalcount": "@if(greater(length(outputs('List_SenderProfile')?['body/value']), 0), add(first(outputs('List_SenderProfile')?['body/value'])?['cr_signalcount'], 1), 1)",
-                    "item/cr_lastsignaldate": "@utcNow()",
-                    "item/cr_isinternal": "@contains(toLower(coalesce(outputs('Compose_OrganizerEmail'), '')), toLower(split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]))"
-                  },
-                  "host": {
-                    "operationId": "UpdateRecord",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
-                    "connectionName": "shared_commondataserviceforapps"
-                  },
-                  "authentication": "@parameters('$authentication')"
-                },
-                "runAfter": {
-                  "Condition_Not_Skip": [
-                    "Succeeded"
-                  ]
-                }
-              },
               "Delay_Rate_Limit": {
                 "type": "Wait",
                 "inputs": {
@@ -438,7 +413,76 @@
                   }
                 },
                 "runAfter": {
-                  "Upsert_SenderProfile": [
+                  "Condition_Profile_Exists": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Condition_Profile_Exists": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "greater": [
+                        "@length(outputs('List_SenderProfile')?['body/value'])",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Update_SenderProfile": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_senderprofiles",
+                        "recordId": "@first(outputs('List_SenderProfile')?['body/value'])?['cr_senderprofileid']",
+                        "item/cr_senderemail": "@outputs('Compose_OrganizerEmail')",
+                        "item/cr_senderdisplayname": "@coalesce(items('Apply_to_each_event')?['organizer']?['emailAddress']?['name'], outputs('Compose_OrganizerEmail'))",
+                        "item/cr_signalcount": "@add(first(outputs('List_SenderProfile')?['body/value'])?['cr_signalcount'], 1)",
+                        "item/cr_lastsignaldate": "@utcNow()",
+                        "item/cr_isinternal": "@contains(toLower(coalesce(outputs('Compose_OrganizerEmail'), '')), toLower(split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]))"
+                      },
+                      "host": {
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Create_SenderProfile": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "entityName": "cr_senderprofiles",
+                          "item/cr_senderemail": "@outputs('Compose_OrganizerEmail')",
+                          "item/cr_senderdisplayname": "@coalesce(items('Apply_to_each_event')?['organizer']?['emailAddress']?['name'], outputs('Compose_OrganizerEmail'))",
+                          "item/cr_signalcount": 1,
+                          "item/cr_responsecount": 0,
+                          "item/cr_dismisscount": 0,
+                          "item/cr_avgresponsehours": 0,
+                          "item/cr_avgeditdistance": 0,
+                          "item/cr_lastsignaldate": "@utcNow()",
+                          "item/cr_isinternal": "@contains(toLower(coalesce(outputs('Compose_OrganizerEmail'), '')), toLower(split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]))"
+                        },
+                        "host": {
+                          "operationId": "CreateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                          "connectionName": "shared_commondataserviceforapps"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      },
+                      "runAfter": {}
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Condition_Not_Skip": [
                     "Succeeded"
                   ]
                 }
@@ -464,6 +508,28 @@
               "errorMessage": "Calendar trigger flow failed during processing. Check run history for details."
             },
             "runAfter": {}
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Flow-3-CalendarTrigger",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
           }
         },
         "runAfter": {

@@ -17,9 +17,17 @@
               "update_json": {
                 "type": "string",
                 "description": "JSON string with field names and values to update (e.g. cr_priority, cr_cardoutcome, cr_humanizeddraft, cr_cardstatus, cr_outcometimestamp)"
+              },
+              "user_aad_id": {
+                "type": "string",
+                "description": "Azure AD object ID of the caller for ownership verification"
               }
             },
-            "required": ["card_id", "update_json"]
+            "required": [
+              "card_id",
+              "update_json",
+              "user_aad_id"
+            ]
           }
         },
         "description": "Modify an assistant card's properties such as priority, outcome, draft text, or status."
@@ -29,89 +37,160 @@
       "Scope_Main": {
         "type": "Scope",
         "actions": {
-          "Parse_Update_JSON": {
-            "type": "ParseJson",
-            "inputs": {
-              "content": "@triggerBody()?['update_json']",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "cr_priority": {
-                    "type": "integer"
-                  },
-                  "cr_cardoutcome": {
-                    "type": "integer"
-                  },
-                  "cr_humanizeddraft": {
-                    "type": "string"
-                  },
-                  "cr_cardstatus": {
-                    "type": "integer"
-                  },
-                  "cr_outcometimestamp": {
-                    "type": "string"
-                  },
-                  "cr_itemsummary": {
-                    "type": "string"
-                  },
-                  "cr_confidencescore": {
-                    "type": "number"
-                  }
-                }
-              }
-            }
-          },
-          "Update_Card": {
+          "Get_Card_For_Auth": {
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
                 "entityName": "cr_assistantcards",
-                "recordId": "@triggerBody()?['card_id']",
-                "item": {
-                  "cr_priority": "@body('Parse_Update_JSON')?['cr_priority']",
-                  "cr_cardoutcome": "@body('Parse_Update_JSON')?['cr_cardoutcome']",
-                  "cr_humanizeddraft": "@body('Parse_Update_JSON')?['cr_humanizeddraft']",
-                  "cr_cardstatus": "@body('Parse_Update_JSON')?['cr_cardstatus']",
-                  "cr_outcometimestamp": "@body('Parse_Update_JSON')?['cr_outcometimestamp']",
-                  "cr_itemsummary": "@body('Parse_Update_JSON')?['cr_itemsummary']",
-                  "cr_confidencescore": "@body('Parse_Update_JSON')?['cr_confidencescore']"
-                }
+                "recordId": "@triggerBody()?['card_id']"
               },
               "host": {
                 "connectionName": "shared_commondataserviceforapps",
-                "operationId": "UpdateRecord",
+                "operationId": "GetItem",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
               }
             },
-            "runAfter": {
-              "Parse_Update_JSON": ["Succeeded"]
-            }
+            "runAfter": {}
           },
-          "Respond_to_the_agent": {
-            "type": "Request",
-            "kind": "PowerVirtualAgentsResponseV2",
-            "inputs": {
-              "statusCode": 200,
-              "body": {
-                "success": true,
-                "card_id": "@{triggerBody()?['card_id']}"
-              },
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "success": {
-                    "type": "boolean",
-                    "description": "Whether the update succeeded"
-                  },
-                  "card_id": {
-                    "type": "string",
-                    "description": "GUID of the updated card"
+          "Condition_Owner_Check": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@outputs('Get_Card_For_Auth')?['body/_ownerid_value']",
+                    "@triggerBody()?['user_aad_id']"
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Parse_Update_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                  "content": "@triggerBody()?['update_json']",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "cr_priority": {
+                        "type": "integer"
+                      },
+                      "cr_cardoutcome": {
+                        "type": "integer"
+                      },
+                      "cr_humanizeddraft": {
+                        "type": "string"
+                      },
+                      "cr_cardstatus": {
+                        "type": "integer"
+                      },
+                      "cr_outcometimestamp": {
+                        "type": "string"
+                      },
+                      "cr_itemsummary": {
+                        "type": "string"
+                      },
+                      "cr_confidencescore": {
+                        "type": "number"
+                      }
+                    }
                   }
+                },
+                "runAfter": {}
+              },
+              "Update_Card": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_assistantcards",
+                    "recordId": "@triggerBody()?['card_id']",
+                    "item": {
+                      "cr_priority": "@body('Parse_Update_JSON')?['cr_priority']",
+                      "cr_cardoutcome": "@body('Parse_Update_JSON')?['cr_cardoutcome']",
+                      "cr_humanizeddraft": "@body('Parse_Update_JSON')?['cr_humanizeddraft']",
+                      "cr_cardstatus": "@body('Parse_Update_JSON')?['cr_cardstatus']",
+                      "cr_outcometimestamp": "@body('Parse_Update_JSON')?['cr_outcometimestamp']",
+                      "cr_itemsummary": "@body('Parse_Update_JSON')?['cr_itemsummary']",
+                      "cr_confidencescore": "@body('Parse_Update_JSON')?['cr_confidencescore']"
+                    }
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {
+                  "Parse_Update_JSON": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Respond_to_the_agent": {
+                "type": "Request",
+                "kind": "PowerVirtualAgentsResponseV2",
+                "inputs": {
+                  "statusCode": 200,
+                  "body": {
+                    "success": true,
+                    "card_id": "@{triggerBody()?['card_id']}"
+                  },
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "description": "Whether the update succeeded"
+                      },
+                      "card_id": {
+                        "type": "string",
+                        "description": "GUID of the updated card"
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Update_Card": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Respond_Unauthorized": {
+                  "type": "Request",
+                  "kind": "PowerVirtualAgentsResponseV2",
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": {
+                      "success": false,
+                      "card_id": "@{triggerBody()?['card_id']}",
+                      "error": "Unauthorized: card belongs to a different user"
+                    },
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "card_id": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {}
                 }
               }
             },
             "runAfter": {
-              "Update_Card": ["Succeeded"]
+              "Get_Card_For_Auth": [
+                "Succeeded"
+              ]
             }
           }
         }
@@ -133,12 +212,39 @@
               }
             },
             "runAfter": {
-              "Compose_ErrorDetails": ["Succeeded"]
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Tool-UpdateCard",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
             }
           }
         },
         "runAfter": {
-          "Scope_Main": ["Failed", "TimedOut"]
+          "Scope_Main": [
+            "Failed",
+            "TimedOut"
+          ]
         }
       }
     }

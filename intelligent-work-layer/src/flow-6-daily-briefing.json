@@ -327,7 +327,43 @@
                 "message": "Daily briefing flow failed unexpectedly"
               }
             },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "flowName": "IWL-Flow-6-DailyBriefing",
+              "errorTimestamp": "@utcNow()",
+              "errorMessage": "IWL-Flow-6-DailyBriefing failed during processing. Check run history for details.",
+              "scopeResult": "@{result('Scope_Daily_Briefing')}"
+            },
             "runAfter": {}
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Flow-6-DailyBriefing",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
           }
         },
         "runAfter": {

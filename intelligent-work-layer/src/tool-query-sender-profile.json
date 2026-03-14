@@ -15,7 +15,9 @@
                 "description": "Email address of the sender to look up"
               }
             },
-            "required": ["sender_email"]
+            "required": [
+              "sender_email"
+            ]
           }
         },
         "description": "Look up sender intelligence profile including response rates, categories, and interaction history."
@@ -85,14 +87,18 @@
               }
             },
             "runAfter": {
-              "Get_Sender_Profile": ["Succeeded"]
+              "Get_Sender_Profile": [
+                "Succeeded"
+              ]
             }
           },
           "Compose_Final_Profile": {
             "type": "Compose",
             "inputs": "@coalesce(outputs('Compose_Found_Profile'), outputs('Compose_Not_Found'))",
             "runAfter": {
-              "Condition_Profile_Found": ["Succeeded"]
+              "Condition_Profile_Found": [
+                "Succeeded"
+              ]
             }
           },
           "Respond_to_the_agent": {
@@ -119,7 +125,9 @@
               }
             },
             "runAfter": {
-              "Compose_Final_Profile": ["Succeeded"]
+              "Compose_Final_Profile": [
+                "Succeeded"
+              ]
             }
           }
         }
@@ -141,12 +149,39 @@
               }
             },
             "runAfter": {
-              "Compose_ErrorDetails": ["Succeeded"]
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Tool-QuerySenderProfile",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
             }
           }
         },
         "runAfter": {
-          "Scope_Main": ["Failed", "TimedOut"]
+          "Scope_Main": [
+            "Failed",
+            "TimedOut"
+          ]
         }
       }
     }

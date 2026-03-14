@@ -40,8 +40,22 @@
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
-                "request/method": "GET",
-                "request/url": "https://graph.microsoft.com/v1.0/me/chats/messages?$search=\"@{triggerBody()?['query']}\"&$top=@{coalesce(triggerBody()?['max_results'], 10)}"
+                "request/method": "POST",
+                "request/url": "https://graph.microsoft.com/v1.0/search/query",
+                "request/body": {
+                  "requests": [
+                    {
+                      "entityTypes": [
+                        "chatMessage"
+                      ],
+                      "query": {
+                        "queryString": "@{triggerBody()?['query']}"
+                      },
+                      "from": 0,
+                      "size": "@coalesce(triggerBody()?['max_results'], 25)"
+                    }
+                  ]
+                }
               },
               "host": {
                 "connectionName": "shared_webcontents",
@@ -54,8 +68,8 @@
           "Compose_Results": {
             "type": "Compose",
             "inputs": {
-              "results": "@body('Search_Teams')?['value']",
-              "count": "@length(body('Search_Teams')?['value'])"
+              "results": "@body('Search_Teams')?['value']?[0]?['hitsContainers']?[0]?['hits']",
+              "count": "@coalesce(body('Search_Teams')?['value']?[0]?['hitsContainers']?[0]?['total'], 0)"
             },
             "runAfter": {
               "Search_Teams": [
@@ -69,7 +83,7 @@
             "inputs": {
               "statusCode": 200,
               "body": {
-                "results_json": "@{string(outputs('Compose_Results')?['results'])}",
+                "results_json": "@{string(coalesce(outputs('Compose_Results')?['results'], json('[]')))}",
                 "result_count": "@outputs('Compose_Results')?['count']"
               },
               "schema": {
@@ -144,6 +158,28 @@
             },
             "runAfter": {
               "Respond_with_error": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Tool-SearchTeamsMessages",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
                 "Succeeded"
               ]
             }

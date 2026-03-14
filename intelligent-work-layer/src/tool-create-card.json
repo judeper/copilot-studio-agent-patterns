@@ -19,7 +19,10 @@
                 "description": "JSON string with card properties (summary, trigger_type, priority, reminder_due)"
               }
             },
-            "required": ["user_aad_id", "card_json"]
+            "required": [
+              "user_aad_id",
+              "card_json"
+            ]
           }
         },
         "description": "Create a new assistant card, typically for user reminders or self-generated notes."
@@ -52,7 +55,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["summary"]
+                "required": [
+                  "summary"
+                ]
               }
             }
           },
@@ -80,7 +85,9 @@
               }
             },
             "runAfter": {
-              "Parse_Card_JSON": ["Succeeded"]
+              "Parse_Card_JSON": [
+                "Succeeded"
+              ]
             }
           },
           "Respond_to_the_agent": {
@@ -107,7 +114,9 @@
               }
             },
             "runAfter": {
-              "Create_Card": ["Succeeded"]
+              "Create_Card": [
+                "Succeeded"
+              ]
             }
           }
         }
@@ -129,12 +138,39 @@
               }
             },
             "runAfter": {
-              "Compose_ErrorDetails": ["Succeeded"]
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Tool-CreateCard",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
             }
           }
         },
         "runAfter": {
-          "Scope_Main": ["Failed", "TimedOut"]
+          "Scope_Main": [
+            "Failed",
+            "TimedOut"
+          ]
         }
       }
     }

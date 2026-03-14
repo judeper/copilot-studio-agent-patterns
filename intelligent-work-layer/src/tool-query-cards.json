@@ -24,7 +24,10 @@
                 "default": 20
               }
             },
-            "required": ["user_aad_id", "filter_expression"]
+            "required": [
+              "user_aad_id",
+              "filter_expression"
+            ]
           }
         },
         "description": "Search the user's assistant cards by filter criteria. Returns matching cards for navigation or analysis."
@@ -36,14 +39,15 @@
         "actions": {
           "Set_MaxResults": {
             "type": "Compose",
-            "inputs": "@coalesce(triggerBody()?['max_results'], 20)"
+            "inputs": "@coalesce(triggerBody()?['max_results'], 20)",
+            "runAfter": {}
           },
           "List_Cards": {
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
                 "entityName": "cr_assistantcards",
-                "$filter": "@{triggerBody()?['filter_expression']} and _ownerid_value eq '@{triggerBody()?['user_aad_id']}'",
+                "$filter": "@{outputs('Sanitize_Filter')} and _ownerid_value eq '@{triggerBody()?['user_aad_id']}'",
                 "$top": "@outputs('Set_MaxResults')",
                 "$orderby": "createdon desc",
                 "$select": "cr_assistantcardsid,cr_itemsummary,cr_triagetier,cr_priority,cr_cardstatus,cr_confidencescore,cr_triggertype,createdon,cr_cardoutcome"
@@ -55,7 +59,12 @@
               }
             },
             "runAfter": {
-              "Set_MaxResults": ["Succeeded"]
+              "Set_MaxResults": [
+                "Succeeded"
+              ],
+              "Sanitize_Filter": [
+                "Succeeded"
+              ]
             }
           },
           "Compose_Results": {
@@ -75,7 +84,9 @@
               }
             },
             "runAfter": {
-              "List_Cards": ["Succeeded"]
+              "List_Cards": [
+                "Succeeded"
+              ]
             }
           },
           "Respond_to_the_agent": {
@@ -102,8 +113,15 @@
               }
             },
             "runAfter": {
-              "Compose_Results": ["Succeeded"]
+              "Compose_Results": [
+                "Succeeded"
+              ]
             }
+          },
+          "Sanitize_Filter": {
+            "type": "Compose",
+            "inputs": "@replace(replace(replace(coalesce(triggerBody()?['filter_expression'], ''), ';', ''), '--', ''), '''', '''''')",
+            "runAfter": {}
           }
         }
       },
@@ -124,12 +142,39 @@
               }
             },
             "runAfter": {
-              "Compose_ErrorDetails": ["Succeeded"]
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Tool-QueryCards",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
             }
           }
         },
         "runAfter": {
-          "Scope_Main": ["Failed", "TimedOut"]
+          "Scope_Main": [
+            "Failed",
+            "TimedOut"
+          ]
         }
       }
     }

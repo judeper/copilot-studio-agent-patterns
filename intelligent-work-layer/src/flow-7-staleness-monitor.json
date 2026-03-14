@@ -220,7 +220,43 @@
                 "message": "Staleness monitor failed unexpectedly"
               }
             },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "flowName": "IWL-Flow-7-StalenessMonitor",
+              "errorTimestamp": "@utcNow()",
+              "errorMessage": "IWL-Flow-7-StalenessMonitor failed during processing. Check run history for details.",
+              "scopeResult": "@{result('Scope_Expire_Abandoned')}"
+            },
             "runAfter": {}
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Flow-7-StalenessMonitor",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
           }
         },
         "runAfter": {

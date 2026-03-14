@@ -290,7 +290,43 @@
                 "message": "An unexpected error occurred while sending the email"
               }
             },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "flowName": "IWL-Flow-4-SendEmail",
+              "errorTimestamp": "@utcNow()",
+              "errorMessage": "IWL-Flow-4-SendEmail failed during processing. Check run history for details.",
+              "scopeResult": "@{result('Scope_Send_Email')}"
+            },
             "runAfter": {}
+          },
+          "Create_ErrorLog": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_errorlogs",
+                "item/cr_flowname": "IWL-Flow-4-SendEmail",
+                "item/cr_errortimestamp": "@utcNow()",
+                "item/cr_errormessage": "@{outputs('Compose_ErrorDetails')}",
+                "item/cr_severity": "Error"
+              },
+              "host": {
+                "operationId": "CreateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
           }
         },
         "runAfter": {
