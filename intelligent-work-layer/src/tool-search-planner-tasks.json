@@ -47,6 +47,12 @@
                 "connectionName": "shared_webcontents",
                 "operationId": "InvokeHttp",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {}
@@ -174,6 +180,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {

@@ -72,7 +72,7 @@
                   "cr_triagetier": 100000002,
                   "cr_cardstatus": 100000000,
                   "cr_cardoutcome": 100000000,
-                  "cr_priority": "@coalesce(body('Parse_Card_JSON')?['priority'], 50)",
+                  "cr_priority": "@coalesce(body('Parse_Card_JSON')?['priority'], 100000002)",
                   "cr_reminderdue": "@body('Parse_Card_JSON')?['reminder_due']",
                   "cr_fulljson": "@triggerBody()?['card_json']",
                   "ownerid@odata.bind": "/systemusers(@{triggerBody()?['user_aad_id']})"
@@ -82,6 +82,12 @@
                 "connectionName": "shared_commondataserviceforapps",
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {
@@ -157,6 +163,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {

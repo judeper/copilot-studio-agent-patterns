@@ -48,6 +48,12 @@
                 "connectionName": "shared_commondataserviceforapps",
                 "operationId": "GetItem",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {}
@@ -104,24 +110,22 @@
                   "parameters": {
                     "entityName": "cr_assistantcards",
                     "recordId": "@triggerBody()?['card_id']",
-                    "item": {
-                      "cr_priority": "@body('Parse_Update_JSON')?['cr_priority']",
-                      "cr_cardoutcome": "@body('Parse_Update_JSON')?['cr_cardoutcome']",
-                      "cr_humanizeddraft": "@body('Parse_Update_JSON')?['cr_humanizeddraft']",
-                      "cr_cardstatus": "@body('Parse_Update_JSON')?['cr_cardstatus']",
-                      "cr_outcometimestamp": "@body('Parse_Update_JSON')?['cr_outcometimestamp']",
-                      "cr_itemsummary": "@body('Parse_Update_JSON')?['cr_itemsummary']",
-                      "cr_confidencescore": "@body('Parse_Update_JSON')?['cr_confidencescore']"
-                    }
+                    "item": "@outputs('Compose_Update_Payload')"
                   },
                   "host": {
                     "connectionName": "shared_commondataserviceforapps",
                     "operationId": "UpdateRecord",
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
                   }
                 },
                 "runAfter": {
-                  "Parse_Update_JSON": [
+                  "Compose_Update_Payload": [
                     "Succeeded"
                   ]
                 }
@@ -151,6 +155,15 @@
                 },
                 "runAfter": {
                   "Update_Card": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Compose_Update_Payload": {
+                "type": "Compose",
+                "inputs": "@removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(removeProperty(body('Parse_Update_JSON'), if(equals(body('Parse_Update_JSON')?['cr_priority'], null), 'cr_priority', '__keep1__')), if(equals(body('Parse_Update_JSON')?['cr_cardoutcome'], null), 'cr_cardoutcome', '__keep2__')), if(equals(body('Parse_Update_JSON')?['cr_humanizeddraft'], null), 'cr_humanizeddraft', '__keep3__')), if(equals(body('Parse_Update_JSON')?['cr_cardstatus'], null), 'cr_cardstatus', '__keep4__')), if(equals(body('Parse_Update_JSON')?['cr_outcometimestamp'], null), 'cr_outcometimestamp', '__keep5__')), if(equals(body('Parse_Update_JSON')?['cr_itemsummary'], null), 'cr_itemsummary', '__keep6__')), if(equals(body('Parse_Update_JSON')?['cr_confidencescore'], null), 'cr_confidencescore', '__keep7__'))",
+                "runAfter": {
+                  "Parse_Update_JSON": [
                     "Succeeded"
                   ]
                 }
@@ -231,6 +244,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {

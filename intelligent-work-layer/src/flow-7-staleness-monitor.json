@@ -32,14 +32,21 @@
             "inputs": {
               "parameters": {
                 "entityName": "cr_assistantcards",
-                "$filter": "cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addHours(utcNow(), -24)}"
+                "$filter": "cr_cardoutcome eq 100000000 and cr_priority eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addHours(utcNow(), -24)}",
+                "$top": 500
               },
               "host": {
                 "operationId": "ListRecords",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
               },
-              "authentication": "@parameters('$authentication')"
+              "authentication": "@parameters('$authentication')",
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
             },
             "runAfter": {}
           },
@@ -64,7 +71,13 @@
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                     "connectionName": "shared_commondataserviceforapps"
                   },
-                  "authentication": "@parameters('$authentication')"
+                  "authentication": "@parameters('$authentication')",
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
                 },
                 "runAfter": {
                   "Compose_NudgeSignalId": [
@@ -107,7 +120,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                         "connectionName": "shared_commondataserviceforapps"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {}
                   },
@@ -124,7 +143,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                         "connectionName": "shared_commondataserviceforapps"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {
                       "Create_Nudge_Card": [
@@ -160,14 +185,21 @@
             "inputs": {
               "parameters": {
                 "entityName": "cr_assistantcards",
-                "$filter": "cr_cardoutcome eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addDays(utcNow(), -7)}"
+                "$filter": "cr_cardoutcome eq 100000000 and cr_triggertype ne 100000003 and createdon lt @{addDays(utcNow(), -7)}",
+                "$top": 500
               },
               "host": {
                 "operationId": "ListRecords",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
               },
-              "authentication": "@parameters('$authentication')"
+              "authentication": "@parameters('$authentication')",
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
             },
             "runAfter": {}
           },
@@ -188,7 +220,13 @@
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                     "connectionName": "shared_commondataserviceforapps"
                   },
-                  "authentication": "@parameters('$authentication')"
+                  "authentication": "@parameters('$authentication')",
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
                 },
                 "runAfter": {}
               }
@@ -250,6 +288,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {

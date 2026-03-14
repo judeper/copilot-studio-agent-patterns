@@ -37,7 +37,13 @@
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
                 "connectionName": "shared_office365"
               },
-              "authentication": "@parameters('$authentication')"
+              "authentication": "@parameters('$authentication')",
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
             },
             "runAfter": {}
           },
@@ -50,7 +56,13 @@
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
                 "connectionName": "shared_office365users"
               },
-              "authentication": "@parameters('$authentication')"
+              "authentication": "@parameters('$authentication')",
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
             },
             "runAfter": {
               "Get_email_(V2)": [
@@ -150,7 +162,13 @@
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
               },
-              "authentication": "@parameters('$authentication')"
+              "authentication": "@parameters('$authentication')",
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
             },
             "runAfter": {
               "Compose_SenderEmail": [
@@ -322,7 +340,13 @@
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                     "connectionName": "shared_commondataserviceforapps"
                   },
-                  "authentication": "@parameters('$authentication')"
+                  "authentication": "@parameters('$authentication')",
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
                 },
                 "runAfter": {}
               },
@@ -394,7 +418,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                         "connectionName": "shared_commondataserviceforapps"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {
                       "Execute_Humanizer_Agent": [
@@ -452,7 +482,13 @@
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                     "connectionName": "shared_commondataserviceforapps"
                   },
-                  "authentication": "@parameters('$authentication')"
+                  "authentication": "@parameters('$authentication')",
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
                 },
                 "runAfter": {}
               }
@@ -479,7 +515,13 @@
                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                       "connectionName": "shared_commondataserviceforapps"
                     },
-                    "authentication": "@parameters('$authentication')"
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 3,
+                      "interval": "PT10S",
+                      "maximumInterval": "PT1M"
+                    }
                   },
                   "runAfter": {}
                 }
@@ -522,6 +564,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {

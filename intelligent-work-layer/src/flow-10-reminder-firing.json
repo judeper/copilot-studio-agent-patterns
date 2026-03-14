@@ -20,14 +20,21 @@
             "inputs": {
               "parameters": {
                 "entityName": "cr_assistantcards",
-                "$filter": "cr_triggertype eq 100000004 and cr_cardoutcome eq 100000000 and cr_reminderdue le @{utcNow()}"
+                "$filter": "cr_triggertype eq 100000004 and cr_cardoutcome eq 100000000 and cr_reminderdue le @{utcNow()}",
+                "$top": 200
               },
               "host": {
                 "operationId": "ListRecords",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
               },
-              "authentication": "@parameters('$authentication')"
+              "authentication": "@parameters('$authentication')",
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
             },
             "runAfter": {}
           },
@@ -59,7 +66,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
                         "connectionName": "shared_office365users"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {}
                   },
@@ -81,7 +94,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
                         "connectionName": "shared_teams"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {
                       "Get_Card_Owner": [
@@ -103,7 +122,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                         "connectionName": "shared_commondataserviceforapps"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {
                       "Post_Teams_Notification": [
@@ -167,6 +192,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {

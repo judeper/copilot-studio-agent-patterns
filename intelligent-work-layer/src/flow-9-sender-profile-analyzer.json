@@ -32,12 +32,19 @@
             "inputs": {
               "parameters": {
                 "entityName": "cr_senderprofiles",
-                "$filter": "cr_signalcount ge 5"
+                "$filter": "cr_signalcount ge 5",
+                "$top": 1000
               },
               "host": {
                 "connectionName": "shared_commondataserviceforapps",
                 "operationId": "ListRecords",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {}
@@ -98,6 +105,12 @@
                           "connectionName": "shared_commondataserviceforapps",
                           "operationId": "UpdateRecord",
                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 3,
+                          "interval": "PT10S",
+                          "maximumInterval": "PT1M"
                         }
                       },
                       "runAfter": {
@@ -161,6 +174,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {

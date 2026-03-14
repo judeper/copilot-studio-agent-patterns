@@ -18,6 +18,11 @@
             "connectionName": "shared_commondataserviceforapps"
           },
           "authentication": "@parameters('$authentication')"
+        },
+        "runtimeConfiguration": {
+          "concurrency": {
+            "repetitions": 1
+          }
         }
       }
     },
@@ -37,7 +42,13 @@
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
               },
-              "authentication": "@parameters('$authentication')"
+              "authentication": "@parameters('$authentication')",
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
+              }
             },
             "runAfter": {}
           },
@@ -59,7 +70,7 @@
                 "actions": {
                   "Compose_ResponseHours_SentAsIs": {
                     "type": "Compose",
-                    "inputs": "@div(sub(ticks(outputs('Get_Modified_Card')?['body/cr_outcometimestamp']), ticks(outputs('Get_Modified_Card')?['body/createdon'])), 36000000000)",
+                    "inputs": "@if(equals(outputs('Get_Modified_Card')?['body/cr_outcometimestamp'], null), 0, div(sub(ticks(outputs('Get_Modified_Card')?['body/cr_outcometimestamp']), ticks(outputs('Get_Modified_Card')?['body/createdon'])), 36000000000))",
                     "runAfter": {}
                   },
                   "List_SenderProfile_SentAsIs": {
@@ -74,7 +85,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                         "connectionName": "shared_commondataserviceforapps"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {
                       "Compose_ResponseHours_SentAsIs": [
@@ -101,15 +118,21 @@
                           "parameters": {
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_senderprofileid']",
-                            "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 1)",
-                            "item/cr_avgresponsehours": "@div(add(mul(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_avgresponsehours'], first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount']), outputs('Compose_ResponseHours_SentAsIs')), add(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 1))"
+                            "item/cr_responsecount": "@add(coalesce(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 0), 1)",
+                            "item/cr_avgresponsehours": "@if(equals(add(coalesce(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 0), 1), 0), 0, div(add(mul(coalesce(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_avgresponsehours'], 0), coalesce(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 0)), outputs('Compose_ResponseHours_SentAsIs')), add(coalesce(first(body('List_SenderProfile_SentAsIs')?['value'])?['cr_responsecount'], 0), 1)))"
                           },
                           "host": {
                             "operationId": "UpdateRecord",
                             "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                             "connectionName": "shared_commondataserviceforapps"
                           },
-                          "authentication": "@parameters('$authentication')"
+                          "authentication": "@parameters('$authentication')",
+                          "retryPolicy": {
+                            "type": "exponential",
+                            "count": 3,
+                            "interval": "PT10S",
+                            "maximumInterval": "PT1M"
+                          }
                         },
                         "runAfter": {}
                       }
@@ -135,7 +158,13 @@
                               "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                               "connectionName": "shared_commondataserviceforapps"
                             },
-                            "authentication": "@parameters('$authentication')"
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "exponential",
+                              "count": 3,
+                              "interval": "PT10S",
+                              "maximumInterval": "PT1M"
+                            }
                           },
                           "runAfter": {}
                         }
@@ -154,7 +183,7 @@
                 "actions": {
                   "Compose_ResponseHours_SentEdited": {
                     "type": "Compose",
-                    "inputs": "@div(sub(ticks(outputs('Get_Modified_Card')?['body/cr_outcometimestamp']), ticks(outputs('Get_Modified_Card')?['body/createdon'])), 36000000000)",
+                    "inputs": "@if(equals(outputs('Get_Modified_Card')?['body/cr_outcometimestamp'], null), 0, div(sub(ticks(outputs('Get_Modified_Card')?['body/cr_outcometimestamp']), ticks(outputs('Get_Modified_Card')?['body/createdon'])), 36000000000))",
                     "runAfter": {}
                   },
                   "List_SenderProfile_SentEdited": {
@@ -169,7 +198,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                         "connectionName": "shared_commondataserviceforapps"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {
                       "Compose_ResponseHours_SentEdited": [
@@ -196,8 +231,8 @@
                           "parameters": {
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_SentEdited')?['value'])?['cr_senderprofileid']",
-                            "item/cr_responsecount": "@add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1)",
-                            "item/cr_avgresponsehours": "@div(add(mul(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgresponsehours'], first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount']), outputs('Compose_ResponseHours_SentEdited')), add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1))",
+                            "item/cr_responsecount": "@add(coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 0), 1)",
+                            "item/cr_avgresponsehours": "@if(equals(add(coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 0), 1), 0), 0, div(add(mul(coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgresponsehours'], 0), coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 0)), outputs('Compose_ResponseHours_SentEdited')), add(coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 0), 1)))",
                             "item/cr_avgeditdistance": "@outputs('Compose_NewAvgEditDistance_SentEdited')"
                           },
                           "host": {
@@ -205,7 +240,13 @@
                             "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                             "connectionName": "shared_commondataserviceforapps"
                           },
-                          "authentication": "@parameters('$authentication')"
+                          "authentication": "@parameters('$authentication')",
+                          "retryPolicy": {
+                            "type": "exponential",
+                            "count": 3,
+                            "interval": "PT10S",
+                            "maximumInterval": "PT1M"
+                          }
                         },
                         "runAfter": {
                           "Compose_NewAvgEditDistance_SentEdited": [
@@ -215,7 +256,7 @@
                       },
                       "Compose_NewAvgEditDistance_SentEdited": {
                         "type": "Compose",
-                        "inputs": "@div(add(mul(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgeditdistance'], first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount']), outputs('Get_Modified_Card')?['body/cr_editdistanceratio']), add(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 1))",
+                        "inputs": "@if(equals(add(coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 0), 1), 0), 0, div(add(mul(coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_avgeditdistance'], 0), coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 0)), coalesce(outputs('Get_Modified_Card')?['body/cr_editdistanceratio'], 0)), add(coalesce(first(body('List_SenderProfile_SentEdited')?['value'])?['cr_responsecount'], 0), 1)))",
                         "runAfter": {}
                       }
                     },
@@ -240,7 +281,13 @@
                               "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                               "connectionName": "shared_commondataserviceforapps"
                             },
-                            "authentication": "@parameters('$authentication')"
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "exponential",
+                              "count": 3,
+                              "interval": "PT10S",
+                              "maximumInterval": "PT1M"
+                            }
                           },
                           "runAfter": {}
                         }
@@ -269,7 +316,13 @@
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                         "connectionName": "shared_commondataserviceforapps"
                       },
-                      "authentication": "@parameters('$authentication')"
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 3,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     },
                     "runAfter": {}
                   },
@@ -292,14 +345,20 @@
                           "parameters": {
                             "entityName": "cr_senderprofiles",
                             "recordId": "@first(body('List_SenderProfile_Dismissed')?['value'])?['cr_senderprofileid']",
-                            "item/cr_dismisscount": "@add(first(body('List_SenderProfile_Dismissed')?['value'])?['cr_dismisscount'], 1)"
+                            "item/cr_dismisscount": "@add(coalesce(first(body('List_SenderProfile_Dismissed')?['value'])?['cr_dismisscount'], 0), 1)"
                           },
                           "host": {
                             "operationId": "UpdateRecord",
                             "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                             "connectionName": "shared_commondataserviceforapps"
                           },
-                          "authentication": "@parameters('$authentication')"
+                          "authentication": "@parameters('$authentication')",
+                          "retryPolicy": {
+                            "type": "exponential",
+                            "count": 3,
+                            "interval": "PT10S",
+                            "maximumInterval": "PT1M"
+                          }
                         },
                         "runAfter": {}
                       }
@@ -325,7 +384,13 @@
                               "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                               "connectionName": "shared_commondataserviceforapps"
                             },
-                            "authentication": "@parameters('$authentication')"
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "exponential",
+                              "count": 3,
+                              "interval": "PT10S",
+                              "maximumInterval": "PT1M"
+                            }
                           },
                           "runAfter": {}
                         }
@@ -406,6 +471,12 @@
                 "operationId": "CreateRecord",
                 "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
                 "connectionName": "shared_commondataserviceforapps"
+              },
+              "retryPolicy": {
+                "type": "exponential",
+                "count": 3,
+                "interval": "PT10S",
+                "maximumInterval": "PT1M"
               }
             },
             "runAfter": {
