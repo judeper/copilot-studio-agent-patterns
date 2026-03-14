@@ -33,6 +33,42 @@ End-to-end deployment checklist for the Intelligent Work Layer solution.
 
 ---
 
+## Phase 0 — Pre-Flight Validation
+
+Before starting any deployment, run the pre-flight check to validate your local environment and (optionally) the target Power Platform environment:
+
+```powershell
+cd intelligent-work-layer/scripts
+
+# Local-only checks (tools, placeholder file, schemas)
+.\preflight-check.ps1
+
+# Full validation including remote environment checks
+.\preflight-check.ps1 `
+    -EnvironmentId "<your-environment-id>" `
+    -OrgUrl "https://<your-org>.crm.dynamics.com"
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `-EnvironmentId` | No | Target Power Platform environment ID. Omit to run local-only checks |
+| `-OrgUrl` | No | Dataverse organization URL. Required for table existence and connection checks |
+| `-PublisherPrefix` | No | Dataverse publisher prefix (default: `cr`) |
+| `-SkipRemote` | No | Explicitly skip all remote checks |
+
+The script validates 7 categories:
+1. Required tools (PowerShell 7+, PAC CLI, Azure CLI, Node.js, npm)
+2. PAC CLI authentication (active profile exists)
+3. Azure CLI authentication
+4. Target environment exists and is accessible
+5. Dataverse tables match schema definitions
+6. Power Platform connections are created and authenticated
+7. Deployment placeholder file is complete (all GUIDs filled in)
+
+> **Exit codes:** `0` = all checks passed, `1` = one or more checks failed, `2` = critical error. Resolve all `FAIL` items before proceeding.
+
+---
+
 ## Phase 1 — Environment Provisioning
 
 ### 1.1 Authenticate
@@ -97,7 +133,7 @@ The IWL is a single-user experience — the agent processes signals on behalf of
 
 This script verifies that column names, choice values, and references are consistent across all artifacts (schemas, scripts, documentation). Run it after provisioning to catch any drift.
 
-### 1.6 Create Connections
+### 1.7 Create Connections
 
 Manually create connections in Power Automate for:
 
@@ -215,6 +251,67 @@ After publishing each agent (Main, Humanizer, Daily Briefing, Orchestrator), ver
 
 ---
 
+## Phase 2.5 — Placeholder Substitution (Copilot Studio Topics)
+
+Before deploying topic YAML files to Copilot Studio, you must substitute environment-specific GUIDs into the topic files. The topic YAML files in `copilot-studio/topics/` contain `{{PLACEHOLDER_NAME}}` tokens that reference AI Builder model GUIDs and Power Automate flow GUIDs specific to your environment.
+
+### 2.5a Fill in the Placeholder File
+
+Edit `copilot-studio/deployment-placeholders.json` and populate every empty value with the actual GUID from your environment:
+
+| Category | Placeholder | Where to Find the GUID |
+|----------|-------------|------------------------|
+| `AI_BUILDER_MODELS` | `ORCHESTRATOR_MODEL_GUID`, `ROUTER_MODEL_GUID`, `TRIAGE_MODEL_GUID`, etc. | Power Apps → AI models → click the model → copy the Model ID from the URL |
+| `POWER_AUTOMATE_FLOWS` | `FLOW_GUID_QUERY_CARDS`, `FLOW_GUID_CREATE_CARD`, etc. | Printed by `deploy-agent-flows.ps1` after deployment, or found in Power Automate → flow details URL |
+
+### 2.5b Preview Substitutions (Dry Run)
+
+```powershell
+cd intelligent-work-layer/scripts
+.\substitute-placeholders.ps1 -WhatIf
+```
+
+This shows all substitutions that would be made without modifying any files. Verify every placeholder maps to a valid GUID.
+
+### 2.5c Perform Substitution
+
+```powershell
+.\substitute-placeholders.ps1
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `-PlaceholderFile` | No | Path to JSON file (default: `../copilot-studio/deployment-placeholders.json`) |
+| `-TopicDir` | No | Directory with `*.topic.mcs.yml` files (default: `../copilot-studio/topics`) |
+| `-Revert` | No | Restores `{{PLACEHOLDER_NAME}}` tokens from current GUID values |
+| `-WhatIf` | No | Dry-run — shows changes without modifying files |
+
+> **Exit codes:** `0` = success, `1` = placeholder file not found/invalid, `2` = empty placeholder values detected, `3` = substitution write errors.
+
+> **Important:** After substitution, the topic YAML files contain your environment-specific GUIDs. Do **not** commit substituted files to source control. Run `.\substitute-placeholders.ps1 -Revert` before committing to restore the generic `{{PLACEHOLDER}}` tokens.
+
+### 2.5d Push Topics to Copilot Studio
+
+After placeholder substitution, deploy the topic YAML files to Copilot Studio using the provisioning script:
+
+```powershell
+.\provision-copilot.ps1 -EnvironmentId "<env-id>"
+```
+
+This provisions all 24 topic YAML files from `copilot-studio/topics/` as topics within the agent (including system topics like Greeting, Fallback, Escalate, etc.) and publishes the agent.
+
+> **Manual alternative:** If the script fails or you need fine-grained control, you can import topics manually in Copilot Studio → Topics → Import → upload individual `.topic.mcs.yml` files.
+
+### 2.5e Re-publish After Topic Changes
+
+After any topic YAML change (including placeholder substitution), you **must** re-publish the agent:
+
+1. Open **Copilot Studio** → select the agent
+2. Click **Publish** in the top-right corner
+3. Wait for "Published" status before testing
+
+---
+
 ## Phase 3 — Agent Flow Creation
 
 Build the three agent flows following `docs/agent-flows.md`:
@@ -281,7 +378,7 @@ Then pack and import the solution via PAC CLI.
 
 > **Note**: The solution is packaged as **Unmanaged**, which is appropriate for development and testing. For production deployment, change `SolutionPackageType` to `Managed` in `src/Solutions/Solution.cdsproj` before building.
 
-### Step 3a: Deploy Copilot Studio Agent
+### 5.2 Deploy Copilot Studio Agent
 
 ```bash
 cd scripts
@@ -296,7 +393,7 @@ This creates the Intelligent Work Layer copilot with 4 topics (Main Triage, Huma
 
 > **Note:** Bing WebSearch MCP was retired (December 2024). Microsoft Learn Docs MCP replaces the learn.microsoft.com search capability. The Humanizer is provisioned as a **topic within the main agent**, not a standalone agent — no separate agent-sharing configuration is needed.
 
-### Step 3b: Deploy Agent Flows
+### 5.3 Deploy Agent Flows
 
 #### Tool Flows (10 agent tool flows)
 
@@ -362,6 +459,81 @@ The Canvas App connects the PCF component to Power Automate flows through output
 
 ---
 
+## Phase 6.6 — Schema Drift Audit
+
+After provisioning tables and deploying flows, run the schema drift audit to verify consistency between your local schema files, provisioning scripts, and the live Dataverse environment:
+
+```powershell
+cd intelligent-work-layer/scripts
+
+# Offline-only: validate schema files against provision-environment.ps1
+.\audit-schema-drift.ps1 -OfflineOnly
+
+# Live: compare schemas against the deployed Dataverse environment
+.\audit-schema-drift.ps1 -OrgUrl "https://<your-org>.crm.dynamics.com"
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `-OrgUrl` | Yes (unless `-OfflineOnly`) | Dataverse organization URL |
+| `-SchemaDir` | No | Path to `*-table.json` schema files (default: `../schemas`) |
+| `-ProvisionScript` | No | Path to `provision-environment.ps1` (default: `./provision-environment.ps1`) |
+| `-PublisherPrefix` | No | Publisher prefix (default: `cr`) |
+| `-OfflineOnly` | No | Skip live Dataverse comparison; validate schema vs. provision script only |
+
+The audit detects:
+- Tables defined in schema but missing from Dataverse (or vice versa)
+- Columns defined in schema but not provisioned (or vice versa)
+- Column type mismatches
+- Missing alternate keys
+- Broken lookup relationships (referenced tables without schema files)
+
+> **When to run:** After `provision-environment.ps1`, after schema changes, and as part of CI/CD validation. Exit code `1` indicates drift.
+
+---
+
+## Phase 6.7 — OneNote Integration (Optional)
+
+If OneNote integration is desired (Phase 1 — write-only sync for meeting prep, daily briefings, and active to-dos):
+
+### Prerequisites
+
+- Microsoft Graph PowerShell SDK (`Microsoft.Graph.Groups`, `Microsoft.Graph.Notes` modules)
+- Authenticated session with `Group.ReadWrite.All` and `Notes.ReadWrite.All` permissions
+- Dataverse environment with Assistant Cards table already provisioned
+
+### Provision OneNote
+
+```powershell
+.\provision-onenote.ps1 `
+    -EnvironmentId "<env-id>" `
+    -OrgUrl "https://<your-org>.crm.dynamics.com"
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `-EnvironmentId` | Yes | Power Platform environment ID |
+| `-OrgUrl` | Yes | Dataverse organization URL |
+| `-PublisherPrefix` | No | Publisher prefix (default: `cr`) |
+| `-GroupDisplayName` | No | M365 Group name (default: `Intelligent Work Layer - OneNote`) |
+| `-NotebookDisplayName` | No | Notebook name (default: `Work Layer`) |
+| `-SkipGroupCreation` | No | Skip M365 Group creation; use existing group |
+| `-GroupId` | Conditional | Existing M365 Group ID (required when `-SkipGroupCreation` is set) |
+
+### Validate OneNote Integration
+
+After provisioning, run the consistency validator:
+
+```powershell
+.\validate-onenote-integration.ps1
+```
+
+This checks that OneNote column references, template placeholders, tool action names, and JSON schemas are internally consistent. Run after any changes to OneNote integration files.
+
+> **Feature flags:** OneNote sync is gated by `cr_onenoteenabled` (environment-level) and `cr_onenoteoptout` (per-user). See `docs/onenote-integration.md` for full design.
+
+---
+
 ## Phase 7 — Governance
 
 ### 7.1 Data Loss Prevention (DLP) Policies
@@ -387,6 +559,33 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - Copilot Studio's built-in Responsible AI content filtering is active by default
 - Review agent outputs periodically for accuracy and appropriateness
 
+### 7.4 User Data Erasure (GDPR / CCPA)
+
+For GDPR Article 17 (Right to Erasure) or CCPA deletion requests, use the data erasure script:
+
+```powershell
+# Dry-run — see what would be deleted
+.\user-data-erasure.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -UserEmail "user@example.com" `
+    -WhatIf
+
+# Actual erasure (interactive confirmation)
+.\user-data-erasure.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -UserEmail "user@example.com"
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `-OrgUrl` | Yes | Dataverse organization URL |
+| `-UserEmail` | Yes | Email of the user whose data should be erased |
+| `-PublisherPrefix` | No | Publisher prefix (default: `cr`) |
+| `-WhatIf` | No | Reports what would be deleted without deleting |
+| `-Force` | No | Skips interactive confirmation prompt (for pipelines) |
+
+Purges all 9 Dataverse tables in dependency-safe order. See `docs/data-governance.md` for compliance context.
+
 ---
 
 ## Verification Checklist
@@ -408,6 +607,9 @@ Ensure the environment's DLP policies allow the required connector combinations.
 - [ ] Card detail view shows all sections
 - [ ] Send, Copy to Clipboard, and Dismiss actions work
 - [ ] DLP policies allow all required connector combinations
+- [ ] Error logging: trigger flows write to `cr_errorlogs` table on agent invocation failure
+- [ ] Retry policies: trigger flows retry transient failures (HTTP 429/5xx) up to 3 times with exponential backoff
+- [ ] Error notification: `AdminNotificationEmail` receives alerts when error Scope fires
 
 ### Sprint 1A Verification
 - [ ] AssistantCards table has `cr_cardoutcome`, `cr_outcometimestamp`, `cr_senttimestamp`, `cr_sentrecipient`, `cr_originalsenderemail`, `cr_originalsenderdisplay`, `cr_originalsubject`
@@ -491,6 +693,12 @@ After completing all phases, run through this end-to-end test to verify the solu
 6. **Click the card** → verify the detail view renders correctly (summary, priority badge, key findings, sources)
 7. **Click Dismiss** → verify the card outcome updates to `DISMISSED` in the `cr_cardoutcome` column in Dataverse
 8. **Test filters** → use the dropdown controls to filter by trigger type, priority, and status
+9. **Verify error logging** — intentionally trigger an error (e.g., temporarily disable a connection) and confirm:
+   - A row is written to the `cr_errorlogs` Dataverse table with the error details
+   - The `AdminNotificationEmail` receives an error alert
+   - The flow retries transient failures (check the flow run history for retry attempts before final failure)
+10. **Run pre-flight check** — after all tests pass, run `.\preflight-check.ps1` with full parameters to confirm all checks still pass
+11. **Run schema drift audit** — confirm no drift: `.\audit-schema-drift.ps1 -OrgUrl "https://<org>.crm.dynamics.com"`
 
 > If the CALENDAR_SCAN flow is configured, you can also test it by clicking "Run" manually in Power Automate (no need to wait for the daily schedule).
 
@@ -571,3 +779,100 @@ Common errors and their fixes:
 | "Invoke agent" action fails | Agent not published, or using wrong connector | Ensure the agent is published in Copilot Studio. Use the **Microsoft Copilot Studio** connector (not AI Builder) |
 | Flow runs but no Dataverse row created | Item was triaged as SKIP | SKIP-tier items are filtered out before the Dataverse write. Check the agent's JSON output in the flow run to see the `triage_tier` value |
 | Humanized draft not appearing | Confidence score below 40, or trigger type is CALENDAR_SCAN | The humanizer handoff condition requires `triage_tier = FULL`, `confidence_score >= 40`, and `trigger_type != CALENDAR_SCAN` |
+| Placeholder substitution used wrong GUIDs | Incorrect values in `deployment-placeholders.json` | Run `.\substitute-placeholders.ps1 -Revert`, fix the JSON, then re-run `.\substitute-placeholders.ps1` |
+| Schema drift after manual Dataverse changes | Columns added/removed outside of provisioning script | Run `.\audit-schema-drift.ps1 -OrgUrl "..."` to identify drift, then update schemas or Dataverse to match |
+
+---
+
+## Rollback Procedures
+
+### Reverting Placeholder Substitution
+
+If topic YAML files were substituted with incorrect GUIDs, or you need to restore them to the generic `{{PLACEHOLDER}}` token state:
+
+```powershell
+cd intelligent-work-layer/scripts
+.\substitute-placeholders.ps1 -Revert
+```
+
+This replaces all GUID values in `*.topic.mcs.yml` files back to their `{{PLACEHOLDER_NAME}}` tokens using the current values in `deployment-placeholders.json`. After reverting:
+
+1. Fix the GUID values in `copilot-studio/deployment-placeholders.json`
+2. Re-run `.\substitute-placeholders.ps1` with corrected values
+3. Re-deploy topics via `.\provision-copilot.ps1 -EnvironmentId "<env-id>"`
+4. Re-publish the agent in Copilot Studio
+
+> **Caution:** Revert only works if the GUID values in `deployment-placeholders.json` match what was previously substituted. If the JSON was changed after substitution, you may need to restore topic files from source control: `git checkout -- copilot-studio/topics/`
+
+### Reverting Flow Deployment
+
+If flows deployed but are misconfigured or causing errors:
+
+1. **Disable flows immediately** — In Power Automate, navigate to each IWL flow and click **Turn off** to stop signal processing
+2. **Delete and re-deploy** — Delete the problematic flows in Power Automate, fix the underlying issue, then re-run:
+   ```powershell
+   .\deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -OrgUrl "https://<org>.crm.dynamics.com" -FlowsToCreate MainFlows
+   ```
+3. **Solution rollback** — If flows were imported via solution:
+   ```powershell
+   pac solution delete --solution-name EnterpriseWorkAssistant --environment "<env-id>"
+   ```
+   Then re-import the previous solution version.
+
+### Reverting Agent Publication
+
+If the agent was published with bad topics or system prompt:
+
+1. **Unpublish is not supported** — Copilot Studio does not have a one-click unpublish. Instead:
+   - Open the agent in Copilot Studio
+   - Fix the problematic topics or system prompt
+   - Re-publish with the corrected configuration
+2. **Disable agent invocation** — To immediately stop the agent from processing signals while you fix it:
+   - Turn off all trigger flows (Flows 1-3) in Power Automate
+   - This prevents new signals from reaching the agent without unpublishing
+3. **Restore topics from source control** — If topic YAML files are corrupted:
+   ```powershell
+   git checkout -- copilot-studio/topics/
+   .\substitute-placeholders.ps1       # re-apply correct GUIDs
+   .\provision-copilot.ps1 -EnvironmentId "<env-id>"
+   ```
+
+### Re-provisioning Corrupted Tables
+
+If Dataverse tables are corrupted (wrong column types, missing columns, broken alternate keys):
+
+1. **Run schema drift audit** to identify the exact discrepancies:
+   ```powershell
+   .\audit-schema-drift.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
+   ```
+2. **For missing columns/keys** — Re-run the provisioning script. It is designed to be additive (creates missing items without deleting existing data):
+   ```powershell
+   .\provision-environment.ps1 -TenantId "<tenant-id>"
+   ```
+3. **For type mismatches** — Column types cannot be changed after creation in Dataverse. You must:
+   - Export any data you want to preserve (Dataverse → Export to Excel)
+   - Delete the affected table in Dataverse admin
+   - Re-run `.\provision-environment.ps1` to recreate it
+   - Re-import the data
+4. **Nuclear option — full environment reset:**
+   ```powershell
+   # Delete the environment entirely
+   pac admin delete --environment "<env-id>"
+   # Re-provision from scratch
+   .\provision-environment.ps1 -TenantId "<tenant-id>" -EnvironmentName "EnterpriseWorkAssistant-Dev"
+   ```
+
+### Partial Deployment Recovery
+
+If a deployment fails midway through the phases:
+
+| Failed At | What Happened | Recovery Steps |
+|-----------|---------------|----------------|
+| Phase 1 (provisioning) | Environment created but tables incomplete | Re-run `.\provision-environment.ps1` — it is idempotent |
+| Phase 2 (agent setup) | Agent created but topics wrong | Fix topics, re-run `.\provision-copilot.ps1`, re-publish |
+| Phase 2.5 (placeholders) | Substitution applied with wrong GUIDs | Run `.\substitute-placeholders.ps1 -Revert`, fix JSON, re-substitute |
+| Phase 3 (flows) | Some flows deployed, others failed | Re-run `.\deploy-agent-flows.ps1` — it reuses existing flows by name |
+| Phase 5 (PCF) | Solution import failed | Check `deploy-*.log` for errors, fix, re-run `.\deploy-solution.ps1` |
+| Phase 6 (Canvas app) | App created but PCF control not bound | Follow `docs/canvas-app-setup.md` to re-bind the control |
+
+> **General principle:** Most IWL provisioning scripts are idempotent — they check for existing resources before creating new ones. When in doubt, re-run the script for the failed phase.
