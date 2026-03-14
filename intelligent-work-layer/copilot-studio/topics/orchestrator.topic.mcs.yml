@@ -271,6 +271,28 @@ beginDialog:
                 binding:
                   DelegationResponseJSON: Topic.DomainResponseJSON
 
+        - id: conditionItem_CardManagement
+          condition: =Topic.RouterDomain = "CARD_MANAGEMENT"
+          actions:
+            - kind: SetVariable
+              id: setVariable_CardMgmtResponse
+              variable: Topic.DomainResponseJSON
+              value: =Topic.GeneratedJSON.text
+
+        - id: conditionItem_Settings
+          condition: =Topic.RouterDomain = "SETTINGS"
+          actions:
+            - kind: SetVariable
+              id: setVariable_SettingsResponse
+              variable: Topic.DomainResponseJSON
+              value: '="{ ""error"": ""SETTINGS domain not yet implemented"", ""domain"": ""SETTINGS"" }"'
+
+      elseActions:
+        - kind: SetVariable
+          id: setVariable_UnknownDomainResponse
+          variable: Topic.DomainResponseJSON
+          value: '="{ ""error"": ""Unrecognized domain"", ""domain"": """ & Topic.RouterDomain & """ }"'
+
     # Step 8: Set final output from domain response
     - kind: SetVariable
       id: setVariable_OrchestratorResponse
