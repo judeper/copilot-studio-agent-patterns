@@ -48,10 +48,23 @@
     {
       "logicalName": "cr_errorseverity",
       "displayName": "Error Severity",
-      "type": "Text",
-      "maxLength": 20,
+      "type": "Choice",
       "required": false,
-      "description": "Severity level of the error (e.g., Warning, Error, Critical)."
+      "description": "Severity level of the error.",
+      "options": [
+        { "label": "Info", "value": 100000000 },
+        { "label": "Warning", "value": 100000001 },
+        { "label": "Error", "value": 100000002 },
+        { "label": "Critical", "value": 100000003 }
+      ]
+    },
+    {
+      "logicalName": "cr_errorstep",
+      "displayName": "Error Step",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Which step in the flow failed. Populated from the flow run context."
     },
     {
       "logicalName": "cr_resolved",
