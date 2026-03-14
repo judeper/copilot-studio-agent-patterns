@@ -2695,10 +2695,10 @@ Gather current workspace state:
 |---------|-------|
 | Table name | Assistant Cards |
 | Owner | `@{outputs('Get_my_profile_(V2)')?['body/id']}` |
-| Trigger Type | `100000005` *(HEARTBEAT)* |
+| Trigger Type | `100000006` *(HEARTBEAT)* |
 | Item Summary | `@{items('Apply_to_each')?['item_summary']}` |
 | Priority | `@{items('Apply_to_each')?['priority']}` |
-| Card Status | `100000000` *(PENDING)* |
+| Card Status | `100000000` *(READY)* |
 
 **11. Update heartbeat timestamp** — Dataverse connector → Update a row
 
