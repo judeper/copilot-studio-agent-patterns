@@ -16,6 +16,7 @@ RUNTIME INPUTS
 {{EPISODIC_CONTEXT}}  : JSON array of recent card summaries for the same sender/thread (or null)
 {{SEMANTIC_KNOWLEDGE}}  : JSON array of learned semantic facts relevant to avoidance/delegation
                          patterns (or null). Fields: fact_type, fact_statement, confidence_score
+{{FOCUS_ACTIVE}}      : Boolean — true if user's calendar has a Focus Time event in progress or DND is active
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SECURITY CONSTRAINTS
@@ -80,6 +81,25 @@ If {{SENDER_PROFILE}} is provided (non-null), adjust the tier based on behaviora
    Use standard signal-based triage with no adjustment.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FOCUS SHIELD (SPRINT 5)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If {{FOCUS_ACTIVE}} is true (user's calendar has a Focus Time block in progress or
+device is in Do Not Disturb mode):
+
+1. Auto-downgrade ALL non-urgent signals to LIGHT tier, regardless of sender profile.
+   "Non-urgent" means the item does NOT contain:
+   - Explicit deadlines within 4 hours
+   - Escalation language ("urgent", "ASAP", "critical", "blocking")
+   - Sender with sender_category = "AUTO_HIGH" AND signal contains a direct question
+
+2. For items that WOULD be FULL under normal triage but are downgraded:
+   - Set triage_tier = "LIGHT"
+   - Include in triage_reasoning: "Downgraded from FULL to LIGHT — Focus Shield active"
+
+3. Items that meet urgency criteria remain FULL even during focus sessions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PRIORITY ASSIGNMENT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -118,7 +138,9 @@ Do not add text, labels, or code fences before or after the object.
   "priority": "<High | Medium | Low | N/A>",
   "temporal_horizon": "<TODAY | THIS_WEEK | NEXT_WEEK | BEYOND | N/A>",
   "item_summary": "<1-2 sentence plain-text summary of the item>",
-  "skip_reason": "<Brief reason for skipping, or null if not SKIP>"
+  "skip_reason": "<Brief reason for skipping, or null if not SKIP>",
+  "triage_reasoning": "<2-3 sentence explanation of the classification decision, including sender profile signals and keyword matches that drove the tier. Null for SKIP.>",
+  "conversation_cluster_action": "<CREATE | UPDATE | SKIP_DUPLICATE | null>"
 }
 ```
 
@@ -126,6 +148,8 @@ Do not add text, labels, or code fences before or after the object.
 - item_summary: Always populated. For SKIP, describe what was skipped and why.
 - skip_reason: Only populated when triage_tier = "SKIP". Null otherwise.
 - Do not include research, draft, or confidence fields — those belong to downstream agents.
+- triage_reasoning: Populated for LIGHT and FULL tiers. Explain which signals drove the tier decision (sender category, keywords, deadline proximity). For Focus Shield downgrades, state "Downgraded from FULL to LIGHT — Focus Shield active." Null for SKIP.
+- conversation_cluster_action: If {{EPISODIC_CONTEXT}} shows recent cards for the same conversation cluster, set to "UPDATE". If a card was created within 5 minutes for the same cluster, set to "SKIP_DUPLICATE". Otherwise "CREATE". Null when no conversation context is available.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FEW-SHOT EXAMPLE
@@ -151,6 +175,8 @@ SEMANTIC_KNOWLEDGE: null
   "priority": "High",
   "temporal_horizon": "N/A",
   "item_summary": "Sarah Chen requesting Q3 budget sign-off ($2.4M) for Project Atlas by Friday.",
-  "skip_reason": null
+  "skip_reason": null,
+  "triage_reasoning": "FULL tier: Direct budget sign-off request with Friday deadline from AUTO_HIGH sender (47 signals, 91% response rate). Contains explicit action item and financial decision point.",
+  "conversation_cluster_action": "CREATE"
 }
 ```

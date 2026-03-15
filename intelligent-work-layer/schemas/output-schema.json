@@ -151,6 +151,15 @@
     "low_confidence_note": {
       "type": ["string", "null"],
       "description": "Only populated when card_status = LOW_CONFIDENCE. States which tiers were checked, what was found, and what the user should verify manually. Null otherwise."
+    },
+    "triage_reasoning": {
+      "type": ["string", "null"],
+      "description": "2-3 sentence explanation of the triage classification decision, including which sender profile signals and keyword matches drove the tier assignment. Enables 'Why this priority?' explainability in the UI. Null for SKIP items."
+    },
+    "conversation_cluster_action": {
+      "type": ["string", "null"],
+      "enum": ["CREATE", "UPDATE", "SKIP_DUPLICATE", null],
+      "description": "Instructs the flow whether to create a new card, update an existing card in the same conversation cluster, or skip as a duplicate. Null when no conversation clustering context is available."
     }
   },
   "additionalProperties": false

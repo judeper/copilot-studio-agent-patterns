@@ -463,3 +463,138 @@ The Draft Generator uses `cr_preferredchannel` to add channel suggestions to dra
 - If `cr_preferredchannel = "UNKNOWN"` or `"EITHER"`: no additional note.
 
 > **Note**: Channel suggestions are advisory only. The system never auto-switches channels — the user always decides where to send.
+
+---
+
+## Graduated Autonomy System
+
+> **Cross-reference**: [Gap 8: No Graduated Autonomy](../.planning/design-review-productivity-noise.md) · Priority: P2 · Complexity: High
+
+### Problem
+
+The system is either fully manual (user reviews every draft) or nothing. There's no progression from "show me everything" → "handle routine stuff yourself." Trust is binary.
+
+### Design
+
+Implement three autonomy tiers stored on `cr_userpersona`:
+
+| Tier | Entry Criteria | Behavior |
+|------|---------------|----------|
+| **OBSERVER** | Default (first 30 days) | All items shown, all drafts require review. Full transparency. |
+| **ASSIST** | `cr_acceptancerate > 0.70` AND `cr_totalinteractions > 50` | Auto-dismiss LIGHT items matching learned SKIP patterns. Auto-send drafts with confidence ≥ 95 to AUTO_HIGH senders (with 30-second undo window). |
+| **PARTNER** | `cr_acceptancerate > 0.85` AND `cr_totalinteractions > 200` | Auto-send all ≥ 90 confidence drafts with 30-second undo window. Surface only exceptions (low confidence, new senders, escalations). |
+
+### Schema
+
+New columns on `cr_userpersona`:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `cr_autonomytier` | Choice (OBSERVER / ASSIST / PARTNER) | Current tier. Default: OBSERVER. |
+| `cr_totalinteractions` | WholeNumber | Cumulative card interactions. Incremented by Flow 5. |
+| `cr_acceptancerate` | Decimal (0–1) | (SENT_AS_IS + SENT_EDITED) / total outcomes. Recomputed by Flow 5. |
+
+### Tier Transition Flow
+
+Transitions are **suggested by the system, confirmed by the user**:
+
+```
+Flow 5 (Card Outcome Tracker) — on each outcome:
+1. Increment cr_totalinteractions
+2. Recompute cr_acceptancerate
+3. Check tier eligibility:
+   - If OBSERVER and rate > 0.70 and interactions > 50:
+     → Create a card with trigger_type = "AUTONOMY_SUGGESTION"
+       "Your acceptance rate is 74% across 52 interactions. 
+        Would you like to enable Assist mode?"
+   - If ASSIST and rate > 0.85 and interactions > 200:
+     → Similar suggestion card for Partner tier
+4. User confirms via card action → Flow updates cr_autonomytier
+```
+
+### Safety Rails
+
+- **Downgrade**: If acceptance rate drops below tier threshold for 2 consecutive weeks, suggest downgrade
+- **Override**: User can manually set tier at any time via Sender Management UI
+- **Audit**: All auto-actions are logged with `cr_cardoutcome = AUTO_SENT` or `AUTO_DISMISSED` for review
+- **Undo window**: All auto-sent drafts have a 30-second undo window (leverages Gap 13 undo toast infrastructure)
+
+### Agent Integration
+
+The Triage Agent receives `{{AUTONOMY_TIER}}` as a runtime input:
+
+- **OBSERVER**: No behavior change — standard triage
+- **ASSIST**: Agent adds `"auto_action_eligible": true` to output when conditions are met for auto-dismiss or auto-send
+- **PARTNER**: Agent adds `"auto_action_eligible": true` with lower confidence threshold
+
+---
+
+## Cold Start Tone Bootstrap
+
+> **Cross-reference**: [Gap 10: Cold Start Tone Bootstrap](../.planning/design-review-productivity-noise.md) · Priority: P2 · Complexity: Medium
+
+### Problem
+
+The 5-interaction minimum for tone gating means early drafts feel generic and impersonal. Users dismiss them → low acceptance rate → system thinks it's wrong → vicious cycle.
+
+### Design
+
+Extend the Graph-Powered Silent Bootstrap (described above) to analyze the user's own sent email patterns and seed the `cr_tonebaseline` field on `cr_userpersona`.
+
+### Bootstrap Extension
+
+During the existing Graph bootstrap flow (which fires when `cr_senderprofile` has zero rows), add a Sent Items analysis phase:
+
+```
+1. Query Sent Items (Graph API):
+   GET /me/mailFolders/sentitems/messages
+     ?$filter=sentDateTime ge {90_DAYS_AGO}
+     &$top=200
+     &$select=body,subject,toRecipients,sentDateTime
+     &$orderby=sentDateTime desc
+
+2. For each sent email, extract:
+   - Greeting pattern (e.g., "Hi {name},", "Dear {name},", no greeting)
+   - Sign-off pattern (e.g., "Best regards,", "Thanks,", "Cheers,")
+   - Formality indicators:
+     - Contraction usage rate (don't vs. do not)
+     - Average sentence length
+     - Emoji/exclamation usage rate
+   - Response structure (prose vs. bullet points)
+
+3. Compute baseline:
+   {
+     "formality_score": 0.72,          // 0 = very casual, 1 = very formal
+     "greeting_patterns": ["Hi {name},", "Hey {name},"],
+     "signoff_patterns": ["Best,", "Thanks,"],
+     "avg_sentence_length": 14.2,
+     "emoji_usage_rate": 0.03,
+     "contraction_rate": 0.68,
+     "bullet_preference": 0.35         // % of emails using bullet points
+   }
+
+4. Write to cr_userpersona.cr_tonebaseline (JSON blob)
+```
+
+### Humanizer Integration
+
+The Humanizer Agent receives `{{TONE_BASELINE}}` as an additional runtime input:
+
+- When `cr_tonebaseline` is populated AND per-sender tone data has fewer than 5 interactions:
+  - Use baseline formality, greeting, and sign-off patterns
+  - Apply baseline sentence length and structure preferences
+- When per-sender data reaches 5+ interactions:
+  - Per-sender tone overrides baseline (existing behavior)
+  - Baseline remains as fallback for new senders
+
+### Privacy
+
+- Only metadata patterns are extracted (greeting/sign-off/formality statistics). Full email body content is processed in-memory and never stored.
+- The `cr_tonebaseline` JSON blob contains statistical aggregates, not email content.
+- Users can clear their tone baseline at any time via the Sender Management UI.
+
+### Expected Impact
+
+- Early drafts match the user's natural communication style from day one
+- Reduces initial dismissal rate by an estimated 20-30%
+- Breaks the cold-start vicious cycle: better drafts → higher acceptance → faster sender learning

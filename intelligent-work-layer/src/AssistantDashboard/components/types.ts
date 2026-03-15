@@ -28,8 +28,10 @@ export interface OrchestratorResponse {
 export type TriageTier = "SKIP" | "LIGHT" | "FULL";
 export type Priority = "High" | "Medium" | "Low" | "N/A";
 export type TemporalHorizon = "TODAY" | "THIS_WEEK" | "NEXT_WEEK" | "BEYOND" | "N/A";
-export type CardStatus = "READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | "NO_OUTPUT" | "NUDGE";
-export type CardOutcome = "PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISMISSED" | "EXPIRED";
+export type CardStatus = "READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | "NO_OUTPUT" | "NUDGE" | "SNOOZED" | "PENDING_MANUAL";
+export type CardOutcome = "PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISMISSED" | "EXPIRED" | "RESOLVED_EXTERNALLY";
+export type AutonomyTier = "OBSERVER" | "ASSIST" | "PARTNER";
+export type SnoozePreset = "1_HOUR" | "TOMORROW_MORNING" | "FRIDAY" | "CUSTOM";
 
 // Sprint 2 — Daily Briefing types
 
@@ -146,6 +148,10 @@ export interface AssistantCard {
     hours_stale: number | null;
     // Phase A — Card Intelligence
     urgency_reason?: string;
+    triage_reasoning?: string | null;
+    snoozed_until?: string | null;
+    conversation_cluster_action?: "CREATE" | "UPDATE" | "SKIP_DUPLICATE" | null;
+    focus_shield_active?: boolean;
 }
 
 export interface AppProps {

@@ -83,23 +83,25 @@ All three variants are rendered by `BriefingCard.tsx`. Types defined in `types.t
 
 ## Table of Contents
 
-1. [First-Run Onboarding](#1-first-run-onboarding)
+1. [First-Run Onboarding](#1-first-run-onboarding) · P3
 2. [Sender Management UI](#2-sender-management-ui)
-3. [Card Auto-Archive](#3-card-auto-archive)
-4. [External Action Detection](#4-external-action-detection)
+3. [Card Auto-Archive](#3-card-auto-archive) · P1
+4. [External Action Detection](#4-external-action-detection) · P0
 5. [Skill Registry Management UI](#5-skill-registry-management-ui)
 6. [CSS Dark Mode Design](#6-css-dark-mode-design)
-7. [Keyboard Shortcuts](#7-keyboard-shortcuts)
-8. [Card Thread View](#8-card-thread-view)
+7. [Keyboard Shortcuts](#7-keyboard-shortcuts) · P3
+8. [Card Thread View](#8-card-thread-view) · P0
 9. [Card Pin/Star Feature](#9-card-pinstar-feature)
-10. [Snooze with Wake-Up Time](#10-snooze-with-wake-up-time)
-11. [Batch Actions](#11-batch-actions)
+10. [Snooze with Wake-Up Time](#10-snooze-with-wake-up-time) · P0
+11. [Batch Actions](#11-batch-actions) · P1
+12. [Card Search](#12-card-search) · P2
+13. [Undo Toast](#13-undo-toast) · P3
 
 ---
 
 ## 1. First-Run Onboarding
 
-> **Status: Design** — not yet implemented.
+> **Status: Design** — not yet implemented. · **Priority: P3** · [Gap 14](../.planning/design-review-productivity-noise.md)
 
 ### Purpose
 
@@ -606,7 +608,7 @@ value: `"dark"`). The PCF `AppWrapper` component applies `className="ewa-dark"` 
 
 ## 7. Keyboard Shortcuts
 
-> **Status: Design** — not yet implemented.
+> **Status: Design** — not yet implemented. · **Priority: P3** · [Gap 12](../.planning/design-review-productivity-noise.md)
 
 ### Shortcut Map
 
@@ -671,7 +673,7 @@ by `Escape` or clicking outside. Rendered as a new `KeyboardShortcutsHelp` compo
 
 ## 8. Card Thread View
 
-> **Status: Design** — not yet implemented.
+> **Status: Design** — not yet implemented. · **Priority: P0** · [Gap 1: Conversation Threading](../.planning/design-review-productivity-noise.md) — #1 noise amplifier. A 5-message thread creates 5 cards, filling the focused queue with ONE conversation. Implementing conversation clustering could reduce visible card count by 40-60%.
 
 ### Purpose
 
@@ -806,7 +808,7 @@ onPinCard: JSON {
 
 ## 10. Snooze with Wake-Up Time
 
-> **Status: Design** — not yet implemented.
+> **Status: Design** — not yet implemented. · **Priority: P0** · [Gap 2: Snooze/Defer](../.planning/design-review-productivity-noise.md) — eliminates premature decisions. Uses `cr_snoozeduntil` and `cr_cardstatus = SNOOZED`. Flow 10 already handles re-surfacing.
 
 ### Purpose
 
@@ -866,7 +868,7 @@ reuses the existing `SELF_REMINDER` infrastructure (Flow 10: Reminder Firing).
 
 ## 11. Batch Actions
 
-> **Status: Design** — not yet implemented.
+> **Status: Design** — not yet implemented. · **Priority: P1** · [Gap 4: Batch Actions](../.planning/design-review-productivity-noise.md) — makes the FYI section usable. 10 FYI items = 10 individual dismiss clicks without this.
 
 ### Purpose
 
@@ -935,6 +937,106 @@ Dataverse transaction limits.
 
 ---
 
+## 12. Card Search
+
+> **Status: Design** — not yet implemented. · **Priority: P2** · [Gap 11: No Search](../.planning/design-review-productivity-noise.md)
+
+### Purpose
+
+Allow users to find past cards by sender, subject, or content. As cards accumulate, finding
+"that email from Sarah about the Q3 budget" requires scrolling through the gallery — search
+makes this instant.
+
+### UI
+
+Add a **search input** to the existing `FilterBar` component, positioned to the right of the
+quiet mode toggle.
+
+| Element | Design |
+|---------|--------|
+| Input | Fluent `SearchBox` with placeholder "Search cards…" |
+| Trigger | Filters on keystroke with 300ms debounce |
+| Clear | X button resets to unfiltered view |
+| Empty state | "No cards match '{query}'" with suggestion to broaden search |
+
+### Filtering Logic
+
+Client-side filtering on the loaded dataset (no Dataverse query):
+
+```typescript
+const matchesSearch = (card: AssistantCard, query: string): boolean => {
+  const q = query.toLowerCase();
+  return (
+    card.item_summary?.toLowerCase().includes(q) ||
+    card.original_sender_display?.toLowerCase().includes(q) ||
+    card.original_sender_email?.toLowerCase().includes(q) ||
+    card.original_subject?.toLowerCase().includes(q)
+  );
+};
+```
+
+### Scope
+
+- Searches across ALL loaded cards (not just the current 5-item page)
+- When search is active, the 5-item pagination is replaced with a scrollable result list
+- Search results maintain the same composite sort order
+- Quiet mode filter is applied BEFORE search (search only within the current filter set)
+
+### Accessibility
+
+- `SearchBox` receives `aria-label="Search assistant cards"`
+- Results announce count via `aria-live="polite"`: "3 cards match 'budget'"
+- `Escape` key clears the search and returns focus to the gallery
+
+---
+
+## 13. Undo Toast
+
+> **Status: Design** — not yet implemented. · **Priority: P3** · [Gap 13: No Undo for Destructive Actions](../.planning/design-review-productivity-noise.md)
+
+### Purpose
+
+Provide a 10-second undo window for destructive actions (dismiss, send). Reduces anxiety
+around irreversible decisions and supports the graduated autonomy model where auto-actions
+need an undo escape hatch.
+
+### UI
+
+| Element | Design |
+|---------|--------|
+| Toast | Fluent `Toast` anchored bottom-center, auto-dismiss after 10 seconds |
+| Content | "Card dismissed — Undo" or "Draft sent to {recipient} — Undo" |
+| Undo button | Inline text button, restores previous card state |
+| Progress | Thin progress bar at bottom of toast showing remaining undo time |
+
+### Behavior
+
+1. User clicks Dismiss or Send
+2. **Optimistic UI update**: Card visually removed/marked as sent immediately
+3. **Dataverse write deferred**: The actual Dataverse update is held in memory for 10 seconds
+4. Toast appears with Undo option
+5. If user clicks Undo within 10 seconds:
+   - Card restored to previous state in UI
+   - Dataverse write cancelled
+   - Toast dismissed with "Action undone" confirmation
+6. If 10 seconds pass without Undo:
+   - Deferred Dataverse write executes
+   - Toast auto-dismisses
+
+### PCF Output
+
+The existing `dismissCardAction` and `sendDraftAction` outputs are unchanged. The undo
+logic is handled client-side in the PCF component by delaying the `notifyOutputChanged()`
+call.
+
+### Constraints
+
+- Only the most recent action is undoable (new action replaces previous undo window)
+- Auto-sent drafts in PARTNER autonomy tier use a 30-second undo window instead of 10
+- Copy Draft action is NOT undoable (clipboard operations can't be reversed)
+
+---
+
 ## Appendix: Type Extensions Summary
 
 The following type changes are required across all enhancements:
@@ -949,13 +1051,27 @@ export type TriggerType =
 export type CardStatus =
     | /* existing values */
     | "SETUP"                // §1
-    | "SNOOZED";             // §10
+    | "SNOOZED"              // §10
+    | "PENDING_MANUAL";      // Gap 16: Degraded Mode
 
 export type CardOutcome =
     | /* existing values */
     | "AUTO_ARCHIVED"        // §3
     | "HANDLED_EXTERNALLY"   // §4
+    | "RESOLVED_EXTERNALLY"  // Gap 3: External Action Detection
     | "PINNED";              // §9
+
+// Gap 8: Graduated Autonomy
+export type AutonomyTier = "OBSERVER" | "ASSIST" | "PARTNER";
+
+// Gap 2: Snooze/Defer
+export type SnoozePreset = "1_HOUR" | "TOMORROW_MORNING" | "FRIDAY" | "CUSTOM";
+
+// AssistantCard additions:
+//   triage_reasoning?: string | null;              // Gap 9: Explainability
+//   snoozed_until?: string | null;                 // Gap 2: Snooze
+//   conversation_cluster_action?: string | null;   // Gap 1: Threading
+//   focus_shield_active?: boolean;                  // Gap 7: Focus Shield
 ```
 
 > **Important:** Dataverse option sets must be updated to include these new values
@@ -979,16 +1095,20 @@ export type CardOutcome =
 
 ## Graduated Trust Tiers (Future Design)
 
+> **Cross-reference**: [Gap 8: No Graduated Autonomy](../.planning/design-review-productivity-noise.md) · Priority: P2 · Complexity: High
+>
+> See also: [Graduated Autonomy System](learning-enhancements.md#graduated-autonomy-system) for schema details and tier transition flow.
+
 Design for production deployment — extending the tone inference gating pattern:
 
 | Trust Tier | Trigger | Capability |
 |-----------|---------|------------|
-| **Observe** (Day 0-14) | Default for new users | Triage + research only. Summaries shown, no drafts generated. System builds sender profiles silently. |
-| **Assist** (Day 15-30) | Acceptance rate ≥ 30% | Drafts generated but behind "Show Draft" click. Learning suggestions enabled. |
-| **Partner** (Day 31+) | Acceptance rate ≥ 50%, override rate ≤ 20% | Full capability. Drafts shown inline. Active learning triggers. |
+| **Observer** (default, first 30 days) | Default for new users. `cr_autonomytier = OBSERVER` | All items shown, all drafts require review. Full transparency. System builds sender profiles silently. |
+| **Assist** | `cr_acceptancerate > 0.70` AND `cr_totalinteractions > 50` | Auto-dismiss LIGHT items matching learned SKIP patterns. Auto-send drafts with confidence ≥ 95 to AUTO_HIGH senders (with 30-second undo window). Learning suggestions enabled. |
+| **Partner** | `cr_acceptancerate > 0.85` AND `cr_totalinteractions > 200` | Auto-send all ≥ 90 confidence drafts with 30-second undo window. Surface only exceptions (low confidence, new senders, escalations). |
 | **Never auto-send** | Permanent | Send always requires explicit user action. Inviolable. |
 
-Implementation: Extend cr_userpersona with cr_trusttier (Choice) and cr_trusttierchangedon (DateTime). Flow 5 evaluates tier advancement criteria on each outcome event.
+Implementation: `cr_autonomytier` (Choice: OBSERVER / ASSIST / PARTNER) on `cr_userpersona`, with `cr_totalinteractions` and `cr_acceptancerate` for tier eligibility. Flow 5 evaluates tier advancement criteria on each outcome event and creates an AUTONOMY_SUGGESTION card when criteria are met. Transitions are suggested by the system, confirmed by the user.
 
 ---
 

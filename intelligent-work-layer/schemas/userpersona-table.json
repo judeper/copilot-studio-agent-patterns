@@ -63,6 +63,44 @@
       "required": true,
       "default": true,
       "description": "Master toggle for persona preferences. When false, the agent ignores all persona settings and falls back to default behavior."
+    },
+    {
+      "logicalName": "cr_autonomytier",
+      "displayName": "Autonomy Tier",
+      "type": "Choice",
+      "required": false,
+      "description": "User's current graduated autonomy tier. Controls how much autonomous action the agent takes. Transitions are suggested by the system and confirmed by the user.",
+      "options": [
+        { "label": "OBSERVER", "value": 100000000 },
+        { "label": "ASSIST", "value": 100000001 },
+        { "label": "PARTNER", "value": 100000002 }
+      ],
+      "default": 100000000
+    },
+    {
+      "logicalName": "cr_totalinteractions",
+      "displayName": "Total Interactions",
+      "type": "WholeNumber",
+      "minValue": 0,
+      "required": false,
+      "description": "Cumulative count of card interactions (send, edit, dismiss). Used with cr_acceptancerate to determine autonomy tier eligibility. Incremented by Flow 5 (Card Outcome Tracker)."
+    },
+    {
+      "logicalName": "cr_acceptancerate",
+      "displayName": "Acceptance Rate",
+      "type": "Decimal",
+      "minValue": 0,
+      "maxValue": 1,
+      "required": false,
+      "description": "Ratio of (SENT_AS_IS + SENT_EDITED) / total outcomes. Used to gate autonomy tier transitions: ASSIST requires >0.70, PARTNER requires >0.85. Recomputed by Flow 5 on each outcome."
+    },
+    {
+      "logicalName": "cr_tonebaseline",
+      "displayName": "Tone Baseline",
+      "type": "MultilineText",
+      "maxLength": 5000,
+      "required": false,
+      "description": "JSON blob with inferred tone preferences seeded from Graph bootstrap analysis of the user's own sent email patterns. Contains: formality_score, greeting_patterns[], signoff_patterns[], avg_sentence_length, emoji_usage_rate. Gives drafts a baseline before per-sender learning kicks in."
     }
   ],
   "notes": {

@@ -258,7 +258,9 @@ For EMAIL and TEAMS_MESSAGE triggers, set temporal_horizon = "N/A".
       or null for SKIP, LIGHT, and LOW_CONFIDENCE>",
   "low_confidence_note": "<Plain text. Only populated when card_status = LOW_CONFIDENCE.
       States tiers checked, findings, and what the user should verify manually.
-      Null otherwise.>"
+      Null otherwise.>",
+  "triage_reasoning": "<2-3 sentence explanation of the triage tier classification. Include sender profile signals, keyword matches, and deadline proximity that drove the decision. Null for SKIP items.>",
+  "conversation_cluster_action": "<CREATE | UPDATE | SKIP_DUPLICATE | null — Instructs flow whether to create a new card, update existing, or skip duplicate. Null when no conversation context available.>"
 }}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

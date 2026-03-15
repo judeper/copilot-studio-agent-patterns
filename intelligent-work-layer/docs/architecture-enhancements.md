@@ -172,6 +172,8 @@ Insert this check immediately after the PAYLOAD compose step and before the agen
 
 > **Tuning**: The 5-minute window balances deduplication against legitimate follow-ups. Adjust based on observed signal patterns. For high-volume mailboxes, consider a shorter window (2–3 minutes).
 
+> **Cross-reference**: This addresses [Gap 15: Card Deduplication](../.planning/design-review-productivity-noise.md) from the Productivity & Noise Reduction design review. Priority: P3.
+
 ---
 
 ## Degraded Mode Fallback
@@ -217,6 +219,8 @@ When all retries are exhausted:
    - Last HTTP status code
    - Last error message
    - Flow run ID for correlation
+
+> **Cross-reference**: This addresses [Gap 16: Degraded Mode](../.planning/design-review-productivity-noise.md) from the Productivity & Noise Reduction design review. Priority: P3. Add `PENDING_MANUAL` (value: 100000006) to the `cr_cardstatus` choice column.
 
 ---
 
@@ -367,6 +371,227 @@ Reference patterns in agent prompt headers:
 ```
 
 When composing the final prompt in Copilot Studio, concatenate the referenced pattern files before the agent-specific instructions. This ensures all agents inherit the same security, formatting, and error-handling baseline.
+
+---
+
+## Signal Batching
+
+> **Cross-reference**: [Gap 6: No Signal Batching](../.planning/design-review-productivity-noise.md) · Priority: P1 · Complexity: Medium
+
+### Problem
+
+Every email/Teams message triggers an immediate agent invocation. During a busy morning, 20 emails arrive in 30 minutes → 20 agent runs → 20 cards appear. Even with quiet mode on, the user sees "20 items waiting" and feels overwhelmed.
+
+### Solution
+
+Add a 5-minute batching window to Flows 1–2. Collect signals, deduplicate by sender+subject, then invoke the agent once per batch.
+
+### Flow Integration
+
+Insert batching logic at the start of Flows 1 and 2:
+
+```
+1. Signal arrives → Write to a staging table (cr_signalstaging)
+2. Delay (5 minutes)
+3. Query staging table for all unprocessed signals from same user
+4. Group by conversation cluster (sender + subject or conversationId)
+5. For each group: pick the latest signal, invoke agent ONCE
+6. Mark all signals in the group as processed
+```
+
+### Deduplication Within Batch
+
+For email threads, only process the latest message per thread within the window:
+
+```
+Filter: cr_conversationclusterid eq '{conversationId}'
+         and cr_processedat eq null
+OrderBy: cr_receivedat desc
+Top: 1
+```
+
+### Tuning
+
+- **Window size**: 5 minutes is the default. Can be reduced to 2 minutes for latency-sensitive users or increased to 10 minutes for high-volume mailboxes.
+- **Agent invocations saved**: In testing, a 5-minute window reduces agent invocations by 30–50% during peak hours.
+- **Queue perception**: The staging delay means cards appear in small batches rather than a continuous stream, which feels calmer to users.
+
+---
+
+## Focus Shield Integration
+
+> **Cross-reference**: [Gap 7: No Focus Session Integration](../.planning/design-review-productivity-noise.md) · Priority: P1 · Complexity: Medium
+
+### Problem
+
+IWL doesn't know when the user is in deep work. Calendar has "Focus Time" blocks and Teams has "Do Not Disturb" — but IWL keeps processing signals at full fidelity during these periods, growing the queue.
+
+### Solution
+
+Before agent invocation in Flows 1–2, check if the user's calendar has a "Focus Time" event in progress. If so, auto-triage all non-URGENT signals to LIGHT tier and defer queue delivery until the focus window ends.
+
+### Detection Logic
+
+```
+GET /me/calendarView?startDateTime={now}&endDateTime={now}
+    &$filter=categories/any(c: c eq 'Focus Time') or showAs eq 'tentative'
+    &$select=subject,start,end,showAs,categories
+```
+
+Alternatively, check Teams presence:
+
+```
+GET /me/presence
+→ Check if activity eq 'DoNotDisturb'
+```
+
+### Flow Integration
+
+Insert Focus Shield check in Flows 1–2 after the "Get my profile" step and before agent invocation:
+
+```
+1. Get my profile (V2)
+2. Query calendar for active Focus Time events
+3. Condition: Focus Time active?
+   ├── Yes → Set FOCUS_ACTIVE = true in agent payload
+   │         Agent auto-downgrades non-urgent items to LIGHT
+   │         Set cr_focusshieldactive = true on created card
+   └── No  → Set FOCUS_ACTIVE = false (normal triage)
+```
+
+### Agent Behavior
+
+When `FOCUS_ACTIVE = true`, the Triage Agent:
+- Downgrades FULL → LIGHT for all items that do NOT contain urgency signals (explicit deadlines within 4 hours, escalation language, AUTO_HIGH sender with direct question)
+- Sets `triage_reasoning` to include "Downgraded from FULL to LIGHT — Focus Shield active"
+- Items meeting urgency criteria remain FULL
+
+### Dataverse Column
+
+`cr_focusshieldactive` (Boolean) on `cr_assistantcard` — enables post-focus-session review: "Show me what was downgraded during my focus time."
+
+---
+
+## LIGHT Tier Auto-Archive Flow
+
+> **Cross-reference**: [Gap 5: LIGHT Tier Card Accumulation](../.planning/design-review-productivity-noise.md) · Priority: P1 · Complexity: Low
+
+### Problem
+
+LIGHT-tier cards (summary-only, no draft) accumulate indefinitely. After a week, the "New Signals" section has 50+ stale items — noise.
+
+### Solution
+
+Implement a 6-hour scheduled flow that marks LIGHT-tier cards with `cr_cardoutcome = EXPIRED` after 48 hours of no interaction.
+
+### Flow Design
+
+```
+Trigger: Recurrence — every 6 hours
+
+Steps:
+1. List rows from cr_assistantcard where:
+   - cr_triagetier eq 100000001 (LIGHT)
+   - cr_cardoutcome eq 100000000 (PENDING)
+   - createdon lt addHours(utcNow(), -48)
+   Top: 100
+
+2. Apply to each:
+   - Update row: cr_cardoutcome = EXPIRED (100000004)
+   - Update row: cr_outcometimestamp = utcNow()
+
+3. Compose summary: "{count} LIGHT cards auto-archived"
+```
+
+### User Opt-Out
+
+Add `cr_autoarchivedisabled` (Boolean) to `cr_userpersona`. When true, the flow skips this user's cards. Default: false (auto-archive enabled).
+
+---
+
+## External Action Detection Enhancement
+
+> **Cross-reference**: [Gap 3: No External Action Detection](../.planning/design-review-productivity-noise.md) · Priority: P0 · Complexity: Medium
+
+### Problem
+
+If a user replies to an email directly in Outlook (bypassing IWL), the card stays in "Action Required" as a phantom task. The user sees work they've already done.
+
+### Solution
+
+Enhance Flow 5 (Card Outcome Tracker) with a 15-minute Sent Items scan that detects external replies and auto-resolves the corresponding cards.
+
+### Detection Flow
+
+```
+Trigger: Recurrence — every 15 minutes
+
+Steps:
+1. List rows from cr_assistantcard where:
+   - cr_cardoutcome eq 100000000 (PENDING)
+   - cr_triggertype in (100000000, 100000001) (EMAIL or TEAMS)
+   Top: 50
+
+2. For each card:
+   a. Extract cr_conversationclusterid (email conversationId)
+   b. Query Outlook Sent Items:
+      GET /me/mailFolders/sentitems/messages
+        ?$filter=conversationId eq '{conversationClusterId}'
+                 and sentDateTime gt '{card.createdon}'
+        &$top=1&$select=sentDateTime,conversationId
+
+   c. Condition: Sent item found?
+      ├── Yes → Update card:
+      │         cr_cardoutcome = RESOLVED_EXTERNALLY (100000005)
+      │         cr_outcometimestamp = sentItem.sentDateTime
+      └── No  → Skip (card remains PENDING)
+```
+
+### Edge Cases
+
+- **Forwarded messages**: Match on `conversationId`, not `internetMessageId`, to catch forwards within the same thread
+- **Rate limits**: Graph API rate limits at 10,000 requests per 10 minutes per user. The 50-card cap ensures the flow stays well under this limit.
+- **Timing window**: Only check sent items after the card's creation time to avoid false matches from pre-existing replies.
+
+---
+
+## Data Retention Automation
+
+> **Cross-reference**: [Gap 17: No Data Retention](../.planning/design-review-productivity-noise.md) · Priority: P3 · Complexity: Low
+
+### Problem
+
+AssistantCards grow indefinitely. After months, the Dataverse table has thousands of resolved cards consuming storage.
+
+### Solution
+
+Implement a weekly scheduled flow that archives cards with a terminal outcome older than 90 days.
+
+### Flow Design
+
+```
+Trigger: Recurrence — weekly (Sunday 02:00 UTC)
+
+Steps:
+1. List rows from cr_assistantcard where:
+   - cr_cardoutcome ne 100000000 (not PENDING)
+   - cr_outcometimestamp lt addDays(utcNow(), -90)
+   Top: 500
+
+2. Apply to each:
+   - Delete row (or set statecode = Inactive if soft-delete preferred)
+
+3. Log to cr_errorlog:
+   - Operation: "DATA_RETENTION"
+   - Details: "{count} cards archived"
+   - Severity: "INFO"
+```
+
+### Configuration
+
+- **Retention period**: 90 days (configurable via environment variable or UserPersona setting)
+- **Soft vs. hard delete**: Recommend soft delete (statecode = Inactive) for the first 6 months, then hard delete after 180 days total
+- **Exclusions**: Cards with `cr_cardoutcome = PINNED` (if Card Pin feature is implemented) are never archived
 
 ---
 

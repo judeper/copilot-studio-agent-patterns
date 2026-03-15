@@ -74,7 +74,9 @@
         { "label": "LOW_CONFIDENCE", "value": 100000001 },
         { "label": "SUMMARY_ONLY", "value": 100000002 },
         { "label": "NO_OUTPUT", "value": 100000003 },
-        { "label": "NUDGE", "value": 100000004 }
+        { "label": "NUDGE", "value": 100000004 },
+        { "label": "SNOOZED", "value": 100000005 },
+        { "label": "PENDING_MANUAL", "value": 100000006 }
       ]
     },
     {
@@ -127,7 +129,8 @@
         { "label": "SENT_AS_IS", "value": 100000001 },
         { "label": "SENT_EDITED", "value": 100000002 },
         { "label": "DISMISSED", "value": 100000003 },
-        { "label": "EXPIRED", "value": 100000004 }
+        { "label": "EXPIRED", "value": 100000004 },
+        { "label": "RESOLVED_EXTERNALLY", "value": 100000005 }
       ]
     },
     {
@@ -245,6 +248,29 @@
       "maxValue": 100,
       "required": false,
       "description": "Levenshtein edit distance ratio (0-100) between the original AI draft and the user-edited version. Computed client-side by the PCF component and written by the Canvas App when processing sendDraftAction output. Used by the Sender Profile Analyzer flow to compute cr_avgeditdistance."
+    },
+    {
+      "logicalName": "cr_snoozeduntil",
+      "displayName": "Snoozed Until",
+      "type": "DateTime",
+      "required": false,
+      "description": "When the snooze expires and the card should be re-surfaced. Set when card_status = SNOOZED. Flow 10 (Reminder Firing) queries cards where this date is in the past to re-activate them."
+    },
+    {
+      "logicalName": "cr_triagereasoning",
+      "displayName": "Triage Reasoning",
+      "type": "Text",
+      "maxLength": 1000,
+      "required": false,
+      "description": "2-3 sentence explanation of the triage classification decision. Includes sender profile signals and keyword matches that drove the tier assignment. Enables 'Why this priority?' explainability UI. Parsed from agent output triage_reasoning field."
+    },
+    {
+      "logicalName": "cr_focusshieldactive",
+      "displayName": "Focus Shield Active",
+      "type": "Boolean",
+      "required": false,
+      "description": "Whether the Focus Shield auto-downgraded this card during a user's calendar Focus Time block. When true, the card was triaged to LIGHT instead of FULL because the user was in deep work mode. Enables audit trail for focus-time filtering decisions.",
+      "_naming_note": "Recommended name: cr_isfocusshieldactive (cr_is* prefix convention). Using cr_focusshieldactive for consistency with existing boolean column naming in this table."
     }
   ],
   "notes": {
