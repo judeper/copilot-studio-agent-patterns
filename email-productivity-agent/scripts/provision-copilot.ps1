@@ -132,7 +132,7 @@ function Get-ExistingCopilotId {
     }
 
     $escapedName = [regex]::Escape($DisplayName)
-    $match = [regex]::Match($result.Output, "(?m)^\s*$escapedName\s+(?<id>[0-9a-fA-F-]{36})\s+")
+    $match = [regex]::Match($result.Output, "(?m)^\s*$escapedName\s+(?<id>[0-9a-fA-F-]{36})\s*")
     if ($match.Success) {
         return $match.Groups["id"].Value
     }
@@ -505,6 +505,11 @@ if (-not (Get-Command "az" -ErrorAction SilentlyContinue)) {
 
 # Ensure the Dataverse solution exists (pac copilot create --solution requires it)
 Write-Host "[0/4] Ensuring '$SolutionName' solution exists..." -ForegroundColor Cyan
+
+$pacSelectResult = Invoke-PacCommand -Arguments @("org", "select", "--environment", $EnvironmentId)
+if ($pacSelectResult.ExitCode -ne 0) {
+    throw "Failed to select environment ${EnvironmentId}: $($pacSelectResult.Output)"
+}
 
 $pacOrgResult = Invoke-PacCommand -Arguments @("org", "who")
 $orgUrlMatch = [regex]::Match($pacOrgResult.Output, "(https://[^\s/]+\.crm[^\s/]*\.dynamics\.com)")

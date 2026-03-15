@@ -1,3 +1,8 @@
+# WARNING: This is a REFERENCE TEMPLATE — not deployed directly.
+# provision-copilot.ps1 generates the actual topic definition using
+# SearchAndSummarizeContent instead of InvokeAIBuilderModelAction.
+# The ENVIRONMENT_SPECIFIC_AI_MODEL_ID placeholder is NOT replaced
+# by the script — the script builds its own topic definition.
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput

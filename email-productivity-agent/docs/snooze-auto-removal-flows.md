@@ -11,7 +11,7 @@ This document provides detailed specifications for building the Power Automate f
 Before building these flows, ensure:
 1. Phase 1 (Follow-Up Nudges) is deployed — NudgeConfiguration table exists with `cr_snoozefolderid` column
 2. The `cr_snoozedconversation` Dataverse table is provisioned
-3. Security roles include Basic-depth privileges on `cr_SnoozedConversation`
+3. Security roles include Basic-depth privileges on `cr_snoozedconversation`
 
 > **Automated deployment:** These flows can be deployed automatically using the deploy script:
 > ```powershell
@@ -203,6 +203,7 @@ Table: Snoozed Conversations (cr_snoozedconversations)
 Filter:
   cr_conversationid eq '@{outputs('newConversationId')}'
   and cr_unsnoozedbyagent eq false
+  and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
 Top Count: 1
 ```
 
@@ -222,12 +223,23 @@ Action: Microsoft Copilot Studio — ExecuteAgentAndWait
 Inputs:
   - botId: @{parameters('epa_CopilotBotId')}
   - message: Determine whether to unsnooze or suppress this reply.
-  - inputData: conversationId, subject, replyFrom, currentDateTime, user's timezone
+  - inputData:
+    - CONVERSATION_ID: @{outputs('newConversationId')}
+    - NEW_MESSAGE_SENDER: @{triggerOutputs()?['body/from']?['emailAddress']?['address']}
+    - NEW_MESSAGE_SENDER_NAME: @{triggerOutputs()?['body/from']?['emailAddress']?['name']}
+    - NEW_MESSAGE_SUBJECT: @{triggerOutputs()?['body/subject']}
+    - NEW_MESSAGE_EXCERPT: @{take(triggerOutputs()?['body/bodyPreview'], 500)}
+    - SNOOZED_SUBJECT: @{first(outputs('Check_Snoozed')?['body/value'])?['cr_originalsubject']}
+    - SNOOZE_UNTIL: @{coalesce(first(outputs('Check_Snoozed')?['body/value'])?['cr_snoozeuntil'], '')}
+    - USER_TIMEZONE: @{coalesce(outputs('Get_Mailbox_Settings')?['body/timeZone'], 'UTC')}
+    - CURRENT_DATETIME: @{utcNow()}
 
 Parse the response JSON:
   - unsnoozeAction: "UNSNOOZE" or "SUPPRESS"
-  - reasoning: decision rationale
-  - suggestedText: optional notification text
+  - suppressReason: decision rationale (only if SUPPRESS)
+  - notificationMessage: brief user-facing notification text
+  - urgency: High | Normal | Low
+  - confidence: 0-100
 
 Condition: unsnoozeAction equals "UNSNOOZE"
   If yes → Proceed to Step 5 (move message to Inbox)
@@ -344,7 +356,7 @@ If a user snoozed multiple messages from the same conversation, the Dataverse al
 Working-hours suppression is controlled by the Snooze Agent policy. If the agent returns `UNSNOOZE` outside working hours, the message is moved back to Inbox immediately; tune the agent prompt to return `SUPPRESS` when needed.
 
 ### Outlook Native Snooze Conflict
-This system uses a **managed folder** (`EPA-Snoozed`), NOT Outlook's native snooze. If a user uses Outlook's built-in "Remind Me" feature, those snoozed emails are in a different folder and will NOT be auto-unsnoozed by this agent. Users should be educated to use the EPA-Snoozed folder (via Canvas App "Snooze" action) for auto-unsnooze behavior.
+This system uses a **managed folder** (`EPA-Snoozed`), NOT Outlook's native snooze. If a user uses Outlook's built-in "Remind Me" feature, those snoozed emails are in a different folder and will NOT be auto-unsnoozed by this agent. Users should be educated to use the EPA-Snoozed folder by manually moving emails in Outlook, or by clicking the **Snooze** button on the nudge Adaptive Card in Teams.
 
 ### Message ID Invalidation After Move
 When `POST /me/messages/{id}/move` is called, Graph deletes the original message and returns a new message with a new ID. The flow MUST capture the new ID from the response body and update the Dataverse record. Failure to do so will cause subsequent operations to return 404.

@@ -19,7 +19,7 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 ### Agent-Powered Decisioning
 - **Flow 2** invokes the Follow-Up Nudge topic in Copilot Studio to evaluate thread context and return a NUDGE or SKIP decision with a thread summary, suggested follow-up draft, priority, and confidence score
 - **Flow 4** invokes the Snooze Auto-Removal topic to decide UNSNOOZE or SUPPRESS based on reply content, sender, working hours, and auto-reply detection
-- **CLI harness flows (8-13)** provide HTTP-triggered coverage for Flow 2, 2b, 3, 4, 7, and 7b — harness flows 8 and 12 also use live agent invocation
+- **CLI harness flows (8-13)** provide HTTP-triggered coverage for Flow 2, 2b, 3, 4, 7, and 7b — harness flows 8, 9, and 12 also use live agent invocation
 
 ## Architecture
 
@@ -125,7 +125,7 @@ email-productivity-agent/
 │       ├── auth.py                              # MSAL + Azure CLI token management
 │       ├── config.py                            # Interactive config collection
 │       ├── requirements.txt                     # Python dependencies (rich, requests, msal)
-│       └── phases/                              # Deployment phase modules (8 files, 9 wizard steps)
+│       └── phases/                              # Deployment phase modules (9 files including __init__.py)
 ```
 
 ## Quick Start

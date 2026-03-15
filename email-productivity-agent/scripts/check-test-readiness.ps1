@@ -277,7 +277,7 @@ $pilotUser = $null
 $epaRole = $null
 
 try {
-    $userCheck = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/systemusers?`$filter=internalemailaddress eq '$escapedPilotEmail'&`$select=systemuserid,fullname,internalemailaddress" -Headers $dvHeaders -Method Get
+    $userCheck = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/systemusers?`$filter=internalemailaddress eq '$escapedPilotEmail'&`$select=systemuserid,azureactivedirectoryobjectid,fullname,internalemailaddress" -Headers $dvHeaders -Method Get
     if ($userCheck.value.Count -gt 0) {
         $pilotUser = $userCheck.value[0]
         Add-CheckResult -Category "Pilot User" -Status "PASS" -Details "$($pilotUser.fullname) found ($($pilotUser.systemuserid))"
@@ -326,7 +326,7 @@ else {
 
 if ($pilotUser) {
     try {
-        $configCheck = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/${PublisherPrefix}_nudgeconfigurations?`$filter=${PublisherPrefix}_owneruserid eq '$($pilotUser.systemuserid)'&`$select=${PublisherPrefix}_nudgeconfigurationid,${PublisherPrefix}_internaldays,${PublisherPrefix}_externaldays,${PublisherPrefix}_prioritydays,${PublisherPrefix}_generaldays" -Headers $dvHeaders -Method Get
+        $configCheck = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/${PublisherPrefix}_nudgeconfigurations?`$filter=${PublisherPrefix}_owneruserid eq '$($pilotUser.azureactivedirectoryobjectid)'&`$select=${PublisherPrefix}_nudgeconfigurationid,${PublisherPrefix}_internaldays,${PublisherPrefix}_externaldays,${PublisherPrefix}_prioritydays,${PublisherPrefix}_generaldays" -Headers $dvHeaders -Method Get
         if ($configCheck.value.Count -gt 0) {
             $config = $configCheck.value[0]
             $configSummary = "Internal=$($config."${PublisherPrefix}_internaldays"), External=$($config."${PublisherPrefix}_externaldays"), Priority=$($config."${PublisherPrefix}_prioritydays"), General=$($config."${PublisherPrefix}_generaldays")"
@@ -421,7 +421,7 @@ $copilotResult = Invoke-PacCommand -Arguments @("copilot", "list", "--environmen
 if ($copilotResult.ExitCode -ne 0) {
     Add-CheckResult -Category "Copilot" -Status "FAIL" -Details "PAC could not query copilots: $($copilotResult.Output)"
 }
-elseif ($copilotResult.Output -match "(?im)^\s*Email Productivity Agent\s+(?<id>[0-9a-fA-F-]{36})\s+") {
+elseif ($copilotResult.Output -match "(?im)^\s*Email Productivity Agent\s+(?<id>[0-9a-fA-F-]{36})\s*") {
     $copilotId = $Matches["id"]
     Add-CheckResult -Category "Copilot" -Status "PASS" -Details "Email Productivity Agent copilot exists ($copilotId)"
 

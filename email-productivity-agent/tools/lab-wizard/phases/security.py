@@ -1,5 +1,7 @@
 """Security role creation and user assignment via Dataverse Web API."""
 
+from __future__ import annotations
+
 import requests
 from rich.console import Console
 from rich.table import Table
@@ -11,7 +13,7 @@ console = Console()
 
 ROLE_NAME = "Email Productivity Agent User"
 TABLES = ["followuptracking", "nudgeconfiguration", "snoozedconversation"]
-CRUD_ACTIONS = ["Create", "Read", "Write", "Delete"]
+CRUD_ACTIONS = ["Create", "Read", "Write", "Delete", "Append", "AppendTo"]
 
 
 def _get_root_business_unit(auth: TokenManager) -> str | None:

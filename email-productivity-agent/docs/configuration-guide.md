@@ -52,7 +52,7 @@ The agent automatically classifies recipients when tracking sent emails:
 | **Priority** | (Future enhancement) Contacts on a configurable priority list |
 | **General** | Default fallback when no specific classification applies |
 
-For the current MVP, all external recipients use the External timeframe. Priority contact list support will be added in a future update.
+> **Current implementation:** The MVP classifier only produces Internal and External values. Priority and General classifications are reserved for future enhancement — the configuration columns and follow-up day calculations exist but the classifier does not yet assign these types.
 
 ---
 
@@ -111,7 +111,7 @@ Nudge notifications are delivered as **Teams Adaptive Cards** in your 1:1 chat w
 | Button | What It Does |
 |--------|-------------|
 | **✏️ Draft Follow-Up** | Invokes the Copilot agent to generate a full follow-up email draft and posts it via Teams for review |
-| **⏰ Snooze 2 Days** | Postpones the nudge by 2 business days |
+| **⏰ Snooze 2 Days** | Postpones the nudge by 2 calendar days |
 | **✖️ Dismiss** | Permanently dismisses this nudge (won't remind again) |
 
 ### Delivery Cadence

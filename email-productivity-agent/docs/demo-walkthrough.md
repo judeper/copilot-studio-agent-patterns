@@ -6,12 +6,11 @@ Step-by-step guide for demonstrating the Email Productivity Agent after deployme
 
 ## Prerequisites
 
-- EPA-Demo-Lab environment fully provisioned (all 12 validation checks passing)
+- EPA-Demo-Lab environment fully provisioned (all validation checks passing (`check-test-readiness.ps1` exits with 0 failures))
 - Copilot Studio agent provisioned via `provision-copilot.ps1` (Bot ID available)
 - 9 flows deployed and ON
-- Demo users assigned (Lisa Taylor, Omar Bennett, Hadar Caspit, William Beringer, Sonia Rees)
+- Demo users assigned (Lisa Taylor, Omar Bennett, Hadar Caspit, Will Beringer)
 - Lisa Taylor has an Exchange Online mailbox
-- Teams client can render emoji characters in Adaptive Cards (no external image dependencies)
 - Canvas App settings UI is **optional** and not covered in this walkthrough (see [`docs/canvas-app-setup.md`](canvas-app-setup.md) if your demo audience expects an end-user settings UI)
 
 ## Demo Flow Overview
@@ -19,7 +18,7 @@ Step-by-step guide for demonstrating the Email Productivity Agent after deployme
 ```
 Lisa sends email → Flow 1 tracks → Flow 2 detects no reply → Teams nudge card
                                                                 ├── Draft Follow-Up
-                                                                ├── Snooze 2 Days → EPA-Snoozed folder
+                                                                ├── Snooze 2 Days → remind in 2 days
                                                                 └── Dismiss
                                                                 
 Reply arrives on snoozed thread → Flow 4 auto-unsnoozes → Teams notification
@@ -51,19 +50,15 @@ Wait ~1 minute, then check Dataverse:
 2. Navigate to **Tables** → **Follow Up Tracking**
 3. You should see 3 rows (one per recipient)
 
-Or query via CLI:
-```powershell
-pwsh invoke-followup-test-harness.ps1 `
-    -EnvironmentId "<env-id>" `
-    -TrackingId "<tracking-id-from-dataverse>" `
-    -ForceNudge
-```
+Or verify via the **Dataverse maker portal**: **Power Apps** → **Tables** → **Follow Up Tracking** → filter by owner.
 
 ### Step 3: Trigger the Nudge (Flow 2)
 
 Flow 2 runs daily at 9 AM EST. For an immediate demo:
 
 **Option A — Wait for schedule:** Come back after 9 AM the next day.
+
+> ⚠️ **Timing note:** Default internal follow-up is 3 business days. For a same-day demo, use Option B (Flow 8 with `-ForceNudge`) which bypasses the timing check.
 
 **Option B — Use Flow 8 test harness:**
 ```powershell
@@ -83,7 +78,6 @@ pwsh invoke-followup-test-harness.ps1 `
     -ForceNudge
 ```
 
-**Option C — Manual trigger:** Go to Power Automate → find "EPA - Flow 2" → Run.
 
 ### Step 4: Show the Teams Nudge Card
 
@@ -96,7 +90,7 @@ After Flow 2 or Flow 8 runs:
    - Nudge priority (High/Medium/Low)
    - Thread summary
    - Suggested follow-up draft
-   - Two action buttons: **Snooze 2 Days**, **Dismiss**
+   - Three action buttons: **✏️ Draft Follow-Up**, **⏰ Snooze 2 Days**, **✖️ Dismiss**
 
 ### Step 5: Demo the Actions
 
@@ -147,7 +141,7 @@ Check Dataverse → **Snoozed Conversations** table — a row should appear with
 
 After Hadar's reply:
 1. The email moves back to Lisa's **Inbox** automatically
-2. Lisa receives a Teams notification: "📬 Unsnoozed: Q1 Budget Variance — new reply from Hadar Caspit"
+2. Lisa receives a Teams notification: "📬 Unsnoozed: Q1 Budget Variance — Please Review by Friday — new reply from Hadar Caspit"
 3. The Dataverse snoozed conversation row is updated: `cr_unsnoozedbyagent = true`
 
 ---
@@ -156,9 +150,15 @@ After Hadar's reply:
 
 ### Step 10: Show the Settings Card
 
-**Flow 7** sends the settings card to Teams. **Flow 7b** handles the card submission (save/restore). **Flow 10** is the HTTP test harness for Flow 7b — it lets you exercise the save/restore behavior from the CLI without waiting for a real card click.
+**Flow 7** sends the settings card to Teams. Trigger it via the HTTP harness:
 
-Manually trigger Flow 7 from Power Automate, or use the Flow 10 test harness:
+```powershell
+pwsh invoke-http-flow-harness.ps1 `
+    -EnvironmentId "<env-id>" `
+    -FlowDisplayName "EPA - Flow 7: Settings Card"
+```
+
+Then optionally test the save/restore behavior using **Flow 10** (the HTTP test harness for Flow 7b):
 
 ```powershell
 pwsh deploy-agent-flows.ps1 `
@@ -188,6 +188,9 @@ The settings card appears in Teams with:
 | Snooze not detected | Flow 3 runs every 15 minutes | Wait or use Flow 11 test harness |
 | Auto-unsnooze not working | Reply must go to Lisa's Inbox | Ensure Hadar replies to the same conversation thread |
 | Teams card buttons not working | Flow 2b needs the `epa_nudge_card` CardTypeId | Verify the card was posted by Flow 2/8 (not manually) |
+| Flow bot blocked in Teams | Power Automate app blocked by Teams admin policy | Teams Admin Center → Teams apps → Permission policies → unblock Power Automate |
+| Flow 2b/7b not responding to card clicks | Handler flows are turned off | Power Automate → verify Flow 2b and Flow 7b are ON |
+| Snooze flows failing with 403 | Missing Mail.ReadWrite permission | Re-consent the HTTP with Entra ID connection or request admin consent |
 
 ---
 

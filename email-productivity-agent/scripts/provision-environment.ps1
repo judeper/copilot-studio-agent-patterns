@@ -66,6 +66,9 @@ $envResult = pac admin create `
     --language 1033 `
     --domain (($EnvironmentName -replace '[^a-zA-Z0-9]', '').ToLower().Substring(0, [Math]::Min(($EnvironmentName -replace '[^a-zA-Z0-9]', '').Length, 22))) `
     --async
+if ($LASTEXITCODE -ne 0) {
+    throw "Environment creation failed. Check PAC CLI output above for details."
+}
 
 # Poll for environment readiness
 Write-Host "Waiting for environment provisioning..." -ForegroundColor Yellow

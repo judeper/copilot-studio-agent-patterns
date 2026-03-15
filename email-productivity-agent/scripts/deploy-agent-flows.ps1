@@ -294,7 +294,7 @@ if ($selectedCopilotFlows.Count -gt 0 -and [string]::IsNullOrWhiteSpace($Copilot
 
 # Phase 1 dependency guard: block if deploying Phase 2 without Phase 1
 if ($FlowsToCreate -eq "Phase2") {
-    $phase1Flows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EPA') and (contains(name,'Flow 1') or contains(name,'Flow 2:') or contains(name,'Flow 5'))&`$select=name,workflowid" -Headers $dvHeaders
+    $phase1Flows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EPA') and (contains(name,'Flow 1:') or contains(name,'Flow 2:') or contains(name,'Flow 5:'))&`$select=name,workflowid" -Headers $dvHeaders
     if ($phase1Flows.value.Count -eq 0) {
         if ($Force) {
             Write-Warning "Phase 1 flows not found — continuing because -Force was specified."

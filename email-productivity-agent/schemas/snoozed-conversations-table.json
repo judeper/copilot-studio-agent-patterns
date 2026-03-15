@@ -52,7 +52,7 @@
       "type": "Text",
       "maxLength": 200,
       "required": true,
-      "description": "Graph folder ID where the snoozed message currently resides. Initially set to the EPA-Snoozed folder ID. Updated after auto-unsnooze to the Inbox folder ID."
+      "description": "Folder identifier where the snoozed message currently resides. Initially set to the EPA-Snoozed Graph folder ID. Updated after auto-unsnooze to 'inbox' (Graph well-known folder name)."
     },
     {
       "logicalName": "cr_unsnoozedbyagent",

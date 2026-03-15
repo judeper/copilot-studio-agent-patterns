@@ -99,9 +99,9 @@ pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 ```
 
 This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
-- `cr_FollowUpTracking`
-- `cr_NudgeConfiguration`
-- `cr_SnoozedConversation` (will show a warning if Phase 2 table doesn't exist yet)
+- `cr_followuptracking`
+- `cr_nudgeconfiguration`
+- `cr_snoozedconversation` (will show a warning if Phase 2 table doesn't exist yet)
 
 ### Step 3: Configure Copilot Studio Agent
 
@@ -113,7 +113,7 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 > ```
 > Note the **Bot ID** from the output — you'll pass it as `-CopilotBotId` when deploying flows.
 >
-> The script also handles the `ENVIRONMENT_SPECIFIC_AI_MODEL_ID` placeholder in `src/snooze-topic.yaml` — it resolves the correct AI model GUID for the target environment automatically. If provisioning manually, you must replace this placeholder with the AI Builder model GUID from your environment before publishing the Snooze Auto-Removal topic.
+> The script generates `SearchAndSummarizeContent`-based topic definitions instead of using the `InvokeAIBuilderModelAction` pattern in the committed YAML files. The committed `src/nudge-topic.yaml` and `src/snooze-topic.yaml` are reference templates — the script produces its own runnable topic definitions.
 >
 > **Manual provisioning:** Follow the steps below to create the agent manually in Copilot Studio.
 
@@ -163,7 +163,7 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    2. Click **Create a new variable**
    3. Name: `AgentResponseJSON`
    4. Data type: **String** (Copilot Studio only supports Number, String, Boolean for outputs — not Object/List)
-   5. Description: "Structured JSON with action, confidence, priority, threadSummary, suggestedFollowUp, and reasoning"
+   5. Description: "Structured JSON with nudgeAction, skipReason, threadSummary, suggestedDraft, nudgePriority, and confidence"
    6. Click **Save**
 
    **Step B — Wire the LLM response to the output variable:**
@@ -172,7 +172,7 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    3. Under **Save response as**, select or create a local variable (e.g., `Topic.GeneratedJSON`)
    4. Below the Generative Answers node, add a **Variable management** → **Set a variable value** node:
       - **Set:** `Topic.AgentResponseJSON` (your declared output variable)
-      - **To:** `Topic.GeneratedJSON` (the Generative Answers output)
+      - **To:** `Topic.GeneratedJSON.text` (the text content from the Generative Answers output)
    5. Add an **End topic** node at the bottom
       - ⚠️ Do **NOT** add a "Send a message" node — that sends a reply to an interactive user, not to the calling flow
 
@@ -180,13 +180,39 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
    - The output variable `AgentResponseJSON` appears in the Copilot Studio connector action's dynamic content panel
    - Expression to access: `outputs('Your_CopilotStudio_Action_Name')?['body']?['AgentResponseJSON']`
    - To parse the JSON string: `json(outputs('Your_CopilotStudio_Action_Name')?['body']?['AgentResponseJSON'])`
-   - Then access fields: `body('Parse_JSON')?['action']`, `body('Parse_JSON')?['confidence']`, etc.
+   - Then access fields: `body('Parse_JSON')?['nudgeAction']`, `body('Parse_JSON')?['confidence']`, etc.
 
-   > **Defensive pattern:** Since LLMs can occasionally return malformed JSON, add a Condition node in PA after Parse JSON to check `empty(body('Parse_JSON')?['action'])`. If true, retry or route to a fallback branch.
+   > **Defensive pattern:** Since LLMs can occasionally return malformed JSON, add a Condition node in PA after Parse JSON to check `empty(body('Parse_JSON')?['nudgeAction'])`. If true, retry or route to a fallback branch.
 
 9. Click **Publish** (top-right) to make the agent available to Power Automate flows
 
 > **Tip:** After publishing, test the agent using the **Test agent** panel (bottom-left). Provide sample input values and verify the response is valid JSON matching the output schema in the prompt.
+
+#### Snooze Auto-Removal Topic (Required for Phase 2)
+
+If deploying Phase 2 (Snooze Auto-Removal), create a second topic in the same agent:
+
+1. Go to **Topics** → **+ New topic** → **From blank**
+2. Name: **Snooze Auto-Removal**
+3. Click **Details** → **Inputs** tab and create these 9 input variables (all set to **"Set as a value"**):
+
+   | Variable Name | Data Type | Description |
+   |---|---|---|
+   | `CONVERSATION_ID` | String | The Microsoft Graph conversationId of the snoozed email thread that received a new reply |
+   | `NEW_MESSAGE_SENDER` | String | Email address of the sender who authored the new reply |
+   | `NEW_MESSAGE_SENDER_NAME` | String | Display name of the reply sender |
+   | `NEW_MESSAGE_SUBJECT` | String | Subject line of the newly received reply message |
+   | `NEW_MESSAGE_EXCERPT` | String | Plain text excerpt of the new reply, up to 500 characters |
+   | `SNOOZED_SUBJECT` | String | Subject line of the original snoozed conversation |
+   | `SNOOZE_UNTIL` | String | Snooze expiration timestamp (null if indefinite) |
+   | `USER_TIMEZONE` | String | User timezone identifier for working-hours suppression |
+   | `CURRENT_DATETIME` | String | Current UTC timestamp when the flow invokes the agent |
+
+4. Go to **Details** → **Outputs** tab → create `AgentResponseJSON` (String type)
+5. In the topic canvas, paste the contents of `prompts/snooze-agent-system-prompt.md` (excluding the markdown title)
+6. Wire the output: Set `Topic.AgentResponseJSON = Topic.GeneratedJSON.text`
+7. Add an **End topic** node
+8. **Publish** the agent again
 
 ### Step 4: Configure Connection References
 
@@ -231,7 +257,7 @@ pwsh deploy-agent-flows.ps1 `
 
 The script will:
 1. Create/reuse the `EmailProductivityAgent` solution
-2. Create 5 connection references in the solution
+2. Create 6 connection references in the solution
 3. Auto-discover connections in the environment and map them to connectors
 4. Create all 4 Phase 1 flows via the Flow Management API with `state=Started`
 5. Add flows to the solution
@@ -267,12 +293,14 @@ cd email-productivity-agent/scripts
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
     -EnvironmentId "<environment-guid>" `
-    -FlowsToCreate "Flow8"
+    -FlowsToCreate "Flow8" `
+    -CopilotBotId "<bot-id-from-provision-copilot>"
 
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
     -EnvironmentId "<environment-guid>" `
-    -FlowsToCreate "Flow9"
+    -FlowsToCreate "Flow9" `
+    -CopilotBotId "<bot-id-from-provision-copilot>"
 
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
@@ -442,7 +470,7 @@ To disable the Email Productivity Agent without affecting other systems:
 ## GDPR & Data Subject Requests
 
 ### Right to Access
-Users can view all their tracked data via the Canvas App (ownership-based RLS ensures they only see their own rows).
+Users can view their nudge configuration via the Canvas App. For full data access, use the Dataverse maker portal (Power Apps → Tables) with ownership-based RLS ensuring users only see their own rows.
 
 ### Right to Erasure
 To delete all data for a specific user:

@@ -26,7 +26,9 @@ param(
 
     [string]$AppName = "Email Productivity Agent Settings",
 
-    [switch]$SkipCanvasSourceSync
+    [switch]$SkipCanvasSourceSync,
+
+    [string]$CopilotBotId
 )
 
 $ErrorActionPreference = "Stop"
@@ -106,6 +108,7 @@ $commonArgs = @(
     "-PilotUserEmail", $PilotUserEmail,
     "-PublisherPrefix", $PublisherPrefix
 )
+$deployCopilotArgs = if ($CopilotBotId) { @("-CopilotBotId", $CopilotBotId) } else { @() }
 
 $precheck = Invoke-PowerShellScript -Path $readinessScript -Arguments $commonArgs -AllowFailure
 if ($precheck.ExitCode -ne 0) {
@@ -127,26 +130,26 @@ else {
     Write-Host "Precheck already passed; deployment scripts will run idempotently." -ForegroundColor Green
 }
 
-Invoke-PowerShellScript -Path $deployScript -Arguments @(
+Invoke-PowerShellScript -Path $deployScript -Arguments (@(
     "-OrgUrl", $OrgUrl,
     "-EnvironmentId", $EnvironmentId,
     "-PublisherPrefix", $PublisherPrefix,
     "-FlowsToCreate", "Phase1"
-) | Out-Null
+) + $deployCopilotArgs) | Out-Null
 
-Invoke-PowerShellScript -Path $deployScript -Arguments @(
+Invoke-PowerShellScript -Path $deployScript -Arguments (@(
     "-OrgUrl", $OrgUrl,
     "-EnvironmentId", $EnvironmentId,
     "-PublisherPrefix", $PublisherPrefix,
     "-FlowsToCreate", "Phase2"
-) | Out-Null
+) + $deployCopilotArgs) | Out-Null
 
-Invoke-PowerShellScript -Path $deployScript -Arguments @(
+Invoke-PowerShellScript -Path $deployScript -Arguments (@(
     "-OrgUrl", $OrgUrl,
     "-EnvironmentId", $EnvironmentId,
     "-PublisherPrefix", $PublisherPrefix,
     "-FlowsToCreate", "Phase3"
-) | Out-Null
+) + $deployCopilotArgs) | Out-Null
 
 if ($SkipCanvasSourceSync) {
     Write-Host ""

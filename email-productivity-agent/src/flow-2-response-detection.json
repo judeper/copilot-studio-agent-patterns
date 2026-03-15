@@ -318,7 +318,7 @@
                             },
                             "Compose_AgentResponseJSON": {
                               "type": "Compose",
-                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['lastResponse'], string(outputs('Execute_Agent_and_wait')))",
+                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['body/lastResponse'], string(outputs('Execute_Agent_and_wait')?['body']))",
                               "runAfter": {
                                 "Execute_Agent_and_wait": [
                                   "Succeeded"
@@ -559,7 +559,9 @@
                                         "poster": "Flow bot",
                                         "location": "Chat with Flow bot",
                                         "body/recipient": "@{outputs('Get_my_profile_(V2)')?['body/mail']}",
-                                        "body/messageBody": "@{outputs('Compose_AdaptiveCard')}"
+                                        "body/messageBody": "@{outputs('Compose_AdaptiveCard')}",
+                                        "body/isAlert": false,
+                                        "CardTypeId": "epa_nudge_card"
                                       },
                                       "host": {
                                         "connectionName": "shared_teams",
@@ -691,7 +693,8 @@
     },
     "notes": {
       "agentInvocation": "Flow 2 invokes the Follow-Up Nudge topic in Copilot Studio via ExecuteAgentAndWait. The agent evaluates thread context and returns structured JSON with nudgeAction, threadSummary, suggestedDraft, nudgePriority, and confidence.",
-      "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions."
+      "timeZone": "Default is Eastern Standard Time. Change recurrence.timeZone for other regions.",
+      "threadPreviewNote": "THREAD_EXCERPT currently passes cr_originalsubject as a fallback. For richer agent context, replace Get_Thread_Preview with a Graph API query: GET /me/messages?$filter=conversationId eq '{id}'&$select=bodyPreview&$orderby=receivedDateTime desc&$top=3, then join bodyPreview values."
     }
   }
 }

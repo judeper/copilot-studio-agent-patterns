@@ -5,6 +5,8 @@ permission to create drafts in Lisa Taylor's mailbox.  The bootstrap runs
 once (interactive admin consent) and subsequent runs are fully silent.
 """
 
+from __future__ import annotations
+
 import json
 import time
 from pathlib import Path

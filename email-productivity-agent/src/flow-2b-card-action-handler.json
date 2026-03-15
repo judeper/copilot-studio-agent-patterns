@@ -156,7 +156,7 @@
                       "RECIPIENT_EMAIL": "@{outputs('Get_Tracking_Record')?['body/cr_recipientemail']}",
                       "RECIPIENT_TYPE": "@{coalesce(outputs('Get_Tracking_Record')?['body/cr_recipienttype'], 'General')}",
                       "DAYS_SINCE_SENT": "@{outputs('Compose_DraftDaysSinceSent')}",
-                      "THREAD_EXCERPT": "",
+                      "THREAD_EXCERPT": "@{coalesce(outputs('Get_Tracking_Record')?['body/cr_originalsubject'], '(No Subject)')}",
                       "USER_DISPLAY_NAME": "@{coalesce(triggerOutputs()?['body/responder/name'], 'User')}"
                     }
                   },
@@ -179,7 +179,7 @@
               "Parse_Draft_Response": {
                 "type": "ParseJson",
                 "inputs": {
-                  "content": "@json(coalesce(outputs('Execute_Draft_Agent')?['lastResponse'], string(outputs('Execute_Draft_Agent'))))",
+                  "content": "@json(coalesce(outputs('Execute_Draft_Agent')?['body/lastResponse'], string(outputs('Execute_Draft_Agent')?['body'])))",
                   "schema": {
                     "type": "object",
                     "properties": {

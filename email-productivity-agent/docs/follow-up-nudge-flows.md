@@ -61,6 +61,8 @@ Condition 4: Skip self-sends
     outputs('Get_email_(V2)')?['body/from']?['emailAddress']?['address']
 ```
 
+> **Implementation note:** The current flow JSON (`src/flow-1-sent-items-tracker.json`) implements Conditions 1 (partial — subject-based auto-reply check only) and 2 (calendar skip). Conditions 3 (no-reply filter) and 4 (self-send filter) are specified for completeness but not yet implemented in the flow definition. The `Auto-Submitted` header check in Condition 1 requires a Filter array action on `internetMessageHeaders` which is documented above but simplified in the current implementation to a subject-prefix check.
+
 ### Actions
 
 #### Step 0: Get User Profile
@@ -203,6 +205,8 @@ Expression:
   )
 ```
 
+> **Implementation note:** The current flow JSON does not persist `cr_internetmessageheaders`. This fallback matching path is specified for future implementation when conversationId-based matching proves insufficient (e.g., when recipients change the subject line).
+
 ##### Step 3d: Upsert to FollowUpTracking
 
 ```
@@ -260,7 +264,7 @@ Scope: Scope_Handle_Errors
 | Trigger Type | Recurrence (Scheduled) |
 | Frequency | Day |
 | Interval | 1 |
-| Time Zone | User's local time (from BriefingSchedule or NudgeConfiguration) |
+| Time Zone | Deployment-time timezone (default: Eastern Standard Time, configurable via `-TimeZone` parameter in `deploy-agent-flows.ps1`) |
 | Start Time | 09:00 |
 
 ### Actions
@@ -416,7 +420,14 @@ Action: Microsoft Copilot Studio — ExecuteAgentAndWait
 Inputs:
   - botId: @{parameters('epa_CopilotBotId')}
   - message: Evaluate this email for follow-up nudge.
-  - inputData: conversationId, subject, recipient profile, days-since-sent, thread excerpt, user display name
+  - inputData:
+    - CONVERSATION_ID: @{items('Apply_to_each')?['cr_conversationid']}
+    - ORIGINAL_SUBJECT: @{items('Apply_to_each')?['cr_originalsubject']}
+    - RECIPIENT_EMAIL: @{items('Apply_to_each')?['cr_recipientemail']}
+    - RECIPIENT_TYPE: @{coalesce(items('Apply_to_each')?['cr_recipienttype'], 'General')}
+    - DAYS_SINCE_SENT: @{outputs('Compose_DaysSinceSent')}
+    - THREAD_EXCERPT: @{outputs('Compose_ThreadExcerpt')}
+    - USER_DISPLAY_NAME: @{outputs('Get_my_profile_(V2)')?['body/displayName']}
 
 Parse the response JSON into:
   - nudgeAction

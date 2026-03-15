@@ -1,5 +1,7 @@
 """MSAL-based authentication for Dataverse, Flow, PowerApps, and Graph APIs."""
 
+from __future__ import annotations
+
 import json
 import shutil
 import subprocess

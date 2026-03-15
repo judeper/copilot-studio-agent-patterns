@@ -99,7 +99,7 @@
       "type": "Boolean",
       "required": true,
       "defaultValue": false,
-      "description": "Whether the user dismissed this nudge via the Adaptive Card 'Dismiss' button. Prevents further nudging for this recipient on this message."
+      "description": "Whether this nudge was dismissed (by user via Adaptive Card or by the agent via SKIP decision). Prevents further nudging for this recipient on this message."
     },
     {
       "logicalName": "cr_lastchecked",
@@ -113,7 +113,7 @@
     "cardinality": "One row per To-line recipient per sent message. CC recipients are excluded. Example: an email to 3 To-line recipients creates 3 rows, all sharing the same cr_sourcesignalid and cr_conversationid.",
     "state_transitions": "Three booleans (cr_responsereceived, cr_nudgesent, cr_dismissedbyuser) create 8 possible states. Valid states: Awaiting (F/F/F), Nudged (F/T/F), Replied (T/F/F), Replied-After-Nudge (T/T/F), Dismissed (F/F/T), Dismissed-After-Nudge (F/T/T). Invalid: any state where cr_responsereceived=true AND cr_dismissedbyuser=true (prevent in flow logic).",
     "data_retention": "A weekly scheduled cleanup flow should delete rows older than 90 days where cr_responsereceived=true OR cr_dismissedbyuser=true.",
-    "reply_matching": "Primary: match Graph messages by cr_conversationid where from.emailAddress.address equals cr_recipientemail and receivedDateTime > cr_sentdatetime. Fallback: match via In-Reply-To/References headers in cr_internetmessageheaders.",
+    "reply_matching": "Primary: match Graph messages by cr_conversationid where from.emailAddress.address equals cr_recipientemail and receivedDateTime > cr_sentdatetime. Fallback via In-Reply-To/References headers is specified but not yet implemented in the current flow definitions.",
     "security": "UserOwned table with ownership-based RLS. Users can only read/write their own rows.",
     "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
   }

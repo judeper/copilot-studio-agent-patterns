@@ -340,7 +340,7 @@
                             },
                             "Compose_AgentResponseJSON": {
                               "type": "Compose",
-                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['lastResponse'], string(outputs('Execute_Agent_and_wait')))",
+                              "inputs": "@coalesce(outputs('Execute_Agent_and_wait')?['body/lastResponse'], string(outputs('Execute_Agent_and_wait')?['body']))",
                               "runAfter": {
                                 "Execute_Agent_and_wait": [
                                   "Succeeded"
@@ -581,7 +581,8 @@
                                         "poster": "Flow bot",
                                         "location": "Chat with Flow bot",
                                         "body/recipient": "@{outputs('Get_my_profile_(V2)')?['body/mail']}",
-                                        "body/messageBody": "@{outputs('Compose_AdaptiveCard')}"
+                                        "body/messageBody": "@{outputs('Compose_AdaptiveCard')}",
+                                        "CardTypeId": "epa_nudge_card"
                                       },
                                       "host": {
                                         "connectionName": "shared_teams",

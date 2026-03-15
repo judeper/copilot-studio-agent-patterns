@@ -1,5 +1,7 @@
 """Phase: Deploy all EPA flows via the Flow Management API and register them in the solution."""
 
+from __future__ import annotations
+
 import json
 import re
 import time
@@ -18,17 +20,44 @@ src_dir = Path(__file__).resolve().parent.parent.parent.parent / "src"
 
 FLOW_DEFINITIONS = [
     {"file": "flow-1-sent-items-tracker.json", "name": "EPA - Flow 1: Sent Items Tracker", "phase": 1},
-    {"file": "flow-2-response-detection.json", "name": "EPA - Flow 2: Response Detection & Nudge Delivery", "phase": 1},
+    {"file": "flow-2-response-detection.json", "name": "EPA - Flow 2: Response Detection", "phase": 1},
     {"file": "flow-2b-card-action-handler.json", "name": "EPA - Flow 2b: Card Action Handler", "phase": 1},
     {"file": "flow-3-snooze-detection.json", "name": "EPA - Flow 3: Snooze Detection", "phase": 2},
     {"file": "flow-4-auto-unsnooze.json", "name": "EPA - Flow 4: Auto-Unsnooze", "phase": 2},
     {"file": "flow-5-data-retention.json", "name": "EPA - Flow 5: Data Retention Cleanup", "phase": 1},
     {"file": "flow-6-snooze-cleanup.json", "name": "EPA - Flow 6: Snooze Cleanup", "phase": 2},
     {"file": "flow-7-settings-card.json", "name": "EPA - Flow 7: Settings Card", "phase": 3},
-    {"file": "flow-7b-settings-handler.json", "name": "EPA - Flow 7b: Settings Handler", "phase": 3},
+    {"file": "flow-7b-settings-handler.json", "name": "EPA - Flow 7b: Settings Card Handler", "phase": 3},
 ]
 
 SOLUTION_UNIQUE_NAME = "EmailProductivityAgent"
+
+CONNECTION_REFERENCE_DEFS = {
+    "shared_office365": {
+        "logical_name_suffix": "sharedoffice365",
+        "display_name": "EPA - Office 365 Outlook",
+    },
+    "shared_office365users": {
+        "logical_name_suffix": "sharedoffice365users",
+        "display_name": "EPA - Office 365 Users",
+    },
+    "shared_commondataserviceforapps": {
+        "logical_name_suffix": "shareddataverse",
+        "display_name": "EPA - Microsoft Dataverse",
+    },
+    "shared_teams": {
+        "logical_name_suffix": "sharedteams",
+        "display_name": "EPA - Microsoft Teams",
+    },
+    "shared_webcontents": {
+        "logical_name_suffix": "sharedhttpentra",
+        "display_name": "EPA - HTTP with Microsoft Entra ID",
+    },
+    "shared_microsoftcopilotstudio": {
+        "logical_name_suffix": "sharedcopilotstudio",
+        "display_name": "EPA - Microsoft Copilot Studio",
+    },
+}
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +91,11 @@ def _patch_timezone(definition: dict, timezone: str):
             recurrence = trigger.get("recurrence", {})
             if "timeZone" in recurrence:
                 recurrence["timeZone"] = timezone
+
+
+def _uses_parameter(definition: dict, parameter_name: str) -> bool:
+    """Return True when the flow definition references a given workflow parameter."""
+    return f"@parameters('{parameter_name}')" in json.dumps(definition)
 
 
 def _build_connection_references(
@@ -162,8 +196,14 @@ def _ensure_connection_references(
 
     unique_keys = set(connection_map.keys())
     for key in unique_keys:
-        sanitized = re.sub(r"[^a-z0-9]", "", key.lower())
-        logical_name = f"{prefix}_{sanitized}"
+        ref_def = CONNECTION_REFERENCE_DEFS.get(key)
+        if ref_def:
+            logical_name = f"{prefix}_{ref_def['logical_name_suffix']}"
+            display_name = ref_def["display_name"]
+        else:
+            sanitized = re.sub(r"[^a-z0-9]", "", key.lower())
+            logical_name = f"{prefix}_{sanitized}"
+            display_name = key
 
         # Check if already exists
         resp = requests.get(
@@ -181,7 +221,7 @@ def _ensure_connection_references(
         conn_name = connection_map[key]
         payload = {
             "connectionreferencelogicalname": logical_name,
-            "connectionreferencedisplayname": key,
+            "connectionreferencedisplayname": display_name,
             "connectorid": f"/providers/Microsoft.PowerApps/apis/{key}",
             "connectionid": conn_name,
         }
@@ -262,6 +302,18 @@ def _deploy_single_flow(
             "defaultValue": {},
             "type": "SecureObject",
         }
+
+    if _uses_parameter(definition, "epa_CopilotBotId"):
+        copilot_bot_id = config.get("copilot_bot_id")
+        if copilot_bot_id:
+            definition["parameters"]["epa_CopilotBotId"] = {
+                "defaultValue": copilot_bot_id,
+                "type": "String",
+            }
+        else:
+            console.print(
+                f"  [yellow]⚠ '{flow_name}' requires a Copilot bot ID. Run the Copilot phase first.[/yellow]"
+            )
 
     # Patch timezone
     _patch_timezone(definition, config.get("timezone", "Eastern Standard Time"))
@@ -428,9 +480,9 @@ def deploy_flows(auth: TokenManager, config: dict, connection_map: dict[str, str
             name = flow_def["name"]
             progress.update(task, description=f"[cyan]{name}[/cyan]")
 
-            # Skip if already active
-            if name in existing and existing[name].get("statecode") == 1:
-                console.print(f"  [dim]⏭ '{name}' already exists and is active — skipping.[/dim]")
+            # Skip if already present, regardless of state
+            if name in existing:
+                console.print(f"  [dim]⏭ '{name}' already exists — skipping.[/dim]")
                 skipped_count += 1
                 progress.advance(task)
                 continue

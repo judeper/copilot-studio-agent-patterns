@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """EPA Lab Wizard — Interactive deployment for Email Productivity Agent demo lab."""
 
+from __future__ import annotations
+
 import sys
 
 from rich.console import Console
@@ -88,7 +90,12 @@ def _run_phase(
 
     if phase_key == "copilot":
         console.print(Rule("[bold]Provision Copilot Agent[/bold]", style="cyan"))
-        return provision_copilot(auth, config), conn_map_out
+        bot_id = provision_copilot(auth, config)
+        if bot_id:
+            config["copilot_bot_id"] = bot_id
+            save_config(config)
+            return True, conn_map_out
+        return False, conn_map_out
 
     if phase_key == "connections":
         console.print(Rule("[bold]Setup Connections[/bold]", style="cyan"))
@@ -149,9 +156,6 @@ def main() -> None:
     console.print("[green]✅ Prerequisites OK[/green]\n")
 
     # --- Configuration ---------------------------------------------------
-    config = load_config()
-    if config:
-        console.print(f"[green]✅ Found saved configuration[/green]")
     config = collect_config()
 
     # --- Auth ------------------------------------------------------------

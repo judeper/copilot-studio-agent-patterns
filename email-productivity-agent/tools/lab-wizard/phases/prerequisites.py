@@ -1,5 +1,7 @@
 """Phase 0 — Verify prerequisites (PAC CLI, Azure CLI, Python packages)."""
 
+from __future__ import annotations
+
 import shutil
 import subprocess
 import sys

@@ -451,11 +451,11 @@ def _validate_copilot(env_id: str, bot_id: str, work_dir: Path) -> bool:
 
 # -- Public entry point -------------------------------------------------------
 
-def provision_copilot(auth: Any, config: dict) -> bool:
+def provision_copilot(auth: Any, config: dict) -> str | None:
     """Provision the Copilot Studio agent with embedded topics.
 
     Automates the full workflow: template build, create, publish, validate.
-    Returns True on success.
+    Returns the bot ID on success.
     """
     console.print(Panel(
         "[bold cyan]Phase 2 - Copilot Studio Agent Provisioning[/bold cyan]",
@@ -469,7 +469,7 @@ def provision_copilot(auth: Any, config: dict) -> bool:
     for f in (BASE_TEMPLATE, KICKSTART_TEMPLATE, NUDGE_PROMPT, SNOOZE_PROMPT):
         if not f.exists():
             console.print(f"  [red]Required file not found: {f}[/red]")
-            return False
+            return None
 
     # Step 1: Check for existing copilot
     console.print(f"\n[bold]Step 1/4[/bold] - Checking for existing copilot...")
@@ -486,7 +486,7 @@ def provision_copilot(auth: Any, config: dict) -> bool:
             bot_id = _create_copilot(config, template_path)
             if not bot_id:
                 console.print("  [red]Could not create copilot.[/red]")
-                return False
+                return None
 
         # Step 3: Publish
         console.print(f"\n[bold]Step 3/4[/bold] - Publishing...")
@@ -506,4 +506,4 @@ def provision_copilot(auth: Any, config: dict) -> bool:
         title="Phase 2 Complete",
         border_style="green",
     ))
-    return True
+    return bot_id

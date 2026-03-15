@@ -169,7 +169,7 @@ def _check_flows(auth: TokenManager, _config: dict) -> tuple[bool, str]:
     found_names = {f["name"] for f in flows}
     missing = [
         n for n in EXPECTED_FLOWS
-        if not any(fn.startswith(n) for fn in found_names)
+        if not any(fn == n or fn.startswith(n + ":") for fn in found_names)
     ]
     inactive = [f["name"] for f in flows if f.get("statecode") != 1]
 

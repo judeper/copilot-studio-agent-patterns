@@ -1,3 +1,8 @@
+# WARNING: This is a REFERENCE TEMPLATE — not deployed directly.
+# provision-copilot.ps1 generates the actual topic definition using
+# SearchAndSummarizeContent instead of InvokeAIBuilderModelAction.
+# The hardcoded aIModelId below is environment-specific and will not
+# work in other environments.
 kind: AdaptiveDialog
 inputs:
   - kind: AutomaticTaskInput
@@ -97,5 +102,5 @@ outputType:
   properties:
     AgentResponseJSON:
       displayName: AgentResponseJSON
-      description: Structured JSON with action, confidence, priority, threadSummary, suggestedFollowUp, and reasoning
+      description: Structured JSON with nudgeAction, skipReason, threadSummary, suggestedDraft, nudgePriority, and confidence
       type: String

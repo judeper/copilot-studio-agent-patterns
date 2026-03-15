@@ -37,21 +37,45 @@ if (Test-Path $resolvedOutputDirectory) {
 
 New-Item -ItemType Directory -Path $resolvedOutputDirectory | Out-Null
 
-$pacArgs = @(
+$downloadDirectory = Join-Path $env:TEMP ("epa-canvas-" + [guid]::NewGuid().ToString("N"))
+$msAppPath = Join-Path $downloadDirectory "settings-canvas-app.msapp"
+New-Item -ItemType Directory -Path $downloadDirectory | Out-Null
+
+$downloadArgs = @(
     "canvas", "download",
     "--name", $AppName,
-    "--extract-to-directory", $resolvedOutputDirectory
+    "--path", $msAppPath
 )
 
 if ($EnvironmentId) {
-    $pacArgs += @("--environment", $EnvironmentId)
+    $downloadArgs += @("--environment", $EnvironmentId)
 }
 
-Write-Host "Downloading Canvas App source for '$AppName'..." -ForegroundColor Cyan
-& pac @pacArgs
+$unpackArgs = @(
+    "canvas", "unpack",
+    "--msapp", $msAppPath,
+    "--sources", $resolvedOutputDirectory
+)
 
-if ($LASTEXITCODE -ne 0) {
-    throw "PAC CLI failed while downloading/extracting the Canvas App."
+try {
+    Write-Host "Downloading Canvas App for '$AppName'..." -ForegroundColor Cyan
+    & pac @downloadArgs
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "PAC CLI failed while downloading the Canvas App."
+    }
+
+    Write-Host "Extracting Canvas App source for '$AppName'..." -ForegroundColor Cyan
+    & pac @unpackArgs
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "PAC CLI failed while extracting the Canvas App source."
+    }
+}
+finally {
+    if (Test-Path $downloadDirectory) {
+        Remove-Item -Path $downloadDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 Write-Host "Canvas App source extracted to: $resolvedOutputDirectory" -ForegroundColor Green
