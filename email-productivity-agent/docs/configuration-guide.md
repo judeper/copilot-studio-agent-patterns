@@ -110,7 +110,7 @@ Nudge notifications are delivered as **Teams Adaptive Cards** in your 1:1 chat w
 
 | Button | What It Does |
 |--------|-------------|
-| **✏️ Draft Follow-Up** | Generates a full follow-up email draft and shows it for review |
+| **✏️ Draft Follow-Up** | Invokes the Copilot agent to generate a full follow-up email draft and posts it via Teams for review |
 | **⏰ Snooze 2 Days** | Postpones the nudge by 2 business days |
 | **✖️ Dismiss** | Permanently dismisses this nudge (won't remind again) |
 

@@ -14,7 +14,7 @@ Step-by-step checklist for deploying the Email Productivity Agent to a Power Pla
 | **Power Platform Environment** | Any environment with Dataverse and Copilot Studio capacity |
 | **Microsoft 365 License** | E3/E5 or Business Premium (for Graph API access) |
 | **Power Apps Premium** | Required for Canvas App accessing custom Dataverse tables |
-| **Copilot Studio License** | Required for live agent decisioning in Flow 2 and Flow 4 |
+| **Copilot Studio License** | Required for live agent decisioning in Flow 2, 2b, 4, 8, 9, and 12 |
 
 ### DLP Policy Check
 
@@ -112,6 +112,8 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 > pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
 > ```
 > Note the **Bot ID** from the output — you'll pass it as `-CopilotBotId` when deploying flows.
+>
+> The script also handles the `ENVIRONMENT_SPECIFIC_AI_MODEL_ID` placeholder in `src/snooze-topic.yaml` — it resolves the correct AI model GUID for the target environment automatically. If provisioning manually, you must replace this placeholder with the AI Builder model GUID from your environment before publishing the Snooze Auto-Removal topic.
 >
 > **Manual provisioning:** Follow the steps below to create the agent manually in Copilot Studio.
 

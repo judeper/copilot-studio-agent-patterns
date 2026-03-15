@@ -122,20 +122,94 @@
           "Case_Draft": {
             "case": "draft_followup",
             "actions": {
-              "Reply_Draft_Placeholder": {
+              "Get_Tracking_Record": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_followuptrackings",
+                    "recordId": "@body('Parse_Card_Response')?['trackingId']",
+                    "$select": "cr_conversationid,cr_originalsubject,cr_recipientemail,cr_recipienttype,cr_sentdatetime"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "GetItem",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                }
+              },
+              "Compose_DraftDaysSinceSent": {
+                "type": "Compose",
+                "inputs": "@if(empty(outputs('Get_Tracking_Record')?['body/cr_sentdatetime']), 0, div(sub(ticks(utcNow()), ticks(outputs('Get_Tracking_Record')?['body/cr_sentdatetime'])), 864000000000))",
+                "runAfter": {
+                  "Get_Tracking_Record": ["Succeeded"]
+                }
+              },
+              "Execute_Draft_Agent": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "botId": "@parameters('epa_CopilotBotId')",
+                    "message": "Generate a complete follow-up email draft for this unreplied thread.",
+                    "inputData": {
+                      "CONVERSATION_ID": "@{outputs('Get_Tracking_Record')?['body/cr_conversationid']}",
+                      "ORIGINAL_SUBJECT": "@{outputs('Get_Tracking_Record')?['body/cr_originalsubject']}",
+                      "RECIPIENT_EMAIL": "@{outputs('Get_Tracking_Record')?['body/cr_recipientemail']}",
+                      "RECIPIENT_TYPE": "@{coalesce(outputs('Get_Tracking_Record')?['body/cr_recipienttype'], 'General')}",
+                      "DAYS_SINCE_SENT": "@{outputs('Compose_DraftDaysSinceSent')}",
+                      "THREAD_EXCERPT": "",
+                      "USER_DISPLAY_NAME": "@{coalesce(triggerOutputs()?['body/responder/name'], 'User')}"
+                    }
+                  },
+                  "host": {
+                    "connectionName": "shared_microsoftcopilotstudio",
+                    "operationId": "ExecuteAgentAndWait",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_microsoftcopilotstudio"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
+                },
+                "runAfter": {
+                  "Compose_DraftDaysSinceSent": ["Succeeded"]
+                }
+              },
+              "Parse_Draft_Response": {
+                "type": "ParseJson",
+                "inputs": {
+                  "content": "@json(coalesce(outputs('Execute_Draft_Agent')?['lastResponse'], string(outputs('Execute_Draft_Agent'))))",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "nudgeAction": { "type": "string" },
+                      "suggestedDraft": { "type": ["string", "null"] },
+                      "threadSummary": { "type": ["string", "null"] }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Execute_Draft_Agent": ["Succeeded"]
+                }
+              },
+              "Reply_With_Draft": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
                     "poster": "Flow bot",
                     "location": "Chat with Flow bot",
                     "body/recipient": "@{coalesce(triggerOutputs()?['body/responder/email'], triggerOutputs()?['body/responder/userPrincipalName'])}",
-                    "body/messageBody": "✏️ Draft generation coming soon. For now, compose your follow-up to @{body('Parse_Card_Response')?['recipientEmail']} manually."
+                    "body/messageBody": "✏️ **Draft Follow-Up** to @{outputs('Get_Tracking_Record')?['body/cr_recipientemail']}<br><br>**Re: @{outputs('Get_Tracking_Record')?['body/cr_originalsubject']}**<br><br>@{coalesce(body('Parse_Draft_Response')?['suggestedDraft'], 'Unable to generate draft. Please compose your follow-up manually.')}<br><br>---<br>⚠️ <em>AI-generated — review and edit before sending.</em>"
                   },
                   "host": {
                     "connectionName": "shared_teams",
                     "operationId": "PostMessageToConversation",
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
                   }
+                },
+                "runAfter": {
+                  "Parse_Draft_Response": ["Succeeded"]
                 }
               }
             }
@@ -179,10 +253,11 @@
     "description": "Handles adaptive card button responses (Draft, Snooze, Dismiss) from Teams nudge cards posted by Flow 2.",
     "requiredConnections": [
       "shared_teams (Microsoft Teams)",
-      "shared_commondataserviceforapps (Microsoft Dataverse)"
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_microsoftcopilotstudio (Microsoft Copilot Studio)"
     ],
     "notes": {
-      "draftAction": "The 'Create Draft' button is a placeholder in MVP. To enable full AI drafting, add a Copilot agent invocation before the reply message that generates a complete email draft.",
+      "draftAction": "The 'Draft Follow-Up' button invokes the Follow-Up Nudge agent via ExecuteAgentAndWait to generate a full email draft, then posts it to the user via Teams for review.",
       "trigger": "The 'When someone responds to an adaptive card' trigger fires for ALL adaptive card responses in Teams. If you have multiple flows posting cards, add a condition to check for the expected action values."
     }
   }

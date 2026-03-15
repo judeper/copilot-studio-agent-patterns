@@ -461,12 +461,10 @@ cr_lastchecked: @{utcNow()}
 > **Logic:**
 > 1. Parse the response body to get `action`, `trackingId`, and other fields
 > 2. Switch on `action`:
->    - `draft_followup` → See MVP note below
+>    - `draft_followup` → Look up the tracking record, invoke the Follow-Up Nudge agent via `ExecuteAgentAndWait` to generate a full draft, then post it as a Teams message for review
 >    - `snooze_nudge` → Update Dataverse: `cr_followupdate = addDays(utcNow(), 2)`, `cr_nudgesent = false`
 >    - `dismiss_nudge` → Update Dataverse: `cr_dismissedbyuser = true`
 > 3. Error handling: On failure, post a text message to the user: "Action couldn't be completed. Please try again."
->
-> **Note (MVP)**: The Draft Follow-Up button is an MVP placeholder. In the current implementation (`flow-2b-card-action-handler.json`), the `draft_followup` action sends a Teams message: *"Draft generation coming soon. For now, compose your follow-up to {recipientEmail} manually."* It does **not** invoke the Copilot agent or create a draft email. Full Copilot-assisted draft generation is planned for a future release.
 >
 > This separation is required because Power Automate's "Post adaptive card" action does not support inline response waiting within a batch processing loop.
 

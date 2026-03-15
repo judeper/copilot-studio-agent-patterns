@@ -99,10 +99,9 @@ Click each button to demonstrate:
 
 | Action | What Happens |
 |---|---|
+| **✏️ Draft Follow-Up** | Invokes the Copilot agent and posts a full AI-generated follow-up draft in Teams for review |
 | **Snooze 2 Days** | Sets `cr_followupdate = now + 2 days`, resets `cr_nudgesent = false` — you'll be reminded again in 2 days |
 | **Dismiss** | Sets `cr_dismissedbyuser = true` — email won't be nudged again |
-
-> **Note:** Draft generation via Copilot is planned for a future release. The current POC focuses on the nudge → snooze → auto-unsnooze pipeline.
 
 ---
 

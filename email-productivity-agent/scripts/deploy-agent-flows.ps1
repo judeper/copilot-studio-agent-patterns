@@ -26,7 +26,7 @@
     impossible to activate without manual designer interaction.
 
     NOTE: The shared_microsoftcopilotstudio connection is required by Flow 2,
-    Flow 4, Flow 8, and Flow 12 for live Copilot Studio agent invocation. Pass
+    2b, 4, 8, 9, and 12 for live Copilot Studio agent invocation. Pass
     -CopilotBotId with the bot ID from provision-copilot.ps1 to inject it into
     the flow definitions at deploy time.
 
@@ -53,7 +53,7 @@
 .PARAMETER CopilotBotId
     Bot ID (GUID) of the Email Productivity Agent copilot. Returned by
     provision-copilot.ps1. Required for flows that invoke the Copilot Studio agent
-    (Flow 2, 4, 8, 12). The script blocks deployment of these flows when omitted.
+    (Flow 2, 2b, 4, 8, 9, 12). The script blocks deployment of these flows when omitted.
 
 .EXAMPLE
     .\deploy-agent-flows.ps1 `
@@ -110,7 +110,7 @@ $flowMap = [ordered]@{
     Flow2b = @{
         File        = "flow-2b-card-action-handler.json"
         DisplayName = "EPA - Flow 2b: Card Action Handler"
-        ConnRefs    = @("shared_teams", "shared_commondataserviceforapps")
+        ConnRefs    = @("shared_teams", "shared_commondataserviceforapps", "shared_microsoftcopilotstudio")
     }
     Flow3  = @{
         File        = "flow-3-snooze-detection.json"
@@ -145,7 +145,7 @@ $flowMap = [ordered]@{
     Flow9  = @{
         File        = "flow-9-card-action-test-harness.json"
         DisplayName = "EPA - Flow 9: Card Action Test Harness"
-        ConnRefs    = @("shared_commondataserviceforapps", "shared_teams")
+        ConnRefs    = @("shared_commondataserviceforapps", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow10 = @{
         File        = "flow-10-settings-handler-test-harness.json"
@@ -286,7 +286,7 @@ $flowsToProcess = switch ($FlowsToCreate) {
     default  { @($FlowsToCreate) }
 }
 
-$flowsRequiringCopilot = @("Flow2", "Flow4", "Flow8", "Flow12")
+$flowsRequiringCopilot = @("Flow2", "Flow2b", "Flow4", "Flow8", "Flow9", "Flow12")
 $selectedCopilotFlows = @($flowsToProcess | Where-Object { $_ -in $flowsRequiringCopilot })
 if ($selectedCopilotFlows.Count -gt 0 -and [string]::IsNullOrWhiteSpace($CopilotBotId)) {
     throw "-CopilotBotId is required when deploying flows that invoke Copilot Studio: $($selectedCopilotFlows -join ', ')"

@@ -168,7 +168,7 @@ Scope: Scope_Handle_Errors (Run After: has failed)
     - Terminate: Succeeded (don't fail the scheduled run)
 ```
 
-> **Dry-run hardening note:** The validated flow first checks whether `EPA-Snoozed` already exists before creating it. This avoids the Graph `Conflict` response that occurs when the folder exists in Outlook but `cr_snoozefolderid` is blank in Dataverse.
+> **Hardening note:** The validated flow first checks whether `EPA-Snoozed` already exists before creating it. This avoids the Graph `Conflict` response that occurs when the folder exists in Outlook but `cr_snoozefolderid` is blank in Dataverse.
 
 ---
 

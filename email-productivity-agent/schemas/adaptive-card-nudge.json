@@ -109,6 +109,16 @@
   "actions": [
     {
       "type": "Action.Submit",
+      "title": "✏️ Draft Follow-Up",
+      "data": {
+        "action": "draft_followup",
+        "trackingId": "${trackingId}",
+        "recipientEmail": "${recipientEmail}",
+        "conversationId": "${conversationId}"
+      }
+    },
+    {
+      "type": "Action.Submit",
       "title": "⏰ Snooze 2 Days",
       "data": {
         "action": "snooze_nudge",

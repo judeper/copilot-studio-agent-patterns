@@ -353,8 +353,9 @@ def _get_mail_token(mail_config: dict) -> str | None:
 # ---------------------------------------------------------------------------
 
 def _resolve_lisa_upn() -> str | None:
+    """Resolve Lisa Taylor's UPN from Entra ID via display name search."""
     from phases.security import _resolve_user_upn
-    return _resolve_user_upn("lisataylor@placeholder", "Lisa Taylor")
+    return _resolve_user_upn("", "Lisa Taylor")
 
 
 def _create_draft(token: str, lisa_upn: str, to_address: str,

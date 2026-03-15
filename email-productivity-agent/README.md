@@ -137,7 +137,7 @@ email-productivity-agent/
 - [PowerShell 7+](https://github.com/PowerShell/PowerShell)
 - [Python 3.9+](https://www.python.org/) (for the lab wizard)
 - Power Platform environment with Copilot Studio capacity for live agent decisioning
-- Copilot Studio license is **required** for live agent decisioning in Flow 2, Flow 4, Flow 8, and Flow 12
+- Copilot Studio license is **required** for live agent decisioning in Flow 2, Flow 2b, Flow 4, Flow 8, Flow 9, and Flow 12
 
 ### Deploy (Lab Wizard — Recommended)
 
@@ -232,7 +232,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 |------|---------|---------|
 | Flow 1: Sent Items Tracker | When a new email is sent | Log to FollowUpTracking (one row per To-line recipient) |
 | Flow 2: Response Detection | Daily at 9 AM | Check Graph for replies, deliver nudge Adaptive Cards |
-| Flow 2b: Card Action Handler | When someone responds to an adaptive card | Handle Draft / Snooze / Dismiss button clicks |
+| Flow 2b: Card Action Handler | When someone responds to an adaptive card | Handle Draft (agent-powered) / Snooze / Dismiss button clicks |
 | Flow 3: Snooze Detection | Every 15 minutes | Scan EPA-Snoozed folder, upsert to SnoozedConversations |
 | Flow 4: Auto-Unsnooze | When a new email arrives (Inbox) | Match against snoozed conversations, move back to Inbox |
 | Flow 5: Data Retention Cleanup | Weekly (Sunday 2 AM) | Delete resolved FollowUpTracking rows older than 90 days |
@@ -240,7 +240,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Flow 7: Settings Card | Manual/request | Post a Teams settings card so users can review their nudge configuration |
 | Flow 7b: Settings Card Handler | Adaptive card response | Persist settings card updates back to Dataverse |
 | Flow 8: Follow-Up Test Harness (optional) | HTTP request | Run one Flow 2 candidate by `trackingId`; `-ForceNudge` replays the Teams card path with live agent invocation |
-| Flow 9: Card Action Test Harness (optional) | HTTP request | Exercise Flow 2b Draft / Dismiss / Snooze handling without waiting for a Teams card click |
+| Flow 9: Card Action Test Harness (optional) | HTTP request | Exercise Flow 2b Draft (with live agent) / Dismiss / Snooze handling without waiting for a Teams card click |
 | Flow 10: Settings Handler Test Harness (optional) | HTTP request | Exercise Flow 7b save / restore behavior from the CLI |
 | Flow 11: Snooze Detection Test Harness (optional) | HTTP request | Run Flow 3 logic on demand, including folder recovery and snoozed-row upsert |
 | Flow 12: Auto-Unsnooze Test Harness (optional) | HTTP request | Replay Flow 4 matching, Graph move, Dataverse update, and Teams notification from the CLI |
@@ -250,7 +250,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 
 - **Flow 1** verified against real sent mail and Dataverse row creation
 - **Flow 2** verified through **Flow 8** with live agent invocation and forced Teams replay support
-- **Flow 2b** verified through **Flow 9** for Draft / Dismiss / Snooze actions
+- **Flow 2b** verified through **Flow 9** for Draft (with live agent invocation) / Dismiss / Snooze actions
 - **Flow 7** verified through direct HTTP invocation
 - **Flow 7b** verified through **Flow 10** for save and restore-defaults persistence
 - **Flow 3** verified through **Flow 11**, including recovery of an existing `EPA-Snoozed` folder ID and owner-scoped snoozed-row persistence
@@ -276,3 +276,15 @@ The generic `invoke-http-flow-harness.ps1` helper resolves the Flow callback URL
 | `cr_followuptracking` | Tracks sent emails awaiting follow-up | ~50/week (one per recipient per sent email) |
 | `cr_nudgeconfiguration` | Per-user nudge settings | 1 |
 | `cr_snoozedconversation` | Tracks snoozed email threads | Low volume |
+
+## Known Limitations & Future Enhancements
+
+| Area | Current State | Future Enhancement |
+|------|--------------|-------------------|
+| Priority contacts | All non-internal recipients classified as External/General | Configurable priority contact list with 1-business-day nudge threshold |
+| Distribution lists | Tracked per To-line entry, not expanded to members | Graph group membership lookup to track per-member |
+| Nudge batching | Each overdue email generates a separate Teams card | Batched daily digest card summarizing all pending follow-ups |
+| Holiday exclusion | Business day calculation excludes weekends only | Holiday calendar table for per-org holiday exclusion |
+| Pagination | Flow 2 processes up to 50 overdue rows per daily run | `@odata.nextLink` loop for unbounded processing |
+| Time-based snooze | Reply-triggered auto-unsnooze only | Timer-based unsnooze as complement to reply-based |
+| Canvas App | Optional settings UI (documented in `docs/canvas-app-setup.md`) | Fully integrated settings experience |

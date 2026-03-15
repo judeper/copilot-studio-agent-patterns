@@ -520,6 +520,16 @@
                                       "actions": [
                                         {
                                           "type": "Action.Submit",
+                                          "title": "✏️ Draft Follow-Up",
+                                          "data": {
+                                            "action": "draft_followup",
+                                            "trackingId": "@{items('Apply_to_each')?['cr_followuptrackingid']}",
+                                            "recipientEmail": "@{items('Apply_to_each')?['cr_recipientemail']}",
+                                            "conversationId": "@{items('Apply_to_each')?['cr_conversationid']}"
+                                          }
+                                        },
+                                        {
+                                          "type": "Action.Submit",
                                           "title": "⏰ Snooze 2 Days",
                                           "data": {
                                             "action": "snooze_nudge",
