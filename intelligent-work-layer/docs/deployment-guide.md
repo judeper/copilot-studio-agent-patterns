@@ -566,6 +566,84 @@ The Copilot Studio agent requires knowledge sources to research incoming signals
 
 > **Note**: Knowledge sources are environment-specific. When moving between dev/test/prod, reconfigure knowledge sources in each environment.
 
+### Advanced: YAML-Based Knowledge Source Configuration
+
+> **⚠️ Internal reference — not publicly documented by Microsoft yet.** This technique was validated via testing but may change. Use at your own discretion.
+
+Knowledge sources can be configured programmatically via YAML using the `KnowledgeSourceConfiguration` kind. This enables **conditional filtering** — activating specific knowledge sources only when runtime conditions are met (e.g., user location, department, role).
+
+#### YAML Syntax
+
+```yaml
+# Name: <descriptive name>
+# <optional comment>
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =<Power Fx boolean expression>
+  site: https://<tenant>.sharepoint.com/sites/<site>/<path>
+```
+
+#### Key Fields
+
+| Field | Description |
+|-------|-------------|
+| `kind` | Always `KnowledgeSourceConfiguration` |
+| `source.kind` | Source type: `SharePointSearchSource`, `DataverseSearchSource`, `WebsiteSearchSource`, etc. |
+| `source.triggerCondition` | Power Fx expression (prefixed with `=`) that evaluates to `true`/`false`. The knowledge source is only searched when the condition is `true`. References global variables set in earlier topic nodes. |
+| `source.site` | URL of the SharePoint site/library (for SharePoint sources) |
+
+#### IWL-Relevant Examples
+
+**Location-based filtering** (e.g., multi-region knowledge bases):
+
+```yaml
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.UserDepartment = "Engineering"
+  site: https://contoso.sharepoint.com/sites/EngineeringKB
+```
+
+**Trigger-type filtering** (e.g., only search project docs for calendar items):
+
+```yaml
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.TriggerType = "CALENDAR_SCAN"
+  site: https://contoso.sharepoint.com/sites/ProjectDocs
+```
+
+**Role-based filtering** (e.g., executive-only competitive intel):
+
+```yaml
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.UserRole = "Executive"
+  site: https://contoso.sharepoint.com/sites/CompetitiveIntel
+```
+
+#### How to Deploy
+
+1. Export the agent solution: `pac solution export --path ./solution.zip --name EnterpriseWorkAssistant`
+2. Extract the ZIP and locate the bot component YAML files
+3. Add `KnowledgeSourceConfiguration` entries to the agent's component definitions
+4. Re-import: `pac solution import --path ./solution.zip`
+
+Alternatively, configure knowledge sources in the Copilot Studio UI first, then export the solution to inspect and modify the generated YAML.
+
+#### Prerequisites for triggerCondition
+
+The global variables referenced in `triggerCondition` (e.g., `Global.UserDepartment`) must be set **before** the knowledge source is evaluated. Typically this means:
+
+1. Create a global variable in the agent (e.g., `Global.UserDepartment`)
+2. In a "On conversation start" or trigger topic, populate it (e.g., from `USER_CONTEXT` input or Office 365 Users connector)
+3. The `triggerCondition` then references this variable
+
+> **See also**: `src/knowledge-sources-example.yaml` for a complete reference file with IWL-specific patterns.
+
 ---
 
 ## License and Role Requirements

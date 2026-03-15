@@ -1,0 +1,110 @@
+# Knowledge Source Configuration — YAML Reference Examples
+#
+# ⚠️ INTERNAL REFERENCE — Not publicly documented by Microsoft yet.
+# Validated via testing. The triggerCondition syntax and source kinds may change.
+#
+# These examples show how to configure conditional knowledge sources for the
+# Intelligent Work Layer agent using YAML. Knowledge sources with triggerCondition
+# are only searched when the Power Fx condition evaluates to true.
+#
+# Prerequisites:
+#   - Global variables referenced in triggerCondition must be set before evaluation
+#   - Typically populated in "On conversation start" or trigger topic nodes
+#   - For IWL, the trigger flows pass USER_CONTEXT which can populate these variables
+
+# ─────────────────────────────────────
+# Example 1: Department-specific SharePoint knowledge base
+# Only searched when the user belongs to Engineering
+# ─────────────────────────────────────
+# Name: Engineering Knowledge Base
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.UserDepartment = "Engineering"
+  site: https://contoso.sharepoint.com/sites/EngineeringKB/Shared%20Documents
+
+---
+
+# ─────────────────────────────────────
+# Example 2: Trigger-type conditional search
+# Only search project documentation for calendar items (meeting prep)
+# ─────────────────────────────────────
+# Name: Project Documentation (Calendar Only)
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.TriggerType = "CALENDAR_SCAN"
+  site: https://contoso.sharepoint.com/sites/ProjectDocs/Shared%20Documents
+
+---
+
+# ─────────────────────────────────────
+# Example 3: Role-based access to sensitive content
+# Only executives can search competitive intelligence
+# ─────────────────────────────────────
+# Name: Competitive Intelligence (Executives Only)
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.UserRole = "Executive"
+  site: https://contoso.sharepoint.com/sites/CompetitiveIntel/Shared%20Documents
+
+---
+
+# ─────────────────────────────────────
+# Example 4: Multi-region knowledge bases (from user's discovery)
+# Only search the county-specific knowledge base matching the user's location
+# ─────────────────────────────────────
+# Name: Armstrong County Knowledge Base
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.UserCounty = "Armstrong"
+  site: https://contoso.sharepoint.com/sites/KnowledgeBase/Shared%20Documents/By_County/Armstrong
+
+---
+
+# ─────────────────────────────────────
+# Example 5: Unconditional knowledge source (no filter)
+# Always searched — company-wide policies and procedures
+# ─────────────────────────────────────
+# Name: Company Policies
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  site: https://contoso.sharepoint.com/sites/CompanyPolicies/Shared%20Documents
+
+---
+
+# ─────────────────────────────────────
+# Example 6: Compound condition
+# Only search HR docs for managers during email triage
+# ─────────────────────────────────────
+# Name: HR Manager Resources
+kind: KnowledgeSourceConfiguration
+source:
+  kind: SharePointSearchSource
+  triggerCondition: =Global.UserRole = "Manager" And Global.TriggerType = "EMAIL"
+  site: https://contoso.sharepoint.com/sites/HRManagerResources/Shared%20Documents
+
+# ─────────────────────────────────────
+# IWL Integration Notes:
+# ─────────────────────────────────────
+# 
+# To use triggerCondition with IWL:
+#
+# 1. The trigger flows (Flows 1-3) already pass USER_CONTEXT as
+#    "DisplayName, JobTitle, Department" — parse this in the agent's
+#    "On conversation start" topic to populate Global.UserDepartment, etc.
+#
+# 2. TRIGGER_TYPE is already an input variable — set Global.TriggerType
+#    from it to enable trigger-type-based filtering.
+#
+# 3. For location/county-based filtering, extend USER_CONTEXT in the
+#    trigger flows to include location data from the Office 365 Users
+#    connector (Get my profile V2 → officeLocation or city fields).
+#
+# Deployment:
+#   pac solution export --path ./solution.zip --name EnterpriseWorkAssistant
+#   # Extract, modify YAML, re-zip
+#   pac solution import --path ./solution.zip
