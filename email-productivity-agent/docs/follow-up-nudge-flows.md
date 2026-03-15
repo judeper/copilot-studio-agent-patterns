@@ -412,15 +412,18 @@ Compose: threadExcerpt
 ##### Step 4e: If Still Pending → Build Nudge Decision
 
 ```
-Action: Compose (mocked response)
-Current output:
-  - nudgeAction: "NUDGE"
-  - threadSummary: Brief summary of the thread context
-  - suggestedDraft: Suggested follow-up message text
-  - nudgePriority: High / Medium / Low
-  - confidence: 0-100 confidence score
+Action: Microsoft Copilot Studio — ExecuteAgentAndWait
+Inputs:
+  - botId: @{parameters('epa_CopilotBotId')}
+  - message: Evaluate this email for follow-up nudge.
+  - inputData: conversationId, subject, recipient profile, days-since-sent, thread excerpt, user display name
 
-The dry-run build keeps this response mocked so Flow 2 can be tested without blocking on Copilot Studio publish/runtime issues. When the live agent path is re-enabled, swap this step back to the Copilot Studio connector and preserve the same response contract.
+Parse the response JSON into:
+  - nudgeAction
+  - threadSummary
+  - suggestedDraft
+  - nudgePriority
+  - confidence
 
 Condition: nudgeAction equals "SKIP"
   If yes → Update cr_dismissedbyuser = true (agent-skipped), continue to next
@@ -435,7 +438,7 @@ Recipient: Current user (flow connection owner)
 Adaptive Card: See schemas/adaptive-card-nudge.json
 ```
 
-> **Current dry-run note**: Flow 2 builds the adaptive card inline using Compose actions and feeds it from a mocked nudge decision. This lets us validate Graph reply checks, Dataverse updates, and Teams delivery independently. When the live Copilot step is restored, replace the mocked Compose with the connector call and keep the same output contract so the card rendering remains unchanged.
+> Flow 2 builds the adaptive card inline using Compose actions and feeds it from the parsed `ExecuteAgentAndWait` response contract (`nudgeAction`, `threadSummary`, `suggestedDraft`, `nudgePriority`, `confidence`).
 
 This posts the card but does NOT wait for a response. Button clicks are handled by a separate flow.
 

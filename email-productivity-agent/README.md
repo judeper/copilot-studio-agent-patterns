@@ -1,6 +1,6 @@
 # Email Productivity Agent
 
-A Copilot Studio pattern that brings Gmail-like email productivity features to Outlook — automatic follow-up nudges for unreplied emails and smart snooze that unsnoozes when someone replies. The current dry-run build keeps Flow 2 deterministic with a mocked agent payload and Flow 4 in POC bypass mode, while the Copilot prompt assets remain in the repo for later re-enablement.
+A Copilot Studio pattern that brings Gmail-like email productivity features to Outlook — automatic follow-up nudges for unreplied emails and smart snooze that unsnoozes when someone replies. Flow 2 and Flow 4 invoke the Copilot Studio agent via `ExecuteAgentAndWait` for live AI-powered nudge decisioning and smart unsnooze evaluation.
 
 ## What It Does
 
@@ -16,10 +16,10 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 - **Auto-unsnoozes** by moving the email back to Inbox immediately
 - **Notifies** you via Teams with context about who replied and what they said
 
-### Current POC Runtime Mode
-- **Flow 2** uses a mocked agent response so reply detection, Dataverse updates, and Teams card delivery can be regression-tested without a live Copilot dependency
-- **Flow 4** bypasses the live Snooze Agent and always takes the deterministic UNSNOOZE path when a matching snoozed conversation is found
-- **CLI harness flows (8-13)** provide HTTP-triggered coverage for Flow 2, 2b, 3, 4, 7, and 7b
+### Agent-Powered Decisioning
+- **Flow 2** invokes the Follow-Up Nudge topic in Copilot Studio to evaluate thread context and return a NUDGE or SKIP decision with a thread summary, suggested follow-up draft, priority, and confidence score
+- **Flow 4** invokes the Snooze Auto-Removal topic to decide UNSNOOZE or SUPPRESS based on reply content, sender, working hours, and auto-reply detection
+- **CLI harness flows (8-13)** provide HTTP-triggered coverage for Flow 2, 2b, 3, 4, 7, and 7b — harness flows 8 and 12 also use live agent invocation
 
 ## Architecture
 
@@ -41,8 +41,8 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 │          └───┬────────┬───┘                                │
 │          Yes │        │ No                                  │
 │              ▼        ▼                                     │
-│         Mark done   Mocked / optional Agent ──► Teams Card  │
-│                     (current POC uses mocked output)        │
+│         Mark done   Copilot Studio Agent ──► Teams Card    │
+│                     (live nudge decisioning via agent)       │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
 │                SNOOZE AUTO-REMOVAL (Phase 2)                │
@@ -65,7 +65,7 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 └─────────────────────────────────────────────────────────────┘
 ```
 
-> In the currently validated dry-run build, Flow 2 uses mocked agent output and Flow 4 bypasses live Snooze Agent decisioning for stable CLI-driven regression tests.
+> Flow 2 invokes the Follow-Up Nudge agent topic and Flow 4 invokes the Snooze Auto-Removal agent topic, both via the Copilot Studio connector.
 
 ## File Map
 
@@ -103,7 +103,7 @@ email-productivity-agent/
 │   ├── copilot-base-template.yaml               # Copilot Studio base bot template
 │   ├── kickStartTemplate-1.0.0.json             # Copilot Studio template metadata
 │   ├── nudge-topic.yaml                         # Follow-Up Nudge topic definition
-│   ├── snooze-topic.yaml                        # Snooze Auto-Removal topic definition (POC placeholder model ID)
+│   ├── snooze-topic.yaml                        # Snooze Auto-Removal topic definition
 │   ├── flow-1-sent-items-tracker.json           # Flow 1: event-driven sent email tracker
 │   ├── flow-2-response-detection.json           # Flow 2: daily reply check + Teams nudge
 │   ├── flow-2b-card-action-handler.json         # Flow 2b: adaptive card button handler
@@ -136,8 +136,8 @@ email-productivity-agent/
 - [Azure CLI](https://aka.ms/installazurecli)
 - [PowerShell 7+](https://github.com/PowerShell/PowerShell)
 - [Python 3.9+](https://www.python.org/) (for the lab wizard)
-- Power Platform environment (Copilot Studio capacity is only required if you plan to re-enable live agent steps)
-- Copilot Studio license is optional in the current POC build and only needed when re-enabling live agent decisioning
+- Power Platform environment with Copilot Studio capacity for live agent decisioning
+- Copilot Studio license is **required** for live agent decisioning in Flow 2, Flow 4, Flow 8, and Flow 12
 
 ### Deploy (Lab Wizard — Recommended)
 
@@ -160,19 +160,23 @@ pwsh provision-environment.ps1 -TenantId "<tenant-id>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 pwsh assign-security-role.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 
-# 2. (Optional) Configure Copilot Studio agent if you plan to re-enable live agent decisioning later
+# 2. Provision Copilot Studio agent (captures Bot ID for flow deployment)
+pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
+# Note the Bot ID from the output (e.g., "a1b2c3d4-e5f6-...")
 
-# 3. Deploy Phase 1 flows
+# 3. Deploy Phase 1 flows (pass -CopilotBotId for live agent invocation)
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<org>.crm.dynamics.com" `
     -EnvironmentId "<env-id>" `
-    -FlowsToCreate "Phase1"
+    -FlowsToCreate "Phase1" `
+    -CopilotBotId "<bot-id>"
 
 # 4. (Phase 2) Deploy snooze flows
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<org>.crm.dynamics.com" `
     -EnvironmentId "<env-id>" `
-    -FlowsToCreate "Phase2"
+    -FlowsToCreate "Phase2" `
+    -CopilotBotId "<bot-id>"
 
 # 5. (Phase 3) Deploy settings flows
 pwsh deploy-agent-flows.ps1 `
@@ -186,7 +190,8 @@ foreach ($flow in @("Flow8","Flow9","Flow10","Flow11","Flow12","Flow13")) {
     pwsh deploy-agent-flows.ps1 `
         -OrgUrl "https://<org>.crm.dynamics.com" `
         -EnvironmentId "<env-id>" `
-        -FlowsToCreate $flow
+        -FlowsToCreate $flow `
+        -CopilotBotId "<bot-id>"
 }
 
 # 7. (Optional) Run regression harness examples
@@ -214,7 +219,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Auto-GUID PKs + alternate keys | Dataverse requires GUID primary keys; alternate keys remain in the schema, but the validated flow implementations now use `ListRecords` + `UpdateRecord`/`CreateRecord` in places where connector-level alternate-key writes proved unreliable |
 | Daily scheduled sweep for nudges | Simple, reliable, low API usage — avoids webhook complexity |
 | Event-driven for snooze unsnooze | Must be near-real-time to match Gmail's behavior |
-| Deterministic POC decisioning | The current dry-run keeps Flow 2 mocked and Flow 4 bypassed so automated validation stays stable while the Copilot prompt assets remain available for later re-enable |
+| Live agent decisioning | Flow 2 and Flow 4 invoke the Copilot Studio agent via `ExecuteAgentAndWait` for real-time AI-powered nudge and snooze decisions |
 | Flow-generated draft (not Copilot deeplink) | Adaptive Card buttons cannot open Copilot; draft content is generated server-side and posted back |
 | Teams Adaptive Card for nudge delivery | Interactive buttons, delivered where users already work |
 | Canvas App for configuration | Only viable low-code option for end-user settings management |
@@ -234,22 +239,22 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Flow 6: Snooze Cleanup | Weekly (Sunday 2:30 AM) | Delete resolved SnoozedConversation rows older than 30 days |
 | Flow 7: Settings Card | Manual/request | Post a Teams settings card so users can review their nudge configuration |
 | Flow 7b: Settings Card Handler | Adaptive card response | Persist settings card updates back to Dataverse |
-| Flow 8: Follow-Up Test Harness (optional) | HTTP request | Run one Flow 2 candidate by `trackingId`; `-ForceNudge` replays the Teams card path with a mocked agent response |
+| Flow 8: Follow-Up Test Harness (optional) | HTTP request | Run one Flow 2 candidate by `trackingId`; `-ForceNudge` replays the Teams card path with live agent invocation |
 | Flow 9: Card Action Test Harness (optional) | HTTP request | Exercise Flow 2b Draft / Dismiss / Snooze handling without waiting for a Teams card click |
 | Flow 10: Settings Handler Test Harness (optional) | HTTP request | Exercise Flow 7b save / restore behavior from the CLI |
 | Flow 11: Snooze Detection Test Harness (optional) | HTTP request | Run Flow 3 logic on demand, including folder recovery and snoozed-row upsert |
 | Flow 12: Auto-Unsnooze Test Harness (optional) | HTTP request | Replay Flow 4 matching, Graph move, Dataverse update, and Teams notification from the CLI |
 | Flow 13: Snooze Seed Test Harness (optional) | HTTP request | Send a test email to self and move it into `EPA-Snoozed` so Flow 11/12 can be tested end to end |
 
-## Dry-Run Verification Status
+## Lab Verification Status
 
 - **Flow 1** verified against real sent mail and Dataverse row creation
-- **Flow 2** verified through **Flow 8** with mocked agent output and forced Teams replay support
+- **Flow 2** verified through **Flow 8** with live agent invocation and forced Teams replay support
 - **Flow 2b** verified through **Flow 9** for Draft / Dismiss / Snooze actions
 - **Flow 7** verified through direct HTTP invocation
 - **Flow 7b** verified through **Flow 10** for save and restore-defaults persistence
 - **Flow 3** verified through **Flow 11**, including recovery of an existing `EPA-Snoozed` folder ID and owner-scoped snoozed-row persistence
-- **Flow 4** verified through **Flow 12** after reseeding mail with **Flow 13**; the current deployed build uses the deterministic bypass path and no longer relies on a failing live Snooze Agent fallback
+- **Flow 4** verified through **Flow 12** after reseeding mail with **Flow 13**; the Snooze Agent evaluates reply context and returns UNSNOOZE or SUPPRESS decisions
 
 ## CLI Regression Harnesses
 

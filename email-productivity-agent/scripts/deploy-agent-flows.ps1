@@ -25,9 +25,10 @@
     definition but connections never bind at the Flow runtime level, making flows
     impossible to activate without manual designer interaction.
 
-    NOTE: The shared_microsoftcopilotstudio connection reference is created by
-    the script but not used by any flow in the current POC deployment. It must
-    be manually connected before re-enabling live Copilot agent steps in Flow 2/4.
+    NOTE: The shared_microsoftcopilotstudio connection is required by Flow 2,
+    Flow 4, Flow 8, and Flow 12 for live Copilot Studio agent invocation. Pass
+    -CopilotBotId with the bot ID from provision-copilot.ps1 to inject it into
+    the flow definitions at deploy time.
 
 .PARAMETER OrgUrl
     Dataverse organization URL (e.g., https://emailproductivityagent.crm.dynamics.com)
@@ -48,6 +49,11 @@
     "Phase3" (Flow7,7b), or individual: "Flow1", "Flow2", "Flow2b",
     "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8",
     "Flow9", "Flow10", "Flow11", "Flow12", "Flow13"
+
+.PARAMETER CopilotBotId
+    Bot ID (GUID) of the Email Productivity Agent copilot. Returned by
+    provision-copilot.ps1. Required for flows that invoke the Copilot Studio agent
+    (Flow 2, 4, 8, 12). The script blocks deployment of these flows when omitted.
 
 .EXAMPLE
     .\deploy-agent-flows.ps1 `
@@ -74,7 +80,9 @@ param(
     [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12", "Flow13")]
     [string]$FlowsToCreate = "All",
 
-    [switch]$Force
+    [switch]$Force,
+
+    [string]$CopilotBotId
 )
 
 $ErrorActionPreference = "Stop"
@@ -97,7 +105,7 @@ $flowMap = [ordered]@{
     Flow2  = @{
         File        = "flow-2-response-detection.json"
         DisplayName = "EPA - Flow 2: Response Detection"
-        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow2b = @{
         File        = "flow-2b-card-action-handler.json"
@@ -112,7 +120,7 @@ $flowMap = [ordered]@{
     Flow4  = @{
         File        = "flow-4-auto-unsnooze.json"
         DisplayName = "EPA - Flow 4: Auto-Unsnooze"
-        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow6  = @{
         File        = "flow-6-snooze-cleanup.json"
@@ -132,7 +140,7 @@ $flowMap = [ordered]@{
     Flow8  = @{
         File        = "flow-8-followup-test-harness.json"
         DisplayName = "EPA - Flow 8: Follow-Up Test Harness"
-        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow9  = @{
         File        = "flow-9-card-action-test-harness.json"
@@ -152,7 +160,7 @@ $flowMap = [ordered]@{
     Flow12 = @{
         File        = "flow-12-auto-unsnooze-test-harness.json"
         DisplayName = "EPA - Flow 12: Auto-Unsnooze Test Harness"
-        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+        ConnRefs    = @("shared_office365", "shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams", "shared_microsoftcopilotstudio")
     }
     Flow13 = @{
         File        = "flow-13-snooze-seed-test-harness.json"
@@ -278,6 +286,12 @@ $flowsToProcess = switch ($FlowsToCreate) {
     default  { @($FlowsToCreate) }
 }
 
+$flowsRequiringCopilot = @("Flow2", "Flow4", "Flow8", "Flow12")
+$selectedCopilotFlows = @($flowsToProcess | Where-Object { $_ -in $flowsRequiringCopilot })
+if ($selectedCopilotFlows.Count -gt 0 -and [string]::IsNullOrWhiteSpace($CopilotBotId)) {
+    throw "-CopilotBotId is required when deploying flows that invoke Copilot Studio: $($selectedCopilotFlows -join ', ')"
+}
+
 # Phase 1 dependency guard: block if deploying Phase 2 without Phase 1
 if ($FlowsToCreate -eq "Phase2") {
     $phase1Flows = Invoke-RestMethod -Uri "$OrgUrl/api/data/v9.2/workflows?`$filter=startswith(name,'EPA') and (contains(name,'Flow 1') or contains(name,'Flow 2:') or contains(name,'Flow 5'))&`$select=name,workflowid" -Headers $dvHeaders
@@ -370,6 +384,13 @@ function Prepare-FlowDefinition([object]$Definition) {
     if (-not $Definition.parameters.'$authentication') {
         $Definition.parameters | Add-Member -NotePropertyName '$authentication' -NotePropertyValue ([PSCustomObject]@{
             defaultValue = [PSCustomObject]@{}; type = "SecureObject"
+        }) -Force
+    }
+
+    # Inject CopilotBotId parameter for flows that invoke the agent
+    if ($CopilotBotId) {
+        $Definition.parameters | Add-Member -NotePropertyName 'epa_CopilotBotId' -NotePropertyValue ([PSCustomObject]@{
+            defaultValue = $CopilotBotId; type = "String"
         }) -Force
     }
 

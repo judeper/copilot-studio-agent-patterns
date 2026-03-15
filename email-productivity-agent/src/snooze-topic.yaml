@@ -56,9 +56,11 @@ beginDialog:
       output:
         binding:
           predictionOutput: Topic.GeneratedJSON
-      # POC placeholder — replace with actual AI Builder model ID before enabling live agent decisioning.
-      # Flow 4 currently bypasses this topic entirely (deterministic UNSNOOZE path).
-      aIModelId: REPLACE_WITH_SNOOZE_AI_MODEL_ID
+      # Environment-specific — replaced at deploy time by provision-copilot.ps1
+      # which generates a SearchAndSummarizeContent-based template instead.
+      # If using InvokeAIBuilderModelAction directly, replace with the actual
+      # AI Builder model GUID from your target environment.
+      aIModelId: ENVIRONMENT_SPECIFIC_AI_MODEL_ID
 
     - kind: SetVariable
       id: setVariable_snoozeResponse

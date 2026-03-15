@@ -4,7 +4,7 @@ This document provides detailed specifications for building the Power Automate f
 
 ---
 
-> **Current validated POC state:** The dry-run build keeps Flow 4 deterministic. Flow 11 and Flow 12 are the HTTP harness equivalents of Flow 3 and Flow 4, and Flow 13 seeds a real message into `EPA-Snoozed` so the Phase 2 path can be tested end to end without waiting on manual mailbox actions. The production Snooze Agent pattern is still documented below as an optional future enhancement.
+> **Current validated POC state:** Flow 4 invokes the Snooze Agent via `ExecuteAgentAndWait` for UNSNOOZE/SUPPRESS decisions. Flow 11 and Flow 12 are the HTTP harness equivalents of Flow 3 and Flow 4, and Flow 13 seeds a real message into `EPA-Snoozed` so the Phase 2 path can be tested end to end without waiting on manual mailbox actions.
 
 ## Prerequisites
 
@@ -336,7 +336,7 @@ If the recipient changes the email subject when replying, Graph assigns a new `c
 If a user snoozed multiple messages from the same conversation, the Dataverse alternate key (conversationId + owner) means only one row exists per thread. The most recently detected message's ID is stored. All messages in the thread effectively share one snooze record.
 
 ### Working Hours
-The current validated dry-run build does **not** suppress unsnoozing outside working hours; it always takes the deterministic UNSNOOZE path. Working-hours suppression remains a production enhancement that can be reintroduced when the Snooze Agent is wired back in.
+Working-hours suppression is controlled by the Snooze Agent policy. If the agent returns `UNSNOOZE` outside working hours, the message is moved back to Inbox immediately; tune the agent prompt to return `SUPPRESS` when needed.
 
 ### Outlook Native Snooze Conflict
 This system uses a **managed folder** (`EPA-Snoozed`), NOT Outlook's native snooze. If a user uses Outlook's built-in "Remind Me" feature, those snoozed emails are in a different folder and will NOT be auto-unsnoozed by this agent. Users should be educated to use the EPA-Snoozed folder (via Canvas App "Snooze" action) for auto-unsnooze behavior.

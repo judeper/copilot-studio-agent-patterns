@@ -11,10 +11,10 @@ Step-by-step checklist for deploying the Email Productivity Agent to a Power Pla
 | **PAC CLI** | `dotnet tool install --global Microsoft.PowerApps.CLI.Tool` |
 | **Azure CLI** | `winget install Microsoft.AzureCLI` (Windows) or `brew install azure-cli` (macOS) |
 | **PowerShell 7+** | Required for provisioning scripts |
-| **Power Platform Environment** | Any environment with Dataverse; Copilot Studio capacity is only needed if you plan to re-enable live agent steps |
+| **Power Platform Environment** | Any environment with Dataverse and Copilot Studio capacity |
 | **Microsoft 365 License** | E3/E5 or Business Premium (for Graph API access) |
 | **Power Apps Premium** | Required for Canvas App accessing custom Dataverse tables |
-| **Copilot Studio License** | Optional for the current POC dry-run build; required only if you plan to re-enable the live Flow 2 / Flow 4 agent decision steps |
+| **Copilot Studio License** | Required for live agent decisioning in Flow 2 and Flow 4 |
 
 ### DLP Policy Check
 
@@ -25,8 +25,9 @@ Verify that the following connectors are in the same DLP connector group (Busine
 - Microsoft Teams
 - Microsoft Dataverse
 - HTTP with Microsoft Entra ID (premium)
+- Microsoft Copilot Studio
 
-If HTTP with Microsoft Entra ID is blocked or in a different group, contact your tenant admin to update the DLP policy.
+If HTTP with Microsoft Entra ID or Microsoft Copilot Studio is blocked or in a different group, contact your tenant admin to update the DLP policy.
 
 ### Graph API Permissions (Delegated)
 
@@ -102,9 +103,17 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 - `cr_NudgeConfiguration`
 - `cr_SnoozedConversation` (will show a warning if Phase 2 table doesn't exist yet)
 
-### Step 3: Configure Copilot Studio Agent (Optional in the current POC build)
+### Step 3: Configure Copilot Studio Agent
 
-> **Current tested state:** Flow 2 uses a mocked agent response and Flow 4 bypasses the Snooze Agent entirely, so the dry-run deployment does not require a live Copilot Studio connector. Keep this step for future re-enablement of live agent decisioning.
+> **Required:** Flow 2 and Flow 4 invoke the Copilot Studio agent for real-time AI-powered nudge and snooze decisions. The agent must be provisioned before deploying flows.
+>
+> **Automated provisioning (recommended):** Run `provision-copilot.ps1` to create the agent with both topics automatically:
+> ```powershell
+> pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
+> ```
+> Note the **Bot ID** from the output — you'll pass it as `-CopilotBotId` when deploying flows.
+>
+> **Manual provisioning:** Follow the steps below to create the agent manually in Copilot Studio.
 
 1. Open [Copilot Studio](https://copilotstudio.microsoft.com) and select the provisioned environment from the environment picker (top-right)
 2. Click **Create** → **New agent** → **Skip to configure** (to bypass the wizard)
@@ -189,6 +198,10 @@ Set up these Power Automate connections:
   - **Base Resource URL:** `https://graph.microsoft.com`
   - **Azure AD Resource URI:** `https://graph.microsoft.com`
 
+- **Microsoft Copilot Studio** — for agent invocation in Flow 2 and Flow 4
+  - Create the connection after running `provision-copilot.ps1`
+  - The connection must be in the same DLP group as the other 5 connectors
+
 ### Step 5: Deploy Power Automate Flows
 
 The deploy script creates flows via the **Flow Management API** with connection bindings, then adds them to the Dataverse solution. Flow definitions are located in the `src/` directory as JSON files (e.g., `src/flow-1-sent-items-tracker.json`).
@@ -210,7 +223,8 @@ cd email-productivity-agent/scripts
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
     -EnvironmentId "<environment-guid>" `
-    -FlowsToCreate "Phase1"
+    -FlowsToCreate "Phase1" `
+    -CopilotBotId "<bot-id-from-provision-copilot>"
 ```
 
 The script will:
@@ -295,20 +309,16 @@ cd email-productivity-agent/scripts
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
     -EnvironmentId "<environment-guid>" `
-    -FlowsToCreate "Phase2"
+    -FlowsToCreate "Phase2" `
+    -CopilotBotId "<bot-id-from-provision-copilot>"
 ```
 
 This creates:
 - **Flow 3: Snooze Detection** — Scans the EPA-Snoozed folder every 15 minutes and tracks conversations in Dataverse
-- **Flow 4: Auto-Unsnooze** — Watches Inbox for new emails; if one matches a snoozed conversation, moves the snoozed message back to Inbox and notifies via Teams
+- **Flow 4: Auto-Unsnooze** — Watches Inbox for new emails; if one matches a snoozed conversation, invokes the Snooze Agent to decide UNSNOOZE or SUPPRESS, then moves the message back to Inbox and notifies via Teams
 - **Flow 6: Snooze Cleanup** — Weekly purge of unsnoozed records older than 30 days
 
 **Expected output:** All 3 flows created and running (✓ ON).
-
-> **POC simplifications vs. production:**
-> - Flow 4 always unsnoozes on match (no Snooze Agent invocation for SUPPRESS/UNSNOOZE decisions)
-> - No working-hours check (production would suppress unsnooze outside 7AM-7PM)
-> - Simple Teams text notification (production would use adaptive card with deeplink)
 
 ### Step 10: Ensure Mail.ReadWrite Permission
 
@@ -331,7 +341,7 @@ Flow 3 (create mail folder, list messages) and Flow 4 (move messages) use the **
 
 ### Optional: Deploy Phase 2 Regression Harnesses
 
-Use these harness flows when you want deterministic CLI coverage for the snooze path:
+Use these harness flows when you want CLI-driven coverage for the snooze path (pass `-CopilotBotId` for Flows 12):
 
 ```powershell
 cd email-productivity-agent/scripts
@@ -343,7 +353,8 @@ pwsh deploy-agent-flows.ps1 `
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
     -EnvironmentId "<environment-guid>" `
-    -FlowsToCreate "Flow12"
+    -FlowsToCreate "Flow12" `
+    -CopilotBotId "<bot-id-from-provision-copilot>"
 
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<your-org>.crm.dynamics.com" `
@@ -371,20 +382,9 @@ pwsh invoke-http-flow-harness.ps1 `
     -BodyJson '{"conversationId":"<graph-conversation-id>","subject":"Re: <original-subject>","bodyPreview":"Automated reply payload","from":{"emailAddress":{"address":"<user@domain.com>","name":"<display-name>"}}}'
 ```
 
-This harness sequence validates the real mailbox move, Dataverse update, and Teams notification path without waiting on a live reply.
+This harness sequence validates the real mailbox move, Dataverse update, Snooze Agent invocation, and Teams notification path without waiting on a live reply.
 
-> **Observed dry-run hardening:** Flow 3 now first checks whether `EPA-Snoozed` already exists before trying to create it, persists the recovered folder ID back into `cr_nudgeconfiguration`, and uses `ListRecords` + `UpdateRecord`/`CreateRecord` for `cr_snoozedconversation` writes. The create path must explicitly set `item/cr_unsnoozedbyagent = false` for the Dataverse connector to save successfully.
-
-### Step 12: Configure Snooze Agent (Optional — Production only)
-
-For production deployments, you can add intelligent snooze decisions. The current validated dry-run does **not** use this path; Flow 4 is intentionally deterministic so test automation remains stable.
-
-1. In Copilot Studio, add a **"Snooze Auto-Removal"** topic
-2. Paste `prompts/snooze-agent-system-prompt.md` as instructions
-3. Define input variables (CONVERSATION_ID, SNOOZED_SUBJECT, NEW_MESSAGE_SENDER, etc.)
-4. Update Flow 4 to invoke the agent before unsnoozing
-
-See `docs/snooze-auto-removal-flows.md` Step 4 for the agent invocation pattern.
+> **Observed hardening:** Flow 3 now first checks whether `EPA-Snoozed` already exists before trying to create it, persists the recovered folder ID back into `cr_nudgeconfiguration`, and uses `ListRecords` + `UpdateRecord`/`CreateRecord` for `cr_snoozedconversation` writes. The create path must explicitly set `item/cr_unsnoozedbyagent = false` for the Dataverse connector to save successfully.
 
 ### Multi-User Deployment Model
 

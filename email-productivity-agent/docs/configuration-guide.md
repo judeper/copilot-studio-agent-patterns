@@ -88,9 +88,9 @@ The notification includes who replied and a brief context hint from the reply.
 
 ### Working Hours
 
-The current validated dry-run build does **not** suppress unsnoozing outside working hours; when a matching reply arrives, the email is moved back to Inbox immediately and you receive the Teams notification right away.
+Unsnoozing behavior is driven by the Snooze Agent decision (`UNSNOOZE` or `SUPPRESS`). If your current prompt policy does not suppress outside working hours, matching replies are moved back to Inbox immediately and you receive the Teams notification right away.
 
-> **Production option:** The repo still includes the Snooze Agent prompt assets if you later want to re-enable working-hours-aware suppression logic.
+> **Tuning option:** Adjust the Snooze Agent prompt policy if you want working-hours-aware suppression logic.
 
 ---
 

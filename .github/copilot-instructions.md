@@ -33,8 +33,8 @@ The **Agent Cost Governance — PAYGO** solution (`agent-cost-governance-paygo/`
 The **Email Productivity Agent** (`email-productivity-agent/`) provides Gmail-like follow-up nudges and smart snooze for Outlook:
 - **9 production flows** (Phase 1: nudges, Phase 2: snooze, Phase 3: settings) + 6 optional CLI regression harnesses
 - **3 Dataverse tables**: `cr_followuptracking`, `cr_nudgeconfiguration`, `cr_snoozedconversation`
-- **Connectors**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID
-- **POC state**: Flow 2 mocked, Flow 4 deterministic bypass; Copilot assets available for re-enabling
+- **Connectors**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio
+- **Agent invocation**: Flow 2 and Flow 4 invoke the Copilot Studio agent via `ExecuteAgentAndWait` for live AI-powered nudge and snooze decisions
 - **Lab wizard** (`tools/lab-wizard/wizard.py`): Python CLI automating full deployment in 9 phases
 
 ## Build, Test, and Lint (PCF Component)
@@ -76,7 +76,8 @@ cd email-productivity-agent/tools/lab-wizard && pip install -r requirements.txt 
 # Manual scripts (from email-productivity-agent/scripts/)
 pwsh provision-environment.ps1 -TenantId "<tenant-id>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
-pwsh deploy-agent-flows.ps1 -OrgUrl "..." -EnvironmentId "..." -FlowsToCreate "Phase1"  # then Phase2, Phase3
+pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
+pwsh deploy-agent-flows.ps1 -OrgUrl "..." -EnvironmentId "..." -FlowsToCreate "Phase1" -CopilotBotId "<bot-id>"  # then Phase2, Phase3
 ```
 
 Requires: PowerShell 7+, PAC CLI, Azure CLI (`az login` for token acquisition).
@@ -93,8 +94,8 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 - **Agent tool flows** (`src/tool-*.json`): Reference definitions for Copilot Studio agent actions. Use `PowerVirtualAgents` trigger — cannot be API-deployed; create via Copilot Studio Actions or `pac solution import`.
 - **Agent tool flows** (`src/tool-*.json`): Reference definitions for Copilot Studio agent actions. Use `PowerVirtualAgents` trigger (`When an agent calls the flow`) and `PowerVirtualAgentsResponseV2` response. **Cannot be created via Flow Management API** — create via Copilot Studio Actions or `pac solution import`. "Asynchronous response" must be OFF.
 - **Topic definitions** (`src/*-topic.yaml`): Copilot Studio Adaptive Dialog YAML. Use `InvokeAIBuilderModelAction` for AI prompts (referenced by `aIModelId` GUID — environment-specific). Use `InvokeFlowAction` for tool actions (referenced by `flowId` GUID — environment-specific).
-- **Agent invocation**: Prompt assets remain in the repo, but the current validated POC deployment keeps Flow 2 mocked and Flow 4 bypassed; only re-enabled live-agent variants should use `shared_microsoftcopilotstudio`.
-- **5 connectors required in the tested deployment**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized). Add Microsoft Copilot Studio only when re-enabling live agent calls.
+- **Agent invocation**: Flow 2 and Flow 4 invoke the Copilot Studio agent via `ExecuteAgentAndWait` using the `shared_microsoftcopilotstudio` connector. The `epa_CopilotBotId` parameter is injected at deploy time by `deploy-agent-flows.ps1`.
+- **6 connectors required**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized), Microsoft Copilot Studio.
 - **MCP servers** (Tier 4-5): Add from the built-in catalog in Copilot Studio → Tools. Microsoft Learn Docs MCP Server replaces the retired Bing WebSearch MCP. Cannot be automated via scripts.
 
 ### PCF Component Patterns
