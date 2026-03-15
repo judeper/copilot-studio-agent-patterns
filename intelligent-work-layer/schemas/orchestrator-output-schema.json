@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrchestratorAgentOutput",
+  "description": "Output schema for the Orchestrator Agent. Returned by the Command Execution flow (Flow 8) in response to natural language commands from the command bar.",
+  "type": "object",
+  "required": ["response_text"],
+  "properties": {
+    "response_text": {
+      "type": "string",
+      "description": "Plain text response to show the user. Natural, conversational English. No markdown formatting."
+    },
+    "card_links": {
+      "type": "array",
+      "description": "Links to cards referenced in the response. The PCF component renders these as clickable navigation links. Maximum 5 per response.",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["card_id", "label"],
+        "properties": {
+          "card_id": {
+            "type": "string",
+            "description": "Dataverse row ID (GUID) of the referenced AssistantCard."
+          },
+          "label": {
+            "type": "string",
+            "description": "Short label for the link displayed in the response panel."
+          }
+        }
+      }
+    },
+    "side_effects": {
+      "type": "array",
+      "description": "Actions taken that modified data. The Canvas app uses this to trigger a Refresh call.",
+      "items": {
+        "type": "object",
+        "required": ["action", "description"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["UPDATE_CARD", "CREATE_CARD", "REFINE_DRAFT"],
+            "description": "The type of mutation performed."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what was done."
+          }
+        }
+      }
+    }
+  }
+}

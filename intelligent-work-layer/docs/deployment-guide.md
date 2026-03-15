@@ -6,15 +6,17 @@ End-to-end deployment checklist for the Intelligent Work Layer solution.
 
 ### Development Tools
 
-- [ ] **Bun** >= 1.x (Tested with Bun 1.3.8)
+- [ ] **Bun** >= 1.x (Tested with Bun 1.3.8) — *recommended for faster installs/builds*
   - macOS: `brew install oven-sh/bun/bun`
   - Windows: `powershell -c "irm bun.sh/install.ps1|iex"`
-- [ ] **Node.js** >= 20 (Tested with Node.js 20.x)
+- [ ] **Node.js** >= 20 (Tested with Node.js 20.x) — *alternative to Bun; `npm` works in place of `bun` for all commands*
   - macOS: `brew install node@20`
   - Windows: `winget install OpenJS.NodeJS.LTS`
 - [ ] **.NET SDK** (required for PAC CLI)
   - macOS: `brew install --cask dotnet-sdk`
   - Windows: `winget install Microsoft.DotNet.SDK.8`
+
+> **Bun vs npm**: All build/test commands work with either Bun (`bun install`, `bun run build`) or npm (`npm install`, `npm run build`). This guide uses Bun in examples; substitute `npm` if preferred.
 
 ### Power Platform Tools
 
@@ -64,7 +66,7 @@ This creates:
 
 ### 1.3 Enable PCF for Canvas Apps
 
-This must be done manually — there is no CLI command:
+This is now automated by `provision-environment.ps1` (step 2b) via the Power Platform Admin API. If the API call failed during provisioning, enable it manually:
 
 1. Go to **Power Platform Admin Center** → **Environments** → select your environment
 2. Click **Settings** → expand **Product** → click **Features**
@@ -97,7 +99,7 @@ The IWL is a single-user experience — the agent processes signals on behalf of
 
 This script verifies that column names, choice values, and references are consistent across all artifacts (schemas, scripts, documentation). Run it after provisioning to catch any drift.
 
-### 1.6 Create Connections
+### 1.7 Create Connections
 
 Manually create connections in Power Automate for:
 
@@ -108,6 +110,14 @@ Manually create connections in Power Automate for:
 5. **SharePoint** — internal knowledge search
 
 Navigate to: Power Automate → Connections → New connection
+
+> **Why manual?** Connection creation requires interactive OAuth consent — each connection opens a browser popup for the user to sign in. This cannot be automated via API.
+
+After creating connections, validate they are active:
+
+```powershell
+.\validate-connections.ps1 -EnvironmentId "<your-environment-id>"
+```
 
 > **Note on connections vs. connection references**: For initial development, you only need standard connections. For multi-environment deployment, convert to connection references inside a solution.
 
@@ -159,7 +169,12 @@ Configure the agent's prompt to output JSON format. In Copilot Studio's **Prompt
 
 ### 2.3 Set Up Input Variables
 
-Create four input variables in the agent:
+Create five input variables in the agent. For each variable:
+
+1. In Copilot Studio, open the agent → navigate to **Topics** → open the topic that handles the flow invocation
+2. In the topic's **Trigger** node, click **+ Add an input** (or **Edit inputs**)
+3. Set the **Name**, **Type**, and **Description** as shown below
+4. For required variables, set **Is required** → Yes
 
 | Variable | Type | Description | Required | Default |
 |----------|------|-------------|----------|---------|
@@ -168,6 +183,8 @@ Create four input variables in the agent:
 | USER_CONTEXT | Text | Comma-separated string: "DisplayName, JobTitle, Department" | Yes | N/A |
 | CURRENT_DATETIME | Text | ISO 8601 timestamp | Yes | N/A |
 | SENDER_PROFILE | Multi-line text | Serialized sender profile JSON from SenderProfile table, or the string 'null' for first-time senders. Contains signal_count, response_rate, avg_response_hours, dismiss_rate, avg_edit_distance, sender_category, is_internal. Populated by trigger flows (Flows 1-3) before agent invocation. Enables sender-adaptive triage threshold adjustments. | Optional | null if no profile exists |
+
+> **Why manual?** Copilot Studio does not expose an API for creating agent input variables. This must be done through the Copilot Studio designer UI.
 
 ### 2.4 Register Research Tools (Actions)
 
@@ -281,7 +298,7 @@ Then pack and import the solution via PAC CLI.
 
 > **Note**: The solution is packaged as **Unmanaged**, which is appropriate for development and testing. For production deployment, change `SolutionPackageType` to `Managed` in `src/Solutions/Solution.cdsproj` before building.
 
-### Step 3a: Deploy Copilot Studio Agent
+### 5.2 Deploy Copilot Studio Agent
 
 ```bash
 cd scripts
@@ -296,7 +313,7 @@ This creates the Intelligent Work Layer copilot with 4 topics (Main Triage, Huma
 
 > **Note:** Bing WebSearch MCP was retired (December 2024). Microsoft Learn Docs MCP replaces the learn.microsoft.com search capability. The Humanizer is provisioned as a **topic within the main agent**, not a standalone agent — no separate agent-sharing configuration is needed.
 
-### Step 3b: Deploy Agent Flows
+### 5.3 Deploy Agent Flows
 
 #### Tool Flows (10 agent tool flows)
 
@@ -316,6 +333,8 @@ pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -OrgUrl "https://<org>.crm
 This deploys the 10 main flows (signal triggers, operations, scheduled tasks) via the Flow Management API. The JSON definitions in `src/flow-*.json` are POC scaffolding — some flows may require manual building or correction in the Power Automate designer following the step-by-step specs in `docs/agent-flows.md`.
 
 Required connectors: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio.
+
+> **Note — Learning System Flows (Phase 5):** The learning subsystem flows (Flow 11: Heartbeat/Background Assessment, Flow 14: Memory Retention, Flow 15: Reflection/Knowledge Extraction, Flow 16: Memory Decay) are **not deployed by the current scripts**. These are documented in [`learning-enhancements.md`](learning-enhancements.md) as a future enhancement. The Dataverse tables they require (EpisodicMemory, SemanticKnowledge, UserPersona, SkillRegistry) are provisioned by `provision-environment.ps1`, but the flows themselves must be built manually when the learning system is implemented.
 
 ---
 
@@ -342,6 +361,14 @@ When packaging the solution for multi-environment deployment, convert direct con
 | `cr_CopilotStudio` | Microsoft Copilot Studio | Agent invocation in all trigger flows |
 
 ### Environment Variables
+
+Create the four documented environment variables with the provisioning script:
+
+```powershell
+pwsh provision-env-variables.ps1 `
+    -OrgUrl "https://<org>.crm.dynamics.com" `
+    -AdminNotificationEmail "admin@contoso.com"
+```
 
 | Variable | Type | Description | Default |
 |----------|------|-------------|---------|
@@ -386,6 +413,23 @@ Ensure the environment's DLP policies allow the required connector combinations.
 
 - Copilot Studio's built-in Responsible AI content filtering is active by default
 - Review agent outputs periodically for accuracy and appropriateness
+
+---
+
+## Pre-Flight Validation
+
+Before starting the demo, run the master validation script to catch any issues:
+
+```powershell
+cd intelligent-work-layer/scripts
+.\validate-demo-readiness.ps1 `
+    -EnvironmentId "<your-environment-id>" `
+    -OrgUrl "https://<your-org>.crm.dynamics.com"
+```
+
+This checks all 9 Dataverse tables, critical columns, security roles, connections, DLP policies, environment variables, the Copilot Studio agent, and the PCF solution. Fix any ❌ failures before proceeding.
+
+> **Tip**: Use `-SkipDlp` in sandbox environments without DLP policies. Use `-SkipConnections` if connection API access is restricted.
 
 ---
 
@@ -571,3 +615,44 @@ Common errors and their fixes:
 | "Invoke agent" action fails | Agent not published, or using wrong connector | Ensure the agent is published in Copilot Studio. Use the **Microsoft Copilot Studio** connector (not AI Builder) |
 | Flow runs but no Dataverse row created | Item was triaged as SKIP | SKIP-tier items are filtered out before the Dataverse write. Check the agent's JSON output in the flow run to see the `triage_tier` value |
 | Humanized draft not appearing | Confidence score below 40, or trigger type is CALENDAR_SCAN | The humanizer handoff condition requires `triage_tier = FULL`, `confidence_score >= 40`, and `trigger_type != CALENDAR_SCAN` |
+
+---
+
+## Rollback Procedure
+
+If deployment fails midway, use these steps to recover:
+
+### Rolling Back Dataverse Tables
+
+Tables created by `provision-environment.ps1` are idempotent — re-running the script skips existing tables. To fully remove and recreate:
+
+1. **Delete tables** in Power Platform Admin Center → Environments → Settings → Customizations → Entities (or via Dataverse Web API: `DELETE /api/data/v9.2/EntityDefinitions(LogicalName='cr_assistantcard')`)
+2. Re-run `provision-environment.ps1`
+
+> **⚠️ Warning**: Deleting tables destroys all data. Only do this in development environments.
+
+### Rolling Back Flows
+
+1. **Delete flows** in Power Automate → My flows → select flow → Delete
+2. Re-run `deploy-agent-flows.ps1`
+
+### Rolling Back the Copilot Studio Agent
+
+1. **Delete the agent** in Copilot Studio → select agent → Settings → Delete
+2. Re-run `provision-copilot.ps1`
+
+### Rolling Back the PCF Solution
+
+```powershell
+# Remove the solution (preserves the environment)
+pac solution delete --solution-name "AssistantDashboard"
+```
+
+### Full Environment Reset
+
+For a complete restart, delete the environment and re-provision:
+
+```powershell
+pac admin delete --environment "<environment-id>"
+.\provision-environment.ps1 -TenantId "<tenant-id>"
+```

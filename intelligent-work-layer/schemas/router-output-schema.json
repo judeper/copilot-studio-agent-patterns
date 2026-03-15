@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RouterAgentOutput",
+  "description": "Output schema for the Router Agent. Classifies user intent and routes to the appropriate domain agent. Used in the multi-agent orchestration pipeline (Phase 5).",
+  "type": "object",
+  "required": ["intent", "domain", "confidence", "extracted_params"],
+  "properties": {
+    "intent": {
+      "type": "string",
+      "description": "Concise verb-noun phrase describing the action, e.g. 'compose_email', 'find_availability', 'search_cards'."
+    },
+    "domain": {
+      "type": "string",
+      "enum": ["EMAIL", "CALENDAR", "TASK", "SEARCH", "DELEGATION", "CARD_MANAGEMENT", "SETTINGS", "UNKNOWN"],
+      "description": "The domain agent that should handle this intent."
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Routing confidence score. Below 60 suggests ambiguous intent."
+    },
+    "extracted_params": {
+      "type": "object",
+      "description": "Parameters extracted from the user's command for the target domain agent.",
+      "properties": {
+        "target_entity": {
+          "type": ["string", "null"],
+          "description": "Person, event, or topic referenced in the command."
+        },
+        "temporal_ref": {
+          "type": ["string", "null"],
+          "description": "Any date/time reference extracted from the command."
+        },
+        "secondary_intent": {
+          "type": ["string", "null"],
+          "description": "Secondary domain if the command spans multiple intents."
+        }
+      }
+    }
+  }
+}

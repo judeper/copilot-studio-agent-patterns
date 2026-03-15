@@ -1,6 +1,16 @@
 # Intelligent Work Layer — Implementation Design
 
-> **⚠️ v3.0 Update (AI Council):** This document describes the original single-agent implementation design. The current architecture has evolved to a **MARL pipeline** (Triage→Research→Scorer→DraftGen→Humanizer) with **17 agent prompts**, **9 Dataverse tables** (including learning system tables), and a learning subsystem (Flows 11, 14–16). **For current architecture, see [`intelligent-work-layer/docs/architecture-overview.md`](intelligent-work-layer/docs/architecture-overview.md).**
+> **🚫 SUPERSEDED — Do not use this document for implementation.**
+>
+> This document describes the **original single-agent architecture** from v1.0. The current system (v3.0) has evolved significantly. **Start here instead:**
+>
+> - **[`intelligent-work-layer/README.md`](intelligent-work-layer/README.md)** — current architecture and file map
+> - **[`intelligent-work-layer/docs/deployment-guide.md`](intelligent-work-layer/docs/deployment-guide.md)** — step-by-step setup guide
+> - **[`intelligent-work-layer/docs/architecture-overview.md`](intelligent-work-layer/docs/architecture-overview.md)** — system architecture
+>
+> This document is retained for historical context only.
+
+> **⚠️ v3.0 Update (AI Council):** This document describes the original single-agent implementation design. The current architecture has evolved to a **MARL pipeline** (Triage→Research→Scorer→DraftGen→Humanizer) with **18 agent prompts**, **9 Dataverse tables** (including learning system tables), and a learning subsystem (Flows 11, 14–16). **For current architecture, see [`intelligent-work-layer/docs/architecture-overview.md`](intelligent-work-layer/docs/architecture-overview.md).**
 > - [`intelligent-work-layer/README.md`](intelligent-work-layer/README.md) — updated file map and architecture
 > - [`intelligent-work-layer/docs/architecture-enhancements.md`](intelligent-work-layer/docs/architecture-enhancements.md) — MARL pipeline design
 > - [`intelligent-work-layer/docs/learning-enhancements.md`](intelligent-work-layer/docs/learning-enhancements.md) — learning system design

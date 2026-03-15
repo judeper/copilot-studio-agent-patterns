@@ -114,6 +114,50 @@ Write-Host "Environment ID: $EnvironmentId" -ForegroundColor Green
 pac org select --environment $EnvironmentId
 
 # ─────────────────────────────────────
+# 2b. Enable PCF for Canvas Apps
+# ─────────────────────────────────────
+Write-Host "Enabling PCF for Canvas apps..." -ForegroundColor Cyan
+try {
+    $adminApiToken = az account get-access-token --resource "https://api.bap.microsoft.com/" --query accessToken -o tsv 2>$null
+    if (-not $adminApiToken) {
+        Write-Host "  No cached admin API token — running az login..." -ForegroundColor Yellow
+        az login --tenant $TenantId | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Azure CLI login failed. Ensure Azure CLI is installed ('az --version') and try 'az login --tenant $TenantId' manually." }
+        $adminApiToken = az account get-access-token --resource "https://api.bap.microsoft.com/" --query accessToken -o tsv
+        if (-not $adminApiToken) { throw "Failed to get Power Platform Admin API token." }
+    }
+
+    $adminApiHeaders = @{
+        "Authorization" = "Bearer $adminApiToken"
+        "Content-Type"  = "application/json"
+    }
+    $adminApiUri = "https://api.bap.microsoft.com/providers/Microsoft.BusinessAppPlatform/scopes/admin/environments/$EnvironmentId?api-version=2021-04-01"
+    $environmentSettings = Invoke-RestMethod -Uri $adminApiUri -Headers $adminApiHeaders -Method Get
+    $pcfEnabled = $environmentSettings.properties.powerPlatform.powerApps.enableCodeComponentsForCanvasApps
+
+    if ($pcfEnabled -eq $true) {
+        Write-Host "  PCF for Canvas apps is already enabled." -ForegroundColor Green
+    } else {
+        $pcfEnableBody = @{
+            properties = @{
+                powerPlatform = @{
+                    powerApps = @{
+                        disableCreateFromFigma = $false
+                        enableCodeComponentsForCanvasApps = $true
+                    }
+                }
+            }
+        } | ConvertTo-Json -Depth 10
+
+        Invoke-RestMethod -Uri $adminApiUri -Headers $adminApiHeaders -Method Patch -Body $pcfEnableBody | Out-Null
+        Write-Host "  PCF for Canvas apps enabled." -ForegroundColor Green
+    }
+} catch {
+    Write-Host "  Automatic PCF enablement failed: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "  Please enable 'Allow publishing of canvas apps with code components' manually in Power Platform Admin Center." -ForegroundColor Yellow
+}
+
+# ─────────────────────────────────────
 # 3. Create AssistantCards Table via Dataverse Web API
 # ─────────────────────────────────────
 Write-Host "Creating AssistantCards Dataverse table..." -ForegroundColor Cyan
@@ -4048,15 +4092,13 @@ try {
 }
 
 # ─────────────────────────────────────
-# 6. Enable PCF Components for Canvas Apps
+# 6. Verify PCF Components for Canvas Apps
 # ─────────────────────────────────────
-Write-Host "Enabling PCF components for Canvas apps..." -ForegroundColor Cyan
-Write-Host "  Note: This must be enabled manually in the Admin Center." -ForegroundColor Yellow
-Write-Warning "  MANUAL STEP: Enable PCF for Canvas apps in the Admin Center:"
+Write-Host "Verifying PCF components for Canvas apps..." -ForegroundColor Cyan
+Write-Host "  PCF enablement was attempted in step 2b above." -ForegroundColor Green
+Write-Host "  If the API call failed, enable manually:" -ForegroundColor Yellow
 Write-Host "    Admin Center → Environments → $EnvironmentName → Settings → Product → Features" -ForegroundColor Yellow
-Write-Host "    Scroll to 'Power Apps component framework for canvas apps'" -ForegroundColor Yellow
 Write-Host "    Toggle 'Allow publishing of canvas apps with code components' → ON" -ForegroundColor Yellow
-Write-Host "    Click Save" -ForegroundColor Yellow
 
 # ─────────────────────────────────────
 # 5. Print Manual Steps

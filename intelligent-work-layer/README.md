@@ -101,6 +101,7 @@ intelligent-work-layer/
 │   ├── deploy-solution.ps1            # PCF build + solution import
 │   ├── deploy-agent-flows.ps1         # Deploy main flows via Flow Management API (tool flows via Copilot Studio)
 │   ├── provision-copilot.ps1          # Create Copilot Studio agent via PAC CLI
+│   ├── provision-env-variables.ps1    # Create Dataverse environment variables for flows
 │   ├── provision-onenote.ps1          # OneNote notebook + section provisioning
 │   ├── validate-onenote-integration.ps1 # Verify OneNote integration health
 │   ├── audit-table-naming.ps1         # Dataverse table naming audit
@@ -117,6 +118,8 @@ intelligent-work-layer/
 │   ├── senderprofile-table.json       # SenderProfile table definition
 │   ├── skillregistry-table.json       # Skill Registry table definition (extensible agent skills)
 │   ├── userpersona-table.json         # User Persona table definition (communication preferences)
+│   ├── orchestrator-output-schema.json # Orchestrator agent response format (command bar)
+│   └── router-output-schema.json      # Router agent routing decision format (Phase 5)
 │   └── workos/                        # Work OS JSON Schemas (8 files — agent-to-UI contract)
 
 ├── templates/
@@ -217,6 +220,7 @@ intelligent-work-layer/
 cd scripts
 pwsh provision-environment.ps1 -TenantId "<tenant-id>" -AdminEmail "<admin@domain.com>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
+pwsh provision-env-variables.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -AdminNotificationEmail "<admin@domain.com>"
 
 # 2. Configure Copilot Studio agent (see deployment-guide.md)
 
