@@ -7,6 +7,7 @@ Step-by-step guide for demonstrating the Email Productivity Agent after deployme
 ## Prerequisites
 
 - EPA-Demo-Lab environment fully provisioned (all 12 validation checks passing)
+- Copilot Studio agent provisioned via `provision-copilot.ps1` (Bot ID available)
 - 9 flows deployed and ON
 - Demo users assigned (Lisa Taylor, Omar Bennett, Hadar Caspit, William Beringer, Sonia Rees)
 - Lisa Taylor has an Exchange Online mailbox
@@ -65,11 +66,12 @@ Flow 2 runs daily at 9 AM EST. For an immediate demo:
 ```powershell
 cd email-productivity-agent/scripts
 
-# Deploy Flow 8 (if not already deployed)
+# Deploy Flow 8 (if not already deployed — requires -CopilotBotId for live agent invocation)
 pwsh deploy-agent-flows.ps1 `
     -OrgUrl "https://<org>.crm.dynamics.com" `
     -EnvironmentId "<env-id>" `
-    -FlowsToCreate "Flow8"
+    -FlowsToCreate "Flow8" `
+    -CopilotBotId "<bot-id>"
 
 # Find the tracking ID for Omar's email in Dataverse, then:
 pwsh invoke-followup-test-harness.ps1 `

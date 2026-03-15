@@ -4,7 +4,7 @@ This document provides detailed specifications for building the Power Automate f
 
 ---
 
-> **Current validated POC state:** Flow 4 invokes the Snooze Agent via `ExecuteAgentAndWait` for UNSNOOZE/SUPPRESS decisions. Flow 11 and Flow 12 are the HTTP harness equivalents of Flow 3 and Flow 4, and Flow 13 seeds a real message into `EPA-Snoozed` so the Phase 2 path can be tested end to end without waiting on manual mailbox actions.
+> **Current state:** Flow 4 invokes the Snooze Agent via `ExecuteAgentAndWait` for UNSNOOZE/SUPPRESS decisions. Flow 11 and Flow 12 are the HTTP harness equivalents of Flow 3 and Flow 4, and Flow 13 seeds a real message into `EPA-Snoozed` so the Phase 2 path can be tested end to end without waiting on manual mailbox actions.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ Before building these flows, ensure:
 
 > **Automated deployment:** These flows can be deployed automatically using the deploy script:
 > ```powershell
-> pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase2"
+> pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase2" -CopilotBotId "<bot-id>"
 > ```
 > The specifications below are provided as reference for customization and troubleshooting.
 
@@ -215,21 +215,26 @@ If yes → Terminate (no action needed — this is the most common path)
 
 #### Step 4: If Match Found → Determine Unsnooze Action
 
-**Current validated POC implementation**:
+**Agent-powered decisioning**:
 
 ```
-Initialize variable: unsnoozeAction = "UNSNOOZE"
+Action: Microsoft Copilot Studio — ExecuteAgentAndWait
+Inputs:
+  - botId: @{parameters('epa_CopilotBotId')}
+  - message: Determine whether to unsnooze or suppress this reply.
+  - inputData: conversationId, subject, replyFrom, currentDateTime, user's timezone
 
-Scope: Scope_Agent_Decision
-  Action: Compose
-  Message: "POC mode: skipping Snooze Agent invocation and using the default UNSNOOZE path."
+Parse the response JSON:
+  - unsnoozeAction: "UNSNOOZE" or "SUPPRESS"
+  - reasoning: decision rationale
+  - suggestedText: optional notification text
+
+Condition: unsnoozeAction equals "UNSNOOZE"
+  If yes → Proceed to Step 5 (move message to Inbox)
+  If no → Skip move, optionally suppress notification, continue to Step 7
 ```
 
 > **Timezone handling:** Flow 4 resolves the user's timezone from Graph mailbox settings (`/v1.0/me/mailboxSettings`). If that lookup fails, it falls back to **UTC** (not the Eastern Standard Time used by scheduled flows). This is intentional — event-driven flows should use the actual user timezone rather than a hardcoded zone.
-
-**Production enhancement (optional)**:
-
-Reintroduce a Snooze Agent call only when you want suppression logic such as working-hours awareness. The agent should set `unsnoozeAction` to either `UNSNOOZE` or `SUPPRESS`, after which the flow can branch on that value.
 
 #### Step 5: If Not Suppressed → Move Snoozed Message Back to Inbox
 

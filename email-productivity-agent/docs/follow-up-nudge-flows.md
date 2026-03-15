@@ -4,7 +4,7 @@ This document provides detailed specifications for building the Power Automate f
 
 > **Automated deployment:** These flows can be deployed automatically using the deploy script:
 > ```powershell
-> pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase1"
+> pwsh deploy-agent-flows.ps1 -OrgUrl "https://<org>.crm.dynamics.com" -EnvironmentId "<env-id>" -FlowsToCreate "Phase1" -CopilotBotId "<bot-id>"
 > ```
 > The specifications below are provided as reference for customization and troubleshooting.
 
