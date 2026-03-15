@@ -12,6 +12,7 @@ Step-by-step guide for demonstrating the Email Productivity Agent after deployme
 - Demo users assigned (Lisa Taylor, Omar Bennett, Hadar Caspit, William Beringer, Sonia Rees)
 - Lisa Taylor has an Exchange Online mailbox
 - Teams client can render emoji characters in Adaptive Cards (no external image dependencies)
+- Canvas App settings UI is **optional** and not covered in this walkthrough (see [`docs/canvas-app-setup.md`](canvas-app-setup.md) if your demo audience expects an end-user settings UI)
 
 ## Demo Flow Overview
 
@@ -23,6 +24,8 @@ Lisa sends email → Flow 1 tracks → Flow 2 detects no reply → Teams nudge c
                                                                 
 Reply arrives on snoozed thread → Flow 4 auto-unsnoozes → Teams notification
 ```
+
+> **Flows not covered in this demo:** Flows 5 (Data Retention Cleanup), 6 (Snooze Cleanup), and 7b (Settings Card Handler) are background/maintenance flows that run on weekly or event-driven schedules. They operate automatically and don't require manual demonstration. See the [README Flows Summary](../README.md#flows-summary) for details.
 
 ---
 
@@ -153,7 +156,9 @@ After Hadar's reply:
 
 ### Step 10: Show the Settings Card
 
-Manually trigger Flow 7 from Power Automate, or use the test harness:
+**Flow 7** sends the settings card to Teams. **Flow 7b** handles the card submission (save/restore). **Flow 10** is the HTTP test harness for Flow 7b — it lets you exercise the save/restore behavior from the CLI without waiting for a real card click.
+
+Manually trigger Flow 7 from Power Automate, or use the Flow 10 test harness:
 
 ```powershell
 pwsh deploy-agent-flows.ps1 `
