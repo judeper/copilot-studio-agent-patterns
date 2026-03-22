@@ -21,6 +21,7 @@ import {
     DismissRegular,
     CheckmarkCircleRegular,
     ClockRegular,
+    ChatRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
 import { PRIORITY_COLORS, EWA_COLORS, getConfidenceState } from "./constants";
@@ -84,6 +85,16 @@ function isSendable(card: AssistantCard): boolean {
         card.humanized_draft.length > 0 &&
         card.original_sender_email !== null &&
         card.original_sender_email.length > 0
+    );
+}
+
+/** Whether the card has a sendable TEAMS_MESSAGE draft */
+function isTeamsReplyable(card: AssistantCard): boolean {
+    return (
+        card.trigger_type === "TEAMS_MESSAGE" &&
+        card.humanized_draft !== null &&
+        card.humanized_draft.length > 0 &&
+        card.card_outcome === "PENDING"
     );
 }
 
@@ -318,6 +329,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     }, [card.id, onDismissCard]);
 
     const sendable = isSendable(card);
+    const teamsReplyable = isTeamsReplyable(card);
     const isDismissed = card.card_outcome === "DISMISSED";
     const isSent = effectiveSendState === "sent";
 
@@ -636,6 +648,19 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         disabled={effectiveSendState !== "idle"}
                     >
                         Send
+                    </Button>
+                )}
+
+                {/* Reply in Teams — TEAMS_MESSAGE cards with humanized draft, still PENDING */}
+                {teamsReplyable && !isSent && !isDismissed && (
+                    <Button
+                        appearance="primary"
+                        icon={<ChatRegular />}
+                        onClick={handleSendClick}
+                        ref={sendButtonRef}
+                        disabled={effectiveSendState !== "idle"}
+                    >
+                        Reply in Teams
                     </Button>
                 )}
 
