@@ -3,6 +3,7 @@ import { FluentProvider, webLightTheme, webDarkTheme, Spinner } from "@fluentui/
 import type { AssistantCard, AppProps } from "./types";
 import { CardGallery } from "./CardGallery";
 import { CardDetail } from "./CardDetail";
+import { useConversationClusters } from "../hooks/useConversationClusters";
 import { BriefingCard } from "./BriefingCard";
 import { CommandBar } from "./CommandBar";
 import { ConfidenceCalibration } from "./ConfidenceCalibration";
@@ -116,6 +117,7 @@ export const App: React.FC<AppProps> = ({
     onJumpToCard,
     onExecuteCommand,
     onSaveDraft,
+    onSnoozeCard,
     onUpdateSchedule,
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery", selectedCardId: null });
@@ -184,11 +186,22 @@ export const App: React.FC<AppProps> = ({
         [filteredCards],
     );
 
+    // Phase 1A: Conversation cluster data for threading
+    const { clusterMap } = useConversationClusters(regularCards);
+
     // Derive the selected card from the live dataset to avoid stale snapshots
     const selectedCard = React.useMemo(() => {
         if (!selectedCardId) return null;
         return cards.find((c) => c.id === selectedCardId) ?? null;
     }, [cards, selectedCardId]);
+
+    // Phase 1A: Get related cards for the selected card's cluster
+    const relatedCards = React.useMemo(() => {
+        if (!selectedCard) return [];
+        const clusterKey = selectedCard.conversation_cluster_id ?? selectedCard.id;
+        const cluster = clusterMap.get(clusterKey);
+        return cluster ? cluster.related : [];
+    }, [selectedCard, clusterMap]);
 
     // If the selected card was removed from the dataset, close the panel
     React.useEffect(() => {
@@ -354,10 +367,12 @@ export const App: React.FC<AppProps> = ({
                                         <div className="detail-panel">
                                             <CardDetail
                                                 card={selectedCard}
+                                                relatedCards={relatedCards}
                                                 onBack={handleCloseDetail}
                                                 onSendDraft={onSendDraft}
                                                 onCopyDraft={onCopyDraft}
                                                 onDismissCard={onDismissCard}
+                                                onSnoozeCard={onSnoozeCard}
                                                 onSaveDraft={onSaveDraft}
                                             />
                                         </div>
