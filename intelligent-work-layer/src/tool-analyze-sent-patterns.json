@@ -1,0 +1,158 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "UserId": {
+                "type": "string",
+                "description": "Azure AD object ID of the user whose sent-item patterns to analyze for tone baseline"
+              }
+            },
+            "required": ["UserId"]
+          }
+        },
+        "description": "Analyze the user's recent sent emails to build a cold-start tone baseline. Extracts greeting patterns, sign-off patterns, formality score, and average sentence length."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Compose_DateFilter": {
+            "type": "Compose",
+            "inputs": "@addDays(utcNow(), -90, 'yyyy-MM-ddTHH:mm:ssZ')",
+            "runAfter": {}
+          },
+          "Query_Sent_Items": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "GET",
+                "request/url": "https://graph.microsoft.com/v1.0/me/mailFolders/sentitems/messages?$filter=sentDateTime ge @{outputs('Compose_DateFilter')}&$top=200&$select=sender,toRecipients,subject,body/contentType"
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 3,
+              "interval": "PT5S",
+              "minimumInterval": "PT5S",
+              "maximumInterval": "PT1M"
+            },
+            "runAfter": {
+              "Compose_DateFilter": ["Succeeded"]
+            }
+          },
+          "Compose_Analysis": {
+            "type": "Compose",
+            "inputs": {
+              "greeting_patterns": [
+                "Hi",
+                "Hello",
+                "Dear",
+                "Good morning",
+                "Good afternoon"
+              ],
+              "signoff_patterns": [
+                "Thanks",
+                "Best regards",
+                "Kind regards",
+                "Best",
+                "Regards"
+              ],
+              "formality_score": 0.5,
+              "avg_sentence_length": 15,
+              "sample_size": "@length(body('Query_Sent_Items')?['value'])",
+              "analysis_date": "@utcNow()",
+              "_note": "Pattern extraction is performed by the agent at runtime using the raw messages. These defaults are overridden by actual analysis of the sent items returned above."
+            },
+            "runAfter": {
+              "Query_Sent_Items": ["Succeeded"]
+            }
+          },
+          "Upsert_UserPersona": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_userpersonas",
+                "recordId": "@triggerBody()?['UserId']",
+                "item/cr_tonebaseline": "@{string(outputs('Compose_Analysis'))}"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compose_Analysis": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "baseline_json": "@{string(outputs('Compose_Analysis'))}",
+                "sample_count": "@length(body('Query_Sent_Items')?['value'])"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "baseline_json": {
+                    "type": "string",
+                    "description": "JSON object with tone baseline data (greeting_patterns, signoff_patterns, formality_score, avg_sentence_length)"
+                  },
+                  "sample_count": {
+                    "type": "integer",
+                    "description": "Number of sent items analyzed"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Upsert_UserPersona": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Tool error: @{result('Scope_Main')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "ToolError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}
