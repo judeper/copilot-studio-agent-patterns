@@ -131,12 +131,86 @@
         },
         "runAfter": {}
       },
+      "Scope_Snooze_Reactivation": {
+        "type": "Scope",
+        "actions": {
+          "List_Due_Snoozed_Cards": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_cardstatus eq 100000005 and cr_snoozeduntil le @{utcNow()}"
+              },
+              "host": {
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {}
+          },
+          "Condition_Has_Snoozed": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('List_Due_Snoozed_Cards')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Apply_to_each_snoozed": {
+                "type": "Foreach",
+                "foreach": "@outputs('List_Due_Snoozed_Cards')?['body/value']",
+                "actions": {
+                  "Reactivate_Snoozed_Card": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "recordId": "@items('Apply_to_each_snoozed')?['cr_assistantcardid']",
+                        "item/cr_cardstatus": 100000000,
+                        "item/cr_snoozeduntil": null
+                      },
+                      "host": {
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "runtimeConfiguration": {
+                  "concurrency": {
+                    "repetitions": 5
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "List_Due_Snoozed_Cards": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
       "Scope_Handle_Errors": {
         "type": "Scope",
         "actions": {
           "Compose_ErrorDetails": {
             "type": "Compose",
-            "inputs": "Flow 10 error: @{result('Scope_Reminder_Processing')}"
+            "inputs": "Flow 10 error: @{result('Scope_Reminder_Processing')} | @{result('Scope_Snooze_Reactivation')}"
           },
           "Terminate_Graceful": {
             "type": "Terminate",
@@ -158,6 +232,10 @@
           "Scope_Reminder_Processing": [
             "Failed",
             "TimedOut"
+          ],
+          "Scope_Snooze_Reactivation": [
+            "Failed",
+            "TimedOut"
           ]
         }
       }
@@ -175,7 +253,7 @@
   },
   "_metadata": {
     "flowName": "IWL - Flow 10: Reminder Firing",
-    "description": "Recurrence every 10 minutes. Queries cr_assistantcards for SELF_REMINDER items with PENDING outcome whose cr_reminderdue has passed, posts Teams chat notifications to owners, and marks outcome as SENT_AS_IS.",
+    "description": "Recurrence every 10 minutes. Queries cr_assistantcards for SELF_REMINDER items with PENDING outcome whose cr_reminderdue has passed, posts Teams chat notifications to owners, and marks outcome as SENT_AS_IS. Also reactivates snoozed cards whose cr_snoozeduntil has passed by resetting status to READY.",
     "requiredConnections": [
       "shared_commondataserviceforapps (Microsoft Dataverse)",
       "shared_office365users (Office 365 Users)",
@@ -183,8 +261,9 @@
     ],
     "notes": {
       "outcomeReuse": "cr_cardoutcome = SENT_AS_IS (100000001) is reused for 'reminder delivered' since reminders do not have a separate outcome value.",
-      "concurrency": "Apply_to_each_reminder runs with concurrency of 5 to balance throughput and API throttling.",
-      "teamsDelivery": "Posts via PostMessageToConversation to 'Chat with Flow bot' using the card owner's AAD object ID as recipient."
+      "concurrency": "Apply_to_each_reminder and Apply_to_each_snoozed run with concurrency of 5 to balance throughput and API throttling.",
+      "teamsDelivery": "Posts via PostMessageToConversation to 'Chat with Flow bot' using the card owner's AAD object ID as recipient.",
+      "snoozeReactivation": "Scope_Snooze_Reactivation queries SNOOZED cards (cr_cardstatus=100000005) with past-due cr_snoozeduntil, resets status to READY (100000000) and clears cr_snoozeduntil."
     }
   }
 }
