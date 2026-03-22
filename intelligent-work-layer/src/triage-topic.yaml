@@ -25,6 +25,11 @@ inputs:
     description: JSON string with sender intelligence (signal count, response rate, category) or null for first-time senders
     shouldPromptUser: false
 
+  - kind: AutomaticTaskInput
+    propertyName: AUTONOMY_TIER
+    description: "User's current autonomy tier: OBSERVER, ASSIST, or PARTNER"
+    shouldPromptUser: false
+
 beginDialog:
   kind: OnRecognizedIntent
   id: main
@@ -71,6 +76,11 @@ inputType:
     SENDER_PROFILE:
       displayName: SENDER_PROFILE
       description: JSON string with sender intelligence (signal count, response rate, category) or null for first-time senders
+      type: String
+
+    AUTONOMY_TIER:
+      displayName: AUTONOMY_TIER
+      description: "User's current autonomy tier: OBSERVER, ASSIST, or PARTNER"
       type: String
 
 outputType:
