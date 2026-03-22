@@ -360,6 +360,233 @@
                 "Succeeded"
               ]
             }
+          },
+          "Condition_Not_Expired": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@outputs('Compose_Outcome')",
+                      100000004
+                    ]
+                  }
+                }
+              ]
+            },
+            "actions": {
+              "Compose_Is_Accepted": {
+                "type": "Compose",
+                "inputs": "@if(or(equals(outputs('Compose_Outcome'), 100000001), equals(outputs('Compose_Outcome'), 100000002)), true, false)",
+                "runAfter": {}
+              },
+              "Get_Owner_Persona": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_userpersonas",
+                    "$filter": "_ownerid_value eq '@{outputs('Get_Modified_Card')?['body/_ownerid_value']}'"
+                  },
+                  "host": {
+                    "operationId": "ListRecords",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                },
+                "runAfter": {
+                  "Compose_Is_Accepted": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Condition_Persona_Exists": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "greater": [
+                        "@length(body('Get_Owner_Persona')?['value'])",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "Compose_Old_Rate": {
+                    "type": "Compose",
+                    "inputs": "@first(body('Get_Owner_Persona')?['value'])?['cr_acceptancerate']",
+                    "runAfter": {}
+                  },
+                  "Compose_New_Acceptance_Rate": {
+                    "type": "Compose",
+                    "inputs": "@if(equals(outputs('Compose_Is_Accepted'), true), add(mul(0.3, 1.0), mul(0.7, float(outputs('Compose_Old_Rate')))), add(mul(0.3, 0.0), mul(0.7, float(outputs('Compose_Old_Rate')))))",
+                    "runAfter": {
+                      "Compose_Old_Rate": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Compose_New_Total_Interactions": {
+                    "type": "Compose",
+                    "inputs": "@add(first(body('Get_Owner_Persona')?['value'])?['cr_totalinteractions'], 1)",
+                    "runAfter": {}
+                  },
+                  "Update_Persona_Record": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_userpersonas",
+                        "recordId": "@first(body('Get_Owner_Persona')?['value'])?['cr_userpersonaid']",
+                        "item/cr_totalinteractions": "@outputs('Compose_New_Total_Interactions')",
+                        "item/cr_acceptancerate": "@outputs('Compose_New_Acceptance_Rate')"
+                      },
+                      "host": {
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {
+                      "Compose_New_Acceptance_Rate": [
+                        "Succeeded"
+                      ],
+                      "Compose_New_Total_Interactions": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Condition_Observer_To_Assist": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@first(body('Get_Owner_Persona')?['value'])?['cr_autonomytier']",
+                            "OBSERVER"
+                          ]
+                        },
+                        {
+                          "greater": [
+                            "@outputs('Compose_New_Total_Interactions')",
+                            50
+                          ]
+                        },
+                        {
+                          "greater": [
+                            "@float(outputs('Compose_New_Acceptance_Rate'))",
+                            0.70
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Create_Assist_Suggestion_Card": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_assistantcards",
+                            "item/cr_triggertype": "PATTERN_ALERT",
+                            "item/cr_triagetier": "LIGHT",
+                            "item/cr_itemsummary": "Would you like to enable Assist mode? You have processed over 50 interactions with an acceptance rate above 70%. Assist mode lets the system auto-dismiss low-value items and auto-send high-confidence drafts with an undo window.",
+                            "item/cr_cardstatus": "PENDING",
+                            "item/_ownerid_value": "@outputs('Get_Modified_Card')?['body/_ownerid_value']"
+                          },
+                          "host": {
+                            "operationId": "CreateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        },
+                        "runAfter": {}
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "runAfter": {
+                      "Update_Persona_Record": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Condition_Assist_To_Partner": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@first(body('Get_Owner_Persona')?['value'])?['cr_autonomytier']",
+                            "ASSIST"
+                          ]
+                        },
+                        {
+                          "greater": [
+                            "@outputs('Compose_New_Total_Interactions')",
+                            200
+                          ]
+                        },
+                        {
+                          "greater": [
+                            "@float(outputs('Compose_New_Acceptance_Rate'))",
+                            0.85
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Create_Partner_Suggestion_Card": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_assistantcards",
+                            "item/cr_triggertype": "PATTERN_ALERT",
+                            "item/cr_triagetier": "LIGHT",
+                            "item/cr_itemsummary": "Would you like to enable Partner mode? You have processed over 200 interactions with an acceptance rate above 85%. Partner mode lowers auto-send thresholds and auto-dismisses all routine items, surfacing only exceptions.",
+                            "item/cr_cardstatus": "PENDING",
+                            "item/_ownerid_value": "@outputs('Get_Modified_Card')?['body/_ownerid_value']"
+                          },
+                          "host": {
+                            "operationId": "CreateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        },
+                        "runAfter": {}
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "runAfter": {
+                      "Update_Persona_Record": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "runAfter": {
+                  "Get_Owner_Persona": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Switch_On_Outcome": [
+                "Succeeded"
+              ]
+            }
           }
         },
         "runAfter": {}
