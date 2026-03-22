@@ -3,6 +3,7 @@ import type { AssistantCard } from "./types";
 import { CardItem } from "./CardItem";
 import { HEARTBEAT_TRIGGER_TYPES, FEED_SECTIONS } from "./constants";
 import { compositeSort } from "../hooks/useCardData";
+import { useConversationClusters } from "../hooks/useConversationClusters";
 import { Button } from "@fluentui/react-components";
 
 type FeedSection = {
@@ -74,7 +75,14 @@ interface CardGalleryProps {
 
 export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard }) => {
     const [visibleCount, setVisibleCount] = React.useState(5);
-    const sortedCards = React.useMemo(() => compositeSort(cards), [cards]);
+    // Phase 1B: Exclude snoozed cards from the main gallery display
+    const nonSnoozedCards = React.useMemo(
+        () => cards.filter((c) => c.card_status !== "SNOOZED"),
+        [cards],
+    );
+    // Phase 1A: Cluster cards by conversation before sorting/sectioning
+    const { clusteredCards, clusterMap } = useConversationClusters(nonSnoozedCards);
+    const sortedCards = React.useMemo(() => compositeSort(clusteredCards), [clusteredCards]);
     const visibleCards = React.useMemo(() => sortedCards.slice(0, visibleCount), [sortedCards, visibleCount]);
     const hasMore = visibleCount < sortedCards.length;
     const sections = React.useMemo(() => groupCards(visibleCards), [visibleCards]);
@@ -162,14 +170,19 @@ export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard })
                     </button>
                     {!collapsed[section.key] && (
                         <div className="feed-section-cards">
-                            {section.cards.map((card) => (
-                                <div
-                                    key={card.id}
-                                    className={completingIds.has(card.id) ? "card-item-completing" : undefined}
-                                >
-                                    <CardItem card={card} onClick={onSelectCard} />
-                                </div>
-                            ))}
+                            {section.cards.map((card) => {
+                                const clusterKey = card.conversation_cluster_id ?? card.id;
+                                const cluster = clusterMap.get(clusterKey);
+                                const relatedCount = cluster ? cluster.related.length : 0;
+                                return (
+                                    <div
+                                        key={card.id}
+                                        className={completingIds.has(card.id) ? "card-item-completing" : undefined}
+                                    >
+                                        <CardItem card={card} onClick={onSelectCard} relatedCount={relatedCount} />
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
