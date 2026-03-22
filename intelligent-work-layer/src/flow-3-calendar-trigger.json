@@ -239,6 +239,43 @@
                   ]
                 }
               },
+              "Scope_Agent_Fallback": {
+                "type": "Scope",
+                "actions": {
+                  "Create_Fallback_Card": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "item/cr_triggertype": 100000002,
+                        "item/cr_triagetier": 100000001,
+                        "item/cr_cardstatus": 100000006,
+                        "item/cr_fulljson": "@{json(concat('{\"item_summary\":\"', encodeUriComponent(coalesce(items('Apply_to_each_event')?['subject'], 'Calendar event signal')), '\",\"card_status\":\"PENDING_MANUAL\",\"trigger_type\":\"CALENDAR_SCAN\"}'))}",
+                        "item/cr_originalsenderemail": "@outputs('Compose_OrganizerEmail')",
+                        "item/cr_originalsenderdisplay": "@coalesce(items('Apply_to_each_event')?['organizer']?['emailAddress']?['name'], '')",
+                        "item/cr_originalsubject": "@items('Apply_to_each_event')?['subject']",
+                        "item/cr_conversationclusterid": "@outputs('Compose_ClusterId')",
+                        "item/cr_sourcesignalid": "@items('Apply_to_each_event')?['id']",
+                        "item/cr_cardoutcome": 100000000,
+                        "item/ownerid": "@outputs('Get_my_profile_(V2)')?['body/id']"
+                      },
+                      "host": {
+                        "operationId": "CreateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "runAfter": {
+                  "Execute_EWA_Agent": [
+                    "Failed",
+                    "TimedOut"
+                  ]
+                }
+              },
               "Parse_Agent_Response": {
                 "type": "ParseJson",
                 "inputs": {

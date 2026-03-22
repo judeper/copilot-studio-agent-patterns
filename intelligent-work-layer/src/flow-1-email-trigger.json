@@ -311,6 +311,54 @@
               ]
             }
           },
+          "Scope_Agent_Fallback": {
+            "type": "Scope",
+            "actions": {
+              "Create_Fallback_Card": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_assistantcards",
+                    "item/cr_triggertype": 100000000,
+                    "item/cr_triagetier": 100000001,
+                    "item/cr_cardstatus": 100000006,
+                    "item/cr_fulljson": "@{json(concat('{\"item_summary\":\"', encodeUriComponent(coalesce(outputs('Get_email_(V2)')?['body/subject'], 'Email signal')), '\",\"card_status\":\"PENDING_MANUAL\",\"trigger_type\":\"EMAIL\"}'))}",
+                    "item/cr_originalsenderemail": "@outputs('Get_email_(V2)')?['body/from']",
+                    "item/cr_originalsenderdisplay": "@coalesce(outputs('Get_email_(V2)')?['body/sender']?['emailAddress']?['name'], outputs('Get_email_(V2)')?['body/from'])",
+                    "item/cr_originalsubject": "@outputs('Get_email_(V2)')?['body/subject']",
+                    "item/cr_conversationclusterid": "@outputs('Get_email_(V2)')?['body/conversationId']",
+                    "item/cr_sourcesignalid": "@outputs('Get_email_(V2)')?['body/internetMessageId']",
+                    "item/cr_cardoutcome": 100000000,
+                    "item/ownerid": "@outputs('Get_my_profile_(V2)')?['body/id']"
+                  },
+                  "host": {
+                    "operationId": "CreateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                },
+                "runAfter": {}
+              },
+              "Terminate_Fallback": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Succeeded"
+                },
+                "runAfter": {
+                  "Create_Fallback_Card": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Execute_EWA_Agent": [
+                "Failed",
+                "TimedOut"
+              ]
+            }
+          },
           "Parse_Agent_Response": {
             "type": "ParseJson",
             "inputs": {
