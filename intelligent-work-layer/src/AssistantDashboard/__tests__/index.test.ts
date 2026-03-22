@@ -202,6 +202,7 @@ describe("AssistantDashboard PCF lifecycle", () => {
             expect(outputs).toHaveProperty("dismissCardAction");
             expect(outputs).toHaveProperty("jumpToCardAction");
             expect(outputs).toHaveProperty("commandAction");
+            expect(outputs).toHaveProperty("snoozeCardAction");
         });
 
         it("resets action outputs after reading to prevent stale re-fires", () => {
@@ -227,6 +228,7 @@ describe("AssistantDashboard PCF lifecycle", () => {
             expect(secondOutputs.dismissCardAction).toBe("");
             expect(secondOutputs.jumpToCardAction).toBe("");
             expect(secondOutputs.commandAction).toBe("");
+            expect(secondOutputs.snoozeCardAction).toBe("");
         });
     });
 
@@ -262,6 +264,31 @@ describe("AssistantDashboard PCF lifecycle", () => {
             // getOutputs should return the selected card
             const outputs = control.getOutputs();
             expect(outputs.selectedCardId).toBe("card-123");
+        });
+
+        it("fires notifyOutputChanged for snooze card action", () => {
+            const context = createMockContext();
+            control.init(
+                context as unknown as ComponentFramework.Context<import("../generated/ManifestTypes").IInputs>,
+                notifyOutputChanged,
+            );
+
+            const element = control.updateView(
+                context as unknown as ComponentFramework.Context<import("../generated/ManifestTypes").IInputs>,
+            );
+
+            // Simulate onSnoozeCard callback
+            element.props.onSnoozeCard("card-789", "2026-03-23T09:00:00.000Z");
+            expect(notifyOutputChanged).toHaveBeenCalledTimes(1);
+
+            const outputs = control.getOutputs();
+            const parsed = JSON.parse(outputs.snoozeCardAction as string);
+            expect(parsed.cardId).toBe("card-789");
+            expect(parsed.snoozeUntil).toBe("2026-03-23T09:00:00.000Z");
+
+            // Should be reset after getOutputs
+            const secondOutputs = control.getOutputs();
+            expect(secondOutputs.snoozeCardAction).toBe("");
         });
 
         it("fires notifyOutputChanged for command execution", () => {
