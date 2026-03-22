@@ -1,0 +1,189 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "CardId": {
+                "type": "string",
+                "description": "GUID of the assistant card to reply to"
+              },
+              "ReplyText": {
+                "type": "string",
+                "description": "The reply text to post in the Teams conversation"
+              }
+            },
+            "required": ["CardId", "ReplyText"]
+          }
+        },
+        "description": "Reply to a Teams message thread referenced by an assistant card."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Get_Card": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "recordId": "@triggerBody()?['CardId']"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "GetItem",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {}
+          },
+          "Get_Card_Owner": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "id": "@outputs('Get_Card')?['body/_ownerid_value']"
+              },
+              "host": {
+                "operationId": "UserProfile_V2",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                "connectionName": "shared_office365users"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {
+              "Get_Card": ["Succeeded"]
+            }
+          },
+          "Post_Reply_To_Teams": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "poster": "Flow bot",
+                "location": "Chat with Flow bot",
+                "body": {
+                  "recipient": {
+                    "to": "@outputs('Get_Card')?['body/_ownerid_value']"
+                  },
+                  "messageBody": "@triggerBody()?['ReplyText']"
+                }
+              },
+              "host": {
+                "operationId": "PostMessageToConversation",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                "connectionName": "shared_teams"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {
+              "Get_Card_Owner": ["Succeeded"]
+            }
+          },
+          "Update_Card_Outcome": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "recordId": "@triggerBody()?['CardId']",
+                "item/cr_cardoutcome": 100000001,
+                "item/cr_outcometimestamp": "@utcNow()"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {
+              "Post_Reply_To_Teams": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "success": true,
+                "card_id": "@{triggerBody()?['CardId']}"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean",
+                    "description": "Whether the reply was posted successfully"
+                  },
+                  "card_id": {
+                    "type": "string",
+                    "description": "GUID of the updated card"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Update_Card_Outcome": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 14 error: @{result('Scope_Main')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "TeamsReplyError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "IWL - Flow 14: Teams Reply",
+    "description": "Agent-triggered flow that posts a reply to a Teams conversation referenced by an assistant card. Retrieves the card from Dataverse, resolves the thread via cr_sourcesignalid, posts the reply text via the Teams connector, and updates the card outcome to SENT_AS_IS with a timestamp.",
+    "requiredConnections": [
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_office365users (Office 365 Users)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "trigger": "PowerVirtualAgents — invoked by the Copilot Studio agent when user sends a Teams reply from the Canvas app.",
+      "outcome": "cr_cardoutcome = SENT_AS_IS (100000001) marks the card as actioned after the Teams reply is posted.",
+      "routing": "The Canvas app routes to Flow 14 (instead of the email Send flow) when card.trigger_type is TEAMS_MESSAGE."
+    }
+  }
+}
