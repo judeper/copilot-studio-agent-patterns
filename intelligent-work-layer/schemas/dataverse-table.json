@@ -208,7 +208,8 @@
       "type": "Text",
       "maxLength": 500,
       "required": false,
-      "description": "OneNote page ID for the corresponding knowledge page. Populated by flows that write to OneNote (Flows 3, 6). Enables cross-referencing between Dataverse cards and OneNote pages."
+      "description": "OneNote page ID for the corresponding knowledge page. Populated by flows that write to OneNote (Flows 3, 6). Enables cross-referencing between Dataverse cards and OneNote pages.",
+      "deprecated": "Per-user settings moved to cr_userpersona table. Retained for backward compatibility."
     },
     {
       "logicalName": "cr_onenoteenabled",
@@ -217,7 +218,8 @@
       "required": false,
       "description": "Feature flag for OneNote integration. Stored on a config entity. When false, all OneNote writes are skipped. Used for rollback without redeploying flows.",
       "_naming_note": "Recommended name: cr_isonenoteenabled (cr_is* prefix convention). Not renamed to avoid breaking existing flow references.",
-      "_placement_note": "ARCHITECTURAL NOTE: This flag is a global feature toggle, not a per-card attribute. It is an architectural candidate for migration to a per-user configuration entity (cr_userpersona or a dedicated cr_userconfiguration table) in a future version. Acceptable on cr_assistantcard for the POC to avoid additional table provisioning complexity."
+      "_placement_note": "ARCHITECTURAL NOTE: This flag is a global feature toggle, not a per-card attribute. It is an architectural candidate for migration to a per-user configuration entity (cr_userpersona or a dedicated cr_userconfiguration table) in a future version. Acceptable on cr_assistantcard for the POC to avoid additional table provisioning complexity.",
+      "deprecated": "Per-user settings moved to cr_userpersona table. Retained for backward compatibility."
     },
     {
       "logicalName": "cr_onenoteoptout",
@@ -226,7 +228,8 @@
       "required": false,
       "description": "Per-user preference to disable OneNote sync. When true, OneNote writes for this user are skipped even if cr_onenoteenabled is true.",
       "_naming_note": "Recommended name: cr_isonenoteoptout (cr_is* prefix convention). Not renamed to avoid breaking existing flow references.",
-      "_placement_note": "ARCHITECTURAL NOTE: This flag is a per-user preference, not a per-card attribute. It is an architectural candidate for migration to a per-user configuration entity (cr_userpersona or a dedicated cr_userconfiguration table) in a future version. Acceptable on cr_assistantcard for the POC to avoid additional table provisioning complexity."
+      "_placement_note": "ARCHITECTURAL NOTE: This flag is a per-user preference, not a per-card attribute. It is an architectural candidate for migration to a per-user configuration entity (cr_userpersona or a dedicated cr_userconfiguration table) in a future version. Acceptable on cr_assistantcard for the POC to avoid additional table provisioning complexity.",
+      "deprecated": "Per-user settings moved to cr_userpersona table. Retained for backward compatibility."
     },
     {
       "logicalName": "cr_onenotesyncstatus",
@@ -238,7 +241,8 @@
         { "label": "SYNCED", "value": 100000000 },
         { "label": "FAILED", "value": 100000001 },
         { "label": "PENDING", "value": 100000002 }
-      ]
+      ],
+      "deprecated": "Per-user settings moved to cr_userpersona table. Retained for backward compatibility."
     },
     {
       "logicalName": "cr_editdistanceratio",

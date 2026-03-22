@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Switch } from "@fluentui/react-components";
+import { Switch, SearchBox } from "@fluentui/react-components";
 import type { AssistantCard } from "./types";
 import { HEARTBEAT_TRIGGER_TYPES } from "./constants";
 
@@ -59,6 +59,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, on
     const [activeChips, setActiveChips] = React.useState<Set<string>>(() => new Set(["all"]));
     const [sortMode, setSortMode] = React.useState<SortMode>("newest");
     const [quietMode, setQuietMode] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState("");
+    const searchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [debouncedSearch, setDebouncedSearch] = React.useState("");
+
+    // Phase 4C: Debounce search input by 300ms
+    React.useEffect(() => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+        return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+    }, [searchQuery]);
 
     const counts = React.useMemo(() => computeCounts(cards), [cards]);
 
@@ -110,6 +120,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, on
                 return false;
             });
         }
+        // Phase 4C: Apply search filter
+        if (debouncedSearch.length > 0) {
+            const q = debouncedSearch.toLowerCase();
+            filtered = filtered.filter((c) =>
+                c.item_summary.toLowerCase().includes(q) ||
+                (c.original_sender_display ?? "").toLowerCase().includes(q) ||
+                (c.original_sender_email ?? "").toLowerCase().includes(q) ||
+                (c.original_subject ?? "").toLowerCase().includes(q),
+            );
+        }
         // Quiet mode: filter out Medium-priority cards
         let heldCount = 0;
         if (quietMode) {
@@ -119,7 +139,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, on
         }
         onFilteredCards(sortCards(filtered, sortMode));
         onQuietModeChange?.(quietMode, heldCount);
-    }, [cards, activeChips, sortMode, quietMode, onFilteredCards, onQuietModeChange]);
+    }, [cards, activeChips, sortMode, quietMode, debouncedSearch, onFilteredCards, onQuietModeChange]);
 
     const chips = [
         { key: "all", label: "All", count: cards.length - counts.snoozed },
@@ -133,6 +153,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, on
 
     return (
         <div className="filter-bar" role="toolbar" aria-label="Filter cards">
+            <SearchBox
+                placeholder="Search cards..."
+                value={searchQuery}
+                onChange={(_e, data) => setSearchQuery(data.value)}
+                dismiss={{ onClick: () => setSearchQuery("") }}
+                size="small"
+                style={{ minWidth: "140px", maxWidth: "200px" }}
+                aria-label="Search cards"
+            />
             {chips.map((chip) => (
                 <button
                     key={chip.key}

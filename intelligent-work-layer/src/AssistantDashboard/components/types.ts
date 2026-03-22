@@ -172,5 +172,7 @@ export interface AppProps {
     onExecuteCommand: (command: string, currentCardId: string | null) => void; // Sprint 3: command bar
     onSaveDraft: (cardId: string, editedText: string) => void; // Phase 18: persist draft edits
     onSnoozeCard: (cardId: string, snoozeUntil: string) => void; // Phase 1B: snooze/defer card
+    onBatchDismiss?: (cardIds: string[]) => void; // Phase 2A: batch dismiss
+    onBatchSnooze?: (cardIds: string[], snoozeUntil: string) => void; // Phase 2A: batch snooze
     onUpdateSchedule: (config: BriefingScheduleConfig) => void;
 }

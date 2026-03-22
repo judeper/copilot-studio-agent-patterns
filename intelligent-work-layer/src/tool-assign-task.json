@@ -1,0 +1,235 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "TaskTitle": {
+                "type": "string",
+                "description": "Title of the task to create in Planner"
+              },
+              "AssigneeEmail": {
+                "type": "string",
+                "description": "Email address of the user to assign the task to"
+              },
+              "DueDate": {
+                "type": "string",
+                "description": "Due date for the task in ISO 8601 format (e.g. 2026-04-01T00:00:00Z)"
+              },
+              "Notes": {
+                "type": "string",
+                "description": "Additional notes or description for the task"
+              }
+            },
+            "required": ["TaskTitle", "AssigneeEmail"]
+          }
+        },
+        "description": "Create and assign a task in Microsoft Planner. Resolves assignee by email, creates task with optional due date and notes."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Resolve_User": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "GET",
+                "request/url": "https://graph.microsoft.com/v1.0/users/@{triggerBody()?['AssigneeEmail']}?$select=id,displayName,mail"
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "runAfter": {}
+          },
+          "Create_Planner_Task": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "POST",
+                "request/url": "https://graph.microsoft.com/v1.0/planner/tasks",
+                "request/headers": {
+                  "Content-Type": "application/json"
+                },
+                "request/body": {
+                  "planId": "@parameters('PlannerPlanId')",
+                  "title": "@{triggerBody()?['TaskTitle']}",
+                  "dueDateTime": "@triggerBody()?['DueDate']",
+                  "assignments": {
+                    "@{body('Resolve_User')?['id']}": {
+                      "@@odata.type": "#microsoft.graph.plannerAssignment",
+                      "orderHint": " !"
+                    }
+                  }
+                }
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "runAfter": {
+              "Resolve_User": ["Succeeded"]
+            }
+          },
+          "Condition_Has_Notes": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@triggerBody()?['Notes']",
+                      null
+                    ]
+                  }
+                }
+              ]
+            },
+            "actions": {
+              "Update_Task_Details": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "PATCH",
+                    "request/url": "https://graph.microsoft.com/v1.0/planner/tasks/@{body('Create_Planner_Task')?['id']}/details",
+                    "request/headers": {
+                      "Content-Type": "application/json",
+                      "If-Match": "@{body('Create_Planner_Task')?['@odata.etag']}"
+                    },
+                    "request/body": {
+                      "description": "@{triggerBody()?['Notes']}"
+                    }
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Create_Planner_Task": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "task_id": "@{body('Create_Planner_Task')?['id']}",
+                "success": true,
+                "assignee": "@{body('Resolve_User')?['displayName']}",
+                "title": "@{triggerBody()?['TaskTitle']}"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task_id": {
+                    "type": "string",
+                    "description": "ID of the newly created Planner task"
+                  },
+                  "success": {
+                    "type": "boolean",
+                    "description": "Whether the task was created successfully"
+                  },
+                  "assignee": {
+                    "type": "string",
+                    "description": "Display name of the assigned user"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Title of the created task"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Condition_Has_Notes": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Task assignment failed",
+              "flow": "tool-assign-task",
+              "task_title": "@triggerBody()?['TaskTitle']",
+              "assignee": "@triggerBody()?['AssigneeEmail']",
+              "timestamp": "@utcNow()"
+            }
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "task_id": "",
+                "success": false,
+                "assignee": "",
+                "title": "@{triggerBody()?['TaskTitle']}"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task_id": {
+                    "type": "string"
+                  },
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "assignee": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "TaskAssignmentFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

@@ -16,6 +16,9 @@ interface CommandBarProps {
     lastResponse: OrchestratorResponse | null;
     /** Whether a command is currently being processed */
     isProcessing: boolean;
+    /** Phase 6B: Optional custom chips — overrides defaults when provided */
+    customDefaultChips?: string[];
+    customDetailChips?: string[];
 }
 
 interface ConversationEntry {
@@ -38,6 +41,8 @@ export const CommandBar: React.FC<CommandBarProps> = ({
     onJumpToCard,
     lastResponse,
     isProcessing,
+    customDefaultChips,
+    customDetailChips,
 }) => {
     const [inputText, setInputText] = useState("");
     const [conversation, setConversation] = useState<ConversationEntry[]>([]);
@@ -182,7 +187,10 @@ export const CommandBar: React.FC<CommandBarProps> = ({
         [currentCardId, onExecuteCommand],
     );
 
-    const contextChips = selectedCardId ? DETAIL_COMMAND_CHIPS : DEFAULT_COMMAND_CHIPS;
+    // Phase 6B: Use custom chips if provided, otherwise fall back to defaults
+    const contextChips = selectedCardId
+        ? (customDetailChips ?? DETAIL_COMMAND_CHIPS)
+        : (customDefaultChips ?? DEFAULT_COMMAND_CHIPS);
 
     // Show collapsed pill when no conversation and not processing
     if (collapsed && !isProcessing) {

@@ -1,0 +1,243 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "SectionId": {
+                "type": "string",
+                "description": "OneNote section ID where the page will be created or appended"
+              },
+              "PageTitle": {
+                "type": "string",
+                "description": "Title of the OneNote page to create or update"
+              },
+              "ContentHtml": {
+                "type": "string",
+                "description": "HTML content to write to the page body"
+              },
+              "Action": {
+                "type": "string",
+                "description": "APPEND to add content to an existing page, or CREATE to make a new page"
+              }
+            },
+            "required": ["SectionId", "PageTitle", "ContentHtml", "Action"]
+          }
+        },
+        "description": "Create a new OneNote page or append content to an existing page in a specified section."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Switch_Action": {
+            "type": "Switch",
+            "expression": "@triggerBody()?['Action']",
+            "cases": {
+              "CREATE": {
+                "case": "CREATE",
+                "actions": {
+                  "Create_Page": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "request/method": "POST",
+                        "request/url": "https://graph.microsoft.com/v1.0/me/onenote/sections/@{triggerBody()?['SectionId']}/pages",
+                        "request/headers": {
+                          "Content-Type": "application/xhtml+xml"
+                        },
+                        "request/body": "<!DOCTYPE html><html><head><title>@{triggerBody()?['PageTitle']}</title></head><body>@{triggerBody()?['ContentHtml']}</body></html>"
+                      },
+                      "host": {
+                        "connectionName": "shared_webcontents",
+                        "operationId": "InvokeHttp",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                      }
+                    }
+                  },
+                  "Compose_Create_Result": {
+                    "type": "Compose",
+                    "inputs": {
+                      "success": true,
+                      "page_id": "@body('Create_Page')?['id']",
+                      "action_taken": "CREATED"
+                    },
+                    "runAfter": {
+                      "Create_Page": ["Succeeded"]
+                    }
+                  }
+                }
+              },
+              "APPEND": {
+                "case": "APPEND",
+                "actions": {
+                  "Find_Existing_Page": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "request/method": "GET",
+                        "request/url": "https://graph.microsoft.com/v1.0/me/onenote/sections/@{triggerBody()?['SectionId']}/pages?$filter=title eq '@{triggerBody()?['PageTitle']}'&$select=id,title&$top=1"
+                      },
+                      "host": {
+                        "connectionName": "shared_webcontents",
+                        "operationId": "InvokeHttp",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                      }
+                    }
+                  },
+                  "Append_Content": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "request/method": "PATCH",
+                        "request/url": "https://graph.microsoft.com/v1.0/me/onenote/pages/@{first(body('Find_Existing_Page')?['value'])?['id']}/content",
+                        "request/headers": {
+                          "Content-Type": "application/json"
+                        },
+                        "request/body": [
+                          {
+                            "target": "body",
+                            "action": "append",
+                            "content": "@{triggerBody()?['ContentHtml']}"
+                          }
+                        ]
+                      },
+                      "host": {
+                        "connectionName": "shared_webcontents",
+                        "operationId": "InvokeHttp",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                      }
+                    },
+                    "runAfter": {
+                      "Find_Existing_Page": ["Succeeded"]
+                    }
+                  },
+                  "Compose_Append_Result": {
+                    "type": "Compose",
+                    "inputs": {
+                      "success": true,
+                      "page_id": "@{first(body('Find_Existing_Page')?['value'])?['id']}",
+                      "action_taken": "APPENDED"
+                    },
+                    "runAfter": {
+                      "Append_Content": ["Succeeded"]
+                    }
+                  }
+                }
+              }
+            },
+            "default": {
+              "actions": {
+                "Compose_Invalid_Action": {
+                  "type": "Compose",
+                  "inputs": {
+                    "success": false,
+                    "error": "Invalid Action value. Must be CREATE or APPEND."
+                  }
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Compose_Final_Result": {
+            "type": "Compose",
+            "inputs": "@coalesce(outputs('Compose_Create_Result'), outputs('Compose_Append_Result'), outputs('Compose_Invalid_Action'))",
+            "runAfter": {
+              "Switch_Action": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "result_json": "@{string(outputs('Compose_Final_Result'))}",
+                "success": "@outputs('Compose_Final_Result')?['success']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "result_json": {
+                    "type": "string",
+                    "description": "JSON object with page_id and action_taken"
+                  },
+                  "success": {
+                    "type": "boolean",
+                    "description": "Whether the OneNote operation succeeded"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Final_Result": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "OneNote update failed",
+              "flow": "tool-update-onenote",
+              "action": "@triggerBody()?['Action']",
+              "page_title": "@triggerBody()?['PageTitle']",
+              "timestamp": "@utcNow()"
+            }
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "result_json": "{\"success\":false,\"error\":\"OneNote operation failed\"}",
+                "success": false
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "result_json": {
+                    "type": "string"
+                  },
+                  "success": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "OneNoteUpdateFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

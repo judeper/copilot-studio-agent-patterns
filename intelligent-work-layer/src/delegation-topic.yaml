@@ -1,0 +1,71 @@
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: USER_COMMAND
+    description: The user's natural language delegation command such as assigning a task, checking status, or setting up follow-ups
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: DELEGATE_CONTEXT
+    description: JSON object with active delegations and their status including delegation_id, task_title, delegate_email, status, delegated_on, due_date, and last_check_in (or null if no prior delegations)
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: USER_CONTEXT
+    description: Authenticated user's display name, role, department, and org level for permission scoping
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: TEAM_MEMBERS
+    description: JSON array of the user's direct reports and frequent collaborators with display_name, email, role, and department
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnToolSelected
+  id: main
+  description: Handles work delegation by assigning tasks, scheduling follow-ups, sending notifications, and tracking completion status for team members
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_Delegation
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: <delegation-model-guid>
+
+    - kind: SetVariable
+      id: setVariable_DelegationResponseText
+      variable: Topic.DelegationResponseText
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_Delegation
+
+inputType:
+  properties:
+    USER_COMMAND:
+      displayName: USER_COMMAND
+      description: The user's natural language delegation command such as assigning a task, checking status, or setting up follow-ups
+      type: String
+
+    DELEGATE_CONTEXT:
+      displayName: DELEGATE_CONTEXT
+      description: JSON object with active delegations and their status including delegation_id, task_title, delegate_email, status, delegated_on, due_date, and last_check_in (or null if no prior delegations)
+      type: String
+
+    USER_CONTEXT:
+      displayName: USER_CONTEXT
+      description: Authenticated user's display name, role, department, and org level for permission scoping
+      type: String
+
+    TEAM_MEMBERS:
+      displayName: TEAM_MEMBERS
+      description: JSON array of the user's direct reports and frequent collaborators with display_name, email, role, and department
+      type: String
+
+outputType:
+  properties:
+    DelegationResponseText:
+      displayName: DelegationResponseText
+      description: Structured JSON with action_taken, delegation_details, tracking_id, follow_up_schedule, result_summary, and confirmation_needed fields
+      type: String

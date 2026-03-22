@@ -101,6 +101,107 @@ export const tier3FullItem: AssistantCard = {
     conversation_cluster_id: 'conv-fabrikam-renewal',
     source_signal_id: 'msgid-full-001@fabrikam.com',
     hours_stale: null,
+    triage_reasoning: 'Fabrikam Legal is a high-frequency sender with 95% response rate. Contract deadline is within 48 hours. Elevated to FULL triage with High priority.',
+};
+
+// ---------------------------------------------------------------------------
+// Phase 0: Card with all new Phase A fields populated
+// ---------------------------------------------------------------------------
+export const phaseAFullItem: AssistantCard = {
+    id: 'phase-a-001',
+    trigger_type: 'EMAIL',
+    triage_tier: 'FULL',
+    item_summary: 'Budget approval request from Sarah Chen — needs response before 2 PM.',
+    priority: 'High',
+    temporal_horizon: 'TODAY',
+    research_log: 'Searched: budget approval Sarah Chen. Found Q3 budget thread with 3 prior exchanges.',
+    key_findings: '- Q3 budget revision submitted\n- VP approval pending\n- Meeting at 2 PM today',
+    verified_sources: [
+        { title: 'Q3 Budget SharePoint', url: 'https://contoso.sharepoint.com/budgets', tier: 2 },
+    ],
+    confidence_score: 92,
+    card_status: 'READY',
+    draft_payload: {
+        draft_type: 'EMAIL',
+        raw_draft: 'Hi Sarah, I have reviewed the budget revision...',
+        research_summary: 'Budget revision aligned with Q3 targets.',
+        recipient_relationship: 'Internal colleague',
+        inferred_tone: 'semi-formal',
+        confidence_score: 92,
+        user_context: 'Budget approval workflow',
+    },
+    low_confidence_note: null,
+    humanized_draft: 'Hi Sarah, I have reviewed the Q3 budget revision and it looks good. Happy to discuss at our 2 PM.',
+    created_on: '3/22/2026 8:30 AM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'schen@contoso.com',
+    original_sender_display: 'Sarah Chen',
+    original_subject: 'Q3 Budget Revision — Approval Needed',
+    conversation_cluster_id: 'conv-budget-q3',
+    source_signal_id: 'msgid-budget-001@contoso.com',
+    hours_stale: 4,
+    urgency_reason: 'Meeting at 2 PM today — response needed before then.',
+    triage_reasoning: 'Sarah Chen is an AUTO_HIGH sender (response rate 96%, avg 1.2h). Budget deadline aligns with calendar event today. Elevated to FULL with High priority.',
+    snoozed_until: null,
+    focus_shield_active: false,
+    conversation_cluster_action: 'UPDATE',
+};
+
+// ---------------------------------------------------------------------------
+// Phase 0: Snoozed card
+// ---------------------------------------------------------------------------
+export const snoozedItem: AssistantCard = {
+    id: 'snoozed-001',
+    trigger_type: 'EMAIL',
+    triage_tier: 'LIGHT',
+    item_summary: 'Team offsite planning thread — low urgency.',
+    priority: 'Low',
+    temporal_horizon: 'NEXT_WEEK',
+    research_log: null,
+    key_findings: null,
+    verified_sources: null,
+    confidence_score: null,
+    card_status: 'SNOOZED',
+    draft_payload: null,
+    low_confidence_note: null,
+    humanized_draft: null,
+    created_on: '3/21/2026 3:00 PM',
+    card_outcome: 'PENDING',
+    original_sender_email: 'mj@contoso.com',
+    original_sender_display: 'Maria Johnson',
+    original_subject: 'Team Offsite Planning',
+    conversation_cluster_id: 'conv-offsite-001',
+    source_signal_id: 'msgid-offsite-001@contoso.com',
+    hours_stale: null,
+    snoozed_until: '2026-03-24T09:00:00Z',
+};
+
+// ---------------------------------------------------------------------------
+// Phase 0: Externally resolved card
+// ---------------------------------------------------------------------------
+export const externallyResolvedItem: AssistantCard = {
+    id: 'resolved-ext-001',
+    trigger_type: 'EMAIL',
+    triage_tier: 'FULL',
+    item_summary: 'Invoice query from Woodgrove Bank.',
+    priority: 'Medium',
+    temporal_horizon: 'THIS_WEEK',
+    research_log: null,
+    key_findings: null,
+    verified_sources: null,
+    confidence_score: 75,
+    card_status: 'READY',
+    draft_payload: null,
+    low_confidence_note: null,
+    humanized_draft: null,
+    created_on: '3/20/2026 2:00 PM',
+    card_outcome: 'RESOLVED_EXTERNALLY',
+    original_sender_email: 'billing@woodgrovebank.com',
+    original_sender_display: 'Woodgrove Billing',
+    original_subject: 'Invoice #WG-2026-0312',
+    conversation_cluster_id: 'conv-invoice-wg',
+    source_signal_id: 'msgid-invoice-001@woodgrove.com',
+    hours_stale: null,
 };
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,146 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Every_6_Hours": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Hour",
+          "interval": 6
+        }
+      }
+    },
+    "actions": {
+      "Scope_Light_Auto_Archive": {
+        "type": "Scope",
+        "actions": {
+          "List_Stale_Light_Cards": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_triagetier eq 100000001 and cr_cardoutcome eq 100000000 and createdon le @{addHours(utcNow(), -48)}",
+                "$top": 50
+              },
+              "host": {
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {}
+          },
+          "Condition_Has_Stale_Cards": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('List_Stale_Light_Cards')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Apply_to_each_stale_card": {
+                "type": "Foreach",
+                "foreach": "@outputs('List_Stale_Light_Cards')?['body/value']",
+                "actions": {
+                  "Update_Card_Expired": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "recordId": "@items('Apply_to_each_stale_card')?['cr_assistantcardid']",
+                        "item/cr_cardoutcome": 100000004,
+                        "item/cr_outcometimestamp": "@utcNow()"
+                      },
+                      "host": {
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "runtimeConfiguration": {
+                  "concurrency": {
+                    "repetitions": 5
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "List_Stale_Light_Cards": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 12 error: @{result('Scope_Light_Auto_Archive')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Light_Auto_Archive": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "IWL - Flow 12: LIGHT Tier Auto-Archive",
+    "description": "Recurrence every 6 hours. Queries cr_assistantcards for LIGHT-tier cards (cr_triagetier=100000001) with PENDING outcome (cr_cardoutcome=100000000) created more than 48 hours ago, and marks them as EXPIRED (cr_cardoutcome=100000004) with an outcome timestamp. Prevents stale LIGHT cards from accumulating indefinitely.",
+    "requiredConnections": [
+      "shared_commondataserviceforapps (Microsoft Dataverse)"
+    ],
+    "notes": {
+      "triagetierValues": "TriageTier choice: SKIP=100000000, LIGHT=100000001, FULL=100000002",
+      "cardOutcomeValues": "CardOutcome choice: PENDING=100000000, SENT_AS_IS=100000001, SENT_EDITED=100000002, DISMISSED=100000003, EXPIRED=100000004, RESOLVED_EXTERNALLY=100000005",
+      "concurrency": "Apply_to_each_stale_card runs with concurrency of 5 to balance throughput and API throttling.",
+      "batchSize": "$top=50 limits each run to 50 cards to stay within connector limits. Remaining cards are processed in the next 6-hour cycle.",
+      "expirationWindow": "48 hours from card creation (createdon). Cards with any interaction that changes cr_cardoutcome before the window elapses will not be matched."
+    }
+  }
+}

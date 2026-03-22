@@ -101,6 +101,36 @@
       "maxLength": 5000,
       "required": false,
       "description": "JSON blob with inferred tone preferences seeded from Graph bootstrap analysis of the user's own sent email patterns. Contains: formality_score, greeting_patterns[], signoff_patterns[], avg_sentence_length, emoji_usage_rate. Gives drafts a baseline before per-sender learning kicks in."
+    },
+    {
+      "logicalName": "cr_onenoteenabled",
+      "displayName": "OneNote Integration Enabled",
+      "type": "Boolean",
+      "default": false,
+      "description": "Global toggle for OneNote write-back integration. Moved from per-card table."
+    },
+    {
+      "logicalName": "cr_onenoteoptout",
+      "displayName": "OneNote Opt-Out",
+      "type": "Boolean",
+      "default": false,
+      "description": "Per-user preference to disable OneNote integration even if globally enabled. Moved from per-card table."
+    },
+    {
+      "logicalName": "cr_confidencethreshold",
+      "displayName": "Confidence Threshold",
+      "type": "WholeNumber",
+      "default": 40,
+      "minValue": 0,
+      "maxValue": 100,
+      "description": "Minimum confidence score for draft generation. Cards below this threshold show research summary only."
+    },
+    {
+      "logicalName": "cr_briefingschedule",
+      "displayName": "Briefing Schedule Configuration",
+      "type": "MultilineText",
+      "maxLength": 4000,
+      "description": "JSON blob storing user's briefing schedule preferences (timezone, days, hour). Written by the Canvas App schedule config."
     }
   ],
   "notes": {

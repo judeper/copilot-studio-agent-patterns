@@ -4,7 +4,8 @@ import { CardItem } from "./CardItem";
 import { HEARTBEAT_TRIGGER_TYPES, FEED_SECTIONS } from "./constants";
 import { compositeSort } from "../hooks/useCardData";
 import { useConversationClusters } from "../hooks/useConversationClusters";
-import { Button } from "@fluentui/react-components";
+import { Button, Checkbox } from "@fluentui/react-components";
+import { BatchActionBar } from "./BatchActionBar";
 
 type FeedSection = {
     key: string;
@@ -71,10 +72,60 @@ export function groupCards(cards: AssistantCard[]): FeedSection[] {
 interface CardGalleryProps {
     cards: AssistantCard[];
     onSelectCard: (cardId: string) => void;
+    onBatchDismiss?: (cardIds: string[]) => void;
+    onBatchSnooze?: (cardIds: string[], snoozeUntil: string) => void;
 }
 
-export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard }) => {
+export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard, onBatchDismiss, onBatchSnooze }) => {
     const [visibleCount, setVisibleCount] = React.useState(5);
+    // Phase 2A: Batch selection state
+    const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
+    const selectionActive = selectedIds.size > 0;
+
+    const toggleSelect = React.useCallback((cardId: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(cardId)) {
+                next.delete(cardId);
+            } else {
+                next.add(cardId);
+            }
+            return next;
+        });
+    }, []);
+
+    const toggleSectionSelect = React.useCallback((sectionCards: AssistantCard[]) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            const allSelected = sectionCards.every((c) => prev.has(c.id));
+            if (allSelected) {
+                for (const c of sectionCards) next.delete(c.id);
+            } else {
+                for (const c of sectionCards) next.add(c.id);
+            }
+            return next;
+        });
+    }, []);
+
+    const clearSelection = React.useCallback(() => setSelectedIds(new Set()), []);
+
+    const handleBatchDismiss = React.useCallback(() => {
+        if (onBatchDismiss) {
+            onBatchDismiss(Array.from(selectedIds));
+            clearSelection();
+        }
+    }, [onBatchDismiss, selectedIds, clearSelection]);
+
+    const handleBatchSnooze = React.useCallback(() => {
+        if (onBatchSnooze) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(9, 0, 0, 0);
+            onBatchSnooze(Array.from(selectedIds), tomorrow.toISOString());
+            clearSelection();
+        }
+    }, [onBatchSnooze, selectedIds, clearSelection]);
+
     // Phase 1A: Cluster cards by conversation before sorting/sectioning
     const { clusteredCards, clusterMap } = useConversationClusters(cards);
     const sortedCards = React.useMemo(() => compositeSort(clusteredCards), [clusteredCards]);
@@ -149,6 +200,13 @@ export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard })
 
     return (
         <div className="card-gallery">
+            {/* Phase 2A: Batch action bar */}
+            <BatchActionBar
+                selectedCount={selectedIds.size}
+                onDismissAll={handleBatchDismiss}
+                onSnoozeAll={handleBatchSnooze}
+                onClearSelection={clearSelection}
+            />
             {sections.map((section) => (
                 <div key={section.key} className="feed-section">
                     <button
@@ -157,6 +215,18 @@ export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard })
                         style={section.accentColor ? { borderLeftColor: section.accentColor } : undefined}
                         aria-expanded={!collapsed[section.key]}
                     >
+                        {/* Phase 2A: Section-level select all */}
+                        {selectionActive && (
+                            <Checkbox
+                                checked={section.cards.every((c) => selectedIds.has(c.id))}
+                                onChange={(e) => {
+                                    e.stopPropagation();
+                                    toggleSectionSelect(section.cards);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={`Select all in ${section.title}`}
+                            />
+                        )}
                         <span className="feed-section-title">{section.title}</span>
                         <span className="feed-section-count">{section.cards.length}</span>
                         <span className="feed-section-chevron">
@@ -173,8 +243,19 @@ export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard })
                                     <div
                                         key={card.id}
                                         className={completingIds.has(card.id) ? "card-item-completing" : undefined}
+                                        style={{ display: "flex", alignItems: "flex-start", gap: "4px" }}
                                     >
-                                        <CardItem card={card} onClick={onSelectCard} relatedCount={relatedCount} />
+                                        <Checkbox
+                                            checked={selectedIds.has(card.id)}
+                                            onChange={() => toggleSelect(card.id)}
+                                            aria-label={`Select ${card.item_summary}`}
+                                            style={{ marginTop: "12px", opacity: selectionActive ? 1 : 0, transition: "opacity 150ms" }}
+                                            onMouseEnter={(e) => { if (!selectionActive) (e.currentTarget as HTMLElement).style.opacity = "0.6"; }}
+                                            onMouseLeave={(e) => { if (!selectionActive) (e.currentTarget as HTMLElement).style.opacity = "0"; }}
+                                        />
+                                        <div style={{ flex: 1 }}>
+                                            <CardItem card={card} onClick={onSelectCard} relatedCount={relatedCount} />
+                                        </div>
                                     </div>
                                 );
                             })}

@@ -1,0 +1,236 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "FactText": {
+                "type": "string",
+                "description": "The knowledge fact text to store (e.g. 'VP prefers bullet-point summaries')"
+              },
+              "FactType": {
+                "type": "string",
+                "description": "Category of knowledge: DELEGATION, AVOIDANCE, TONE, RESPONSE_SPEED, or GENERAL"
+              },
+              "ContextScope": {
+                "type": "string",
+                "description": "Applicability scope: UNIVERSAL, INTERNAL_ONLY, or EXTERNAL_ONLY"
+              },
+              "Source": {
+                "type": "string",
+                "description": "How the fact was captured: USER_EXPLICIT, INFERRED, or SUGGESTED"
+              }
+            },
+            "required": ["FactText", "FactType", "ContextScope", "Source"]
+          }
+        },
+        "description": "Upsert a semantic knowledge fact into the knowledge store. Uses context hash as alternate key for idempotent create-or-update."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Compute_Context_Hash": {
+            "type": "Compose",
+            "inputs": "@base64(concat(triggerBody()?['FactText'], '|', triggerBody()?['FactType']))",
+            "runAfter": {}
+          },
+          "Upsert_Knowledge_Fact": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_semanticknowledges",
+                "recordId": "@outputs('Compute_Context_Hash')",
+                "item": {
+                  "cr_contexthash": "@outputs('Compute_Context_Hash')",
+                  "cr_facttext": "@triggerBody()?['FactText']",
+                  "cr_facttype": "@triggerBody()?['FactType']",
+                  "cr_contextscope": "@triggerBody()?['ContextScope']",
+                  "cr_source": "@triggerBody()?['Source']",
+                  "cr_lastupdated": "@utcNow()",
+                  "cr_isactive": true
+                }
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Compute_Context_Hash": ["Succeeded"]
+            }
+          },
+          "Condition_Upsert_Result": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@outputs('Upsert_Knowledge_Fact')?['statusCode']",
+                    204
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Compose_Updated": {
+                "type": "Compose",
+                "inputs": {
+                  "success": true,
+                  "fact_id": "@outputs('Compute_Context_Hash')",
+                  "action_taken": "UPDATED"
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Create_New_Fact": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "entityName": "cr_semanticknowledges",
+                      "item": {
+                        "cr_contexthash": "@outputs('Compute_Context_Hash')",
+                        "cr_facttext": "@triggerBody()?['FactText']",
+                        "cr_facttype": "@triggerBody()?['FactType']",
+                        "cr_contextscope": "@triggerBody()?['ContextScope']",
+                        "cr_source": "@triggerBody()?['Source']",
+                        "cr_lastupdated": "@utcNow()",
+                        "cr_isactive": true
+                      }
+                    },
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    }
+                  }
+                },
+                "Compose_Created": {
+                  "type": "Compose",
+                  "inputs": {
+                    "success": true,
+                    "fact_id": "@outputs('Create_New_Fact')?['body/cr_semanticknowledgesid']",
+                    "action_taken": "CREATED"
+                  },
+                  "runAfter": {
+                    "Create_New_Fact": ["Succeeded"]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Upsert_Knowledge_Fact": ["Succeeded", "Failed"]
+            }
+          },
+          "Compose_Final_Result": {
+            "type": "Compose",
+            "inputs": "@coalesce(outputs('Compose_Updated'), outputs('Compose_Created'))",
+            "runAfter": {
+              "Condition_Upsert_Result": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "result_json": "@{string(outputs('Compose_Final_Result'))}",
+                "fact_id": "@outputs('Compose_Final_Result')?['fact_id']",
+                "action_taken": "@outputs('Compose_Final_Result')?['action_taken']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "result_json": {
+                    "type": "string",
+                    "description": "JSON object with fact_id and action_taken (CREATED or UPDATED)"
+                  },
+                  "fact_id": {
+                    "type": "string",
+                    "description": "ID of the created or updated knowledge fact"
+                  },
+                  "action_taken": {
+                    "type": "string",
+                    "description": "Whether the fact was CREATED or UPDATED"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Final_Result": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Knowledge promotion failed",
+              "flow": "tool-promote-knowledge",
+              "fact_type": "@triggerBody()?['FactType']",
+              "timestamp": "@utcNow()"
+            }
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "result_json": "{\"success\":false,\"error\":\"Knowledge promotion failed\"}",
+                "fact_id": "",
+                "action_taken": "ERROR"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "result_json": {
+                    "type": "string"
+                  },
+                  "fact_id": {
+                    "type": "string"
+                  },
+                  "action_taken": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "KnowledgePromotionFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: CURRENT_DRAFT
+    description: The existing draft text to refine (previously generated and humanized)
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: INSTRUCTION
+    description: The user's natural-language refinement request such as tone change, length adjustment, or content edit
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: CARD_CONTEXT
+    description: Plain-text summary of the card including item_summary and key_findings from the original research
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: PERSONA_PREFERENCES
+    description: JSON object from cr_userpersona with preferred_tone, signature_preference, formatting_style, and custom_rules (or null if not configured)
+    shouldPromptUser: false
+
+  - kind: AutomaticTaskInput
+    propertyName: SEMANTIC_KNOWLEDGE
+    description: JSON array of learned semantic facts relevant to this context with fact_type, fact_statement, and confidence_score (or null)
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnToolSelected
+  id: main
+  description: Refines an existing draft based on the user's natural-language instruction while preserving research grounding and factual accuracy
+  actions:
+    - kind: InvokeAIBuilderModelAction
+      id: invokeAIBuilderModelAction_DraftRefiner
+      input: {}
+      output:
+        binding:
+          predictionOutput: Topic.GeneratedJSON
+      aIModelId: <draft-refiner-model-guid>
+
+    - kind: SetVariable
+      id: setVariable_RefinedDraftText
+      variable: Topic.RefinedDraftText
+      value: =Topic.GeneratedJSON.text
+
+    - kind: EndDialog
+      id: endDialog_DraftRefiner
+
+inputType:
+  properties:
+    CURRENT_DRAFT:
+      displayName: CURRENT_DRAFT
+      description: The existing draft text to refine (previously generated and humanized)
+      type: String
+
+    INSTRUCTION:
+      displayName: INSTRUCTION
+      description: The user's natural-language refinement request such as tone change, length adjustment, or content edit
+      type: String
+
+    CARD_CONTEXT:
+      displayName: CARD_CONTEXT
+      description: Plain-text summary of the card including item_summary and key_findings from the original research
+      type: String
+
+    PERSONA_PREFERENCES:
+      displayName: PERSONA_PREFERENCES
+      description: JSON object from cr_userpersona with preferred_tone, signature_preference, formatting_style, and custom_rules (or null if not configured)
+      type: String
+
+    SEMANTIC_KNOWLEDGE:
+      displayName: SEMANTIC_KNOWLEDGE
+      description: JSON array of learned semantic facts relevant to this context with fact_type, fact_statement, and confidence_score (or null)
+      type: String
+
+outputType:
+  properties:
+    RefinedDraftText:
+      displayName: RefinedDraftText
+      description: Plain text refined draft ready for user review. No JSON wrapping, no preamble, no markdown formatting.
+      type: String

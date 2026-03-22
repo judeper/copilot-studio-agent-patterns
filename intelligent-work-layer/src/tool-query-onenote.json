@@ -1,0 +1,147 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "SearchQuery": {
+                "type": "string",
+                "description": "Search query to find OneNote pages by title or content"
+              }
+            },
+            "required": ["SearchQuery"]
+          }
+        },
+        "description": "Search the user's OneNote pages by keyword. Returns page titles, section names, and content previews."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Search_OneNote_Pages": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "GET",
+                "request/url": "https://graph.microsoft.com/v1.0/me/onenote/pages?$filter=contains(title,'@{triggerBody()?['SearchQuery']}')&$select=id,title,createdDateTime,lastModifiedDateTime,contentUrl,parentSection&$top=10&$orderby=lastModifiedDateTime desc"
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "runAfter": {}
+          },
+          "Compose_Results": {
+            "type": "Select",
+            "inputs": {
+              "from": "@body('Search_OneNote_Pages')?['value']",
+              "select": {
+                "page_id": "@item()?['id']",
+                "title": "@item()?['title']",
+                "section_name": "@item()?['parentSection']?['displayName']",
+                "section_id": "@item()?['parentSection']?['id']",
+                "created": "@item()?['createdDateTime']",
+                "last_modified": "@item()?['lastModifiedDateTime']",
+                "content_url": "@item()?['contentUrl']"
+              }
+            },
+            "runAfter": {
+              "Search_OneNote_Pages": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "pages_json": "@{string(body('Compose_Results'))}",
+                "result_count": "@length(body('Search_OneNote_Pages')?['value'])"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pages_json": {
+                    "type": "string",
+                    "description": "JSON array of matching OneNote pages with titles, sections, and content URLs"
+                  },
+                  "result_count": {
+                    "type": "integer",
+                    "description": "Number of pages returned"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Results": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Search_OneNote_Pages failed",
+              "flow": "tool-query-onenote",
+              "query": "@triggerBody()?['SearchQuery']",
+              "timestamp": "@utcNow()"
+            }
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "pages_json": "[]",
+                "result_count": 0
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pages_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "SearchFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "SearchTerm": {
+                "type": "string",
+                "description": "Optional keyword to filter skills by name. If omitted, returns all enabled skills."
+              }
+            },
+            "required": []
+          }
+        },
+        "description": "Query the skill registry for available agent skills. Returns skill names, descriptions, and trigger patterns."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Build_Filter": {
+            "type": "Compose",
+            "inputs": "@if(equals(triggerBody()?['SearchTerm'], null), 'cr_isenabled eq true', concat('cr_isenabled eq true and contains(cr_skillname, ''', triggerBody()?['SearchTerm'], ''')'))",
+            "runAfter": {}
+          },
+          "List_Skills": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_skillregistries",
+                "$filter": "@outputs('Build_Filter')",
+                "$select": "cr_skillregistriesid,cr_skillname,cr_skilldescription,cr_triggerpattern,cr_executiontype,cr_isenabled",
+                "$orderby": "cr_skillname asc"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Build_Filter": ["Succeeded"]
+            }
+          },
+          "Compose_Results": {
+            "type": "Select",
+            "inputs": {
+              "from": "@outputs('List_Skills')?['body/value']",
+              "select": {
+                "skill_id": "@item()?['cr_skillregistriesid']",
+                "skill_name": "@item()?['cr_skillname']",
+                "description": "@item()?['cr_skilldescription']",
+                "trigger_pattern": "@item()?['cr_triggerpattern']",
+                "execution_type": "@item()?['cr_executiontype']"
+              }
+            },
+            "runAfter": {
+              "List_Skills": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "skills_json": "@{string(body('Compose_Results'))}",
+                "result_count": "@length(outputs('List_Skills')?['body/value'])"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "skills_json": {
+                    "type": "string",
+                    "description": "JSON array of skill objects with name, description, and trigger pattern"
+                  },
+                  "result_count": {
+                    "type": "integer",
+                    "description": "Number of skills returned"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Results": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "List_Skills failed",
+              "flow": "tool-query-skills",
+              "search_term": "@triggerBody()?['SearchTerm']",
+              "timestamp": "@utcNow()"
+            }
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "skills_json": "[]",
+                "result_count": 0
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "skills_json": {
+                    "type": "string"
+                  },
+                  "result_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "SkillQueryFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

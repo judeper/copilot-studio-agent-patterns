@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "EnterpriseWorkAssistantOutput",
-  "description": "Output schema for the Intelligent Work Layer Copilot Studio agent. Every agent invocation returns exactly one object conforming to this schema. NOTE: The draft_payload field uses oneOf which is NOT supported by Power Automate Parse JSON. See docs/agent-flows.md for the simplified schema to use in flows.",
+  "description": "Output schema for the Intelligent Work Layer Copilot Studio agent. Every agent invocation returns exactly one object conforming to this schema.",
   "type": "object",
   "required": [
     "trigger_type",
@@ -89,60 +89,8 @@
       "description": "Status of the output card. READY = full research + draft available, LOW_CONFIDENCE = insufficient evidence, SUMMARY_ONLY = LIGHT tier summary, NO_OUTPUT = SKIP tier, NUDGE = staleness reminder set by Flow 8."
     },
     "draft_payload": {
-      "description": "For EMAIL/TEAMS_MESSAGE FULL-tier items with confidence >= 40: humanizer handoff object. For CALENDAR_SCAN FULL-tier items: plain-text meeting briefing. Null for SKIP, LIGHT, and LOW_CONFIDENCE.",
-      "oneOf": [
-        { "type": "null" },
-        { "type": "string" },
-        {
-          "type": "object",
-          "description": "Humanizer handoff object for EMAIL and TEAMS_MESSAGE FULL-tier items with confidence >= 40.",
-          "required": [
-            "draft_type",
-            "raw_draft",
-            "research_summary",
-            "recipient_relationship",
-            "inferred_tone",
-            "confidence_score",
-            "user_context"
-          ],
-          "properties": {
-            "draft_type": {
-              "type": "string",
-              "enum": ["EMAIL", "TEAMS_MESSAGE", "PREP_NOTES"],
-              "description": "The type of draft being handed off. Determines output format in the Humanizer Agent."
-            },
-            "raw_draft": {
-              "type": "string",
-              "description": "Plain-text draft reply/response grounded in retrieved research only."
-            },
-            "research_summary": {
-              "type": "string",
-              "description": "Plain-text summary of sources used and key findings."
-            },
-            "recipient_relationship": {
-              "type": "string",
-              "enum": ["Internal colleague", "External client", "Leadership", "Unknown"],
-              "description": "Categorization of the recipient's relationship to the user."
-            },
-            "inferred_tone": {
-              "type": "string",
-              "enum": ["formal", "semi-formal", "direct", "collaborative"],
-              "description": "Recommended tone for the humanized draft."
-            },
-            "confidence_score": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Confidence score passed through for humanizer context."
-            },
-            "user_context": {
-              "type": "string",
-              "description": "Authenticated user context (name, role, department) for tone calibration."
-            }
-          },
-          "additionalProperties": false
-        }
-      ]
+      "type": ["string", "object", "null"],
+      "description": "String for LIGHT-tier summaries, structured object for FULL-tier drafts (see $defs/DraftPayload), or null when no draft is generated. Power Automate flows use a simplified inline schema in Parse_Agent_Response."
     },
     "skip_reason": {
       "type": ["string", "null"],
@@ -162,5 +110,57 @@
       "description": "Instructs the flow whether to create a new card, update an existing card in the same conversation cluster, or skip as a duplicate. Null when no conversation clustering context is available."
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "DraftPayload": {
+      "$comment": "This is the structured form of draft_payload, used for EMAIL and TEAMS_MESSAGE FULL-tier items with confidence >= 40. Defined here for documentation; the draft_payload field itself uses a simplified type array for Power Automate compatibility.",
+      "type": "object",
+      "description": "Humanizer handoff object for EMAIL and TEAMS_MESSAGE FULL-tier items with confidence >= 40.",
+      "required": [
+        "draft_type",
+        "raw_draft",
+        "research_summary",
+        "recipient_relationship",
+        "inferred_tone",
+        "confidence_score",
+        "user_context"
+      ],
+      "properties": {
+        "draft_type": {
+          "type": "string",
+          "enum": ["EMAIL", "TEAMS_MESSAGE", "PREP_NOTES"],
+          "description": "The type of draft being handed off. Determines output format in the Humanizer Agent."
+        },
+        "raw_draft": {
+          "type": "string",
+          "description": "Plain-text draft reply/response grounded in retrieved research only."
+        },
+        "research_summary": {
+          "type": "string",
+          "description": "Plain-text summary of sources used and key findings."
+        },
+        "recipient_relationship": {
+          "type": "string",
+          "enum": ["Internal colleague", "External client", "Leadership", "Unknown"],
+          "description": "Categorization of the recipient's relationship to the user."
+        },
+        "inferred_tone": {
+          "type": "string",
+          "enum": ["formal", "semi-formal", "direct", "collaborative"],
+          "description": "Recommended tone for the humanized draft."
+        },
+        "confidence_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Confidence score passed through for humanizer context."
+        },
+        "user_context": {
+          "type": "string",
+          "description": "Authenticated user context (name, role, department) for tone calibration."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
 }

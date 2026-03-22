@@ -1,0 +1,155 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "TaskId": {
+                "type": "string",
+                "description": "Planner task ID to retrieve completion status for"
+              }
+            },
+            "required": ["TaskId"]
+          }
+        },
+        "description": "Get the current status and completion details of a Planner task by its ID."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Get_Task": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "request/method": "GET",
+                "request/url": "https://graph.microsoft.com/v1.0/planner/tasks/@{triggerBody()?['TaskId']}?$select=id,title,percentComplete,startDateTime,dueDateTime,completedDateTime,assignments,createdDateTime"
+              },
+              "host": {
+                "connectionName": "shared_webcontents",
+                "operationId": "InvokeHttp",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+              }
+            },
+            "runAfter": {}
+          },
+          "Compose_Task_Status": {
+            "type": "Compose",
+            "inputs": {
+              "task_id": "@body('Get_Task')?['id']",
+              "title": "@body('Get_Task')?['title']",
+              "percent_complete": "@body('Get_Task')?['percentComplete']",
+              "status": "@if(equals(body('Get_Task')?['percentComplete'], 100), 'Completed', if(equals(body('Get_Task')?['percentComplete'], 0), 'Not Started', 'In Progress'))",
+              "start_date": "@body('Get_Task')?['startDateTime']",
+              "due_date": "@body('Get_Task')?['dueDateTime']",
+              "completed_date": "@body('Get_Task')?['completedDateTime']",
+              "assignments": "@body('Get_Task')?['assignments']",
+              "created_date": "@body('Get_Task')?['createdDateTime']"
+            },
+            "runAfter": {
+              "Get_Task": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "task_json": "@{string(outputs('Compose_Task_Status'))}",
+                "status": "@outputs('Compose_Task_Status')?['status']",
+                "percent_complete": "@outputs('Compose_Task_Status')?['percent_complete']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task_json": {
+                    "type": "string",
+                    "description": "JSON object with full task status details"
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Human-readable status: Not Started, In Progress, or Completed"
+                  },
+                  "percent_complete": {
+                    "type": "integer",
+                    "description": "Task completion percentage (0, 50, or 100)"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Task_Status": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Get_Task failed",
+              "flow": "tool-track-completion",
+              "task_id": "@triggerBody()?['TaskId']",
+              "timestamp": "@utcNow()"
+            }
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "task_json": "{}",
+                "status": "Error",
+                "percent_complete": -1
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task_json": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "percent_complete": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "TaskTrackingFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,271 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "SkillName": {
+                "type": "string",
+                "description": "Name of the registered skill to execute"
+              },
+              "Parameters": {
+                "type": "string",
+                "description": "JSON string of parameters to pass to the skill execution"
+              }
+            },
+            "required": ["SkillName", "Parameters"]
+          }
+        },
+        "description": "Execute a registered skill by name. Looks up the skill in the registry, then invokes via AI Builder prompt or HTTP flow reference depending on execution type."
+      }
+    },
+    "actions": {
+      "Scope_Main": {
+        "type": "Scope",
+        "actions": {
+          "Get_Skill_Definition": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_skillregistries",
+                "$filter": "cr_skillname eq '@{triggerBody()?['SkillName']}' and cr_isenabled eq true",
+                "$top": 1,
+                "$select": "cr_skillregistriesid,cr_skillname,cr_executiontype,cr_prompttemplate,cr_flowurl,cr_skilldescription"
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {}
+          },
+          "Condition_Skill_Found": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('Get_Skill_Definition')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Parse_Parameters": {
+                "type": "ParseJson",
+                "inputs": {
+                  "content": "@triggerBody()?['Parameters']",
+                  "schema": {
+                    "type": "object"
+                  }
+                }
+              },
+              "Switch_Execution_Type": {
+                "type": "Switch",
+                "expression": "@first(outputs('Get_Skill_Definition')?['body/value'])?['cr_executiontype']",
+                "cases": {
+                  "PROMPT_TEMPLATE": {
+                    "case": "PROMPT_TEMPLATE",
+                    "actions": {
+                      "Invoke_AI_Builder": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "request/method": "POST",
+                            "request/url": "https://api.powerplatform.com/appintelligence/v1.0/predict",
+                            "request/body": {
+                              "prompt": "@{first(outputs('Get_Skill_Definition')?['body/value'])?['cr_prompttemplate']}",
+                              "parameters": "@body('Parse_Parameters')"
+                            }
+                          },
+                          "host": {
+                            "connectionName": "shared_webcontents",
+                            "operationId": "InvokeHttp",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                          }
+                        }
+                      },
+                      "Compose_AI_Result": {
+                        "type": "Compose",
+                        "inputs": {
+                          "success": true,
+                          "skill_name": "@{triggerBody()?['SkillName']}",
+                          "execution_type": "PROMPT_TEMPLATE",
+                          "result": "@body('Invoke_AI_Builder')?['prediction']"
+                        },
+                        "runAfter": {
+                          "Invoke_AI_Builder": ["Succeeded"]
+                        }
+                      }
+                    }
+                  },
+                  "FLOW_REFERENCE": {
+                    "case": "FLOW_REFERENCE",
+                    "actions": {
+                      "Invoke_Flow_HTTP": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "POST",
+                          "uri": "@{first(outputs('Get_Skill_Definition')?['body/value'])?['cr_flowurl']}",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          },
+                          "body": "@body('Parse_Parameters')",
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      },
+                      "Compose_Flow_Result": {
+                        "type": "Compose",
+                        "inputs": {
+                          "success": true,
+                          "skill_name": "@{triggerBody()?['SkillName']}",
+                          "execution_type": "FLOW_REFERENCE",
+                          "result": "@body('Invoke_Flow_HTTP')"
+                        },
+                        "runAfter": {
+                          "Invoke_Flow_HTTP": ["Succeeded"]
+                        }
+                      }
+                    }
+                  }
+                },
+                "default": {
+                  "actions": {
+                    "Compose_Unknown_Type": {
+                      "type": "Compose",
+                      "inputs": {
+                        "success": false,
+                        "error": "Unknown execution type: @{first(outputs('Get_Skill_Definition')?['body/value'])?['cr_executiontype']}"
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Parse_Parameters": ["Succeeded"]
+                }
+              },
+              "Compose_Execution_Result": {
+                "type": "Compose",
+                "inputs": "@coalesce(outputs('Compose_AI_Result'), outputs('Compose_Flow_Result'), outputs('Compose_Unknown_Type'))",
+                "runAfter": {
+                  "Switch_Execution_Type": ["Succeeded"]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Compose_Not_Found": {
+                  "type": "Compose",
+                  "inputs": {
+                    "success": false,
+                    "error": "Skill not found or disabled: @{triggerBody()?['SkillName']}"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Get_Skill_Definition": ["Succeeded"]
+            }
+          },
+          "Compose_Final_Result": {
+            "type": "Compose",
+            "inputs": "@coalesce(outputs('Compose_Execution_Result'), outputs('Compose_Not_Found'))",
+            "runAfter": {
+              "Condition_Skill_Found": ["Succeeded"]
+            }
+          },
+          "Respond_to_the_agent": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "result_json": "@{string(outputs('Compose_Final_Result'))}",
+                "success": "@outputs('Compose_Final_Result')?['success']"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "result_json": {
+                    "type": "string",
+                    "description": "JSON object with execution result including skill output"
+                  },
+                  "success": {
+                    "type": "boolean",
+                    "description": "Whether the skill executed successfully"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_Final_Result": ["Succeeded"]
+            }
+          }
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": {
+              "error": "Skill execution failed",
+              "flow": "tool-execute-skill",
+              "skill_name": "@triggerBody()?['SkillName']",
+              "timestamp": "@utcNow()"
+            }
+          },
+          "Respond_with_error": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "result_json": "{\"success\":false,\"error\":\"Skill execution failed\"}",
+                "success": false
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "result_json": {
+                    "type": "string"
+                  },
+                  "success": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "SkillExecutionFailed",
+                "message": "@{string(outputs('Compose_ErrorDetails'))}"
+              }
+            },
+            "runAfter": {
+              "Respond_with_error": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Main": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  }
+}

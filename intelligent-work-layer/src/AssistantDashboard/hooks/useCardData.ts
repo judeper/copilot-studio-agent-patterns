@@ -22,6 +22,7 @@ function parseCardOutcome(formatted: string | undefined): CardOutcome {
         case "SENT_EDITED": return "SENT_EDITED";
         case "DISMISSED": return "DISMISSED";
         case "EXPIRED": return "EXPIRED";
+        case "RESOLVED_EXTERNALLY": return "RESOLVED_EXTERNALLY";
         default: return "PENDING";
     }
 }
@@ -93,6 +94,10 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
                     hours_stale: typeof parsed.hours_stale === "number" ? parsed.hours_stale : null,
                     // Phase A — Card Intelligence
                     urgency_reason: typeof parsed.urgency_reason === "string" ? parsed.urgency_reason : undefined,
+                    triage_reasoning: parsed.triage_reasoning ?? null,
+                    snoozed_until: (record.getValue("cr_snoozeduntil") as string | null) ?? parsed.snoozed_until ?? null,
+                    focus_shield_active: parsed.focus_shield_active === true,
+                    conversation_cluster_action: parsed.conversation_cluster_action ?? null,
                 };
 
                 cards.push(card);
@@ -105,6 +110,20 @@ export function useCardData(dataset: DataSet | undefined, version: number): Assi
 
         return cards;
     }, [dataset, version]);
+}
+
+/**
+ * Phase 3F: Card state machine — valid outcome transitions.
+ * PENDING is the only source state. Once an outcome is set, it's terminal.
+ */
+const VALID_TRANSITIONS: Record<string, Set<string>> = {
+    PENDING: new Set(["SENT_AS_IS", "SENT_EDITED", "DISMISSED", "EXPIRED", "RESOLVED_EXTERNALLY"]),
+};
+
+export function isValidTransition(from: CardOutcome, to: CardOutcome): boolean {
+    if (from === to) return false;
+    const allowed = VALID_TRANSITIONS[from];
+    return allowed ? allowed.has(to) : false;
 }
 
 const PRIORITY_WEIGHTS: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
