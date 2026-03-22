@@ -1,0 +1,200 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Every_15_Minutes": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 15
+        }
+      }
+    },
+    "actions": {
+      "Scope_External_Action_Scanning": {
+        "type": "Scope",
+        "actions": {
+          "List_Open_Email_Cards": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_triggertype eq 100000000 and cr_cardoutcome eq 100000000 and createdon ge @{addDays(utcNow(), -3)}",
+                "$top": 50,
+                "$select": "cr_assistantcardid,cr_conversationclusterid,cr_originalsubject,_ownerid_value"
+              },
+              "host": {
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {}
+          },
+          "Condition_Has_Open_Cards": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('List_Open_Email_Cards')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Apply_to_each_card": {
+                "type": "Foreach",
+                "foreach": "@outputs('List_Open_Email_Cards')?['body/value']",
+                "actions": {
+                  "Get_Sent_Items": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "folderId": "SentItems",
+                        "$filter": "sentDateTime ge @{addMinutes(utcNow(), -20)}",
+                        "$top": 20,
+                        "$select": "conversationId,subject"
+                      },
+                      "host": {
+                        "operationId": "GetMessages_V2",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                        "connectionName": "shared_office365"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  },
+                  "Filter_Matching_Replies": {
+                    "type": "Query",
+                    "inputs": {
+                      "from": "@outputs('Get_Sent_Items')?['body/value']",
+                      "where": "@equals(item()?['conversationId'], items('Apply_to_each_card')?['cr_conversationclusterid'])"
+                    },
+                    "runAfter": {
+                      "Get_Sent_Items": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "Condition_Has_Match": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(body('Filter_Matching_Replies'))",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Update_Card_Resolved_Externally": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_assistantcards",
+                            "recordId": "@items('Apply_to_each_card')?['cr_assistantcardid']",
+                            "item/cr_cardoutcome": 100000005,
+                            "item/cr_outcometimestamp": "@utcNow()"
+                          },
+                          "host": {
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        },
+                        "runAfter": {}
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "runAfter": {
+                      "Filter_Matching_Replies": [
+                        "Succeeded"
+                      ]
+                    }
+                  }
+                },
+                "runtimeConfiguration": {
+                  "concurrency": {
+                    "repetitions": 5
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "List_Open_Email_Cards": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 11 error: @{result('Scope_External_Action_Scanning')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_External_Action_Scanning": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "IWL - Flow 11: External Action Scanner",
+    "description": "Recurrence every 15 minutes. Queries cr_assistantcards for EMAIL trigger items with PENDING outcome created in the last 3 days, checks each card owner's Sent Items for replies matching the conversation cluster ID, and auto-resolves matched cards with RESOLVED_EXTERNALLY outcome.",
+    "requiredConnections": [
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_office365 (Office 365 Outlook)"
+    ],
+    "notes": {
+      "phantomTaskResolution": "Detects when users reply to emails directly in Outlook (outside the IWL) and marks the corresponding assistant card as RESOLVED_EXTERNALLY (100000005) so it no longer appears as an open action item.",
+      "sentItemsWindow": "Checks Sent Items from the last 20 minutes to align with the 15-minute recurrence interval plus a 5-minute overlap buffer.",
+      "concurrency": "Apply_to_each_card runs with concurrency of 5 to balance throughput and API throttling.",
+      "scopeLimit": "Only scans cards created in the last 3 days to avoid processing stale historical data."
+    }
+  }
+}
