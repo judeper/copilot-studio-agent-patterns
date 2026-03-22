@@ -146,6 +146,39 @@
                   ]
                 }
               },
+              "List_Focus_Events": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "calendarId": "Calendar",
+                    "startDateTimeUtc": "@{utcNow()}",
+                    "endDateTimeUtc": "@{addMinutes(utcNow(), 1)}",
+                    "$filter": "contains(subject, 'Focus')",
+                    "$top": 1
+                  },
+                  "host": {
+                    "operationId": "GetEventsCalendarViewV3",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                    "connectionName": "shared_office365"
+                  },
+                  "authentication": "@parameters('$authentication')"
+                },
+                "runAfter": {
+                  "Compose_SenderProfile": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Compose_FocusActive": {
+                "type": "Compose",
+                "inputs": "@{if(greater(length(outputs('List_Focus_Events')?['body/value']), 0), true, false)}",
+                "runAfter": {
+                  "List_Focus_Events": [
+                    "Succeeded",
+                    "Failed"
+                  ]
+                }
+              },
               "Compose_AgentPayload": {
                 "type": "Compose",
                 "inputs": {
@@ -172,10 +205,11 @@
                     "userDomain": "@split(outputs('Get_my_profile_(V2)')?['body/mail'], '@')[1]"
                   },
                   "CURRENT_DATETIME": "@utcNow()",
-                  "SENDER_PROFILE": "@outputs('Compose_SenderProfile')"
+                  "SENDER_PROFILE": "@outputs('Compose_SenderProfile')",
+                  "FOCUS_ACTIVE": "@outputs('Compose_FocusActive')"
                 },
                 "runAfter": {
-                  "Compose_SenderProfile": [
+                  "Compose_FocusActive": [
                     "Succeeded"
                   ]
                 }
