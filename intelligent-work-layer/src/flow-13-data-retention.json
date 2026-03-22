@@ -1,0 +1,227 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Weekly_Sunday_2AM": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Week",
+          "interval": 1,
+          "schedule": {
+            "weekDays": [
+              "Sunday"
+            ],
+            "hours": [
+              "2"
+            ],
+            "minutes": [
+              0
+            ]
+          },
+          "timeZone": "UTC"
+        }
+      }
+    },
+    "actions": {
+      "Scope_Data_Retention": {
+        "type": "Scope",
+        "actions": {
+          "List_Old_Resolved_Cards": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_cardoutcome ne 100000000 and createdon le @{addDays(utcNow(), -90)}",
+                "$top": 500
+              },
+              "host": {
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {}
+          },
+          "Condition_Has_Old_Cards": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('List_Old_Resolved_Cards')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Apply_to_each_old_card": {
+                "type": "Foreach",
+                "foreach": "@outputs('List_Old_Resolved_Cards')?['body/value']",
+                "actions": {
+                  "Delete_Old_Card": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_assistantcards",
+                        "recordId": "@items('Apply_to_each_old_card')?['cr_assistantcardid']"
+                      },
+                      "host": {
+                        "operationId": "DeleteRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "runtimeConfiguration": {
+                  "concurrency": {
+                    "repetitions": 5
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "List_Old_Resolved_Cards": [
+                "Succeeded"
+              ]
+            }
+          },
+          "List_Old_Episodic_Memories": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_episodicmemorys",
+                "$filter": "cr_eventdate le @{addDays(utcNow(), -90)}",
+                "$top": 500
+              },
+              "host": {
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {
+              "Condition_Has_Old_Cards": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Condition_Has_Old_Memories": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('List_Old_Episodic_Memories')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Apply_to_each_old_memory": {
+                "type": "Foreach",
+                "foreach": "@outputs('List_Old_Episodic_Memories')?['body/value']",
+                "actions": {
+                  "Delete_Old_Memory": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_episodicmemorys",
+                        "recordId": "@items('Apply_to_each_old_memory')?['cr_episodicmemoryid']"
+                      },
+                      "host": {
+                        "operationId": "DeleteRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                        "connectionName": "shared_commondataserviceforapps"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "runtimeConfiguration": {
+                  "concurrency": {
+                    "repetitions": 5
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "List_Old_Episodic_Memories": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {}
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 13 error: @{result('Scope_Data_Retention')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Data_Retention": [
+            "Failed",
+            "TimedOut"
+          ]
+        }
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      },
+      "$authentication": {
+        "defaultValue": {},
+        "type": "SecureObject"
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "IWL - Flow 13: Data Retention",
+    "description": "Recurrence weekly on Sunday at 02:00 UTC. Hard-deletes cr_assistantcards with non-PENDING outcome (cr_cardoutcome ne 100000000) older than 90 days, and cr_episodicmemorys with cr_eventdate older than 90 days. Prevents indefinite data accumulation and supports data retention compliance.",
+    "requiredConnections": [
+      "shared_commondataserviceforapps (Microsoft Dataverse)"
+    ],
+    "notes": {
+      "cardOutcomeValues": "CardOutcome choice: PENDING=100000000, SENT_AS_IS=100000001, SENT_EDITED=100000002, DISMISSED=100000003, EXPIRED=100000004, RESOLVED_EXTERNALLY=100000005",
+      "retentionWindow": "90 days from record creation (cards) or event date (episodic memories). PENDING cards are excluded to avoid deleting active work items.",
+      "concurrency": "Both foreach loops run with concurrency of 5 to balance throughput and API throttling.",
+      "batchSize": "$top=500 limits each run to 500 records per entity. Remaining records are processed in the next weekly cycle.",
+      "schedule": "Weekly on Sunday at 02:00 UTC — low-activity window to minimize API contention."
+    }
+  }
+}
