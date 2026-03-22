@@ -18,6 +18,7 @@ import { getConfidenceState } from "./constants";
 interface CardItemProps {
     card: AssistantCard;
     onClick: (cardId: string) => void;
+    relatedCount?: number;
 }
 
 const triggerIcons: Record<string, React.ReactElement> = {
@@ -85,7 +86,7 @@ function extractUrgencyText(card: AssistantCard): string | undefined {
     return undefined;
 }
 
-export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
+export const CardItem: React.FC<CardItemProps> = ({ card, onClick, relatedCount }) => {
     const isHeartbeat = HEARTBEAT_TRIGGERS.has(card.trigger_type);
     const hoursPending = getHoursPending(card.created_on);
     const isStale = card.card_outcome === "PENDING" && hoursPending > 24;
@@ -179,6 +180,16 @@ export const CardItem: React.FC<CardItemProps> = ({ card, onClick }) => {
                     {isStale && (
                         <Badge appearance="tint" color="warning" size="small">
                             ⏰ {staleHours}h old
+                        </Badge>
+                    )}
+                    {(relatedCount ?? 0) > 0 && (
+                        <Badge appearance="outline" color="informative" size="small">
+                            {relatedCount} related
+                        </Badge>
+                    )}
+                    {card.card_outcome === "RESOLVED_EXTERNALLY" && (
+                        <Badge appearance="filled" color="success" size="small">
+                            Auto-resolved
                         </Badge>
                     )}
                 </div>
