@@ -98,6 +98,12 @@
               of-type="SingleLine.Text"
               usage="output" />
 
+    <property name="snoozeCardAction"
+              display-name-key="SnoozeCardAction_DisplayName"
+              description-key="JSON with cardId and snoozeUntil ISO timestamp for snoozing a card"
+              of-type="SingleLine.Text"
+              usage="output" />
+
     <property name="updateScheduleAction"
               display-name-key="UpdateScheduleAction_DisplayName"
               description-key="Persists briefing schedule config to BriefingSchedule Dataverse table"

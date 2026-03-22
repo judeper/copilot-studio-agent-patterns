@@ -27,6 +27,7 @@ const AppWrapper: React.FC<{
     onJumpToCard: (cardId: string) => void;
     onExecuteCommand: (command: string, currentCardId: string | null) => void;
     onSaveDraft: (cardId: string, editedText: string) => void;
+    onSnoozeCard: (cardId: string, snoozeUntil: string) => void;
     onUpdateSchedule: (config: BriefingScheduleConfig) => void;
 }> = (props) => {
     // Cast PCF DataSet to the hook's expected interface shape
@@ -52,6 +53,7 @@ const AppWrapper: React.FC<{
         onJumpToCard: props.onJumpToCard,
         onExecuteCommand: props.onExecuteCommand,
         onSaveDraft: props.onSaveDraft,
+        onSnoozeCard: props.onSnoozeCard,
         onUpdateSchedule: props.onUpdateSchedule,
     });
 };
@@ -65,6 +67,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private jumpToCardAction: string = "";
     private commandAction: string = "";
     private saveDraftAction: string = "";
+    private snoozeCardAction: string = "";
     private updateScheduleAction: string = "";
     private datasetVersion: number = 0;
     private pendingDismissals: Map<string, { attempts: number; timestamp: number }> = new Map();
@@ -78,6 +81,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
     private handleJumpToCard: (cardId: string) => void;
     private handleExecuteCommand: (command: string, currentCardId: string | null) => void;
     private handleSaveDraft: (cardId: string, editedText: string) => void;
+    private handleSnoozeCard: (cardId: string, snoozeUntil: string) => void;
     private handleUpdateSchedule: (config: BriefingScheduleConfig) => void;
 
     public init(
@@ -119,6 +123,10 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         };
         this.handleSaveDraft = (cardId: string, editedText: string) => {
             this.saveDraftAction = JSON.stringify({ cardId, editedText });
+            this.notifyOutputChanged();
+        };
+        this.handleSnoozeCard = (cardId: string, snoozeUntil: string) => {
+            this.snoozeCardAction = JSON.stringify({ cardId, snoozeUntil });
             this.notifyOutputChanged();
         };
         this.handleUpdateSchedule = (config: BriefingScheduleConfig) => {
@@ -179,6 +187,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             onJumpToCard: this.handleJumpToCard,
             onExecuteCommand: this.handleExecuteCommand,
             onSaveDraft: this.handleSaveDraft,
+            onSnoozeCard: this.handleSnoozeCard,
             onUpdateSchedule: this.handleUpdateSchedule,
         });
     }
@@ -192,6 +201,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
             jumpToCardAction: this.jumpToCardAction,
             commandAction: this.commandAction,
             saveDraftAction: this.saveDraftAction,
+            snoozeCardAction: this.snoozeCardAction,
             updateScheduleAction: this.updateScheduleAction,
         };
 
@@ -202,6 +212,7 @@ export class AssistantDashboard implements ComponentFramework.ReactControl<IInpu
         this.jumpToCardAction = "";
         this.commandAction = "";
         this.saveDraftAction = "";
+        this.snoozeCardAction = "";
         this.updateScheduleAction = "";
 
         return outputs;
