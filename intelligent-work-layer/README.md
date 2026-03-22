@@ -9,6 +9,11 @@ An intelligent work layer for Microsoft 365 that triages incoming emails, Teams 
 - **Scores confidence** (0-100) based on evidence strength and source reliability
 - **Prepares drafts** for emails and Teams replies, calibrated to recipient relationship and tone
 - **Surfaces everything** on a single-pane-of-glass Canvas app dashboard with a Power Apps Component Framework (PCF) React component
+- **Conversation threading** groups related signals by conversationId so users see context, not isolated messages
+- **Snooze/defer** lets users defer cards to a future time; Focus Shield suppresses non-urgent items during deep work
+- **Batch actions** enable multi-select dismiss, snooze, and archive with undo support
+- **Keyboard shortcuts** provide power-user navigation (j/k to move, ? for help overlay, Esc to close)
+- **Graduated autonomy** adapts agent behavior based on user trust — new users get confirmations, experienced users get auto-actions
 - **Syncs to OneNote** (optional) — meeting prep, daily briefings, and active to-dos are written to a structured OneNote notebook for offline access, annotation, and Microsoft Search indexing
 
 ## Architecture
@@ -157,6 +162,10 @@ intelligent-work-layer/
     │   │   ├── ConfidenceCalibration.tsx # Low confidence warning badge with calibration indicator
     │   │   ├── DayGlance.tsx          # Compact today-at-a-glance calendar with meeting prep status
     │   │   ├── FilterBar.tsx          # Active filter status bar with quiet mode toggle for focus protection
+    │   │   ├── BatchActionBar.tsx      # Multi-select batch operations (dismiss, snooze, archive)
+    │   │   ├── KeyboardHelpOverlay.tsx # Keyboard shortcut reference overlay (? key)
+    │   │   ├── OnboardingWizard.tsx   # First-run setup wizard for new users
+    │   │   ├── UndoToast.tsx          # Timed undo notification for destructive actions
     │   │   ├── ErrorBoundary.tsx      # React error boundary
     │   │   ├── types.ts              # TypeScript interfaces from schema
     │   │   └── constants.ts          # UI constants (colors, timings)
@@ -164,7 +173,9 @@ intelligent-work-layer/
     │   │   ├── urlSanitizer.ts        # URL allowlist (https: and mailto: only)
     │   │   └── levenshtein.ts         # String distance for fuzzy matching
     │   ├── hooks/
-    │   │   └── useCardData.ts         # Dataset API → typed AssistantCard[]
+    │   │   ├── useCardData.ts         # Dataset API → typed AssistantCard[]
+    │   │   ├── useConversationClusters.ts # Group cards by conversationId into threaded clusters
+    │   │   └── useKeyboardNavigation.ts # Global keyboard shortcut bindings (j/k nav, ? help, Esc close)
     │   ├── styles/
     │   │   └── AssistantDashboard.css
     │   └── strings/
@@ -179,6 +190,9 @@ intelligent-work-layer/
     ├── flow-8-command-execution.json   # Flow 8: Command bar → orchestrator agent
     ├── flow-9-sender-profile-analyzer.json # Flow 9: Weekly sender categorization
     ├── flow-10-reminder-firing.json    # Flow 10: Fire due SELF_REMINDER cards via Teams
+    ├── flow-11-external-action-scanner.json # Flow 11: Detect external replies → auto-resolve cards
+    ├── flow-12-light-auto-archive.json # Flow 12: Expire stale LIGHT cards after 48h
+    ├── flow-13-data-retention.json     # Flow 13: GDPR cleanup — delete resolved cards/memory >90 days
     ├── tool-search-user-email.json     # Agent tool: Search Outlook inbox (Tier 1)
     ├── tool-search-sent-items.json     # Agent tool: Search sent items (Tier 1)
     ├── tool-search-teams-messages.json # Agent tool: Search Teams messages (Tier 1)
@@ -189,10 +203,20 @@ intelligent-work-layer/
     ├── tool-update-card.json           # Agent tool: Modify card properties (Orchestrator)
     ├── tool-create-card.json           # Agent tool: Create new card/reminder (Orchestrator)
     ├── tool-refine-draft.json          # Agent tool: Refine draft via Humanizer (Orchestrator)
+    ├── tool-query-onenote.json         # Agent tool: Search OneNote notebook pages (Orchestrator)
+    ├── tool-update-onenote.json        # Agent tool: Create/append OneNote pages (Orchestrator)
+    ├── tool-query-skills.json          # Agent tool: Look up available skills (Orchestrator)
+    ├── tool-execute-skill.json         # Agent tool: Run a registered skill (Orchestrator)
+    ├── tool-assign-task.json           # Agent tool: Delegate task via Planner/To Do (Delegation)
+    ├── tool-track-completion.json      # Agent tool: Monitor delegated task status (Delegation)
+    ├── tool-promote-knowledge.json     # Agent tool: Promote episodic → semantic knowledge (Learning)
+    ├── tool-analyze-sent-patterns.json # Agent tool: Analyze sent email tone/frequency (Analytics)
     ├── triage-topic.yaml               # Copilot Studio topic: Main triage (5 inputs → JSON)
     ├── humanizer-topic.yaml            # Copilot Studio topic: Humanizer connected agent
     ├── briefing-topic.yaml             # Copilot Studio topic: Daily briefing generation
     ├── orchestrator-topic.yaml         # Copilot Studio topic: Command execution + tool actions
+    ├── draft-refiner-topic.yaml        # Copilot Studio topic: Iterative draft refinement
+    ├── delegation-topic.yaml           # Copilot Studio topic: Task delegation routing
     ├── copilot-base-template.yaml      # Copilot Studio base agent template (system topics)
     ├── kickStartTemplate-1.0.0.json    # PAC CLI kickstart template for agent creation
     ├── Solutions/
@@ -264,7 +288,7 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 |------------|------------|
 | **POC Boundary — augments, does not replace** | This system augments Outlook and Teams — it does not replace them. Users continue to use their primary tools while IWL surfaces prepared intelligence in a companion dashboard. |
 | **POC only — not production-hardened** |Full ARIA/screen reader audit, i18n, optimistic concurrency, DataSet paging (100+ cards), and capacity planning are out of scope. See `.planning/ROADMAP.md` for deferred items. |
-| No automated data retention — AssistantCards table stores email subjects, sender PII, behavioral profiles, and communication drafts indefinitely with no cleanup flow | For organizations with data retention requirements, implement a scheduled Power Automate flow to delete/archive cards older than N days based on `cr_createdon`. See the Email Productivity Agent's Flow 5 for a 90-day cleanup reference pattern. |
+| Data retention requires Flow 13 — AssistantCards table stores email subjects, sender PII, behavioral profiles, and communication drafts. Flow 13 (Data Retention) runs weekly to delete resolved cards and episodic memory older than 90 days. | Deploy Flow 13 for automated GDPR-compliant cleanup. Adjust the 90-day retention window in the flow's filter expression to match your organization's data retention policy. |
 | English-only UI and prompts — the PCF component ships with only English localization (`1033.resx`) and all agent prompts are written in English | Non-English email and Teams content is processed correctly, but UI labels remain in English. Add additional `.resx` files for other locales and localize prompts as needed. |
 | OneNote Phase 2-3 not implemented — read-back, annotation promotion, and bi-directional sync are planned but not yet available | Phase 1 (write-only) is fully functional. See [`docs/onenote-integration.md`](docs/onenote-integration.md) for the roadmap. |
 | SKIP items not auditable — items triaged as SKIP are not persisted to Dataverse (by design, to reduce storage) so there is no audit trail for why a signal was skipped | If audit requirements apply, extend the Email/Teams agent flows to log SKIP decisions to a separate lightweight Dataverse table or Application Insights before returning. |

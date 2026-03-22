@@ -324,13 +324,13 @@ This creates the Intelligent Work Layer copilot with 4 topics (Main Triage, Huma
 >
 > The `src/tool-*.json` files serve as **reference definitions** documenting the expected trigger schema, inputs, outputs, and action steps for each tool flow.
 
-#### Main Flows (10 operational flows)
+#### Main Flows (13 operational flows)
 
 ```bash
 pwsh deploy-agent-flows.ps1 -EnvironmentId "<env-id>" -OrgUrl "https://<org>.crm.dynamics.com" -FlowsToCreate MainFlows
 ```
 
-This deploys the 10 main flows (signal triggers, operations, scheduled tasks) via the Flow Management API. The JSON definitions in `src/flow-*.json` are POC scaffolding — some flows may require manual building or correction in the Power Automate designer following the step-by-step specs in `docs/agent-flows.md`.
+This deploys the 13 main flows (signal triggers, operations, scheduled tasks, and maintenance) via the Flow Management API. The JSON definitions in `src/flow-*.json` are POC scaffolding — some flows may require manual building or correction in the Power Automate designer following the step-by-step specs in `docs/agent-flows.md`.
 
 Required connectors: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio.
 
@@ -413,6 +413,73 @@ Ensure the environment's DLP policies allow the required connector combinations.
 
 - Copilot Studio's built-in Responsible AI content filtering is active by default
 - Review agent outputs periodically for accuracy and appropriateness
+
+---
+
+## Phase 8 — Sprint Extensions
+
+This section covers new Dataverse columns, scheduled maintenance flows, Copilot Studio topics, and agent tool flows added in recent sprints.
+
+### 8.1 New Dataverse Columns
+
+Provision the following columns on existing tables. If using `provision-environment.ps1`, these are included in the latest version. For manual provisioning, add them via the Power Platform Admin Center or Dataverse Web API.
+
+**AssistantCard table (`cr_assistantcard`):**
+
+| Column | Logical Name | Type | Description |
+|--------|-------------|------|-------------|
+| Snoozed Until | `cr_snoozeduntil` | DateTime | ISO 8601 timestamp indicating when a snoozed/deferred card should resurface |
+| Triage Reasoning | `cr_triagereasoning` | Multi-line text | Agent-generated explanation of why the card was triaged at its current tier |
+| Focus Shield Active | `cr_focusshieldactive` | Boolean | Whether this card is currently suppressed by the user's Focus Shield |
+
+**UserPersona table (`cr_userpersona`):**
+
+| Column | Logical Name | Type | Description |
+|--------|-------------|------|-------------|
+| Autonomy Tier | `cr_autonomytier` | Choice (LOW, MEDIUM, HIGH) | Graduated autonomy level controlling how much the agent acts without confirmation |
+| Total Interactions | `cr_totalinteractions` | Whole Number | Cumulative count of user interactions for autonomy graduation |
+| Acceptance Rate | `cr_acceptancerate` | Decimal | Rolling acceptance rate of agent suggestions (0.0-1.0) |
+| Tone Baseline | `cr_tonebaseline` | Multi-line text | JSON baseline of the user's communication tone preferences per recipient category |
+
+### 8.2 Scheduled Maintenance Flows (Flows 11-13)
+
+Three new scheduled flows handle background maintenance. These are recurrence-triggered with no user interaction. See [`agent-flows.md`](agent-flows.md) for full step-by-step build instructions.
+
+| Flow | Name | Trigger | Interval | Connector |
+|------|------|---------|----------|-----------|
+| 11 | External Action Scanner | Recurrence | Every 15 minutes | Dataverse + Office 365 Outlook |
+| 12 | LIGHT Auto-Archive | Recurrence | Every 6 hours | Dataverse |
+| 13 | Data Retention | Recurrence | Weekly (Sunday 02:00 UTC) | Dataverse |
+
+Deploy these flows manually in Power Automate or add them to the `deploy-agent-flows.ps1` script. They require only standard connectors (Dataverse and Office 365 Outlook) and no agent invocations.
+
+### 8.3 New Copilot Studio Topics
+
+Import the following topic YAML files into the Copilot Studio agent:
+
+| Topic | File | Purpose |
+|-------|------|---------|
+| Draft Refiner | `src/draft-refiner-topic.yaml` | Handles iterative draft refinement requests (e.g., "make it shorter", "more formal") |
+| Delegation | `src/delegation-topic.yaml` | Routes task delegation commands to the delegation agent for assignment and tracking |
+
+To import: In Copilot Studio, open the agent → **Topics** → **Import** → select the YAML file. Alternatively, include them in the solution export/import workflow.
+
+### 8.4 New Agent Tool Flows
+
+Seven new tool flows extend the agent's action capabilities. Like existing tool flows, these use the `PowerVirtualAgents` trigger kind and must be created via Copilot Studio Actions or solution import (not the Flow Management API).
+
+| Tool Flow | File | Purpose |
+|-----------|------|---------|
+| Query OneNote | `src/tool-query-onenote.json` | Search the assistant OneNote notebook by keyword or section |
+| Update OneNote | `src/tool-update-onenote.json` | Create or append to a OneNote page |
+| Query Skills | `src/tool-query-skills.json` | Look up available skills from the Skill Registry |
+| Execute Skill | `src/tool-execute-skill.json` | Run a registered skill with parameters |
+| Assign Task | `src/tool-assign-task.json` | Delegate a task to another user via Planner/To Do |
+| Track Completion | `src/tool-track-completion.json` | Monitor delegated task completion status |
+| Promote Knowledge | `src/tool-promote-knowledge.json` | Promote an episodic memory to semantic knowledge |
+| Analyze Sent Patterns | `src/tool-analyze-sent-patterns.json` | Analyze the user's sent email patterns for tone and frequency insights |
+
+Register each tool in Copilot Studio: **Actions** → **Add an action** → select the corresponding flow.
 
 ---
 
