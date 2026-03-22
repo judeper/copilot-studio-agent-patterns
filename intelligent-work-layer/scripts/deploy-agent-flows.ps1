@@ -38,6 +38,9 @@
       - IWL - Flow 8: Command Execution
       - IWL - Flow 9: Sender Profile Analyzer
       - IWL - Flow 10: Reminder Firing
+      - IWL - Flow 11: External Action Scanner
+      - IWL - Flow 12: LIGHT Auto-Archive
+      - IWL - Flow 13: Data Retention
 
     NOTE: Main flow JSON definitions are POC scaffolding. Some may require
     manual building or correction in the Power Automate designer following
@@ -69,7 +72,7 @@
 
 .PARAMETER FlowsToCreate
     Which flows to create. Default: "All"
-    Valid values: "All", "ToolFlows" (10 agent tool flows), "MainFlows" (10 main flows)
+    Valid values: "All", "ToolFlows" (10 agent tool flows), "MainFlows" (13 main flows)
 
 .PARAMETER WhatIf
     Dry-run mode. Validates JSON definitions without creating flows.
@@ -239,6 +242,25 @@ $flowMap = [ordered]@{
         File        = "flow-10-reminder-firing.json"
         DisplayName = "IWL - Flow 10: Reminder Firing"
         ConnRefs    = @("shared_commondataserviceforapps", "shared_teams")
+        Group       = "MainFlows"
+    }
+    # ── Phase 4: Maintenance Flows ──
+    Flow11 = @{
+        File        = "flow-11-external-action-scanner.json"
+        DisplayName = "IWL - Flow 11: External Action Scanner"
+        ConnRefs    = @("shared_office365", "shared_commondataserviceforapps")
+        Group       = "MainFlows"
+    }
+    Flow12 = @{
+        File        = "flow-12-light-auto-archive.json"
+        DisplayName = "IWL - Flow 12: LIGHT Auto-Archive"
+        ConnRefs    = @("shared_commondataserviceforapps")
+        Group       = "MainFlows"
+    }
+    Flow13 = @{
+        File        = "flow-13-data-retention.json"
+        DisplayName = "IWL - Flow 13: Data Retention"
+        ConnRefs    = @("shared_commondataserviceforapps")
         Group       = "MainFlows"
     }
 }
