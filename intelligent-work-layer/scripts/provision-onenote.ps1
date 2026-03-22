@@ -200,6 +200,19 @@ if ($existingToDo) {
     Write-Host "  Created Active To-Dos: $($response.id)"
 }
 
+# Top-level section: People (dossier pages per sender)
+$existingPeople = $existingTopSections.value | Where-Object { $_.displayName -eq "People" }
+
+if ($existingPeople) {
+    $sectionIds["People"] = $existingPeople.id
+    Write-Host "  People already exists: $($existingPeople.id)"
+} else {
+    $body = @{ displayName = "People" } | ConvertTo-Json
+    $response = Invoke-MgGraphRequest -Method POST -Uri $topLevelSectionsUri -Body $body -ContentType "application/json"
+    $sectionIds["People"] = $response.id
+    Write-Host "  Created People: $($response.id)"
+}
+
 # ── Step 5: Output ──────────────────────────────────────────────────────────────
 
 Write-Host "`n[5/5] Resource Summary" -ForegroundColor Yellow
@@ -211,6 +224,7 @@ $envVars = @{
     "OneNote_MeetingsArchiveSectionId"     = $sectionIds["Meetings - Archive"]
     "OneNote_BriefingsDailySectionId"      = $sectionIds["Briefings - Daily"]
     "OneNote_ActiveToDosSectionId"         = $sectionIds["Active To-Dos"]
+    "OneNote_PeopleSectionId"             = $sectionIds["People"]
 }
 
 Write-Host "`nEnvironment variables to configure in Power Automate:" -ForegroundColor Green
