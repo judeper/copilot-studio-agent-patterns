@@ -8,6 +8,11 @@ import {
     Spinner,
     MessageBar,
     MessageBarBody,
+    Menu,
+    MenuTrigger,
+    MenuPopover,
+    MenuList,
+    MenuItem,
 } from "@fluentui/react-components";
 import {
     ArrowLeftRegular,
@@ -15,6 +20,7 @@ import {
     CopyRegular,
     DismissRegular,
     CheckmarkCircleRegular,
+    ClockRegular,
 } from "@fluentui/react-icons";
 import type { AssistantCard, DraftPayload } from "./types";
 import { PRIORITY_COLORS, EWA_COLORS, getConfidenceState } from "./constants";
@@ -29,6 +35,7 @@ interface CardDetailProps {
     onSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
     onCopyDraft: (cardId: string) => void;
     onDismissCard: (cardId: string) => void;
+    onSnoozeCard: (cardId: string, snoozeUntil: string) => void;
     onSaveDraft: (cardId: string, editedText: string) => void;
 }
 
@@ -83,6 +90,30 @@ function isDraftPayloadObject(payload: unknown): payload is DraftPayload {
     return typeof payload === "object" && payload !== null && "raw_draft" in payload;
 }
 
+function getSnoozeTime(preset: string): string {
+    const now = new Date();
+    switch (preset) {
+        case "1_HOUR":
+            return new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+        case "TOMORROW_MORNING": {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(9, 0, 0, 0);
+            return tomorrow.toISOString();
+        }
+        case "FRIDAY": {
+            const friday = new Date(now);
+            const dayOfWeek = friday.getDay();
+            const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 7 - dayOfWeek + 5;
+            friday.setDate(friday.getDate() + (daysUntilFriday === 0 ? 7 : daysUntilFriday));
+            friday.setHours(9, 0, 0, 0);
+            return friday.toISOString();
+        }
+        default:
+            return new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+    }
+}
+
 function renderKeyFindings(keyFindings: string): React.ReactElement {
     const lines = keyFindings
         .split(/\n|(?:^|\n)\s*[-*\u2022]\s*/)
@@ -112,6 +143,7 @@ export const CardDetail: React.FC<CardDetailProps> = ({
     onSendDraft,
     onCopyDraft,
     onDismissCard,
+    onSnoozeCard,
     onSaveDraft,
 }) => {
     const handleClose = onClose ?? onBack;
@@ -359,7 +391,26 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         Dismissed
                     </Badge>
                 )}
+                {card.card_outcome === "RESOLVED_EXTERNALLY" && (
+                    <Badge appearance="filled" size="medium" color="success">
+                        Auto-resolved
+                    </Badge>
+                )}
+                {card.card_status === "SNOOZED" && (
+                    <Badge appearance="filled" size="medium" color="warning">
+                        Snoozed
+                    </Badge>
+                )}
             </div>
+
+            {/* Triage reasoning — why this priority? */}
+            {card.triage_reasoning && (
+                <DetailSection title="Why this priority?">
+                    <Text size={300} block style={{ padding: "8px 0", color: "#595959" }}>
+                        {card.triage_reasoning}
+                    </Text>
+                </DetailSection>
+            )}
 
             {/* Summary */}
             <Text as="h2" size={500} weight="semibold" block className="card-detail-summary">
@@ -572,6 +623,33 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                     >
                         Copy to Clipboard
                     </Button>
+                )}
+
+                {/* Snooze — available for non-sent, non-dismissed, non-snoozed cards */}
+                {!isSent && !isDismissed && card.card_status !== "SNOOZED" && (
+                    <Menu>
+                        <MenuTrigger disableButtonEnhancement>
+                            <Button
+                                appearance="secondary"
+                                icon={<ClockRegular />}
+                            >
+                                Snooze
+                            </Button>
+                        </MenuTrigger>
+                        <MenuPopover>
+                            <MenuList>
+                                <MenuItem onClick={() => onSnoozeCard(card.id, getSnoozeTime("1_HOUR"))}>
+                                    In 1 hour
+                                </MenuItem>
+                                <MenuItem onClick={() => onSnoozeCard(card.id, getSnoozeTime("TOMORROW_MORNING"))}>
+                                    Tomorrow morning
+                                </MenuItem>
+                                <MenuItem onClick={() => onSnoozeCard(card.id, getSnoozeTime("FRIDAY"))}>
+                                    Friday morning
+                                </MenuItem>
+                            </MenuList>
+                        </MenuPopover>
+                    </Menu>
                 )}
 
                 {/* Dismiss — available for any non-sent, non-dismissed card */}
