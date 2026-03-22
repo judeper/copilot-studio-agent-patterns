@@ -118,6 +118,8 @@ export const App: React.FC<AppProps> = ({
     onExecuteCommand,
     onSaveDraft,
     onSnoozeCard,
+    onBatchDismiss,
+    onBatchSnooze,
     onUpdateSchedule,
 }) => {
     const [viewState, setViewState] = React.useState<ViewState>({ mode: "gallery", selectedCardId: null });
@@ -287,6 +289,12 @@ export const App: React.FC<AppProps> = ({
         (c) => c.card_status === "READY" && c.card_outcome === "PENDING",
     ).length;
 
+    // Phase 2D: Detect if any card was triaged under Focus Shield
+    const focusShieldActive = React.useMemo(
+        () => cards.some((c) => c.focus_shield_active === true),
+        [cards],
+    );
+
     // Derive next meeting time from CALENDAR_SCAN cards
     const nextMeetingTime = React.useMemo(() => {
         const now = Date.now();
@@ -311,6 +319,7 @@ export const App: React.FC<AppProps> = ({
                     quietMode={quietMode}
                     quietHeldCount={quietHeldCount}
                     nextMeetingTime={nextMeetingTime}
+                    focusShieldActive={focusShieldActive}
                 />
                 {viewState.mode === "calibration" ? (
                     /* Sprint 4: Confidence calibration analytics */
@@ -348,6 +357,8 @@ export const App: React.FC<AppProps> = ({
                                     <CardGallery
                                         cards={localFilteredCards ?? regularCards}
                                         onSelectCard={handleSelectCard}
+                                        onBatchDismiss={onBatchDismiss}
+                                        onBatchSnooze={onBatchSnooze}
                                     />
                                     <DayGlance cards={filteredCards} />
                                 </div>

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Button, Badge } from "@fluentui/react-components";
-import { BrainCircuitRegular, SettingsRegular } from "@fluentui/react-icons";
+import { BrainCircuitRegular, SettingsRegular, ShieldCheckmarkRegular } from "@fluentui/react-icons";
 
 export interface StatusBarProps {
     actionCount: number;
@@ -10,6 +10,7 @@ export interface StatusBarProps {
     quietMode?: boolean;
     quietHeldCount?: number;
     nextMeetingTime?: string | null;
+    focusShieldActive?: boolean;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -20,6 +21,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     quietMode,
     quietHeldCount,
     nextMeetingTime,
+    focusShieldActive,
 }) => {
     const [pulsing, setPulsing] = React.useState(false);
     const prevCountRef = React.useRef(actionCount);
@@ -53,6 +55,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 {nextMeetingTime && (
                     <span className="status-bar-next-meeting" title="Next meeting">
                         📅 {nextMeetingTime}
+                    </span>
+                )}
+                {focusShieldActive && (
+                    <span className="status-bar-focus-shield" aria-label="Focus Shield active">
+                        <Badge appearance="tint" color="success" size="small" icon={<ShieldCheckmarkRegular />}>
+                            Focus Shield
+                        </Badge>
                     </span>
                 )}
             </div>
