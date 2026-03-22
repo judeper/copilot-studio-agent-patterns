@@ -171,5 +171,6 @@ export interface AppProps {
     onJumpToCard: (cardId: string) => void; // Sprint 2: navigate to a specific card from briefing
     onExecuteCommand: (command: string, currentCardId: string | null) => void; // Sprint 3: command bar
     onSaveDraft: (cardId: string, editedText: string) => void; // Phase 18: persist draft edits
+    onSnoozeCard: (cardId: string, snoozeUntil: string) => void; // Phase 1B: snooze/defer card
     onUpdateSchedule: (config: BriefingScheduleConfig) => void;
 }
