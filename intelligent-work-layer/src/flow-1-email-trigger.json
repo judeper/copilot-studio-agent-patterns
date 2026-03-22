@@ -198,6 +198,60 @@
               ]
             }
           },
+          "List_Recent_Cluster": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_assistantcards",
+                "$filter": "cr_conversationclusterid eq '@{outputs('Get_email_(V2)')?['body/conversationId']}' and createdon ge @{addMinutes(utcNow(), -5)}",
+                "$top": 1,
+                "$select": "cr_assistantcardid"
+              },
+              "host": {
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "connectionName": "shared_commondataserviceforapps"
+              },
+              "authentication": "@parameters('$authentication')"
+            },
+            "runAfter": {
+              "Compose_AgentPayload": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Condition_Not_Duplicate": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "greater": [
+                    "@length(outputs('List_Recent_Cluster')?['body/value'])",
+                    0
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Terminate_Duplicate": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Cancelled",
+                  "runError": {
+                    "message": "Duplicate signal — card already exists for this conversation cluster within 5-minute window"
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "List_Recent_Cluster": [
+                "Succeeded"
+              ]
+            }
+          },
           "Execute_EWA_Agent": {
             "type": "OpenApiConnection",
             "inputs": {
@@ -218,7 +272,7 @@
               "authentication": "@parameters('$authentication')"
             },
             "runAfter": {
-              "Compose_AgentPayload": [
+              "Condition_Not_Duplicate": [
                 "Succeeded"
               ]
             }
