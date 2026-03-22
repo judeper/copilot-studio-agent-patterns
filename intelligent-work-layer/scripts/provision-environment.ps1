@@ -741,6 +741,76 @@ try {
 }
 
 # ─────────────────────────────────────
+# 3g. Flows 10-13 — Snooze, Triage Reasoning & Focus Shield Columns
+# ─────────────────────────────────────
+
+# Snoozed Until (DateTime — for snooze action, cleared by Flow 10)
+New-DateTimeColumn -SchemaName "${PublisherPrefix}_snoozeduntil" `
+    -DisplayName "Snoozed Until" `
+    -Description "When a snoozed card should be re-activated. Set by snooze action, cleared by Flow 10."
+
+# Triage Reasoning (Text 1000)
+New-TextColumn -SchemaName "${PublisherPrefix}_triagereasoning" `
+    -DisplayName "Triage Reasoning" -MaxLength 1000 `
+    -Description "2-3 sentence explanation of why the agent assigned this priority and tier."
+
+# Focus Shield Active (Boolean, default false)
+$focusShieldActiveDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.BooleanAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_focusshieldactive"
+    RequiredLevel = @{ Value = "None" }
+    DefaultValue = $false
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Focus Shield Active"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "True when this signal was triaged during a calendar Focus Time event."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.BooleanOptionSetMetadata"
+        TrueOption = @{
+            Value = 1
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Yes"
+                    LanguageCode = 1033
+                })
+            }
+        }
+        FalseOption = @{
+            Value = 0
+            Label = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "No"
+                    LanguageCode = 1033
+                })
+            }
+        }
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($entityId)/Attributes" -Method Post -Headers $headers -Body $focusShieldActiveDef
+    Write-Host "  Column 'Focus Shield Active' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Focus Shield Active' failed (may already exist): $($_.Exception.Message)"
+}
+
+# ─────────────────────────────────────
 # 4. Sprint 1B — Create Sender Profile Table
 # ─────────────────────────────────────
 Refresh-TokenIfNeeded
@@ -3376,6 +3446,173 @@ try {
     Write-Host "  Column 'Is Enabled' created." -ForegroundColor Green
 } catch {
     Write-Warning "  Column 'Is Enabled' failed: $($_.Exception.Message)"
+}
+
+# Autonomy Tier (Choice — OBSERVER / ASSIST / PARTNER)
+$autonomyTierDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.PicklistAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_AutonomyTier"
+    RequiredLevel = @{ Value = "None" }
+    DefaultFormValue = 100000000
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Autonomy Tier"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "User's current autonomy level for auto-actions."
+            LanguageCode = 1033
+        })
+    }
+    OptionSet = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.OptionSetMetadata"
+        IsGlobal = $false
+        OptionSetType = "Picklist"
+        Options = @(
+            @{
+                Value = 100000000
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "OBSERVER"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000001
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "ASSIST"
+                        LanguageCode = 1033
+                    })
+                }
+            },
+            @{
+                Value = 100000002
+                Label = @{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                    LocalizedLabels = @(@{
+                        "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                        Label = "PARTNER"
+                        LanguageCode = 1033
+                    })
+                }
+            }
+        )
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $autonomyTierDef
+    Write-Host "  Column 'Autonomy Tier' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Autonomy Tier' failed: $($_.Exception.Message)"
+}
+
+# Total Interactions (WholeNumber, default 0)
+$totalInteractionsDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.IntegerAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_TotalInteractions"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 2147483647
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Total Interactions"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Count of card outcomes recorded. Incremented by Flow 5."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $totalInteractionsDef
+    Write-Host "  Column 'Total Interactions' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Total Interactions' failed: $($_.Exception.Message)"
+}
+
+# Acceptance Rate (Decimal 0.0-1.0, precision 4)
+$acceptanceRateDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_AcceptanceRate"
+    RequiredLevel = @{ Value = "None" }
+    MinValue = 0
+    MaxValue = 1
+    Precision = 4
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Acceptance Rate"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "EWMA acceptance rate. Recomputed by Flow 5 on each outcome."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $acceptanceRateDef
+    Write-Host "  Column 'Acceptance Rate' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Acceptance Rate' failed: $($_.Exception.Message)"
+}
+
+# Tone Baseline (Multiline Text 5000 — JSON blob)
+$toneBaselineDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.MemoAttributeMetadata"
+    SchemaName = "${PublisherPrefix}_ToneBaseline"
+    RequiredLevel = @{ Value = "None" }
+    MaxLength = 5000
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Tone Baseline"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "JSON blob of user's writing style patterns from Graph bootstrap analysis."
+            LanguageCode = 1033
+        })
+    }
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($personaEntityId)/Attributes" -Method Post -Headers $headers -Body $toneBaselineDef
+    Write-Host "  Column 'Tone Baseline' created." -ForegroundColor Green
+} catch {
+    Write-Warning "  Column 'Tone Baseline' failed: $($_.Exception.Message)"
 }
 
 Write-Host "User Persona table provisioning complete." -ForegroundColor Green
