@@ -30,6 +30,7 @@ import { focusAfterRender } from "../utils/focusUtils";
 
 interface CardDetailProps {
     card: AssistantCard;
+    relatedCards?: AssistantCard[];
     onBack: () => void;
     onClose?: () => void;
     onSendDraft: (cardId: string, finalText: string, editDistanceRatio: number) => void;
@@ -138,6 +139,7 @@ type FocusableButtonElement = HTMLButtonElement | HTMLAnchorElement;
 
 export const CardDetail: React.FC<CardDetailProps> = ({
     card,
+    relatedCards,
     onBack,
     onClose,
     onSendDraft,
@@ -470,6 +472,40 @@ export const CardDetail: React.FC<CardDetailProps> = ({
                         ))}
                     </ul>
                 </DetailSection>
+            )}
+
+            {/* Related messages — conversation threading */}
+            {relatedCards && relatedCards.length > 0 && (
+                <DetailSection title="Related messages" count={relatedCards.length}>
+                    <ul className="card-detail-related">
+                        {relatedCards.map((related) => (
+                            <li key={related.id} className="card-detail-related-item">
+                                <Text size={200} style={{ color: "#767676" }}>
+                                    {related.created_on}
+                                </Text>
+                                <Text size={300} block>
+                                    {related.item_summary}
+                                </Text>
+                                {related.card_outcome !== "PENDING" && (
+                                    <Badge appearance="outline" size="small">
+                                        {related.card_outcome}
+                                    </Badge>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </DetailSection>
+            )}
+
+            {/* Phase 6A: External recipient warning */}
+            {card.humanized_draft &&
+             isDraftPayloadObject(card.draft_payload) &&
+             card.draft_payload.recipient_relationship === "External client" && (
+                <MessageBar intent="warning" style={{ marginBottom: "8px" }}>
+                    <MessageBarBody>
+                        This reply will be sent to an external recipient.
+                    </MessageBarBody>
+                </MessageBar>
             )}
 
             {/* Draft section */}
