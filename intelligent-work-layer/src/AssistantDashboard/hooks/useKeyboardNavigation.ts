@@ -27,6 +27,8 @@ export function useKeyboardNavigation({
 }: KeyboardNavigationOptions): void {
     React.useEffect(() => {
         if (!enabled) return;
+        // Phase 6: Disable keyboard nav on touch devices
+        if (typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches) return;
 
         const handler = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement | null;

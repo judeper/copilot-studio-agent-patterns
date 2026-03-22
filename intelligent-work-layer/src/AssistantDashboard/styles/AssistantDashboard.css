@@ -1710,6 +1710,149 @@
     border-bottom: none;
 }
 
+/* ─── Phase 6: Mobile Responsiveness ─── */
+
+/* Touch devices: enforce 48px minimum touch targets */
+@media (pointer: coarse) {
+    .filter-chip,
+    .card-detail-actions button,
+    .batch-action-bar-actions button,
+    .briefing-jump-link,
+    .briefing-action-links button,
+    .briefing-stale-actions button,
+    .feed-section-header,
+    .detail-section-toggle,
+    .detail-close-btn {
+        min-height: 48px;
+        min-width: 48px;
+    }
+
+    .assistant-card-item {
+        min-height: 72px;
+        padding: 12px;
+    }
+}
+
+/* Phone landscape (480px) */
+@media (max-width: 480px) {
+    .filter-bar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 4px;
+        padding: 4px 8px;
+    }
+
+    .filter-chip {
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    .filter-chip-count {
+        display: none;
+    }
+
+    .card-gallery {
+        padding: 4px;
+        gap: 4px;
+    }
+
+    /* Single-card swipe view */
+    .feed-section-cards {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        gap: 8px;
+        padding-bottom: 4px;
+    }
+
+    .feed-section-cards > div {
+        scroll-snap-align: start;
+        min-width: 100%;
+        flex-shrink: 0;
+    }
+
+    .card-detail {
+        padding: 12px;
+    }
+
+    .card-detail-actions {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .card-detail-actions button {
+        flex: 1 1 calc(50% - 4px);
+    }
+
+    .card-detail-badges {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .command-bar {
+        padding: 4px 8px;
+    }
+
+    .briefing-card {
+        padding: 12px;
+    }
+
+    .briefing-metric-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .briefing-action-item {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .batch-action-bar {
+        flex-direction: column;
+        gap: 6px;
+        padding: 6px 12px;
+    }
+
+    .status-bar {
+        flex-wrap: wrap;
+        gap: 4px;
+        font-size: 12px;
+    }
+
+    .day-glance {
+        display: none;
+    }
+}
+
+/* Small phone portrait (320px) */
+@media (max-width: 320px) {
+    .briefing-card {
+        padding: 8px;
+    }
+
+    .briefing-header h2 {
+        font-size: 16px;
+    }
+
+    .briefing-day-shape {
+        font-size: 13px;
+        padding: 8px;
+    }
+
+    .card-detail-summary {
+        font-size: 16px;
+    }
+
+    .card-detail-draft {
+        font-size: 13px;
+    }
+}
+
 /* ─── Phase E: Animation Budget — Reduced Motion ─── */
 
 @media (prefers-reduced-motion: reduce) {
