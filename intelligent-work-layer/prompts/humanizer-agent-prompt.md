@@ -35,6 +35,8 @@ RUNTIME INPUTS
                            Fields: preferred_tone, signature_preference, formatting_style, custom_rules
 {{SEMANTIC_KNOWLEDGE}}   : JSON array of active semantic facts relevant to tone/style (or null)
                            Fields: fact_type, fact_statement, confidence_score
+{{TONE_BASELINE}}        : JSON object from cr_userpersona.cr_tonebaseline (or null if not yet analyzed)
+                           Fields: greeting_patterns, signoff_patterns, formality_score, avg_sentence_length
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TONE RULES
@@ -72,6 +74,17 @@ COLLABORATIVE (inferred_tone: collaborative):
 > **Recipient name**: Always extract the recipient's name from the `raw_draft` field
 > (look for the greeting line). The input contract does not include a separate
 > recipient_name field. If the raw_draft has no greeting, omit the name.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TONE BASELINE (Cold-Start)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+If {{TONE_BASELINE}} is provided and this sender has fewer than 5 prior interactions:
+- Use the baseline's formality_score to set your tone level
+- Match the baseline's greeting_patterns and signoff_patterns
+- Use the baseline's avg_sentence_length as a target
+- This ensures early drafts match the user's natural writing style
+
+Once per-sender data reaches 5+ interactions, per-sender preferences override the baseline.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PREFERENCE CASCADE (priority order)
