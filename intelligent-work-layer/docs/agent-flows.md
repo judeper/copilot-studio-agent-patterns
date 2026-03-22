@@ -1,6 +1,6 @@
 # Agent Flows — Step-by-Step Build Guide
 
-This guide walks through building the ten Power Automate flows that drive the Intelligent Work Layer. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-10 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, sender analytics, and reminder firing.
+This guide walks through building the thirteen Power Automate flows that drive the Intelligent Work Layer. The first three flows intercept signal types (email, Teams, calendar), invoke the Copilot Studio agent, and write results to the Dataverse `Assistant Cards` table. Flows 4-10 handle email sending, outcome tracking, daily briefings, staleness monitoring, command execution, sender analytics, and reminder firing. Flows 11-13 are scheduled maintenance flows: external action scanning, LIGHT-tier auto-archiving, and data retention cleanup.
 
 > **Agent tool flow artifacts:** The 5 research tools (`src/tool-search-*.json`) and 5 orchestrator tools (`src/tool-query-*.json`, `src/tool-update-card.json`, `src/tool-create-card.json`, `src/tool-refine-draft.json`) use the "When an agent calls the flow" trigger (`PowerVirtualAgents` kind). **These cannot be deployed via the Flow Management API** — the API rejects the `PowerVirtualAgents` trigger kind. Instead, create them by adding Actions to the agent in Copilot Studio (which auto-creates the flows), or via `pac solution export/import`. The JSON files serve as reference definitions documenting the expected schema.
 
@@ -3307,3 +3307,239 @@ The Memory Curator is a **Power Automate Compose step**, not a separate agent. T
 ```
 
 > The 8000-character threshold (≈ 2000 tokens) triggers the overflow strategy. The truncated version is composed by re-querying with reduced row counts and re-composing.
+
+---
+
+## Scheduled Maintenance Flows
+
+The following three flows handle background maintenance tasks: detecting user actions taken outside the dashboard, preventing stale card accumulation, and enforcing data retention policies. These are scheduled recurrence flows with no user interaction.
+
+---
+
+## Flow 11 — External Action Scanner
+
+### Overview
+
+Detects when users reply to emails via Outlook directly (outside the IWL dashboard), and auto-resolves the corresponding assistant card. This prevents the dashboard from showing stale "action needed" cards for items the user has already handled.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Minute |
+| Interval | 15 |
+
+### Actions
+
+**1. List open EMAIL cards** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_triggertype eq 100000000 and cr_cardoutcome eq 100000000 and createdon ge @{addDays(utcNow(), -3)}` |
+| Select columns | `cr_assistantcardid,cr_conversationclusterid,_ownerid_value` |
+
+> Filters for EMAIL trigger type (100000000), PENDING outcome (100000000), created within the last 3 days. Older cards are ignored to limit API calls.
+
+**2. Apply to each** — Loop over open EMAIL cards
+
+**2a. Search Sent Items** — Office 365 Outlook connector → Search email (V2)
+
+| Setting | Value |
+|---------|-------|
+| Folder | SentItems |
+| Search query | `conversationId:@{items('Apply_to_each')?['cr_conversationclusterid']}` |
+| Top | `1` |
+
+> Checks the user's Sent Items folder for any reply in the same email conversation thread.
+
+**2b. Condition — Match found**
+
+```
+@greater(length(outputs('Search_Sent_Items')?['body/value']), 0)
+```
+
+**If Yes:**
+
+**2c. Update card outcome** — Dataverse connector → Update a row
+
+| Column | Value |
+|--------|-------|
+| Row ID | `@{items('Apply_to_each')?['cr_assistantcardid']}` |
+| Card Outcome | `100000005` (RESOLVED_EXTERNALLY) |
+| Outcome Timestamp | `@{utcNow()}` |
+
+**If No:** Skip (card remains PENDING).
+
+### Error Handling
+
+Wrap steps 2a-2c in a **Scope** with a parallel error-handling scope. Log failures to `cr_errorlog`:
+
+| Column | Value |
+|--------|-------|
+| cr_flowname | `Flow 11 — External Action Scanner` |
+| cr_errormessage | `@{actions('Search_Sent_Items')?['error']?['message']}` |
+| cr_errorcode | `@{actions('Search_Sent_Items')?['statusCode']}` |
+| cr_createdon | `@{utcNow()}` |
+
+### Connectors
+
+- Microsoft Dataverse
+- Office 365 Outlook
+
+### Deployment Checklist
+
+- [ ] RESOLVED_EXTERNALLY outcome value (100000005) provisioned in Dataverse Choice column
+- [ ] Flow trigger set to 15-minute recurrence
+- [ ] Test: Send a reply to an email via Outlook → card outcome updates to RESOLVED_EXTERNALLY within 15 minutes
+- [ ] Test: Card with no matching sent item remains PENDING
+- [ ] Test: Cards older than 3 days are not scanned
+
+---
+
+## Flow 12 — LIGHT Auto-Archive
+
+### Overview
+
+Prevents LIGHT-tier card accumulation by automatically expiring stale LIGHT items. LIGHT cards are informational — if a user has not acted on them within 48 hours, they are no longer relevant and should be archived.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Hour |
+| Interval | 6 |
+
+### Actions
+
+**1. List stale LIGHT cards** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_triagetier eq 100000001 and cr_cardoutcome eq 100000000 and createdon le @{addHours(utcNow(), -48)}` |
+| Select columns | `cr_assistantcardid` |
+| Row count | `100` |
+
+> Filters for LIGHT tier (100000001), PENDING outcome (100000000), created more than 48 hours ago.
+
+**2. Apply to each** — Loop over stale LIGHT cards
+
+**2a. Update card outcome** — Dataverse connector → Update a row
+
+| Column | Value |
+|--------|-------|
+| Row ID | `@{items('Apply_to_each')?['cr_assistantcardid']}` |
+| Card Outcome | `100000003` (EXPIRED) |
+| Outcome Timestamp | `@{utcNow()}` |
+
+### Error Handling
+
+Wrap step 2a in a **Scope** with a parallel error-handling scope. Individual update failures should not block remaining cards — configure the Apply to each loop with **Concurrency Control** set to 1 (sequential) and **Configure Run After** on the error scope to catch failures without stopping the loop.
+
+### Connectors
+
+- Microsoft Dataverse
+
+### Deployment Checklist
+
+- [ ] Flow trigger set to 6-hour recurrence
+- [ ] Test: Create a LIGHT PENDING card with `createdon` > 48 hours ago → card expires to EXPIRED
+- [ ] Test: LIGHT PENDING card < 48 hours old remains PENDING
+- [ ] Test: FULL PENDING cards are not affected regardless of age
+- [ ] Test: Already-expired or dismissed LIGHT cards are not re-processed
+
+---
+
+## Flow 13 — Data Retention
+
+### Overview
+
+GDPR/compliance flow that removes resolved assistant cards and episodic memory records older than 90 days. Ensures the system does not retain personal data beyond the configured retention window.
+
+### Trigger
+
+**Recurrence** — Schedule connector
+
+| Setting | Value |
+|---------|-------|
+| Frequency | Week |
+| Interval | 1 |
+| On these days | Sunday |
+| At these hours | 2 |
+| At these minutes | 0 |
+
+> Runs weekly on Sunday at 02:00 UTC to minimize impact on active users.
+
+### Actions
+
+**Scope: Delete Resolved Cards**
+
+**1. List expired cards** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Filter rows | `cr_cardoutcome ne 100000000 and createdon le @{addDays(utcNow(), -90)}` |
+| Select columns | `cr_assistantcardid` |
+| Row count | `500` |
+
+> Selects all non-PENDING cards (resolved, dismissed, expired, sent) older than 90 days.
+
+**2. Apply to each** — Loop over expired cards
+
+**2a. Delete a row** — Dataverse connector → Delete a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Assistant Cards |
+| Row ID | `@{items('Apply_to_each')?['cr_assistantcardid']}` |
+
+**Scope: Delete Old Episodic Memory**
+
+**3. List old episodic memory** — Dataverse connector → List rows
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory (`cr_episodicmemory`) |
+| Filter rows | `createdon le @{addDays(utcNow(), -90)}` |
+| Select columns | `cr_episodicmemoryid` |
+| Row count | `500` |
+
+**4. Apply to each** — Loop over old memory records
+
+**4a. Delete a row** — Dataverse connector → Delete a row
+
+| Setting | Value |
+|---------|-------|
+| Table name | Episodic Memory |
+| Row ID | `@{items('Apply_to_each_2')?['cr_episodicmemoryid']}` |
+
+### Error Handling
+
+Each scope (cards and memory) has an independent error-handling scope. A failure in card deletion should not prevent memory cleanup. Log all errors to `cr_errorlog`:
+
+| Column | Value |
+|--------|-------|
+| cr_flowname | `Flow 13 — Data Retention` |
+| cr_errormessage | `@{result('Scope_Delete_Resolved_Cards')?['error']?['message']}` |
+| cr_errorcode | `DataRetentionError` |
+| cr_createdon | `@{utcNow()}` |
+
+### Connectors
+
+- Microsoft Dataverse
+
+### Deployment Checklist
+
+- [ ] Flow trigger set to weekly Sunday 02:00 UTC
+- [ ] Retention period (90 days) confirmed with compliance team
+- [ ] Test: Non-PENDING card older than 90 days is deleted
+- [ ] Test: PENDING card older than 90 days is NOT deleted (still active)
+- [ ] Test: Episodic memory older than 90 days is deleted
+- [ ] Test: Episodic memory younger than 90 days is preserved
+- [ ] Test: Error in card deletion scope does not block memory deletion scope
