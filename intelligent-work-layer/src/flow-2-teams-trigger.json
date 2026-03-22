@@ -309,12 +309,47 @@
                   },
                   "draft_payload": {
                     "type": "object"
+                  },
+                  "conversation_cluster_action": {
+                    "type": "string"
                   }
                 }
               }
             },
             "runAfter": {
               "Execute_EWA_Agent": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Condition_Skip_Duplicate": {
+            "type": "If",
+            "expression": {
+              "and": [
+                {
+                  "equals": [
+                    "@body('Parse_Agent_Response')?['conversation_cluster_action']",
+                    "SKIP_DUPLICATE"
+                  ]
+                }
+              ]
+            },
+            "actions": {
+              "Terminate_SkipDuplicate": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Cancelled",
+                  "runError": {
+                    "message": "Agent returned SKIP_DUPLICATE — no card created"
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {}
+            },
+            "runAfter": {
+              "Parse_Agent_Response": [
                 "Succeeded"
               ]
             }
@@ -455,7 +490,7 @@
               "actions": {}
             },
             "runAfter": {
-              "Parse_Agent_Response": [
+              "Condition_Skip_Duplicate": [
                 "Succeeded"
               ]
             }
