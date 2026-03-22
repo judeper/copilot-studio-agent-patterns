@@ -75,13 +75,8 @@ interface CardGalleryProps {
 
 export const CardGallery: React.FC<CardGalleryProps> = ({ cards, onSelectCard }) => {
     const [visibleCount, setVisibleCount] = React.useState(5);
-    // Phase 1B: Exclude snoozed cards from the main gallery display
-    const nonSnoozedCards = React.useMemo(
-        () => cards.filter((c) => c.card_status !== "SNOOZED"),
-        [cards],
-    );
     // Phase 1A: Cluster cards by conversation before sorting/sectioning
-    const { clusteredCards, clusterMap } = useConversationClusters(nonSnoozedCards);
+    const { clusteredCards, clusterMap } = useConversationClusters(cards);
     const sortedCards = React.useMemo(() => compositeSort(clusteredCards), [clusteredCards]);
     const visibleCards = React.useMemo(() => sortedCards.slice(0, visibleCount), [sortedCards, visibleCount]);
     const hasMore = visibleCount < sortedCards.length;

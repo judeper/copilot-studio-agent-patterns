@@ -25,14 +25,16 @@ function computeCounts(cards: AssistantCard[]) {
     let calendar = 0;
     let proactive = 0;
     let stale = 0;
+    let snoozed = 0;
     for (const c of cards) {
         if (c.trigger_type === "EMAIL") email++;
         else if (c.trigger_type === "TEAMS_MESSAGE") teams++;
         else if (c.trigger_type === "CALENDAR_SCAN") calendar++;
         if ((HEARTBEAT_TRIGGER_TYPES as readonly string[]).includes(c.trigger_type)) proactive++;
         if ((c.hours_stale ?? 0) >= 24) stale++;
+        if (c.card_status === "SNOOZED") snoozed++;
     }
-    return { email, teams, calendar, proactive, stale };
+    return { email, teams, calendar, proactive, stale, snoozed };
 }
 
 function sortCards(cards: AssistantCard[], mode: SortMode): AssistantCard[] {
@@ -65,8 +67,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, on
             if (key === "all") {
                 return new Set(["all"]);
             }
+            // "snoozed" is exclusive — selecting it replaces other filters
+            if (key === "snoozed") {
+                return prev.has("snoozed") ? new Set(["all"]) : new Set(["snoozed"]);
+            }
             const next = new Set(prev);
             next.delete("all");
+            next.delete("snoozed"); // deselect snoozed when picking other filters
             if (next.has(key)) {
                 next.delete(key);
             } else {
@@ -85,8 +92,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, on
 
     React.useEffect(() => {
         let filtered = cards;
-        if (!activeChips.has("all")) {
+        // Phase 1B: "snoozed" chip shows ONLY snoozed cards; otherwise exclude them
+        if (activeChips.has("snoozed")) {
+            filtered = cards.filter((c) => c.card_status === "SNOOZED");
+        } else if (activeChips.has("all")) {
+            // "All" excludes snoozed cards — they require explicit selection
+            filtered = cards.filter((c) => c.card_status !== "SNOOZED");
+        } else {
             filtered = cards.filter((c) => {
+                // Always exclude snoozed from non-snoozed filter views
+                if (c.card_status === "SNOOZED") return false;
                 if (activeChips.has("email") && c.trigger_type === "EMAIL") return true;
                 if (activeChips.has("teams") && c.trigger_type === "TEAMS_MESSAGE") return true;
                 if (activeChips.has("calendar") && c.trigger_type === "CALENDAR_SCAN") return true;
@@ -107,12 +122,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({ cards, onFilteredCards, on
     }, [cards, activeChips, sortMode, quietMode, onFilteredCards, onQuietModeChange]);
 
     const chips = [
-        { key: "all", label: "All", count: cards.length },
+        { key: "all", label: "All", count: cards.length - counts.snoozed },
         { key: "email", label: "📧 Email", count: counts.email },
         { key: "teams", label: "💬 Teams", count: counts.teams },
         { key: "calendar", label: "📅 Calendar", count: counts.calendar },
         { key: "proactive", label: "✦ Proactive", count: counts.proactive },
         { key: "stale", label: "⏰ Stale", count: counts.stale },
+        { key: "snoozed", label: "💤 Snoozed", count: counts.snoozed },
     ];
 
     return (
