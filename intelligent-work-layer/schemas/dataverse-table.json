@@ -275,6 +275,22 @@
       "required": false,
       "description": "Whether the Focus Shield auto-downgraded this card during a user's calendar Focus Time block. When true, the card was triaged to LIGHT instead of FULL because the user was in deep work mode. Enables audit trail for focus-time filtering decisions.",
       "_naming_note": "Recommended name: cr_isfocusshieldactive (cr_is* prefix convention). Using cr_focusshieldactive for consistency with existing boolean column naming in this table."
+    },
+    {
+      "logicalName": "cr_briefingmode",
+      "displayName": "Briefing Mode",
+      "type": "Text",
+      "maxLength": 20,
+      "required": false,
+      "description": "MORNING or END_OF_DAY — distinguishes briefing runs on the same day."
+    },
+    {
+      "logicalName": "cr_iscarryforward",
+      "displayName": "Is Carry Forward",
+      "type": "Boolean",
+      "default": false,
+      "required": false,
+      "description": "True when an unresolved card is flagged for carry-forward to the next day by the EOD briefing."
     }
   ],
   "notes": {

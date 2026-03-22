@@ -94,6 +94,34 @@
       "required": false,
       "default": 5,
       "description": "Maximum proactive cards generated per heartbeat run."
+    },
+    {
+      "logicalName": "cr_eodhour",
+      "displayName": "EOD Briefing Hour",
+      "type": "WholeNumber",
+      "default": 17,
+      "minValue": 0,
+      "maxValue": 23,
+      "required": false,
+      "description": "Hour for end-of-day briefing (24h format). Default 5 PM."
+    },
+    {
+      "logicalName": "cr_eodminute",
+      "displayName": "EOD Briefing Minute",
+      "type": "WholeNumber",
+      "default": 0,
+      "minValue": 0,
+      "maxValue": 59,
+      "required": false,
+      "description": "Minute of hour (0-59) for end-of-day briefing. Default: 0."
+    },
+    {
+      "logicalName": "cr_iseodenabled",
+      "displayName": "EOD Briefing Enabled",
+      "type": "TwoOption",
+      "default": true,
+      "required": false,
+      "description": "Whether end-of-day briefing is enabled for this user."
     }
   ],
   "notes": {
