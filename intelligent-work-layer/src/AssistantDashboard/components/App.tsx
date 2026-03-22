@@ -11,6 +11,10 @@ import { DayGlance } from "./DayGlance";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { FilterBar } from "./FilterBar";
 import { StatusBar } from "./StatusBar";
+import { KeyboardHelpOverlay } from "./KeyboardHelpOverlay";
+import { OnboardingWizard } from "./OnboardingWizard";
+import { UndoToast, useUndoAction } from "./UndoToast";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 import { focusAfterRender } from "../utils/focusUtils";
 
 type ViewState =
@@ -126,7 +130,10 @@ export const App: React.FC<AppProps> = ({
     const [localFilteredCards, setLocalFilteredCards] = React.useState<AssistantCard[] | null>(null);
     const [quietMode, setQuietMode] = React.useState(false);
     const [quietHeldCount, setQuietHeldCount] = React.useState(0);
+    const [showKeyboardHelp, setShowKeyboardHelp] = React.useState(false);
+    const [showOnboarding, setShowOnboarding] = React.useState(false);
     const prefersDark = usePrefersDarkMode();
+    const undoAction = useUndoAction();
 
     const handleFilteredCards = React.useCallback((filtered: AssistantCard[]) => {
         setLocalFilteredCards(filtered);
@@ -264,6 +271,24 @@ export const App: React.FC<AppProps> = ({
 
     // Sprint 3: Derive current card ID for context-aware commands
     const currentCardId = selectedCardId;
+
+    // Phase 5A: Keyboard navigation
+    const cardIds = React.useMemo(
+        () => (localFilteredCards ?? regularCards).map((c) => c.id),
+        [localFilteredCards, regularCards],
+    );
+
+    const handleShowKeyboardHelp = React.useCallback(() => setShowKeyboardHelp(true), []);
+
+    useKeyboardNavigation({
+        cardIds,
+        selectedCardId,
+        onSelectCard: handleSelectCard,
+        onDismissCard: onDismissCard,
+        onSnoozeCard: onSnoozeCard,
+        onShowHelp: handleShowKeyboardHelp,
+        enabled: viewState.mode === "gallery" && !showKeyboardHelp && !showOnboarding,
+    });
 
     // Sprint 4: Navigate to calibration dashboard
     const handleShowCalibration = React.useCallback(() => {
@@ -404,6 +429,28 @@ export const App: React.FC<AppProps> = ({
                     lastResponse={parsedOrchestratorResponse}
                     isProcessing={isProcessing}
                 />
+                {/* Phase 5A: Keyboard shortcuts help overlay */}
+                <KeyboardHelpOverlay
+                    isOpen={showKeyboardHelp}
+                    onClose={() => setShowKeyboardHelp(false)}
+                />
+                {/* Phase 5B: Undo toast for deferred actions */}
+                {undoAction.pending && (
+                    <UndoToast
+                        message={undoAction.pending.message}
+                        onUndo={undoAction.handleUndo}
+                        onExpire={undoAction.handleExpire}
+                    />
+                )}
+                {/* Phase 5C: Onboarding wizard for first-run */}
+                {showOnboarding && (
+                    <OnboardingWizard
+                        onComplete={(config) => {
+                            onUpdateSchedule(config);
+                            setShowOnboarding(false);
+                        }}
+                    />
+                )}
             </div>
         </FluentProvider>
     );

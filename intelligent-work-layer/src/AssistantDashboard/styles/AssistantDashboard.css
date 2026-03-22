@@ -1546,6 +1546,170 @@
     border-radius: 10px;
 }
 
+/* ─── Phase 2A: Batch Action Bar ─── */
+
+.batch-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #eef2ff;
+    border-bottom: 1px solid #c7d2fe;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.batch-action-bar-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.batch-action-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ─── Phase 5A: Keyboard Help Overlay ─── */
+
+.keyboard-help-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.keyboard-help-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px 32px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.keyboard-help-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.keyboard-help-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.keyboard-help-table td {
+    padding: 6px 8px;
+    vertical-align: middle;
+}
+
+.keyboard-help-table tr:nth-child(even) {
+    background: #fafaf8;
+}
+
+.keyboard-help-key {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* ─── Phase 5B: Undo Toast ─── */
+
+.undo-toast {
+    position: fixed;
+    bottom: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #323232;
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 900;
+    overflow: hidden;
+}
+
+.undo-toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: #6366f1;
+    transition: width 100ms linear;
+}
+
+/* ─── Phase 5C: Onboarding Wizard ─── */
+
+.onboarding-wizard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.onboarding-content {
+    width: 100%;
+    text-align: left;
+}
+
+.onboarding-steps {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+
+.onboarding-step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d0d0d0;
+    transition: background 200ms;
+}
+
+.onboarding-step-dot.active {
+    background: #6366f1;
+    transform: scale(1.2);
+}
+
+.onboarding-step-dot.completed {
+    background: #22c55e;
+}
+
+/* ─── Phase 1A: Card Detail Related Messages ─── */
+
+.card-detail-related {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+}
+
+.card-detail-related-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.card-detail-related-item:last-child {
+    border-bottom: none;
+}
+
 /* ─── Phase E: Animation Budget — Reduced Motion ─── */
 
 @media (prefers-reduced-motion: reduce) {

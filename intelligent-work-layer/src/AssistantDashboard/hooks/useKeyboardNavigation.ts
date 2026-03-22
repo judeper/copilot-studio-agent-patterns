@@ -29,7 +29,8 @@ export function useKeyboardNavigation({
         if (!enabled) return;
 
         const handler = (e: KeyboardEvent) => {
-            const target = e.target as HTMLElement;
+            const target = e.target as HTMLElement | null;
+            if (!target || !target.tagName) return;
             const tagName = target.tagName.toLowerCase();
             if (tagName === "input" || tagName === "textarea" || target.isContentEditable) {
                 return;
