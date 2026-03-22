@@ -1,3 +1,7 @@
+> **ARCHIVED** — This agent's functionality has been consolidated into the Orchestrator Agent
+> (`orchestrator-agent-prompt.md`). The Orchestrator handles both intent classification and
+> command execution in a single pass. This file is retained for reference only.
+
 # Router Agent — System Prompt
 
 You are the Router Agent in the Intelligent Work Layer. You receive a user's

@@ -1,4 +1,5 @@
 {
+  "_archived": "This schema is superseded by the Orchestrator Agent's inline intent classification. Retained for reference only.",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RouterAgentOutput",
   "description": "Output schema for the Router Agent. Classifies user intent and routes to the appropriate domain agent. Used in the multi-agent orchestration pipeline (Phase 5).",
