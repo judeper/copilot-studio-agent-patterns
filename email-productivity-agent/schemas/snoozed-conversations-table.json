@@ -44,7 +44,7 @@
       "displayName": "Snooze Until",
       "type": "DateTime",
       "required": false,
-      "description": "Reserved for v2 time-based unsnooze. When set, the message should return to Inbox at this timestamp. Null means indefinite snooze (auto-unsnooze only on reply). Not implemented in the current POC — Flow 4 always unsnoozes on reply regardless of this value."
+      "description": "When set, the Snooze Timer flow (Flow 15) returns this message to Inbox at the specified timestamp. Null means indefinite snooze (auto-unsnooze only on reply via Flow 4). Set by Flow 2b when a user snoozes a nudge with a duration, or by Flow 3 when a user-specified snooze-until is provided."
     },
     {
       "logicalName": "cr_currentfolder",
@@ -76,12 +76,21 @@
       "maxLength": 400,
       "required": false,
       "description": "Subject line of the snoozed email. Used for display in Teams notifications when auto-unsnoozing."
+    },
+    {
+      "logicalName": "cr_unsnoozebytimer",
+      "displayName": "Unsnoozed By Timer",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": false,
+      "description": "Whether the Snooze Timer flow (Flow 15) automatically moved this message back to Inbox because cr_snoozeuntil expired. Distinct from cr_unsnoozedbyagent which indicates reply-triggered unsnooze via Flow 4."
     }
   ],
   "notes": {
     "managed_folder": "This feature uses a managed folder named 'EPA-Snoozed' created by the agent (not Outlook's native Snoozed folder). The native Snoozed folder is not a Graph well-known folder and its displayName varies by locale. The managed folder's Graph ID is stored in NudgeConfiguration.cr_snoozefolderid.",
     "message_id_invalidation": "CRITICAL: When POST /me/messages/{id}/move is called, Graph deletes the original message and returns a NEW message with a NEW ID. The Auto-Unsnooze flow must capture the new ID from the response body and update cr_originalmessageid immediately.",
-    "data_retention": "A weekly cleanup flow should delete rows where cr_unsnoozedbyagent=true AND createdon < 30 days ago.",
+    "timer_unsnooze": "Flow 15 (Snooze Timer) runs every 15 minutes and queries rows where cr_snoozeuntil <= utcNow() AND cr_unsnoozedbyagent = false AND cr_unsnoozebytimer = false. It moves the message back to Inbox, captures the new message ID, and sets cr_unsnoozebytimer = true. Flow 4 (reply-triggered) sets cr_unsnoozedbyagent = true. Both flows check both booleans, preventing race conditions.",
+    "data_retention": "A weekly cleanup flow should delete rows where (cr_unsnoozedbyagent=true OR cr_unsnoozebytimer=true) AND createdon < 30 days ago.",
     "security": "UserOwned table with ownership-based RLS. Users can only read/write their own rows.",
     "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
   }

@@ -1,0 +1,58 @@
+{
+  "tableName": "cr_holidaycalendar",
+  "entitySetName": "cr_holidaycalendars",
+  "displayName": "Holiday Calendar",
+  "pluralName": "Holiday Calendars",
+  "description": "Organization and per-user holiday dates. Used by the Sent Items Tracker flow to extend business day calculations past holidays, and by the Response Detection flow to suppress nudge delivery on holidays.",
+  "primaryColumn": "cr_holidayname",
+  "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_holiday_date_owner_key",
+      "displayName": "Holiday Date + Owner Key",
+      "keyAttributes": ["cr_holidaydate", "cr_owneruserid"],
+      "purpose": "Prevents duplicate holiday entries per user per date. Enables safe Upsert during bulk holiday imports. DateOnly (8 bytes) + Text(36) × 2 = 80 bytes, well within SQL Server's 900-byte index limit."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_holidaydate",
+      "displayName": "Holiday Date",
+      "type": "DateOnly",
+      "required": true,
+      "description": "The date of the holiday. DateOnly type (no time component). Part of composite alternate key. Flow 1 queries holidays in a 45-day window from the sent date to cover the maximum possible business day offset."
+    },
+    {
+      "logicalName": "cr_holidayname",
+      "displayName": "Holiday Name",
+      "type": "Text",
+      "maxLength": 200,
+      "required": true,
+      "description": "Name of the holiday (e.g., 'Independence Day', 'Christmas Day'). Primary column — used for display in Canvas App holiday calendar management screen."
+    },
+    {
+      "logicalName": "cr_owneruserid",
+      "displayName": "Owner User ID",
+      "type": "Text",
+      "maxLength": 36,
+      "required": true,
+      "description": "The Azure AD object ID of the owning user (from Office 365 Users connector body/id). Part of composite alternate key. For org-wide holidays, this is the admin user who created the entry."
+    },
+    {
+      "logicalName": "cr_isorgwide",
+      "displayName": "Organization Wide",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": false,
+      "description": "When true, this holiday applies to all users in the organization regardless of who created it. Flow 1 and Flow 2 query with: cr_owneruserid eq '{userId}' OR cr_isorgwide eq true."
+    }
+  ],
+  "notes": {
+    "cardinality": "Multiple rows per user. Org-wide holidays are shared via cr_isorgwide=true. A typical US deployment has ~11 org-wide holidays plus any personal days.",
+    "business_day_calculation": "Flow 1 queries holidays between sentDate and sentDate+45 days. For each weekday holiday in that window that falls on or before the computed follow-up date, the follow-up date is pushed forward by 1 day (skipping weekends). This is implemented as an Apply_to_each loop over the holiday result set.",
+    "quiet_period": "Flow 2 checks if today is a holiday before processing nudges. If today is a holiday and cr_skipholidaynudges=true on the user's NudgeConfiguration, the entire nudge run is skipped.",
+    "bulk_import": "The Canvas App provides pre-populated collections for common holiday sets (US Federal, UK Bank Holidays) that can be bulk-imported via Patch operations.",
+    "security": "UserOwned table with ownership-based RLS. Org-wide holidays are readable by all users but only editable by their creator.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
+  }
+}

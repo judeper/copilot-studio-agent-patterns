@@ -122,6 +122,40 @@
           ]
         }
       },
+      "Init_graphNextLink": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "graphNextLink",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Init_configRowId": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Init_graphPageCount": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "graphPageCount",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "Init_graphNextLink": [
+            "Succeeded"
+          ]
+        }
+      },
       "Condition_FolderId_Empty": {
         "type": "If",
         "expression": {
@@ -255,12 +289,12 @@
       "Scope_Scan_Folder": {
         "type": "Scope",
         "actions": {
-          "HTTP_List_Snoozed_Messages": {
+          "HTTP_List_Snoozed_Messages_FirstPage": {
             "type": "OpenApiConnection",
             "inputs": {
               "parameters": {
                 "request/method": "GET",
-                "request/url": "/v1.0/me/mailFolders/@{variables('snoozeFolderId')}/messages?$select=id,conversationId,subject,receivedDateTime&$top=50"
+                "request/url": "/v1.0/me/mailFolders/@{variables('snoozeFolderId')}/messages?$select=id,conversationId,subject,receivedDateTime&$top=200"
               },
               "host": {
                 "connectionName": "shared_webcontents",
@@ -275,34 +309,34 @@
               }
             }
           },
-          "Apply_to_each_message": {
+          "Apply_to_each_message_FirstPage": {
             "type": "Foreach",
-            "foreach": "@coalesce(body('HTTP_List_Snoozed_Messages')?['value'], json('[]'))",
+            "foreach": "@coalesce(body('HTTP_List_Snoozed_Messages_FirstPage')?['value'], json('[]'))",
             "actions": {
-              "Upsert_SnoozedConversation": {
+              "Upsert_SnoozedConversation_P1": {
                 "type": "If",
                 "expression": {
                   "and": [
                     {
                       "greater": [
-                        "@length(outputs('List_Existing_SnoozedConversation')?['body/value'])",
+                        "@length(outputs('List_Existing_SnoozedConversation_P1')?['body/value'])",
                         0
                       ]
                     }
                   ]
                 },
                 "actions": {
-                  "Update_SnoozedConversation": {
+                  "Update_SnoozedConversation_P1": {
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
                         "entityName": "cr_snoozedconversations",
-                        "recordId": "@first(outputs('List_Existing_SnoozedConversation')?['body/value'])?['cr_snoozedconversationid']",
-                        "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
+                        "recordId": "@first(outputs('List_Existing_SnoozedConversation_P1')?['body/value'])?['cr_snoozedconversationid']",
+                        "item/cr_conversationid": "@items('Apply_to_each_message_FirstPage')?['conversationId']",
                         "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
-                        "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
+                        "item/cr_originalmessageid": "@items('Apply_to_each_message_FirstPage')?['id']",
                         "item/cr_currentfolder": "@variables('snoozeFolderId')",
-                        "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)"
+                        "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message_FirstPage')?['subject'], '(No Subject)'), 400)"
                       },
                       "host": {
                         "connectionName": "shared_commondataserviceforapps",
@@ -314,16 +348,16 @@
                 },
                 "else": {
                   "actions": {
-                    "Create_SnoozedConversation": {
+                    "Create_SnoozedConversation_P1": {
                       "type": "OpenApiConnection",
                       "inputs": {
                         "parameters": {
                           "entityName": "cr_snoozedconversations",
-                          "item/cr_conversationid": "@items('Apply_to_each_message')?['conversationId']",
+                          "item/cr_conversationid": "@items('Apply_to_each_message_FirstPage')?['conversationId']",
                           "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
-                          "item/cr_originalmessageid": "@items('Apply_to_each_message')?['id']",
+                          "item/cr_originalmessageid": "@items('Apply_to_each_message_FirstPage')?['id']",
                           "item/cr_currentfolder": "@variables('snoozeFolderId')",
-                          "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message')?['subject'], '(No Subject)'), 400)",
+                          "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message_FirstPage')?['subject'], '(No Subject)'), 400)",
                           "item/cr_unsnoozedbyagent": false
                         },
                         "host": {
@@ -336,17 +370,17 @@
                   }
                 },
                 "runAfter": {
-                  "List_Existing_SnoozedConversation": [
+                  "List_Existing_SnoozedConversation_P1": [
                     "Succeeded"
                   ]
                 }
               },
-              "List_Existing_SnoozedConversation": {
+              "List_Existing_SnoozedConversation_P1": {
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
                     "entityName": "cr_snoozedconversations",
-                    "$filter": "cr_conversationid eq '@{items('Apply_to_each_message')?['conversationId']}' and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+                    "$filter": "cr_conversationid eq '@{items('Apply_to_each_message_FirstPage')?['conversationId']}' and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
                     "$top": 1
                   },
                   "host": {
@@ -359,11 +393,172 @@
               }
             },
             "runAfter": {
-              "HTTP_List_Snoozed_Messages": [
+              "HTTP_List_Snoozed_Messages_FirstPage": [
                 "Succeeded"
               ]
             },
             "operationOptions": "Sequential"
+          },
+          "Set_graphNextLink_FirstPage": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "graphNextLink",
+              "value": "@coalesce(body('HTTP_List_Snoozed_Messages_FirstPage')?['@odata.nextLink'], '')"
+            },
+            "runAfter": {
+              "Apply_to_each_message_FirstPage": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Do_Until_All_Pages_Scanned": {
+            "type": "Until",
+            "expression": "@or(empty(variables('graphNextLink')), greaterOrEquals(variables('graphPageCount'), 20))",
+            "limit": {
+              "count": 20,
+              "timeout": "PT30M"
+            },
+            "actions": {
+              "HTTP_List_Snoozed_Messages_NextPage": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "GET",
+                    "request/url": "@variables('graphNextLink')"
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
+                }
+              },
+              "Apply_to_each_message_NextPage": {
+                "type": "Foreach",
+                "foreach": "@coalesce(body('HTTP_List_Snoozed_Messages_NextPage')?['value'], json('[]'))",
+                "actions": {
+                  "Upsert_SnoozedConversation_PN": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "greater": [
+                            "@length(outputs('List_Existing_SnoozedConversation_PN')?['body/value'])",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Update_SnoozedConversation_PN": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_snoozedconversations",
+                            "recordId": "@first(outputs('List_Existing_SnoozedConversation_PN')?['body/value'])?['cr_snoozedconversationid']",
+                            "item/cr_conversationid": "@items('Apply_to_each_message_NextPage')?['conversationId']",
+                            "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                            "item/cr_originalmessageid": "@items('Apply_to_each_message_NextPage')?['id']",
+                            "item/cr_currentfolder": "@variables('snoozeFolderId')",
+                            "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message_NextPage')?['subject'], '(No Subject)'), 400)"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {
+                        "Create_SnoozedConversation_PN": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "entityName": "cr_snoozedconversations",
+                              "item/cr_conversationid": "@items('Apply_to_each_message_NextPage')?['conversationId']",
+                              "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                              "item/cr_originalmessageid": "@items('Apply_to_each_message_NextPage')?['id']",
+                              "item/cr_currentfolder": "@variables('snoozeFolderId')",
+                              "item/cr_originalsubject": "@take(coalesce(items('Apply_to_each_message_NextPage')?['subject'], '(No Subject)'), 400)",
+                              "item/cr_unsnoozedbyagent": false
+                            },
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "CreateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "List_Existing_SnoozedConversation_PN": [
+                        "Succeeded"
+                      ]
+                    }
+                  },
+                  "List_Existing_SnoozedConversation_PN": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "entityName": "cr_snoozedconversations",
+                        "$filter": "cr_conversationid eq '@{items('Apply_to_each_message_NextPage')?['conversationId']}' and cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+                        "$top": 1
+                      },
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "ListRecords",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      }
+                    },
+                    "runAfter": {}
+                  }
+                },
+                "runAfter": {
+                  "HTTP_List_Snoozed_Messages_NextPage": [
+                    "Succeeded"
+                  ]
+                },
+                "operationOptions": "Sequential"
+              },
+              "Set_graphNextLink_NextPage": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "graphNextLink",
+                  "value": "@coalesce(body('HTTP_List_Snoozed_Messages_NextPage')?['@odata.nextLink'], '')"
+                },
+                "runAfter": {
+                  "Apply_to_each_message_NextPage": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Increment_graphPageCount": {
+                "type": "IncrementVariable",
+                "inputs": {
+                  "name": "graphPageCount",
+                  "value": 1
+                },
+                "runAfter": {
+                  "Set_graphNextLink_NextPage": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Set_graphNextLink_FirstPage": [
+                "Succeeded"
+              ]
+            }
           }
         },
         "runAfter": {

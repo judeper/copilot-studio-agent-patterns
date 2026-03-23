@@ -359,6 +359,11 @@ function Get-SnoozeAutoRemovalComponent {
           description: Current UTC timestamp when the flow invokes the Snooze Agent
           shouldPromptUser: false
 
+        - kind: AutomaticTaskInput
+          propertyName: IS_PRIORITY_SENDER
+          description: Whether the reply sender is on the user's priority contact list (true/false)
+          shouldPromptUser: false
+
       beginDialog:
         kind: OnRecognizedIntent
         id: main
@@ -369,7 +374,7 @@ function Get-SnoozeAutoRemovalComponent {
             autoSend: false
             variable: Topic.AgentResponseJSON
             responseCaptureType: TextOnly
-            userInput: =Concatenate("FLOW_MESSAGE: ", System.Activity.Text, Char(10), "CONVERSATION_ID: ", Topic.CONVERSATION_ID, Char(10), "NEW_MESSAGE_SENDER: ", Topic.NEW_MESSAGE_SENDER, Char(10), "NEW_MESSAGE_SENDER_NAME: ", Topic.NEW_MESSAGE_SENDER_NAME, Char(10), "NEW_MESSAGE_SUBJECT: ", Topic.NEW_MESSAGE_SUBJECT, Char(10), "NEW_MESSAGE_EXCERPT: ", Topic.NEW_MESSAGE_EXCERPT, Char(10), "SNOOZED_SUBJECT: ", Topic.SNOOZED_SUBJECT, Char(10), "SNOOZE_UNTIL: ", Topic.SNOOZE_UNTIL, Char(10), "USER_TIMEZONE: ", Topic.USER_TIMEZONE, Char(10), "CURRENT_DATETIME: ", Topic.CURRENT_DATETIME)
+            userInput: =Concatenate("FLOW_MESSAGE: ", System.Activity.Text, Char(10), "CONVERSATION_ID: ", Topic.CONVERSATION_ID, Char(10), "NEW_MESSAGE_SENDER: ", Topic.NEW_MESSAGE_SENDER, Char(10), "NEW_MESSAGE_SENDER_NAME: ", Topic.NEW_MESSAGE_SENDER_NAME, Char(10), "NEW_MESSAGE_SUBJECT: ", Topic.NEW_MESSAGE_SUBJECT, Char(10), "NEW_MESSAGE_EXCERPT: ", Topic.NEW_MESSAGE_EXCERPT, Char(10), "SNOOZED_SUBJECT: ", Topic.SNOOZED_SUBJECT, Char(10), "SNOOZE_UNTIL: ", Topic.SNOOZE_UNTIL, Char(10), "USER_TIMEZONE: ", Topic.USER_TIMEZONE, Char(10), "CURRENT_DATETIME: ", Topic.CURRENT_DATETIME, Char(10), "IS_PRIORITY_SENDER: ", Topic.IS_PRIORITY_SENDER)
             additionalInstructions: |-
 $instructions
             webBrowsing: false
@@ -426,6 +431,11 @@ $instructions
           CURRENT_DATETIME:
             displayName: CURRENT_DATETIME
             description: Current UTC timestamp when the flow invokes the Snooze Agent
+            type: String
+
+          IS_PRIORITY_SENDER:
+            displayName: IS_PRIORITY_SENDER
+            description: Whether the reply sender is on the user's priority contact list (true/false)
             type: String
 
       outputType:

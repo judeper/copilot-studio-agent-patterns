@@ -75,7 +75,9 @@
                   "item/cr_externaldays": 5,
                   "item/cr_prioritydays": 1,
                   "item/cr_generaldays": 7,
-                  "item/cr_nudgesenabled": true
+                  "item/cr_nudgesenabled": true,
+                  "item/cr_digestmode": false,
+                  "item/cr_defaultsnoozehours": 48
                 },
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -91,7 +93,9 @@
                 "cr_externaldays": 5,
                 "cr_prioritydays": 1,
                 "cr_generaldays": 7,
-                "cr_nudgesenabled": true
+                "cr_nudgesenabled": true,
+                "cr_digestmode": false,
+                "cr_defaultsnoozehours": 48
               },
               "runAfter": {
                 "Create_Default_Config": ["Succeeded"]
@@ -199,6 +203,22 @@
                   "value": "@{if(coalesce(outputs('Compose_Current_Config')?['cr_nudgesenabled'], outputs('Compose_New_Config')?['cr_nudgesenabled'], true), 'true', 'false')}",
                   "valueOn": "true",
                   "valueOff": "false"
+                },
+                {
+                  "type": "Input.Toggle",
+                  "id": "digestMode",
+                  "title": "Deliver nudges as daily digest",
+                  "value": "@{if(coalesce(outputs('Compose_Current_Config')?['cr_digestmode'], outputs('Compose_New_Config')?['cr_digestmode'], false), 'true', 'false')}",
+                  "valueOn": "true",
+                  "valueOff": "false"
+                },
+                {
+                  "type": "Input.Number",
+                  "id": "defaultSnoozeHours",
+                  "label": "Default snooze duration (hours)",
+                  "value": "@{coalesce(outputs('Compose_Current_Config')?['cr_defaultsnoozehours'], outputs('Compose_New_Config')?['cr_defaultsnoozehours'], 48)}",
+                  "min": 1,
+                  "max": 720
                 }
               ]
             }
@@ -223,6 +243,8 @@
                 "priorityDays": 1,
                 "generalDays": 7,
                 "nudgesEnabled": "true",
+                "digestMode": "false",
+                "defaultSnoozeHours": 48,
                 "CardTypeId": "epa_settings_card"
               }
             }

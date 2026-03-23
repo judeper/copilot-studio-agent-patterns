@@ -37,6 +37,7 @@ If HTTP with Microsoft Entra ID or Microsoft Copilot Studio is blocked or in a d
 | `Mail.ReadWrite` | Read/write mailbox | **Required for snooze**: move messages between folders, create EPA-Snoozed folder. This is a permission escalation from read-only. |
 | `Mail.Send` | Send email | Send follow-up emails when user approves a draft |
 | `MailboxSettings.Read` | Read settings | Access user timezone for business-day calculations |
+| `Group.Read.All` | Read groups | Distribution list expansion — query group membership to create per-member tracking rows |
 
 > **Note on Mail.ReadWrite**: The Intelligent Work Layer requires only `Mail.Read`. This agent requires `Mail.ReadWrite` because the snooze feature moves messages between folders via `POST /me/messages/{id}/move`. If deploying Phase 1 only (nudges without snooze), `Mail.Read` is sufficient.
 
@@ -69,9 +70,19 @@ cr_followuptracking    ◄──── deleted by ── Flow 5 (Data Retention,
 cr_snoozedconversation ◄──── deleted by ── Flow 6 (Snooze Cleanup, >30 days)
                                           
 cr_nudgeconfiguration  ──── read/write ──► Flow 7/7b (Settings)
+
+cr_prioritycontact     ──── read by ─────► Flow 1 (classify Priority recipients)
+cr_prioritycontact     ──── read by ─────► Flow 2 (priority sender context)
+cr_holidaycalendar     ──── read by ─────► Flow 2 (exclude holidays from business days)
+
+cr_snoozedconversation ──── read by ─────► Flow 15 (Snooze Timer)
+cr_snoozedconversation ◄──── updated by ── Flow 15
+
+cr_followuptracking    ──── read by ─────► Flow 17 (Analytics Aggregation)
+cr_nudgeanalytics      ◄──── upserted by ─ Flow 17
 ```
 
-**Deployment order:** Phase 1 (Flow 5, 1, 2, 2b) → Phase 2 (Flow 6, 3, 4) → Phase 3 (Flow 7, 7b). Each phase's flows can run independently, but Phase 2 flows require Phase 1 tables to exist.
+**Deployment order:** Phase 1 (Flow 5, 1, 2, 2b) → Phase 2 (Flow 6, 3, 4) → Phase 3 (Flow 7, 7b) → Phase 4 (Flow 15) → Phase 5 (Flow 17). Each phase's flows can run independently, but Phase 2 flows require Phase 1 tables to exist, and Phase 4/5 require Phase 1+2 tables.
 
 ---
 
@@ -89,6 +100,9 @@ This creates:
 - `cr_followuptracking` table with 12 columns + composite alternate key
 - `cr_nudgeconfiguration` table with 8 columns (including cr_owneruserid) + owner alternate key
 - `cr_snoozedconversation` table with 8 columns (conversationId, ownerUserId, originalMessageId, snoozeUntil, currentFolder, unsnoozedByAgent, unsnoozedDateTime, originalSubject) + composite alternate key (cr_conversationid + cr_owneruserid)
+- `cr_prioritycontact` table — per-user priority contact list for 1-business-day nudge threshold
+- `cr_holidaycalendar` table — organization-wide and per-user holiday dates for business-day exclusion
+- `cr_nudgeanalytics` table — weekly aggregated analytics for the Canvas App dashboard
 
 > **Naming convention:** Dataverse table logical names are singular (e.g., `cr_snoozedconversation`) while the OData entity set names used in API calls and Power Automate connectors are plural (e.g., `cr_snoozedconversations`). Both forms appear throughout this documentation — singular when referring to the table definition, plural when referencing connector operations.
 
@@ -102,6 +116,9 @@ This creates the "Email Productivity Agent User" role with Basic-depth CRUD on:
 - `cr_followuptracking`
 - `cr_nudgeconfiguration`
 - `cr_snoozedconversation` (will show a warning if Phase 2 table doesn't exist yet)
+- `cr_prioritycontact`
+- `cr_holidaycalendar`
+- `cr_nudgeanalytics`
 
 ### Step 3: Configure Copilot Studio Agent
 
@@ -194,7 +211,7 @@ If deploying Phase 2 (Snooze Auto-Removal), create a second topic in the same ag
 
 1. Go to **Topics** → **+ New topic** → **From blank**
 2. Name: **Snooze Auto-Removal**
-3. Click **Details** → **Inputs** tab and create these 9 input variables (all set to **"Set as a value"**):
+3. Click **Details** → **Inputs** tab and create these 10 input variables (all set to **"Set as a value"**):
 
    | Variable Name | Data Type | Description |
    |---|---|---|
@@ -207,6 +224,7 @@ If deploying Phase 2 (Snooze Auto-Removal), create a second topic in the same ag
    | `SNOOZE_UNTIL` | String | Snooze expiration timestamp (null if indefinite) |
    | `USER_TIMEZONE` | String | User timezone identifier for working-hours suppression |
    | `CURRENT_DATETIME` | String | Current UTC timestamp when the flow invokes the agent |
+   | `IS_PRIORITY_SENDER` | String | Whether the reply sender is on the user's priority contact list (true/false) — influences urgency of unsnooze decision |
 
 4. Go to **Details** → **Outputs** tab → create `AgentResponseJSON` (String type)
 5. In the topic canvas, paste the contents of `prompts/snooze-agent-system-prompt.md` (excluding the markdown title)
@@ -238,7 +256,9 @@ The deploy script creates flows via the **Flow Management API** with connection 
 - **Phase1**: Flow 5 (Data Retention), Flow 1 (Sent Items Tracker), Flow 2 (Response Detection), Flow 2b (Card Action Handler)
 - **Phase2**: Flow 6 (Snooze Cleanup), Flow 3 (Snooze Detection), Flow 4 (Auto-Unsnooze)
 - **Phase3**: Flow 7 (Settings Card), Flow 7b (Settings Card Handler)
-- **Individual harnesses** (optional): Flow8 through Flow13 — deployed one at a time for regression testing
+- **Phase4**: Flow 15 (Snooze Timer)
+- **Phase5**: Flow 17 (Analytics Aggregation)
+- **Individual harnesses** (optional): Flow8 through Flow13, Flow16, Flow18 — deployed one at a time for regression testing
 
 > **Why the Flow Management API?** Flows must be created via `api.flow.microsoft.com` (not the Dataverse `workflows` entity) because only the Flow API properly binds connections at runtime. Dataverse-created flows always fail activation with "connection references need connections" regardless of PAC solution import settings.
 
@@ -326,7 +346,7 @@ Flow 8 validates Flow 2, Flow 9 validates Flow 2b, and Flow 10 validates Flow 7b
 
 ### Step 8: Verify Snoozed Conversations Table
 
-On a fresh install, Step 1 already creates all three tables (including `cr_snoozedconversation`). No additional provisioning is needed.
+On a fresh install, Step 1 already creates all six tables (including `cr_snoozedconversation`, `cr_prioritycontact`, `cr_holidaycalendar`, and `cr_nudgeanalytics`). No additional provisioning is needed.
 
 If you ran an earlier version of the script that didn't include SnoozedConversation, manually create the table using the Dataverse maker portal following `schemas/snoozed-conversations-table.json`, or use the PAC CLI to add just the table.
 
@@ -416,6 +436,76 @@ This harness sequence validates the real mailbox move, Dataverse update, Snooze 
 
 > **Observed hardening:** Flow 3 now first checks whether `EPA-Snoozed` already exists before trying to create it, persists the recovered folder ID back into `cr_nudgeconfiguration`, and uses `ListRecords` + `UpdateRecord`/`CreateRecord` for `cr_snoozedconversation` writes. The create path must explicitly set `item/cr_unsnoozedbyagent = false` for the Dataverse connector to save successfully.
 
+---
+
+## Phase 4: Snooze Timer
+
+### Step 12: Deploy Snooze Timer Flow
+
+```powershell
+cd email-productivity-agent/scripts
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Phase4"
+```
+
+This creates **Flow 15 (Snooze Timer)** which checks for expired snooze-until timestamps every 15 minutes. When a snoozed conversation's `snoozeUntil` timestamp has passed, Flow 15 moves the message back to Inbox and sends a Teams notification.
+
+**Expected output:** Flow 15 created and running (✓ ON).
+
+### Optional: Deploy Phase 4 Regression Harness
+
+```powershell
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow16"
+
+pwsh invoke-http-flow-harness.ps1 `
+    -EnvironmentId "<environment-guid>" `
+    -FlowDisplayName "EPA - Flow 16: Snooze Timer Test Harness" `
+    -BodyJson '{}'
+```
+
+Flow 16 validates Flow 15's timer-based snooze expiration logic on demand.
+
+---
+
+## Phase 5: Analytics
+
+### Step 13: Deploy Analytics Aggregation Flow
+
+```powershell
+cd email-productivity-agent/scripts
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Phase5"
+```
+
+This creates **Flow 17 (Analytics Aggregation)** which computes weekly analytics every Sunday at 3 AM and upserts results to the `cr_nudgeanalytics` table for the Canvas App dashboard.
+
+**Expected output:** Flow 17 created and running (✓ ON).
+
+### Optional: Deploy Phase 5 Regression Harness
+
+```powershell
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<your-org>.crm.dynamics.com" `
+    -EnvironmentId "<environment-guid>" `
+    -FlowsToCreate "Flow18"
+
+pwsh invoke-http-flow-harness.ps1 `
+    -EnvironmentId "<environment-guid>" `
+    -FlowDisplayName "EPA - Flow 18: Analytics Test Harness" `
+    -BodyJson '{}'
+```
+
+Flow 18 validates Flow 17's analytics aggregation logic on demand.
+
+---
+
 ### Multi-User Deployment Model
 
 Each user runs their own set of flows under their own connections:
@@ -438,11 +528,11 @@ Each user runs their own set of flows under their own connections:
 
 To disable the Email Productivity Agent without affecting other systems:
 
-1. **Turn off flows**: Disable all 9 production flows (1, 2, 2b, 3, 4, 5, 6, 7, 7b) in Power Automate
+1. **Turn off flows**: Disable all 11 production flows (1, 2, 2b, 3, 4, 5, 6, 7, 7b, 15, 17) in Power Automate
 2. **Disable agent**: Deactivate the Copilot Studio agent
 3. **(Optional) Clean up data**: Delete all rows in `cr_followuptracking` and `cr_snoozedconversation`
 4. **(Optional) Remove folder**: Delete the EPA-Snoozed folder via Graph or Outlook
-5. **(Optional) Remove harness flows**: Delete Flow 8-13 if you deployed the regression harnesses
+5. **(Optional) Remove harness flows**: Delete Flow 8-13, 16, and 18 if you deployed the regression harnesses
 6. Existing Intelligent Work Layer flows are unaffected
 
 ---
@@ -505,5 +595,23 @@ foreach ($row in $configRows.value) {
 $snoozeRows = Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_snoozedconversations?`$filter=_ownerid_value eq '$userId'" -Headers $headers
 foreach ($row in $snoozeRows.value) {
     Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_snoozedconversations($($row.cr_snoozedconversationid))" -Method Delete -Headers $headers
+}
+
+# Delete PriorityContacts
+$priorityRows = Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_prioritycontacts?`$filter=_ownerid_value eq '$userId'" -Headers $headers
+foreach ($row in $priorityRows.value) {
+    Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_prioritycontacts($($row.cr_prioritycontactid))" -Method Delete -Headers $headers
+}
+
+# Delete HolidayCalendar (user-specific entries)
+$holidayRows = Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_holidaycalendars?`$filter=_ownerid_value eq '$userId'" -Headers $headers
+foreach ($row in $holidayRows.value) {
+    Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_holidaycalendars($($row.cr_holidaycalendarid))" -Method Delete -Headers $headers
+}
+
+# Delete NudgeAnalytics
+$analyticsRows = Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_nudgeanalyticses?`$filter=_ownerid_value eq '$userId'" -Headers $headers
+foreach ($row in $analyticsRows.value) {
+    Invoke-RestMethod -Uri "$orgUrl/api/data/v9.2/cr_nudgeanalyticses($($row.cr_nudgeanalyticsid))" -Method Delete -Headers $headers
 }
 ```

@@ -552,6 +552,13 @@ New-DateTimeColumn -EntityId $followUpEntityId `
     -DisplayName "Last Checked" `
     -Description "When the system last checked for a response to this follow-up."
 
+# Distribution List Source (nullable — set when row created via DL expansion)
+New-TextColumn -EntityId $followUpEntityId `
+    -SchemaName "${PublisherPrefix}_dlsourceemail" `
+    -DisplayName "Distribution List Source" `
+    -Description "Original DL email address when this row was created via distribution list expansion. Null for direct recipients." `
+    -MaxLength 250
+
 # ─────────────────────────────────────
 # 4b. Create Alternate Key on FollowUpTracking
 # ─────────────────────────────────────
@@ -736,6 +743,30 @@ New-TextColumn -EntityId $nudgeEntityId `
     -Description "The systemuserid GUID of the owning user" `
     -MaxLength 36 -Required $true
 
+# Digest Mode (default false — individual cards)
+New-BooleanColumn -EntityId $nudgeEntityId `
+    -SchemaName "${PublisherPrefix}_digestmode" `
+    -DisplayName "Digest Mode" `
+    -Description "When true, nudges are delivered as a single daily digest card instead of individual cards." `
+    -DefaultValue $false `
+    -Required $true
+
+# Skip Holiday Nudges (default true — suppress nudges on holidays)
+New-BooleanColumn -EntityId $nudgeEntityId `
+    -SchemaName "${PublisherPrefix}_skipholidaynudges" `
+    -DisplayName "Skip Holiday Nudges" `
+    -Description "When true, the daily nudge scan skips delivery if today is a holiday." `
+    -DefaultValue $true `
+    -Required $true
+
+# Default Snooze Hours (default 48 = 2 days)
+New-WholeNumberColumn -EntityId $nudgeEntityId `
+    -SchemaName "${PublisherPrefix}_defaultsnoozehours" `
+    -DisplayName "Default Snooze Hours" `
+    -Description "Default snooze duration in hours when a user snoozes a nudge. Maximum 720 hours (30 days)." `
+    -MinValue 1 -MaxValue 720 -DefaultValue 48 `
+    -Required $true
+
 # ─────────────────────────────────────
 # 5b. Create Alternate Key on NudgeConfiguration
 # ─────────────────────────────────────
@@ -915,6 +946,14 @@ New-TextColumn -EntityId $snoozedEntityId `
     -Description "The systemuserid GUID of the owning user" `
     -MaxLength 36 -Required $true
 
+# Unsnoozed By Timer (default false)
+New-BooleanColumn -EntityId $snoozedEntityId `
+    -SchemaName "${PublisherPrefix}_unsnoozebytimer" `
+    -DisplayName "Unsnoozed By Timer" `
+    -Description "Whether the Snooze Timer flow moved this message back to Inbox because the snooze-until timestamp expired." `
+    -DefaultValue $false `
+    -Required $true
+
 # ─────────────────────────────────────
 # 6b. Create Alternate Key on SnoozedConversation
 # ─────────────────────────────────────
@@ -960,7 +999,497 @@ try {
 }
 
 # ─────────────────────────────────────
-# 7. Publish All Customizations
+# Helper: Decimal Column
+# ─────────────────────────────────────
+function New-DecimalColumn {
+    param(
+        [string]$EntityId,
+        [string]$SchemaName,
+        [string]$DisplayName,
+        [string]$Description,
+        [int]$Precision = 2,
+        [bool]$Required = $false
+    )
+
+    $colDef = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.DecimalAttributeMetadata"
+        SchemaName = $SchemaName
+        RequiredLevel = @{ Value = if ($Required) { "ApplicationRequired" } else { "None" } }
+        Precision = $Precision
+        DisplayName = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $DisplayName
+                LanguageCode = 1033
+            })
+        }
+        Description = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $Description
+                LanguageCode = 1033
+            })
+        }
+    } | ConvertTo-Json -Depth 20
+
+    try {
+        Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($EntityId)/Attributes" -Method Post -Headers $headers -Body $colDef
+        Write-Host "  Column '$DisplayName' created." -ForegroundColor Green
+    } catch {
+        Write-Warning "  Column '$DisplayName' failed: $($_.Exception.Message)"
+    }
+}
+
+# ─────────────────────────────────────
+# Helper: DateOnly Column
+# ─────────────────────────────────────
+function New-DateOnlyColumn {
+    param(
+        [string]$EntityId,
+        [string]$SchemaName,
+        [string]$DisplayName,
+        [string]$Description,
+        [bool]$Required = $false
+    )
+
+    $colDef = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.DateTimeAttributeMetadata"
+        SchemaName = $SchemaName
+        RequiredLevel = @{ Value = if ($Required) { "ApplicationRequired" } else { "None" } }
+        Format = "DateOnly"
+        DisplayName = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $DisplayName
+                LanguageCode = 1033
+            })
+        }
+        Description = @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+            LocalizedLabels = @(@{
+                "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                Label = $Description
+                LanguageCode = 1033
+            })
+        }
+    } | ConvertTo-Json -Depth 20
+
+    try {
+        Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($EntityId)/Attributes" -Method Post -Headers $headers -Body $colDef
+        Write-Host "  Column '$DisplayName' created." -ForegroundColor Green
+    } catch {
+        Write-Warning "  Column '$DisplayName' failed: $($_.Exception.Message)"
+    }
+}
+
+# ─────────────────────────────────────
+# 7. Create PriorityContact Table
+# ─────────────────────────────────────
+Write-Host "`n--- Creating PriorityContact Table ---" -ForegroundColor Cyan
+
+$priorityContactDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_prioritycontact"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Priority Contact"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Priority Contacts"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Per-user priority contact list. Recipients on this list receive the shortest follow-up delay."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_contactemail"
+    Attributes = @(
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
+            SchemaName = "${PublisherPrefix}_contactemail"
+            RequiredLevel = @{ Value = "ApplicationRequired"; CanBeChanged = $true }
+            MaxLength = 250
+            FormatName = @{ Value = "Text" }
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Contact Email"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Email address of the priority contact."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $priorityContactDef
+    Write-Host "  PriorityContact table created." -ForegroundColor Green
+} catch {
+    if ($_.Exception.Response.StatusCode.value__ -eq 409 -or $_.Exception.Message -match "already exists|duplicate") {
+        Write-Host "  PriorityContact table already exists — skipping creation." -ForegroundColor Yellow
+    } else {
+        throw "PriorityContact table creation failed: $($_.Exception.Message)"
+    }
+}
+
+$priorityContactMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_prioritycontact')" -Headers $headers
+$priorityContactEntityId = $priorityContactMeta.MetadataId
+
+Write-Host "Adding columns to PriorityContact..." -ForegroundColor Cyan
+
+New-TextColumn -EntityId $priorityContactEntityId `
+    -SchemaName "${PublisherPrefix}_contactname" `
+    -DisplayName "Contact Name" `
+    -Description "Display name of the priority contact." `
+    -MaxLength 200
+
+New-TextColumn -EntityId $priorityContactEntityId `
+    -SchemaName "${PublisherPrefix}_owneruserid" `
+    -DisplayName "Owner User ID" `
+    -Description "The Azure AD object ID of the owning user." `
+    -MaxLength 36 -Required $true
+
+New-TextColumn -EntityId $priorityContactEntityId `
+    -SchemaName "${PublisherPrefix}_notes" `
+    -DisplayName "Notes" `
+    -Description "Optional notes about why this contact is priority." `
+    -MaxLength 500
+
+# Alternate Key: contactemail + owneruserid
+Write-Host "Creating alternate key on PriorityContact..." -ForegroundColor Cyan
+$priorityAltKeyDef = @{
+    SchemaName = "${PublisherPrefix}_priority_contact_email_owner_key"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Contact Email + Owner Key"
+            LanguageCode = 1033
+        })
+    }
+    KeyAttributes = @("${PublisherPrefix}_contactemail", "${PublisherPrefix}_owneruserid")
+} | ConvertTo-Json -Depth 20
+
+try {
+    $keyResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($priorityContactEntityId)/Keys" -Method Post -Headers $headers -Body $priorityAltKeyDef
+    $keyId = $keyResult.MetadataId
+    $keyAttempts = 0; $keyMaxAttempts = 12
+    do {
+        Start-Sleep -Seconds 2.5; $keyAttempts++
+        $keyStatus = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($priorityContactEntityId)/Keys($keyId)" -Headers $headers
+        if ($keyStatus.EntityKeyIndexStatus -eq "Active") { Write-Host "  Alternate key active." -ForegroundColor Green; break }
+        Write-Host "  Key indexing... attempt $keyAttempts/$keyMaxAttempts (status: $($keyStatus.EntityKeyIndexStatus))"
+    } while ($keyAttempts -lt $keyMaxAttempts)
+    if ($keyAttempts -ge $keyMaxAttempts) { Write-Warning "  Alternate key not yet active after 30s." }
+} catch { Write-Warning "  Alternate key creation failed (may already exist): $($_.Exception.Message)" }
+
+# ─────────────────────────────────────
+# 8. Create HolidayCalendar Table
+# ─────────────────────────────────────
+Write-Host "`n--- Creating HolidayCalendar Table ---" -ForegroundColor Cyan
+
+$holidayCalendarDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_holidaycalendar"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Holiday Calendar"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Holiday Calendars"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Organization and per-user holiday dates for business day calculations and nudge suppression."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_holidayname"
+    Attributes = @(
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
+            SchemaName = "${PublisherPrefix}_holidayname"
+            RequiredLevel = @{ Value = "ApplicationRequired"; CanBeChanged = $true }
+            MaxLength = 200
+            FormatName = @{ Value = "Text" }
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Holiday Name"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Name of the holiday."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $holidayCalendarDef
+    Write-Host "  HolidayCalendar table created." -ForegroundColor Green
+} catch {
+    if ($_.Exception.Response.StatusCode.value__ -eq 409 -or $_.Exception.Message -match "already exists|duplicate") {
+        Write-Host "  HolidayCalendar table already exists — skipping creation." -ForegroundColor Yellow
+    } else {
+        throw "HolidayCalendar table creation failed: $($_.Exception.Message)"
+    }
+}
+
+$holidayMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_holidaycalendar')" -Headers $headers
+$holidayEntityId = $holidayMeta.MetadataId
+
+Write-Host "Adding columns to HolidayCalendar..." -ForegroundColor Cyan
+
+New-DateOnlyColumn -EntityId $holidayEntityId `
+    -SchemaName "${PublisherPrefix}_holidaydate" `
+    -DisplayName "Holiday Date" `
+    -Description "The date of the holiday." `
+    -Required $true
+
+New-TextColumn -EntityId $holidayEntityId `
+    -SchemaName "${PublisherPrefix}_owneruserid" `
+    -DisplayName "Owner User ID" `
+    -Description "The Azure AD object ID of the owning user." `
+    -MaxLength 36 -Required $true
+
+New-BooleanColumn -EntityId $holidayEntityId `
+    -SchemaName "${PublisherPrefix}_isorgwide" `
+    -DisplayName "Organization Wide" `
+    -Description "When true, this holiday applies to all users in the organization." `
+    -DefaultValue $false `
+    -Required $true
+
+# Alternate Key: holidaydate + owneruserid
+Write-Host "Creating alternate key on HolidayCalendar..." -ForegroundColor Cyan
+$holidayAltKeyDef = @{
+    SchemaName = "${PublisherPrefix}_holiday_date_owner_key"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Holiday Date + Owner Key"
+            LanguageCode = 1033
+        })
+    }
+    KeyAttributes = @("${PublisherPrefix}_holidaydate", "${PublisherPrefix}_owneruserid")
+} | ConvertTo-Json -Depth 20
+
+try {
+    $keyResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($holidayEntityId)/Keys" -Method Post -Headers $headers -Body $holidayAltKeyDef
+    $keyId = $keyResult.MetadataId
+    $keyAttempts = 0; $keyMaxAttempts = 12
+    do {
+        Start-Sleep -Seconds 2.5; $keyAttempts++
+        $keyStatus = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($holidayEntityId)/Keys($keyId)" -Headers $headers
+        if ($keyStatus.EntityKeyIndexStatus -eq "Active") { Write-Host "  Alternate key active." -ForegroundColor Green; break }
+        Write-Host "  Key indexing... attempt $keyAttempts/$keyMaxAttempts (status: $($keyStatus.EntityKeyIndexStatus))"
+    } while ($keyAttempts -lt $keyMaxAttempts)
+    if ($keyAttempts -ge $keyMaxAttempts) { Write-Warning "  Alternate key not yet active after 30s." }
+} catch { Write-Warning "  Alternate key creation failed (may already exist): $($_.Exception.Message)" }
+
+# ─────────────────────────────────────
+# 9. Create NudgeAnalytics Table
+# ─────────────────────────────────────
+Write-Host "`n--- Creating NudgeAnalytics Table ---" -ForegroundColor Cyan
+
+$analyticsDef = @{
+    "@odata.type" = "Microsoft.Dynamics.CRM.EntityMetadata"
+    SchemaName = "${PublisherPrefix}_nudgeanalytics"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Nudge Analytics"
+            LanguageCode = 1033
+        })
+    }
+    DisplayCollectionName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Nudge Analytics"
+            LanguageCode = 1033
+        })
+    }
+    Description = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Weekly aggregated analytics for nudge effectiveness tracking."
+            LanguageCode = 1033
+        })
+    }
+    OwnershipType = "UserOwned"
+    HasNotes = $false
+    HasActivities = $false
+    PrimaryNameAttribute = "${PublisherPrefix}_periodlabel"
+    Attributes = @(
+        @{
+            "@odata.type" = "Microsoft.Dynamics.CRM.StringAttributeMetadata"
+            IsPrimaryName = $true
+            SchemaName = "${PublisherPrefix}_periodlabel"
+            RequiredLevel = @{ Value = "ApplicationRequired"; CanBeChanged = $true }
+            MaxLength = 50
+            FormatName = @{ Value = "Text" }
+            DisplayName = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Period Label"
+                    LanguageCode = 1033
+                })
+            }
+            Description = @{
+                "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+                LocalizedLabels = @(@{
+                    "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+                    Label = "Human-readable period label (e.g., 'Week of 2026-03-16')."
+                    LanguageCode = 1033
+                })
+            }
+        }
+    )
+} | ConvertTo-Json -Depth 20
+
+try {
+    Invoke-RestMethod -Uri "$apiBase/EntityDefinitions" -Method Post -Headers $headers -Body $analyticsDef
+    Write-Host "  NudgeAnalytics table created." -ForegroundColor Green
+} catch {
+    if ($_.Exception.Response.StatusCode.value__ -eq 409 -or $_.Exception.Message -match "already exists|duplicate") {
+        Write-Host "  NudgeAnalytics table already exists — skipping creation." -ForegroundColor Yellow
+    } else {
+        throw "NudgeAnalytics table creation failed: $($_.Exception.Message)"
+    }
+}
+
+$analyticsMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='${PublisherPrefix}_nudgeanalytics')" -Headers $headers
+$analyticsEntityId = $analyticsMeta.MetadataId
+
+Write-Host "Adding columns to NudgeAnalytics..." -ForegroundColor Cyan
+
+New-TextColumn -EntityId $analyticsEntityId `
+    -SchemaName "${PublisherPrefix}_owneruserid" `
+    -DisplayName "Owner User ID" `
+    -Description "The Azure AD object ID of the owning user." `
+    -MaxLength 36 -Required $true
+
+New-DateTimeColumn -EntityId $analyticsEntityId `
+    -SchemaName "${PublisherPrefix}_periodstart" `
+    -DisplayName "Period Start" `
+    -Description "Start of the analytics period (Sunday 00:00 UTC)." `
+    -Required $true
+
+New-WholeNumberColumn -EntityId $analyticsEntityId `
+    -SchemaName "${PublisherPrefix}_totaltracked" `
+    -DisplayName "Total Tracked" `
+    -Description "Total follow-up tracking rows created during this period." `
+    -DefaultValue 0 -Required $true
+
+New-WholeNumberColumn -EntityId $analyticsEntityId `
+    -SchemaName "${PublisherPrefix}_totalreplied" `
+    -DisplayName "Total Replied" `
+    -Description "Total tracking rows where a reply was detected during this period." `
+    -DefaultValue 0 -Required $true
+
+New-WholeNumberColumn -EntityId $analyticsEntityId `
+    -SchemaName "${PublisherPrefix}_totalnudged" `
+    -DisplayName "Total Nudged" `
+    -Description "Total nudge cards delivered during this period." `
+    -DefaultValue 0 -Required $true
+
+New-WholeNumberColumn -EntityId $analyticsEntityId `
+    -SchemaName "${PublisherPrefix}_totaldismissed" `
+    -DisplayName "Total Dismissed" `
+    -Description "Total nudges dismissed during this period." `
+    -DefaultValue 0 -Required $true
+
+New-DecimalColumn -EntityId $analyticsEntityId `
+    -SchemaName "${PublisherPrefix}_avgreplydays" `
+    -DisplayName "Average Reply Days" `
+    -Description "Average calendar days between sent date and reply detection." `
+    -Precision 2
+
+# Alternate Key: periodstart + owneruserid
+Write-Host "Creating alternate key on NudgeAnalytics..." -ForegroundColor Cyan
+$analyticsAltKeyDef = @{
+    SchemaName = "${PublisherPrefix}_analytics_period_owner_key"
+    DisplayName = @{
+        "@odata.type" = "Microsoft.Dynamics.CRM.Label"
+        LocalizedLabels = @(@{
+            "@odata.type" = "Microsoft.Dynamics.CRM.LocalizedLabel"
+            Label = "Period Start + Owner Key"
+            LanguageCode = 1033
+        })
+    }
+    KeyAttributes = @("${PublisherPrefix}_periodstart", "${PublisherPrefix}_owneruserid")
+} | ConvertTo-Json -Depth 20
+
+try {
+    $keyResult = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($analyticsEntityId)/Keys" -Method Post -Headers $headers -Body $analyticsAltKeyDef
+    $keyId = $keyResult.MetadataId
+    $keyAttempts = 0; $keyMaxAttempts = 12
+    do {
+        Start-Sleep -Seconds 2.5; $keyAttempts++
+        $keyStatus = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions($analyticsEntityId)/Keys($keyId)" -Headers $headers
+        if ($keyStatus.EntityKeyIndexStatus -eq "Active") { Write-Host "  Alternate key active." -ForegroundColor Green; break }
+        Write-Host "  Key indexing... attempt $keyAttempts/$keyMaxAttempts (status: $($keyStatus.EntityKeyIndexStatus))"
+    } while ($keyAttempts -lt $keyMaxAttempts)
+    if ($keyAttempts -ge $keyMaxAttempts) { Write-Warning "  Alternate key not yet active after 30s." }
+} catch { Write-Warning "  Alternate key creation failed (may already exist): $($_.Exception.Message)" }
+
+# ─────────────────────────────────────
+# 10. Publish All Customizations
 # ─────────────────────────────────────
 Write-Host "Publishing all customizations..." -ForegroundColor Cyan
 
@@ -992,6 +1521,9 @@ Write-Host "Tables created:" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_followuptracking (Follow-Up Tracking)" -ForegroundColor Gray
 Write-Host "  - ${PublisherPrefix}_nudgeconfiguration (Nudge Configuration)" -ForegroundColor Gray
 Write-Host "  - ${PublisherPrefix}_snoozedconversation (Snoozed Conversation)" -ForegroundColor Gray
+Write-Host "  - ${PublisherPrefix}_prioritycontact (Priority Contact)" -ForegroundColor Gray
+Write-Host "  - ${PublisherPrefix}_holidaycalendar (Holiday Calendar)" -ForegroundColor Gray
+Write-Host "  - ${PublisherPrefix}_nudgeanalytics (Nudge Analytics)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "MANUAL STEPS REQUIRED:" -ForegroundColor Yellow
 Write-Host "1. Create connection references in Power Automate for:" -ForegroundColor White

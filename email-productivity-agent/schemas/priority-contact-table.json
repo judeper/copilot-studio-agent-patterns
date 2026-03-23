@@ -1,0 +1,58 @@
+{
+  "tableName": "cr_prioritycontact",
+  "entitySetName": "cr_prioritycontacts",
+  "displayName": "Priority Contact",
+  "pluralName": "Priority Contacts",
+  "description": "Per-user priority contact list. Recipients on this list are classified as Priority when tracking sent emails, triggering the shortest follow-up delay (default 1 business day). The Sent Items Tracker flow checks this table during recipient classification.",
+  "primaryColumn": "cr_contactemail",
+  "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_priority_contact_email_owner_key",
+      "displayName": "Contact Email + Owner Key",
+      "keyAttributes": ["cr_contactemail", "cr_owneruserid"],
+      "purpose": "Ensures one priority contact entry per email per user. Enables safe Upsert when adding contacts. (250 + 36) × 2 = 572 bytes, within SQL Server's 900-byte index limit."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_contactemail",
+      "displayName": "Contact Email",
+      "type": "Text",
+      "maxLength": 250,
+      "required": true,
+      "description": "Email address of the priority contact. Used for lookup in Flow 1 during recipient classification and in Flow 4 for sender priority checking. Stored lowercase for case-insensitive matching."
+    },
+    {
+      "logicalName": "cr_contactname",
+      "displayName": "Contact Name",
+      "type": "Text",
+      "maxLength": 200,
+      "required": false,
+      "description": "Display name of the priority contact. Optional — used for Canvas App display and nudge card priority badges. If not provided, the email address is shown."
+    },
+    {
+      "logicalName": "cr_owneruserid",
+      "displayName": "Owner User ID",
+      "type": "Text",
+      "maxLength": 36,
+      "required": true,
+      "description": "The Azure AD object ID of the owning user (from Office 365 Users connector body/id). Part of composite alternate key. Uses cr_owneruserid instead of ownerid because Dataverse does not support ownerid in alternate keys."
+    },
+    {
+      "logicalName": "cr_notes",
+      "displayName": "Notes",
+      "type": "Text",
+      "maxLength": 500,
+      "required": false,
+      "description": "Optional notes about why this contact is priority (e.g., 'Executive sponsor', 'Key client stakeholder'). Displayed in the Canvas App priority contacts management screen."
+    }
+  ],
+  "notes": {
+    "cardinality": "Multiple rows per user, one row per priority contact. A user with 10 priority contacts has 10 rows.",
+    "lookup_pattern": "Flow 1 queries the full list for the current user once per flow run, then uses Filter Array to check each recipient against the cached list. This avoids N+1 queries inside the recipient loop.",
+    "sender_check": "Flow 4 (Auto-Unsnooze) queries this table to check if the reply sender is a priority contact. If so, IS_PRIORITY_SENDER=true is passed to the Snooze Agent, which defaults to UNSNOOZE with High urgency.",
+    "security": "UserOwned table with ownership-based RLS. Users can only read/write their own priority contacts.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
+  }
+}

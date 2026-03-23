@@ -31,10 +31,11 @@ The PCF component is a **virtual** React control (shares the platform React tree
 The **Agent Cost Governance — PAYGO** solution (`agent-cost-governance-paygo/`) is a Tier-2 Cross-Cutting Governance solution providing leadership-quality PAYGO cost visibility for Copilot Studio agents. It uses Azure Cost Management + Power BI (no PCF component). Key artifacts: DAX measures, PowerShell billing policy script (Power Platform REST API), ARM budget alert template, and FSI regulatory alignment documents (GLBA, SOX, FINRA, OCC). Known limitation: Azure Cost Management reports at environment level, not per-agent.
 
 The **Email Productivity Agent** (`email-productivity-agent/`) provides Gmail-like follow-up nudges and smart snooze for Outlook:
-- **9 production flows** (Phase 1: nudges, Phase 2: snooze, Phase 3: settings) + 6 optional CLI regression harnesses
-- **3 Dataverse tables**: `cr_followuptracking`, `cr_nudgeconfiguration`, `cr_snoozedconversation`
-- **Connectors**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID, Microsoft Copilot Studio
+- **17 production flows** (Phase 1: nudges, Phase 2: snooze, Phase 3: settings, Phase 4: priority contacts & holidays, Phase 5: analytics & digest) + 6 optional CLI regression harnesses
+- **6 Dataverse tables**: `cr_followuptracking`, `cr_nudgeconfiguration`, `cr_snoozedconversation`, `cr_prioritycontact`, `cr_holidaycalendar`, `cr_nudgeanalytics`
+- **Connectors**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (Mail.Read, Mail.ReadWrite, Group.Read.All), Microsoft Copilot Studio
 - **Agent invocation**: Flow 2 and Flow 4 invoke the Copilot Studio agent via `ExecuteAgentAndWait` for live AI-powered nudge and snooze decisions
+- **Key flows**: Flow 1 (Sent Items Tracker with priority contact classification, DL expansion, holiday-adjusted dates), Flow 2 (Response Detection with pagination, holiday gate, digest mode), Flow 2b (Card Response with configurable snooze 1-14 days), Flow 3 (Snooze Detection with Graph pagination), Flow 4 (Auto-Unsnooze with priority sender bypass), Flow 15 (Snooze Timer — 15-min recurrence for timed unsnooze), Flows 16-18 (analytics, digest delivery, settings sync)
 - **Lab wizard** (`tools/lab-wizard/wizard.py`): Python CLI automating full deployment in 9 phases
 
 ## Build, Test, and Lint (PCF Component)
@@ -77,7 +78,7 @@ cd email-productivity-agent/tools/lab-wizard && pip install -r requirements.txt 
 pwsh provision-environment.ps1 -TenantId "<tenant-id>"
 pwsh create-security-roles.ps1 -OrgUrl "https://<org>.crm.dynamics.com"
 pwsh provision-copilot.ps1 -EnvironmentId "<env-id>"
-pwsh deploy-agent-flows.ps1 -OrgUrl "..." -EnvironmentId "..." -FlowsToCreate "Phase1" -CopilotBotId "<bot-id>"  # then Phase2, Phase3
+pwsh deploy-agent-flows.ps1 -OrgUrl "..." -EnvironmentId "..." -FlowsToCreate "Phase1" -CopilotBotId "<bot-id>"  # then Phase2, Phase3, Phase4, Phase5
 ```
 
 Requires: PowerShell 7+, PAC CLI, Azure CLI (`az login` for token acquisition).
@@ -95,7 +96,7 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 - **Agent tool flows** (`src/tool-*.json`): Reference definitions for Copilot Studio agent actions. Use `PowerVirtualAgents` trigger (`When an agent calls the flow`) and `PowerVirtualAgentsResponseV2` response. **Cannot be created via Flow Management API** — create via Copilot Studio Actions or `pac solution import`. "Asynchronous response" must be OFF.
 - **Topic definitions** (`src/*-topic.yaml`): Copilot Studio Adaptive Dialog YAML. Use `InvokeAIBuilderModelAction` for AI prompts (referenced by `aIModelId` GUID — environment-specific). Use `InvokeFlowAction` for tool actions (referenced by `flowId` GUID — environment-specific).
 - **Agent invocation**: Flow 2 and Flow 4 invoke the Copilot Studio agent via `ExecuteAgentAndWait` using the `shared_microsoftcopilotstudio` connector. The `epa_CopilotBotId` parameter is injected at deploy time by `deploy-agent-flows.ps1`.
-- **6 connectors required**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized), Microsoft Copilot Studio.
+- **6 connectors required**: Office 365 Outlook, Office 365 Users, Microsoft Teams, Microsoft Dataverse, HTTP with Entra ID (preauthorized — Mail.Read, Mail.ReadWrite, Group.Read.All), Microsoft Copilot Studio.
 - **MCP servers** (Tier 4-5): Add from the built-in catalog in Copilot Studio → Tools. Microsoft Learn Docs MCP Server replaces the retired Bing WebSearch MCP. Cannot be automated via scripts.
 
 ### PCF Component Patterns
@@ -147,9 +148,12 @@ PowerShell 7+ scripts in `intelligent-work-layer/scripts/` handle environment se
 ### Email Productivity Agent — Flow Deployment
 
 - **Flow Management API**: Deploy main flows via `api.flow.microsoft.com` with `$connections` and `$authentication` parameters injected. Flow definitions in `email-productivity-agent/src/flow-*.json`.
-- **Dataverse connector**: Use `ListRecords` + `UpdateRecord`/`CreateRecord` (not `UpsertRecord`). Set `cr_unsnoozedbyagent` explicitly on creates.
+- **Deployment phases**: Phase1 (nudge flows 1, 2, 2b, 5), Phase2 (snooze flows 3, 4, 6), Phase3 (settings flows 7-9), Phase4 (priority contacts & holiday calendar — flows 10-14, provisions `cr_prioritycontact` and `cr_holidaycalendar` tables), Phase5 (analytics & digest — flows 15-17, provisions `cr_nudgeanalytics` table).
+- **Graph API permissions**: Mail.Read, Mail.ReadWrite (message move), Group.Read.All (DL expansion in Flow 1).
+- **Dataverse connector**: Use `ListRecords` + `UpdateRecord`/`CreateRecord` (not `UpsertRecord`). Set `cr_unsnoozedbyagent` and `cr_unsnoozebytimer` explicitly on creates.
 - **Teams connector**: For `"Chat with Flow bot"`, use `body/recipient` as flat email string (not nested `body/recipient/to`).
 - **Table naming**: Singular for logical names (`cr_snoozedconversation`), plural for OData entity sets (`cr_snoozedconversations`).
+- **New tables**: `cr_prioritycontact` (priority contact list per user), `cr_holidaycalendar` (organization holiday dates), `cr_nudgeanalytics` (nudge delivery and response metrics).
 - See `email-productivity-agent/docs/deployment-guide.md` Step 5 for detailed troubleshooting.
 
 ### Planning Structure

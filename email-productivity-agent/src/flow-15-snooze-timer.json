@@ -1,0 +1,197 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Recurrence_Every_15_Minutes": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 15,
+          "timeZone": "Eastern Standard Time"
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "List_Expired_Snoozes": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_snoozedconversations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_snoozeuntil ne null and cr_snoozeuntil le @{utcNow()} and cr_unsnoozedbyagent eq false and cr_unsnoozebytimer eq false",
+            "$top": 50
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": ["Succeeded"]
+        }
+      },
+      "Condition_No_Expired": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@length(outputs('List_Expired_Snoozes')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_Nothing_To_Do": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded"
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_Expired_Snoozes": ["Succeeded"]
+        }
+      },
+      "Scope_Process_Expired_Snoozes": {
+        "type": "Scope",
+        "actions": {
+          "Apply_to_each_expired": {
+            "type": "Foreach",
+            "foreach": "@outputs('List_Expired_Snoozes')?['body/value']",
+            "actions": {
+              "HTTP_Move_To_Inbox": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "POST",
+                    "request/url": "/v1.0/me/messages/@{items('Apply_to_each_expired')?['cr_originalmessageid']}/move",
+                    "request/body": "{\"destinationId\": \"inbox\"}"
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
+                }
+              },
+              "Compose_newMessageId": {
+                "type": "Compose",
+                "inputs": "@body('HTTP_Move_To_Inbox')?['id']",
+                "runAfter": {
+                  "HTTP_Move_To_Inbox": ["Succeeded"]
+                }
+              },
+              "Update_SnoozedConversation_Timer": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_snoozedconversations",
+                    "recordId": "@items('Apply_to_each_expired')?['cr_snoozedconversationid']",
+                    "item/cr_unsnoozebytimer": true,
+                    "item/cr_unsnoozeddatetime": "@utcNow()",
+                    "item/cr_originalmessageid": "@outputs('Compose_newMessageId')",
+                    "item/cr_currentfolder": "inbox"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {
+                  "Compose_newMessageId": ["Succeeded"]
+                }
+              },
+              "Post_Timer_Notification": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "poster": "Flow bot",
+                    "location": "Chat with Flow bot",
+                    "body/recipient": "@{outputs('Get_my_profile_(V2)')?['body/userPrincipalName']}",
+                    "body/messageBody": "⏰ **Snooze expired**: _@{items('Apply_to_each_expired')?['cr_originalsubject']}_ has been moved back to your Inbox."
+                  },
+                  "host": {
+                    "connectionName": "shared_teams",
+                    "operationId": "PostMessageToConversation",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                  }
+                },
+                "runAfter": {
+                  "Update_SnoozedConversation_Timer": ["Succeeded"]
+                }
+              }
+            },
+            "operationOptions": "Sequential"
+          }
+        },
+        "runAfter": {
+          "Condition_No_Expired": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 15 snooze timer error: @{result('Scope_Process_Expired_Snoozes')}"
+          },
+          "Terminate_Graceful": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Failed",
+              "runError": {
+                "code": "FlowError",
+                "message": "@{outputs('Compose_ErrorDetails')}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Process_Expired_Snoozes": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 15: Snooze Timer",
+    "description": "Every 15 minutes: checks for expired snooze timers and moves messages back to Inbox.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "coordination": "Flow 4 (reply-triggered) sets cr_unsnoozedbyagent=true. Flow 15 (timer-triggered) sets cr_unsnoozebytimer=true. Both check both flags, preventing race conditions.",
+      "messageIdInvalidation": "Graph move operation invalidates the original message ID. Flow 15 captures the new ID from the response and updates cr_originalmessageid."
+    }
+  }
+}

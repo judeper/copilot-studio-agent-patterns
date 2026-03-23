@@ -1,0 +1,50 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "metadata": {
+    "description": "Daily follow-up digest card. Summarizes multiple pending follow-ups in a single Teams notification."
+  },
+  "body": [
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [{"type": "TextBlock", "text": "\ud83d\udccb", "size": "Large"}]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {"type": "TextBlock", "text": "Daily Follow-Up Digest", "weight": "Bolder", "size": "Medium", "color": "Accent"},
+            {"type": "TextBlock", "text": "${digestSummary}", "size": "Small", "isSubtle": true, "spacing": "None"}
+          ]
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Items below need your attention. Use the buttons on each item to take action.",
+      "wrap": true,
+      "isSubtle": true,
+      "spacing": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "${digestItems}",
+      "wrap": true,
+      "separator": true
+    }
+  ],
+  "_template_notes": {
+    "usage": "Used by Flow 2 when cr_digestmode=true. Variable placeholders are replaced by Power Automate Compose actions. Individual item actions use the same CardTypeId (epa_nudge_card) so Flow 2b handles them without changes.",
+    "variables": {
+      "digestSummary": "Summary line, e.g. '5 pending follow-ups \u2014 2 High, 2 Medium, 1 Low priority'",
+      "digestItems": "Formatted markdown-like text with per-item details: subject, recipient, days waiting, priority, thread summary. Each item is separated by a horizontal rule."
+    },
+    "size_limit": "Teams Adaptive Cards have a 28 KB limit. At ~300 bytes per item summary, limit to ~50 items per card. For larger digests, Flow 2 sends multiple cards.",
+    "action_handling": "Individual follow-up actions (Draft/Snooze/Dismiss) are posted as separate Action.Submit buttons per digest item, each containing the same action codes and trackingId as individual nudge cards."
+  }
+}

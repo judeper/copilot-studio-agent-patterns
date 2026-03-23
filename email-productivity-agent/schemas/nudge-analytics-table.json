@@ -1,0 +1,89 @@
+{
+  "tableName": "cr_nudgeanalytics",
+  "entitySetName": "cr_nudgeanalyticses",
+  "displayName": "Nudge Analytics",
+  "pluralName": "Nudge Analytics",
+  "description": "Weekly aggregated analytics for the Email Productivity Agent. Populated by the Analytics Aggregation flow (Flow 17) every Sunday. Consumed by the Canvas App analytics dashboard.",
+  "primaryColumn": "cr_periodlabel",
+  "ownershipType": "UserOwned",
+  "alternateKeys": [
+    {
+      "schemaName": "cr_analytics_period_owner_key",
+      "displayName": "Period Start + Owner Key",
+      "keyAttributes": ["cr_periodstart", "cr_owneruserid"],
+      "purpose": "Ensures one analytics row per user per weekly period. Enables safe Upsert during weekly aggregation runs. DateTime (8 bytes) + Text(36) × 2 = 80 bytes, within SQL Server's 900-byte index limit."
+    }
+  ],
+  "columns": [
+    {
+      "logicalName": "cr_periodlabel",
+      "displayName": "Period Label",
+      "type": "Text",
+      "maxLength": 50,
+      "required": true,
+      "description": "Human-readable period label (e.g., 'Week of 2026-03-16'). Primary column for display in Canvas App and views."
+    },
+    {
+      "logicalName": "cr_owneruserid",
+      "displayName": "Owner User ID",
+      "type": "Text",
+      "maxLength": 36,
+      "required": true,
+      "description": "The Azure AD object ID of the owning user. Part of composite alternate key."
+    },
+    {
+      "logicalName": "cr_periodstart",
+      "displayName": "Period Start",
+      "type": "DateTime",
+      "required": true,
+      "description": "Start of the analytics period (Sunday 00:00 UTC). Part of composite alternate key."
+    },
+    {
+      "logicalName": "cr_totaltracked",
+      "displayName": "Total Tracked",
+      "type": "WholeNumber",
+      "required": true,
+      "defaultValue": 0,
+      "description": "Total follow-up tracking rows created during this period."
+    },
+    {
+      "logicalName": "cr_totalreplied",
+      "displayName": "Total Replied",
+      "type": "WholeNumber",
+      "required": true,
+      "defaultValue": 0,
+      "description": "Total tracking rows where a reply was detected during this period."
+    },
+    {
+      "logicalName": "cr_totalnudged",
+      "displayName": "Total Nudged",
+      "type": "WholeNumber",
+      "required": true,
+      "defaultValue": 0,
+      "description": "Total nudge cards delivered during this period."
+    },
+    {
+      "logicalName": "cr_totaldismissed",
+      "displayName": "Total Dismissed",
+      "type": "WholeNumber",
+      "required": true,
+      "defaultValue": 0,
+      "description": "Total nudges dismissed (by user or agent SKIP) during this period."
+    },
+    {
+      "logicalName": "cr_avgreplydays",
+      "displayName": "Average Reply Days",
+      "type": "Decimal",
+      "precision": 2,
+      "required": false,
+      "description": "Average calendar days between sent date and reply detection for rows resolved during this period. Null if no replies detected."
+    }
+  ],
+  "notes": {
+    "cardinality": "One row per user per week. Flow 17 runs weekly and upserts the current period's aggregates. Historical rows are retained indefinitely for trend analysis.",
+    "aggregation_logic": "Flow 17 queries cr_followuptrackings for the current user where createdon is within the current week. It counts by state (replied, nudged, dismissed) and computes average reply time for resolved rows.",
+    "canvas_app_usage": "The analytics dashboard screen reads the most recent 12 rows (3 months) to show trends. Summary statistics use the most recent row for current-period numbers.",
+    "security": "UserOwned table with ownership-based RLS. Users can only see their own analytics.",
+    "system_columns": "Standard Dataverse system columns (ownerid, createdon, modifiedon, statecode, statuscode) are created automatically."
+  }
+}

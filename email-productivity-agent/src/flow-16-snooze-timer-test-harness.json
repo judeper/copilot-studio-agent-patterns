@@ -1,0 +1,224 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "List_Expired_Snoozes": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_snoozedconversations",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_snoozeuntil ne null and cr_snoozeuntil le @{utcNow()} and cr_unsnoozedbyagent eq false and cr_unsnoozebytimer eq false",
+            "$top": 50
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": ["Succeeded"]
+        }
+      },
+      "Condition_No_Expired": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@length(outputs('List_Expired_Snoozes')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Response_Nothing_To_Do": {
+            "type": "Response",
+            "kind": "Http",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "status": "no_expired_snoozes",
+                "message": "No expired snooze timers found.",
+                "checkedAt": "@{utcNow()}"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_Expired_Snoozes": ["Succeeded"]
+        }
+      },
+      "Scope_Process_Expired_Snoozes": {
+        "type": "Scope",
+        "actions": {
+          "Apply_to_each_expired": {
+            "type": "Foreach",
+            "foreach": "@outputs('List_Expired_Snoozes')?['body/value']",
+            "actions": {
+              "HTTP_Move_To_Inbox": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "POST",
+                    "request/url": "/v1.0/me/messages/@{items('Apply_to_each_expired')?['cr_originalmessageid']}/move",
+                    "request/body": "{\"destinationId\": \"inbox\"}"
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
+                }
+              },
+              "Compose_newMessageId": {
+                "type": "Compose",
+                "inputs": "@body('HTTP_Move_To_Inbox')?['id']",
+                "runAfter": {
+                  "HTTP_Move_To_Inbox": ["Succeeded"]
+                }
+              },
+              "Update_SnoozedConversation_Timer": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_snoozedconversations",
+                    "recordId": "@items('Apply_to_each_expired')?['cr_snoozedconversationid']",
+                    "item/cr_unsnoozebytimer": true,
+                    "item/cr_unsnoozeddatetime": "@utcNow()",
+                    "item/cr_originalmessageid": "@outputs('Compose_newMessageId')",
+                    "item/cr_currentfolder": "inbox"
+                  },
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "UpdateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  }
+                },
+                "runAfter": {
+                  "Compose_newMessageId": ["Succeeded"]
+                }
+              },
+              "Post_Timer_Notification": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "poster": "Flow bot",
+                    "location": "Chat with Flow bot",
+                    "body/recipient": "@{outputs('Get_my_profile_(V2)')?['body/userPrincipalName']}",
+                    "body/messageBody": "⏰ **Snooze expired**: _@{items('Apply_to_each_expired')?['cr_originalsubject']}_ has been moved back to your Inbox."
+                  },
+                  "host": {
+                    "connectionName": "shared_teams",
+                    "operationId": "PostMessageToConversation",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                  }
+                },
+                "runAfter": {
+                  "Update_SnoozedConversation_Timer": ["Succeeded"]
+                }
+              }
+            },
+            "operationOptions": "Sequential"
+          }
+        },
+        "runAfter": {
+          "Condition_No_Expired": ["Succeeded"]
+        }
+      },
+      "Response_Success": {
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "body": {
+            "status": "processed",
+            "message": "Expired snooze timers processed successfully.",
+            "processedCount": "@length(outputs('List_Expired_Snoozes')?['body/value'])",
+            "checkedAt": "@{utcNow()}"
+          }
+        },
+        "runAfter": {
+          "Scope_Process_Expired_Snoozes": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 16 snooze timer test harness error: @{result('Scope_Process_Expired_Snoozes')}"
+          },
+          "Response_Error": {
+            "type": "Response",
+            "kind": "Http",
+            "inputs": {
+              "statusCode": 500,
+              "body": {
+                "status": "error",
+                "message": "@{outputs('Compose_ErrorDetails')}",
+                "checkedAt": "@{utcNow()}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Scope_Process_Expired_Snoozes": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 16: Snooze Timer Test Harness",
+    "description": "HTTP-triggered test harness for Flow 15 (Snooze Timer). Runs expired snooze check on demand.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)",
+      "shared_webcontents (HTTP with Microsoft Entra ID — Base: https://graph.microsoft.com)",
+      "shared_teams (Microsoft Teams)"
+    ],
+    "notes": {
+      "trigger": "Invoke over HTTP to run the expired snooze check immediately. The request body is optional.",
+      "timeZone": "Not applicable. This harness is invoked on demand via HTTP rather than recurrence.",
+      "differences": "Uses HTTP Response actions instead of Terminate for result reporting. Otherwise identical logic to Flow 15."
+    }
+  }
+}

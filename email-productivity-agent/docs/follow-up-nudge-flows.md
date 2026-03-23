@@ -99,6 +99,33 @@ cr_owneruserid: "@{outputs('Get_my_profile_(V2)')?['body/id']}"
 
 > **Note:** Flow 1 always tracks sent emails regardless of the `cr_nudgesenabled` setting. The nudge-enabled check is performed in Flow 2 (Response Detection), so disabling nudges only suppresses notifications — tracking continues and pending nudges will catch up when re-enabled.
 
+#### Step 1b: List Priority Contacts
+
+```
+Action: Dataverse — List rows
+Table: Priority Contacts (cr_prioritycontacts)
+Filter: _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
+Store as: priorityContacts
+
+Purpose: Queries the cr_prioritycontacts table once before the recipient loop
+to avoid repeated lookups. The result is used inside the loop by
+Filter_PriorityMatch to classify recipients.
+```
+
+#### Step 1c: List Holidays (45-Day Window)
+
+```
+Action: Dataverse — List rows
+Table: Holiday Calendars (cr_holidaycalendars)
+Filter:
+  cr_holidaydate ge @{utcNow()}
+  and cr_holidaydate le @{addDays(utcNow(), 45)}
+Store as: holidays
+
+Purpose: Pre-fetches holidays in a 45-day window so the follow-up date
+calculation can skip holidays. Runs once before the recipient loop.
+```
+
 #### Step 2: Get User's Tenant Domain
 
 ```
@@ -123,13 +150,55 @@ Inside the loop:
 Compose: recipientDomain
 Expression: split(items('Apply_to_each')?['emailAddress']?['address'], '@')[1]
 
-Condition: Is Internal?
-  If recipientDomain equals userDomain → recipientType = "Internal"
-  Else → recipientType = "External"
+Action: Filter array — Filter_PriorityMatch
+  From: outputs('List_PriorityContacts')?['body/value']
+  Where: toLower(item()?['cr_email']) equals
+         toLower(items('Apply_to_each')?['emailAddress']?['address'])
 
-Note: Priority contact detection is a future enhancement.
-      For MVP, all non-internal recipients are "External" or "General".
-      Use "External" for external domains, "General" as the default fallback.
+Action: Compose — Set_recipientType (three-way classification)
+  Expression:
+    if(greater(length(body('Filter_PriorityMatch')), 0),
+       'Priority',
+    if(equals(outputs('recipientDomain'), variables('userDomain')),
+       'Internal',
+       'External'
+    ))
+
+Note: Priority → Internal → External. Priority contacts are checked first
+via Filter_PriorityMatch against the pre-fetched cr_prioritycontacts list.
+If the recipient matches a priority contact row, they are classified as
+"Priority" regardless of domain. Otherwise, domain matching determines
+Internal vs. External.
+```
+
+##### Step 3a-post: Check If Distribution List
+
+```
+Action: HTTP with Microsoft Entra ID — HTTP_Check_If_Group
+  Method: GET
+  URI: https://graph.microsoft.com/v1.0/groups
+    ?$filter=mail eq '@{items('Apply_to_each')?['emailAddress']?['address']}'
+    &$select=id,displayName,mail
+  Authentication: Azure AD (delegated, Group.Read.All)
+
+Condition: Condition_Is_Distribution_List
+  length(body('HTTP_Check_If_Group')?['value']) greater than 0
+
+If yes (is a DL):
+  Action: HTTP with Microsoft Entra ID — Get DL Members
+    Method: GET
+    URI: https://graph.microsoft.com/v1.0/groups/{groupId}/members
+      ?$select=mail,displayName
+    Authentication: Azure AD (delegated, Group.Read.All)
+
+  Action: Apply to each (DL members)
+    For each member, create a tracking row with:
+      cr_recipientemail = member mail
+      cr_dlsourceemail = original DL address
+    This expands DL recipients into per-member tracking rows.
+
+If no (not a DL):
+  Continue with the single recipient (Step 3b).
 ```
 
 ##### Step 3b-pre: Normalize Weekend Start Date
@@ -179,7 +248,26 @@ applying the business-day formula, preventing off-by-one errors when
 dayOfWeek() returns 0 (Sunday) or 6 (Saturday).
 This expression adds calendar days equivalent to the requested business
 days by accounting for weekends. It adds 2 extra days for every 5 business
-days to skip Saturday and Sunday. Holiday exclusion is out of scope for MVP.
+days to skip Saturday and Sunday.
+```
+
+##### Step 3b-post: Adjust Follow-Up Date for Holidays
+
+```
+Action: Filter array — Filter_WeekdayHolidays
+  From: outputs('List_Holidays')?['body/value']
+  Where: item()?['cr_holidaydate'] ge outputs('followUpDate')
+         and item()?['cr_holidaydate'] le addDays(outputs('followUpDate'), 5)
+
+Action: Compose — Compose_adjustedFollowUpDate
+  Expression:
+    Iteratively advances the follow-up date past any holidays that fall
+    on the calculated date or the immediately following business days.
+    If the adjusted date lands on a weekend, it is further advanced to
+    the next Monday.
+
+Purpose: Ensures the nudge follow-up date does not land on a holiday
+from the cr_holidaycalendars table. Holidays are pre-fetched in Step 1c.
 ```
 
 ##### Step 3c: Extract Internet Message Headers
@@ -288,6 +376,25 @@ Condition: cr_nudgesenabled equals false
   If no → Continue to Step 3
 ```
 
+#### Step 2b: Holiday Gate
+
+```
+Action: Dataverse — List rows (List_TodayHoliday)
+Table: Holiday Calendars (cr_holidaycalendars)
+Filter:
+  cr_holidaydate eq @{formatDateTime(utcNow(), 'yyyy-MM-dd')}
+Top Count: 1
+
+Condition: Condition_Not_Holiday
+  If cr_skipholidaynudges eq true (from nudge config) AND List_TodayHoliday returned rows:
+    → Terminate flow (Status: Succeeded, Message: "Holiday — nudges skipped")
+  Else:
+    → Continue to Step 3
+
+Purpose: Skips nudge delivery entirely on holidays when the user has
+cr_skipholidaynudges=true in their nudge configuration.
+```
+
 #### Step 3: Query Overdue Follow-Ups
 
 ```
@@ -300,12 +407,15 @@ Filter:
   and cr_followupdate le @{utcNow()}
   and _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
 Sort: cr_followupdate asc
-Top Count: 50 (process in batches to avoid timeout)
+Top Count: 5000
+
+Pagination: paginationPolicy.minimumItemCount = 5000
+  This enables unbounded Dataverse processing by requesting up to 5000 rows
+  per page. The Dataverse connector automatically follows @odata.nextLink
+  when paginationPolicy is configured, eliminating the previous 50-row cap.
 ```
 
-> ⚠️ Owner filter is required for data isolation. Do not remove this filter even if using RLS-based security roles.
-
-> **POC limitation — no pagination:** The current build processes up to 50 overdue rows per daily run. If a user has more than 50 pending follow-ups, excess rows are deferred to subsequent runs. For production use, consider adding a pagination loop using `@odata.nextLink`.
+> **Owner filter** is required for data isolation. Do not remove this filter even if using RLS-based security roles.
 
 #### Step 4: Loop Through Pending Follow-Ups
 
@@ -453,6 +563,8 @@ Adaptive Card: See schemas/adaptive-card-nudge.json
 
 This posts the card but does NOT wait for a response. Button clicks are handled by a separate flow.
 
+**Digest mode**: When `cr_digestmode=true` in the user's nudge configuration, individual nudge cards are NOT posted during the loop. Instead, nudges are collected into an array variable and delivered as a single consolidated digest Adaptive Card after the loop completes. This reduces notification noise for users with many pending follow-ups.
+
 Then update Dataverse:
 
 ```
@@ -470,12 +582,16 @@ cr_lastchecked: @{utcNow()}
 > **Trigger:** "When someone responds to an adaptive card" (Microsoft Teams connector)
 >
 > **Logic:**
-> 1. Parse the response body to get `action`, `trackingId`, and other fields
+> 1. Parse the response body to get `action`, `trackingId`, `snoozeDuration`, and other fields
 > 2. Switch on `action`:
->    - `draft_followup` → Look up the tracking record, invoke the Follow-Up Nudge agent via `ExecuteAgentAndWait` to generate a full draft, then post it as a Teams message for review
->    - `snooze_nudge` → Update Dataverse: `cr_followupdate = addDays(utcNow(), 2)`, `cr_nudgesent = false`
->    - `dismiss_nudge` → Update Dataverse: `cr_dismissedbyuser = true`
+>    - `draft_followup` — Look up the tracking record, invoke the Follow-Up Nudge agent via `ExecuteAgentAndWait` to generate a full draft, then post it as a Teams message for review
+>    - `snooze_nudge` — Read `snoozeDuration` from the card response (1-14 days, user-selectable). Update Dataverse: `cr_followupdate = addDays(utcNow(), snoozeDuration)`, `cr_nudgesent = false`. Also create a `cr_snoozedconversation` row with `cr_snoozeuntil = addDays(utcNow(), snoozeDuration)` so Flow 15 (Snooze Timer) can process the timed unsnooze.
+>    - `dismiss_nudge` — Update Dataverse: `cr_dismissedbyuser = true`
 > 3. Error handling: On failure, post a text message to the user: "Action couldn't be completed. Please try again."
+>
+> **Snooze duration**: The snooze action now reads a `snoozeDuration` value (1-14 days) from the Adaptive Card response instead of using a hardcoded 2-day delay. The Adaptive Card includes an `Input.Number` or `Input.ChoiceSet` field allowing the user to select their preferred snooze duration.
+>
+> **Timer entry**: When snooze is selected, Flow 2b creates a `cr_snoozedconversation` row with `cr_snoozeuntil` set to the user-selected duration. This row is picked up by Flow 15 (Snooze Timer) which runs every 15 minutes and moves expired snoozed messages back to the Inbox.
 >
 > This separation is required because Power Automate's "Post adaptive card" action does not support inline response waiting within a batch processing loop.
 
@@ -544,7 +660,7 @@ addDays(
 
 **How it works**: For every 5 business days, add 2 weekend days. The `dayOfWeek()` offset ensures the calculation starts correctly regardless of which day the email was sent.
 
-**Limitation**: This does NOT account for holidays. Holiday handling requires a separate Dataverse reference table (out of scope for MVP).
+**Holiday adjustment**: After computing the business-day follow-up date, Flow 1 applies holiday adjustment (Steps 1c and 3b-post) using the `cr_holidaycalendars` Dataverse table to skip holidays in a 45-day window.
 
 ### Scope + Parallel Error Branch
 

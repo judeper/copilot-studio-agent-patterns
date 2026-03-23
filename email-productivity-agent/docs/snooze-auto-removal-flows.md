@@ -101,15 +101,34 @@ Action: Dataverse — Create a new row (if config does not yet exist)
 Variable: snoozeFolderId = outputs('Get_Config')?['body/cr_snoozefolderid']
 ```
 
-#### Step 2: List Messages in Snoozed Folder
+#### Step 2: List Messages in Snoozed Folder (Paginated)
 
 ```
-Action: HTTP with Microsoft Entra ID
-Method: GET
-URI: https://graph.microsoft.com/v1.0/me/mailFolders/{snoozeFolderId}/messages
-  ?$select=id,conversationId,subject,receivedDateTime
-  &$top=50
-Authentication: Azure AD (delegated, Mail.Read)
+Action: Do-Until loop — Graph API pagination
+  Condition: empty(nextLink) OR loopCount ge 20
+
+  Inside the loop:
+    Action: HTTP with Microsoft Entra ID
+    Method: GET
+    URI: (first iteration)
+      https://graph.microsoft.com/v1.0/me/mailFolders/{snoozeFolderId}/messages
+        ?$select=id,conversationId,subject,receivedDateTime
+        &$top=200
+    URI: (subsequent iterations)
+      @{variables('nextLink')}
+    Authentication: Azure AD (delegated, Mail.Read)
+
+    Compose: nextLink
+      Expression: coalesce(body('List_Snoozed_Messages')?['@odata.nextLink'], '')
+
+    Append to array: allSnoozedMessages
+      Expression: union(variables('allSnoozedMessages'), body('List_Snoozed_Messages')?['value'])
+
+    Increment: loopCount
+
+Pagination: Fetches 200 messages per page, up to 20 pages (4,000 messages max).
+The Do-Until loop follows @odata.nextLink until no more pages exist or the
+safety cap of 20 iterations is reached.
 ```
 
 **Error handling**: If the folder no longer exists (404), clear `cr_snoozefolderid` and recreate on next run.
@@ -214,6 +233,26 @@ Condition: length(outputs('Check_Snoozed')?['body/value']) equals 0
 If yes → Terminate (no action needed — this is the most common path)
 ```
 
+#### Step 3b: Check if Reply Sender is Priority Contact
+
+```
+Action: Dataverse — List rows (List_PriorityContacts_Sender)
+Table: Priority Contacts (cr_prioritycontacts)
+Filter:
+  _ownerid_value eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'
+  and cr_email eq '@{toLower(triggerOutputs()?['body/from']?['emailAddress']?['address'])}'
+Top Count: 1
+
+Compose: IS_PRIORITY_SENDER
+  Expression:
+    if(greater(length(outputs('List_PriorityContacts_Sender')?['body/value']), 0),
+       'true', 'false')
+
+Purpose: If the reply sender is a priority contact, the agent should always
+UNSNOOZE regardless of other factors. This value is passed as an input to
+the snooze agent in Step 4.
+```
+
 #### Step 4: If Match Found → Determine Unsnooze Action
 
 **Agent-powered decisioning**:
@@ -231,8 +270,12 @@ Inputs:
     - NEW_MESSAGE_EXCERPT: @{take(triggerOutputs()?['body/bodyPreview'], 500)}
     - SNOOZED_SUBJECT: @{first(outputs('Check_Snoozed')?['body/value'])?['cr_originalsubject']}
     - SNOOZE_UNTIL: @{coalesce(first(outputs('Check_Snoozed')?['body/value'])?['cr_snoozeuntil'], '')}
+    - IS_PRIORITY_SENDER: @{outputs('IS_PRIORITY_SENDER')}
     - USER_TIMEZONE: @{coalesce(outputs('Get_Mailbox_Settings')?['body/timeZone'], 'UTC')}
     - CURRENT_DATETIME: @{utcNow()}
+
+Note: When IS_PRIORITY_SENDER is 'true', the agent always returns UNSNOOZE
+regardless of other decision factors (time of day, content analysis, etc.).
 
 Parse the response JSON:
   - unsnoozeAction: "UNSNOOZE" or "SUPPRESS"
@@ -333,13 +376,122 @@ Scope: Scope_Handle_Errors (Run After: has failed)
 Action: Dataverse — List rows
 Table: Snoozed Conversations
 Filter:
-  cr_unsnoozedbyagent eq true
+  (cr_unsnoozedbyagent eq true or cr_unsnoozebytimer eq true)
   and createdon lt @{addDays(utcNow(), -30)}
 Top Count: 100
 
 Action: Apply to each
   Action: Dataverse — Delete a row
   Row ID: items('Apply_to_each')?['cr_snoozedconversationid']
+```
+
+> **Note:** Cleanup now checks both `cr_unsnoozedbyagent=true` (set by Flow 4 on reply-based unsnooze) and `cr_unsnoozebytimer=true` (set by Flow 15 on timer-based unsnooze). Either flag indicates the conversation has been fully processed and is eligible for purge.
+
+---
+
+## Flow 15: Snooze Timer
+
+**Purpose**: Automatically unsnooze messages whose snooze timer has expired, moving them back to the Inbox and notifying the user via Teams.
+
+### Trigger
+
+| Setting | Value |
+|---------|-------|
+| Trigger Type | Recurrence (Scheduled) |
+| Frequency | Minute |
+| Interval | 15 |
+
+### Actions
+
+#### Step 1: Query Expired Snooze Timers
+
+```
+Action: Dataverse — List rows
+Table: Snoozed Conversations (cr_snoozedconversations)
+Filter:
+  cr_snoozeuntil le @{utcNow()}
+  and cr_unsnoozebytimer eq false
+  and cr_unsnoozedbyagent eq false
+Top Count: 50
+
+Purpose: Finds all snoozed conversations where the snooze timer has expired
+and neither unsnooze flag has been set. Checking both flags prevents race
+conditions with Flow 4 (reply-based unsnooze).
+```
+
+#### Step 2: Loop Through Expired Snoozes
+
+```
+Action: Apply to each
+Input: outputs('List_Expired_Snoozes')?['body/value']
+Concurrency: 1 (sequential to avoid overlapping Graph calls)
+```
+
+Inside the loop:
+
+##### Step 2a: Move Message to Inbox
+
+```
+Action: HTTP with Microsoft Entra ID
+Method: POST
+URI: https://graph.microsoft.com/v1.0/me/messages/{cr_originalmessageid}/move
+Body:
+{
+  "destinationId": "inbox"
+}
+Authentication: Azure AD (delegated, Mail.ReadWrite)
+
+CRITICAL: The Graph move operation invalidates the original message ID.
+The original message is deleted and a new message is created in the
+destination folder with a NEW ID. The flow MUST capture this new ID.
+
+Compose: newMessageId
+  Expression: body('Move_Message_Timer')?['id']
+```
+
+##### Step 2b: Update Dataverse Record
+
+```
+Action: Dataverse — Update a row
+Table: Snoozed Conversations
+Row ID: items('Apply_to_each')?['cr_snoozedconversationid']
+cr_unsnoozebytimer: true
+cr_unsnoozeddatetime: @{utcNow()}
+cr_originalmessageid: @{outputs('newMessageId')}
+cr_currentfolder: "inbox"
+```
+
+##### Step 2c: Notify User via Teams
+
+```
+Action: Microsoft Teams — Post message as the Flow bot to a user
+Location: Chat with Flow bot
+Recipient: Current user (flow connection owner)
+Message: "Snooze expired: **@{items('Apply_to_each')?['cr_originalsubject']}** has been moved back to your Inbox."
+```
+
+### Coordination with Flow 4
+
+Flow 15 (timer-based) and Flow 4 (reply-based) can both attempt to unsnooze the same conversation. Race conditions are prevented by the dual-flag check:
+
+- **Flow 4** checks `cr_unsnoozedbyagent eq false AND cr_unsnoozebytimer eq false` before acting, then sets `cr_unsnoozedbyagent = true`
+- **Flow 15** checks `cr_unsnoozebytimer eq false AND cr_unsnoozedbyagent eq false` before acting, then sets `cr_unsnoozebytimer = true`
+
+If either flow has already processed the conversation, the other flow's query will not return it. In the unlikely case of a true simultaneous race, the second `move` call will return 404 (message already moved), which is handled by the error scope.
+
+### Error Handling
+
+```
+Scope: Scope_Timer_Unsnooze
+  [Steps 1-2 above]
+
+Scope: Scope_Handle_Errors (Run After: has failed)
+  Actions:
+    - If move failed with 404:
+        Message was already moved (by Flow 4 or manually).
+        Update Dataverse: cr_unsnoozebytimer = true (mark as handled)
+    - Log error details
+    - Terminate: Succeeded
 ```
 
 ---

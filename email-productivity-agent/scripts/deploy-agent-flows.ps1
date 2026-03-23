@@ -12,6 +12,13 @@
       - Flow 4: Auto-Unsnooze (event-driven)
       - Flow 5: Data Retention Cleanup (weekly)
       - Flow 6: Snooze Cleanup (weekly)
+      - Flow 7: Settings Card
+      - Flow 7b: Settings Card Handler
+      - Flow 8-13: Test Harnesses
+      - Flow 15: Snooze Timer (recurring)
+      - Flow 16: Snooze Timer Test Harness
+      - Flow 17: Analytics Aggregation (scheduled)
+      - Flow 18: Analytics Test Harness
 
     The script:
       1. Creates (or reuses) an "EmailProductivityAgent" Dataverse solution
@@ -28,7 +35,8 @@
     NOTE: The shared_microsoftcopilotstudio connection is required by Flow 2,
     2b, 4, 8, 9, and 12 for live Copilot Studio agent invocation. Pass
     -CopilotBotId with the bot ID from provision-copilot.ps1 to inject it into
-    the flow definitions at deploy time.
+    the flow definitions at deploy time. Flows 15-18 do not invoke the agent
+    and do not require -CopilotBotId.
 
 .PARAMETER OrgUrl
     Dataverse organization URL (e.g., https://emailproductivityagent.crm.dynamics.com)
@@ -46,9 +54,11 @@
 .PARAMETER FlowsToCreate
     Which flows to create. Default: all.
     Valid values: "All", "Phase1" (Flow1,2,2b,5), "Phase2" (Flow3,4,6),
-    "Phase3" (Flow7,7b), or individual: "Flow1", "Flow2", "Flow2b",
-    "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8",
-    "Flow9", "Flow10", "Flow11", "Flow12", "Flow13"
+    "Phase3" (Flow7,7b), "Phase4" (Flow15 — Snooze Timer),
+    "Phase5" (Flow17 — Analytics Aggregation), or individual: "Flow1",
+    "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7",
+    "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12", "Flow13",
+    "Flow15", "Flow16", "Flow17", "Flow18"
 
 .PARAMETER CopilotBotId
     Bot ID (GUID) of the Email Productivity Agent copilot. Returned by
@@ -77,7 +87,7 @@ param(
 
     [string]$TimeZone = "Eastern Standard Time",
 
-    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12", "Flow13")]
+    [ValidateSet("All", "Phase1", "Phase2", "Phase3", "Phase4", "Phase5", "Flow1", "Flow2", "Flow2b", "Flow3", "Flow4", "Flow5", "Flow6", "Flow7", "Flow7b", "Flow8", "Flow9", "Flow10", "Flow11", "Flow12", "Flow13", "Flow15", "Flow16", "Flow17", "Flow18")]
     [string]$FlowsToCreate = "All",
 
     [switch]$Force,
@@ -166,6 +176,26 @@ $flowMap = [ordered]@{
         File        = "flow-13-snooze-seed-test-harness.json"
         DisplayName = "EPA - Flow 13: Snooze Seed Test Harness"
         ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents")
+    }
+    Flow15 = @{
+        File        = "flow-15-snooze-timer.json"
+        DisplayName = "EPA - Flow 15: Snooze Timer"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+    }
+    Flow16 = @{
+        File        = "flow-16-snooze-timer-test-harness.json"
+        DisplayName = "EPA - Flow 16: Snooze Timer Test Harness"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps", "shared_webcontents", "shared_teams")
+    }
+    Flow17 = @{
+        File        = "flow-17-analytics-aggregation.json"
+        DisplayName = "EPA - Flow 17: Analytics Aggregation"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps")
+    }
+    Flow18 = @{
+        File        = "flow-18-analytics-test-harness.json"
+        DisplayName = "EPA - Flow 18: Analytics Test Harness"
+        ConnRefs    = @("shared_office365users", "shared_commondataserviceforapps")
     }
 }
 
@@ -283,6 +313,8 @@ $flowsToProcess = switch ($FlowsToCreate) {
     "Phase1" { @("Flow5", "Flow1", "Flow2", "Flow2b") }
     "Phase2" { @("Flow6", "Flow3", "Flow4") }
     "Phase3" { @("Flow7", "Flow7b") }
+    "Phase4" { @("Flow15") }
+    "Phase5" { @("Flow17") }
     default  { @($FlowsToCreate) }
 }
 
@@ -590,6 +622,14 @@ Write-Host @"
     3. Associate flows with Copilot Studio agent:
        Agent → Settings → Flows → Add
     4. Publish the agent
+
+  Phases:
+    Phase 1: Flow 1, 2, 2b, 5  (Core follow-up tracking)
+    Phase 2: Flow 3, 4, 6      (Snooze detection & cleanup)
+    Phase 3: Flow 7, 7b        (Settings card)
+    Phase 4: Flow 15           (Snooze timer)
+    Phase 5: Flow 17           (Analytics aggregation)
+    Test harnesses: Flow 8-13, 16, 18
 
   Environment: $OrgUrl
   Environment ID: $EnvironmentId

@@ -194,11 +194,48 @@
           "List_NudgeConfig": ["Succeeded"]
         }
       },
+      "List_PriorityContacts": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_prioritycontacts",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$select": "cr_contactemail"
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Condition_Config_Exists": ["Succeeded"]
+        }
+      },
+      "List_Holidays": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_holidaycalendars",
+            "$filter": "(cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' or cr_isorgwide eq true) and cr_holidaydate ge @{formatDateTime(utcNow(), 'yyyy-MM-dd')} and cr_holidaydate le @{formatDateTime(addDays(utcNow(), 45), 'yyyy-MM-dd')}",
+            "$select": "cr_holidaydate",
+            "$orderby": "cr_holidaydate asc"
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "List_PriorityContacts": ["Succeeded"]
+        }
+      },
       "Compose_normalizedStartDate": {
         "type": "Compose",
         "inputs": "@if(empty(triggerOutputs()?['body/sentDateTime']), utcNow(), if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 0), addDays(triggerOutputs()?['body/sentDateTime'], 1), if(equals(dayOfWeek(triggerOutputs()?['body/sentDateTime']), 6), addDays(triggerOutputs()?['body/sentDateTime'], 2), triggerOutputs()?['body/sentDateTime'])))",
         "runAfter": {
-          "Condition_Config_Exists": ["Succeeded"]
+          "List_Holidays": ["Succeeded"]
         }
       },
       "Scope_Track_Recipients": {
@@ -216,14 +253,24 @@
                 "type": "Compose",
                 "inputs": "@split(coalesce(items('Apply_to_each_recipient')?['emailAddress']?['address'], 'unknown@unknown'), '@')[1]"
               },
+              "Filter_PriorityMatch": {
+                "type": "Query",
+                "inputs": {
+                  "from": "@outputs('List_PriorityContacts')?['body/value']",
+                  "where": "@equals(toLower(item()?['cr_contactemail']), toLower(items('Apply_to_each_recipient')?['emailAddress']?['address']))"
+                },
+                "runAfter": {
+                  "Compose_recipientDomain": ["Succeeded"]
+                }
+              },
               "Set_recipientType": {
                 "type": "SetVariable",
                 "inputs": {
                   "name": "recipientType",
-                  "value": "@if(equals(outputs('Compose_recipientDomain'), variables('userDomain')), 'Internal', 'External')"
+                  "value": "@if(greater(length(outputs('Filter_PriorityMatch')?['body']), 0), 'Priority', if(equals(outputs('Compose_recipientDomain'), variables('userDomain')), 'Internal', 'External'))"
                 },
                 "runAfter": {
-                  "Compose_recipientDomain": ["Succeeded"]
+                  "Filter_PriorityMatch": ["Succeeded"]
                 }
               },
               "Compose_followUpDays": {
@@ -240,31 +287,138 @@
                   "Compose_followUpDays": ["Succeeded"]
                 }
               },
-              "Upsert_FollowUpTracking": {
-                "type": "OpenApiConnection",
+              "Filter_WeekdayHolidays": {
+                "type": "Query",
                 "inputs": {
-                  "parameters": {
-                    "entityName": "cr_followuptrackings",
-                    "recordId": "@{encodeURIComponent(concat('cr_sourcesignalid=''', encodeURIComponent(triggerOutputs()?['body/internetMessageId']), ''',cr_recipientemail=''', encodeURIComponent(items('Apply_to_each_recipient')?['emailAddress']?['address']), ''''))}",
-                    "item/cr_sourcesignalid": "@triggerOutputs()?['body/internetMessageId']",
-                    "item/cr_conversationid": "@triggerOutputs()?['body/conversationId']",
-                    "item/cr_sentdatetime": "@triggerOutputs()?['body/sentDateTime']",
-                    "item/cr_recipientemail": "@items('Apply_to_each_recipient')?['emailAddress']?['address']",
-                    "item/cr_recipienttype": "@variables('recipientType')",
-                    "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
-                    "item/cr_followupdate": "@outputs('Compose_followUpDate')",
-                    "item/cr_responsereceived": false,
-                    "item/cr_nudgesent": false,
-                    "item/cr_dismissedbyuser": false
-                  },
-                  "host": {
-                    "connectionName": "shared_commondataserviceforapps",
-                    "operationId": "UpdateRecord",
-                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                  }
+                  "from": "@outputs('List_Holidays')?['body/value']",
+                  "where": "@and(not(equals(dayOfWeek(item()?['cr_holidaydate']), 0)), not(equals(dayOfWeek(item()?['cr_holidaydate']), 6)), greaterOrEquals(item()?['cr_holidaydate'], triggerOutputs()?['body/sentDateTime']), lessOrEquals(item()?['cr_holidaydate'], outputs('Compose_followUpDate')))"
                 },
                 "runAfter": {
                   "Compose_followUpDate": ["Succeeded"]
+                }
+              },
+              "Compose_adjustedFollowUpDate": {
+                "type": "Compose",
+                "inputs": "@addDays(outputs('Compose_followUpDate'), length(body('Filter_WeekdayHolidays')))",
+                "runAfter": {
+                  "Filter_WeekdayHolidays": ["Succeeded"]
+                }
+              },
+              "HTTP_Check_If_Group": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "request/method": "GET",
+                    "request/url": "/v1.0/groups?$filter=mail eq '@{items('Apply_to_each_recipient')?['emailAddress']?['address']}'&$select=id,mail,displayName&$top=1"
+                  },
+                  "host": {
+                    "connectionName": "shared_webcontents",
+                    "operationId": "InvokeHttp",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 2,
+                    "interval": "PT5S",
+                    "maximumInterval": "PT30S"
+                  }
+                },
+                "runAfter": {
+                  "Compose_adjustedFollowUpDate": ["Succeeded"]
+                }
+              },
+              "Condition_Is_Distribution_List": {
+                "type": "If",
+                "expression": {
+                  "and": [
+                    {
+                      "greater": [
+                        "@length(coalesce(body('HTTP_Check_If_Group')?['value'], json('[]')))",
+                        0
+                      ]
+                    }
+                  ]
+                },
+                "actions": {
+                  "HTTP_Get_Group_Members": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "request/method": "GET",
+                        "request/url": "/v1.0/groups/@{first(body('HTTP_Check_If_Group')?['value'])?['id']}/members?$select=mail,displayName&$top=100"
+                      },
+                      "host": {
+                        "connectionName": "shared_webcontents",
+                        "operationId": "InvokeHttp",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_webcontents"
+                      }
+                    }
+                  },
+                  "Apply_to_each_DL_member": {
+                    "type": "Foreach",
+                    "foreach": "@coalesce(body('HTTP_Get_Group_Members')?['value'], json('[]'))",
+                    "actions": {
+                      "Upsert_FollowUpTracking_DL_Member": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "entityName": "cr_followuptrackings",
+                            "recordId": "@{encodeURIComponent(concat('cr_sourcesignalid=''', encodeURIComponent(triggerOutputs()?['body/internetMessageId']), ''',cr_recipientemail=''', encodeURIComponent(items('Apply_to_each_DL_member')?['mail']), ''''))}",
+                            "item/cr_sourcesignalid": "@triggerOutputs()?['body/internetMessageId']",
+                            "item/cr_conversationid": "@triggerOutputs()?['body/conversationId']",
+                            "item/cr_sentdatetime": "@triggerOutputs()?['body/sentDateTime']",
+                            "item/cr_recipientemail": "@items('Apply_to_each_DL_member')?['mail']",
+                            "item/cr_recipienttype": "@variables('recipientType')",
+                            "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
+                            "item/cr_followupdate": "@outputs('Compose_adjustedFollowUpDate')",
+                            "item/cr_responsereceived": false,
+                            "item/cr_nudgesent": false,
+                            "item/cr_dismissedbyuser": false,
+                            "item/cr_dlsourceemail": "@items('Apply_to_each_recipient')?['emailAddress']?['address']"
+                          },
+                          "host": {
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "UpdateRecord",
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                          }
+                        }
+                      }
+                    },
+                    "runAfter": {
+                      "HTTP_Get_Group_Members": ["Succeeded"]
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Upsert_FollowUpTracking": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "entityName": "cr_followuptrackings",
+                          "recordId": "@{encodeURIComponent(concat('cr_sourcesignalid=''', encodeURIComponent(triggerOutputs()?['body/internetMessageId']), ''',cr_recipientemail=''', encodeURIComponent(items('Apply_to_each_recipient')?['emailAddress']?['address']), ''''))}",
+                          "item/cr_sourcesignalid": "@triggerOutputs()?['body/internetMessageId']",
+                          "item/cr_conversationid": "@triggerOutputs()?['body/conversationId']",
+                          "item/cr_sentdatetime": "@triggerOutputs()?['body/sentDateTime']",
+                          "item/cr_recipientemail": "@items('Apply_to_each_recipient')?['emailAddress']?['address']",
+                          "item/cr_recipienttype": "@variables('recipientType')",
+                          "item/cr_originalsubject": "@take(coalesce(triggerOutputs()?['body/subject'], '(No Subject)'), 400)",
+                          "item/cr_followupdate": "@outputs('Compose_adjustedFollowUpDate')",
+                          "item/cr_responsereceived": false,
+                          "item/cr_nudgesent": false,
+                          "item/cr_dismissedbyuser": false
+                        },
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        }
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "HTTP_Check_If_Group": ["Succeeded"]
                 }
               }
             },

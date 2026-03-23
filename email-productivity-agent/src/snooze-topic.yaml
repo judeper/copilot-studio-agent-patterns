@@ -50,6 +50,11 @@ inputs:
     description: Current UTC timestamp when the flow invokes the Snooze Agent
     shouldPromptUser: false
 
+  - kind: AutomaticTaskInput
+    propertyName: IS_PRIORITY_SENDER
+    description: Whether the reply sender is on the user's priority contact list (true/false)
+    shouldPromptUser: false
+
 beginDialog:
   kind: OnRecognizedIntent
   id: main
@@ -120,6 +125,11 @@ inputType:
     CURRENT_DATETIME:
       displayName: CURRENT_DATETIME
       description: Current UTC timestamp when the flow invokes the Snooze Agent
+      type: String
+
+    IS_PRIORITY_SENDER:
+      displayName: IS_PRIORITY_SENDER
+      description: Whether the reply sender is on the user's priority contact list (true/false)
       type: String
 
 outputType:

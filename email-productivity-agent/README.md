@@ -19,7 +19,7 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 ### Agent-Powered Decisioning
 - **Flow 2** invokes the Follow-Up Nudge topic in Copilot Studio to evaluate thread context and return a NUDGE or SKIP decision with a thread summary, suggested follow-up draft, priority, and confidence score
 - **Flow 4** invokes the Snooze Auto-Removal topic to decide UNSNOOZE or SUPPRESS based on reply content, sender, working hours, and auto-reply detection
-- **CLI harness flows (8-13)** provide HTTP-triggered coverage for Flow 2, 2b, 3, 4, 7, and 7b — harness flows 8, 9, and 12 also use live agent invocation
+- **CLI harness flows (8-13, 16, 18)** provide HTTP-triggered coverage for Flow 2, 2b, 3, 4, 7, 7b, 15, and 17 — harness flows 8, 9, and 12 also use live agent invocation
 
 ## Architecture
 
@@ -62,6 +62,19 @@ A Copilot Studio pattern that brings Gmail-like email productivity features to O
 │              ▼         ▼                                    │
 │         Move to      Exit                                   │
 │         Inbox + Notify                                      │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│              SNOOZE TIMER (Phase 4)                         │
+│                                                             │
+│  Every 15 min ──► Flow 15: Snooze Timer                     │
+│                     │                                       │
+│          ┌──────────┴──────────┐                           │
+│          │ snoozeUntil expired?│                           │
+│          └───┬─────────┬──────┘                            │
+│          Yes │         │ No                                 │
+│              ▼         ▼                                    │
+│         Move to      Skip                                   │
+│         Inbox + Notify                                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -86,7 +99,11 @@ email-productivity-agent/
 │   ├── followup-tracking-table.json             # FollowUpTracking Dataverse table
 │   ├── nudge-config-table.json                  # NudgeConfiguration Dataverse table
 │   ├── snoozed-conversations-table.json         # SnoozedConversations Dataverse table
+│   ├── priority-contact-table.json              # PriorityContact Dataverse table
+│   ├── holiday-calendar-table.json              # HolidayCalendar Dataverse table
+│   ├── nudge-analytics-table.json               # NudgeAnalytics Dataverse table
 │   ├── adaptive-card-nudge.json                 # Teams nudge card template
+│   ├── adaptive-card-digest.json                # Teams daily digest card template
 │   └── adaptive-card-settings.json              # Teams settings card template
 ├── scripts/
 │   ├── provision-environment.ps1                # Environment + Dataverse table setup
@@ -118,7 +135,11 @@ email-productivity-agent/
 │   ├── flow-10-settings-handler-test-harness.json # Flow 10: HTTP-triggered Flow 7b harness
 │   ├── flow-11-snooze-detection-test-harness.json # Flow 11: HTTP-triggered Flow 3 harness
 │   ├── flow-12-auto-unsnooze-test-harness.json  # Flow 12: HTTP-triggered Flow 4 harness
-│   └── flow-13-snooze-seed-test-harness.json    # Flow 13: seed a real snoozed message for Flow 11/12 testing
+│   ├── flow-13-snooze-seed-test-harness.json    # Flow 13: seed a real snoozed message for Flow 11/12 testing
+│   ├── flow-15-snooze-timer.json                # Flow 15: timer-based snooze expiration
+│   ├── flow-16-snooze-timer-test-harness.json   # Flow 16: HTTP-triggered Flow 15 test harness
+│   ├── flow-17-analytics-aggregation.json       # Flow 17: weekly analytics aggregation
+│   └── flow-18-analytics-test-harness.json      # Flow 18: HTTP-triggered Flow 17 test harness
 ├── tools/
 │   └── lab-wizard/                              # Python CLI deployment wizard
 │       ├── wizard.py                            # Main entry point (menu-driven)
@@ -184,9 +205,21 @@ pwsh deploy-agent-flows.ps1 `
     -EnvironmentId "<env-id>" `
     -FlowsToCreate "Phase3"
 
-# 6. (Optional) Deploy regression harness flows — each must be deployed individually
-#    Valid values: Flow8, Flow9, Flow10, Flow11, Flow12, Flow13
-foreach ($flow in @("Flow8","Flow9","Flow10","Flow11","Flow12","Flow13")) {
+# 6. (Phase 4) Deploy snooze timer
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<org>.crm.dynamics.com" `
+    -EnvironmentId "<env-id>" `
+    -FlowsToCreate "Phase4"
+
+# 7. (Phase 5) Deploy analytics aggregation
+pwsh deploy-agent-flows.ps1 `
+    -OrgUrl "https://<org>.crm.dynamics.com" `
+    -EnvironmentId "<env-id>" `
+    -FlowsToCreate "Phase5"
+
+# 8. (Optional) Deploy regression harness flows — each must be deployed individually
+#    Valid values: Flow8, Flow9, Flow10, Flow11, Flow12, Flow13, Flow16, Flow18
+foreach ($flow in @("Flow8","Flow9","Flow10","Flow11","Flow12","Flow13","Flow16","Flow18")) {
     pwsh deploy-agent-flows.ps1 `
         -OrgUrl "https://<org>.crm.dynamics.com" `
         -EnvironmentId "<env-id>" `
@@ -194,7 +227,7 @@ foreach ($flow in @("Flow8","Flow9","Flow10","Flow11","Flow12","Flow13")) {
         -CopilotBotId "<bot-id>"
 }
 
-# 7. (Optional) Run regression harness examples
+# 9. (Optional) Run regression harness examples
 pwsh invoke-followup-test-harness.ps1 `
     -EnvironmentId "<env-id>" `
     -TrackingId "<cr_followuptrackingid-guid>" `
@@ -206,7 +239,7 @@ pwsh invoke-http-flow-harness.ps1 `
     -BodyJson '{"action":"dismiss_nudge","trackingId":"<cr_followuptrackingid-guid>","responderEmail":"<user@domain.com>","responderUserPrincipalName":"<user@domain.com>"}'
 ```
 
-See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-step checklist, including Flow 10-13 deployment and invocation examples.
+See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-step checklist, including Flow 10-13, 16, and 18 deployment and invocation examples.
 
 ## Key Design Decisions
 
@@ -245,6 +278,10 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Flow 11: Snooze Detection Test Harness (optional) | HTTP request | Run Flow 3 logic on demand, including folder recovery and snoozed-row upsert |
 | Flow 12: Auto-Unsnooze Test Harness (optional) | HTTP request | Replay Flow 4 matching, Graph move, Dataverse update, and Teams notification from the CLI |
 | Flow 13: Snooze Seed Test Harness (optional) | HTTP request | Send a test email to self and move it into `EPA-Snoozed` so Flow 11/12 can be tested end to end |
+| Flow 15: Snooze Timer | Every 15 minutes | Check expired snooze timers, move messages back to Inbox |
+| Flow 16: Snooze Timer Test Harness (optional) | HTTP request | HTTP-triggered Flow 15 test harness |
+| Flow 17: Analytics Aggregation | Weekly (Sunday 3 AM) | Compute weekly analytics and upsert to NudgeAnalytics |
+| Flow 18: Analytics Test Harness (optional) | HTTP request | HTTP-triggered Flow 17 test harness |
 
 ## Lab Verification Status
 
@@ -266,6 +303,8 @@ See [docs/deployment-guide.md](docs/deployment-guide.md) for the full step-by-st
 | Flow 11 | Flow 3 snooze detection and Dataverse upsert | `invoke-http-flow-harness.ps1` |
 | Flow 12 | Flow 4 auto-unsnooze and Teams notification | `invoke-http-flow-harness.ps1` |
 | Flow 13 | Seed a real snoozed message for Phase 2 regression | `invoke-http-flow-harness.ps1` |
+| Flow 16 | Flow 15 snooze timer processing | `invoke-http-flow-harness.ps1` |
+| Flow 18 | Flow 17 analytics aggregation | `invoke-http-flow-harness.ps1` |
 
 The generic `invoke-http-flow-harness.ps1` helper resolves the Flow callback URL, handles the `x-ms-client-scope` requirement, accepts either `-BodyJson` or `-BodyFilePath`, and waits for the run to reach a terminal state.
 
@@ -276,15 +315,20 @@ The generic `invoke-http-flow-harness.ps1` helper resolves the Flow callback URL
 | `cr_followuptracking` | Tracks sent emails awaiting follow-up | ~50/week (one per recipient per sent email) |
 | `cr_nudgeconfiguration` | Per-user nudge settings | 1 |
 | `cr_snoozedconversation` | Tracks snoozed email threads | Low volume |
+| `cr_prioritycontact` | Per-user priority contact list | Variable (one per VIP contact) |
+| `cr_holidaycalendar` | Organization and per-user holidays | ~11/year per org + personal |
+| `cr_nudgeanalytics` | Weekly aggregated analytics | ~52/year (one per week) |
 
-## Known Limitations & Future Enhancements
+## Completed Enhancements
 
-| Area | Current State | Future Enhancement |
-|------|--------------|-------------------|
-| Priority contacts | All non-internal recipients classified as External/General | Configurable priority contact list with 1-business-day nudge threshold |
-| Distribution lists | Tracked per To-line entry, not expanded to members | Graph group membership lookup to track per-member |
-| Nudge batching | Each overdue email generates a separate Teams card | Batched daily digest card summarizing all pending follow-ups |
-| Holiday exclusion | Business day calculation excludes weekends only | Holiday calendar table for per-org holiday exclusion |
-| Pagination | Flow 2 processes up to 50 overdue rows per daily run | `@odata.nextLink` loop for unbounded processing |
-| Time-based snooze | Reply-triggered auto-unsnooze only | Timer-based unsnooze as complement to reply-based |
-| Canvas App | Optional settings UI (documented in `docs/canvas-app-setup.md`) | Fully integrated settings experience |
+All features from the original roadmap have been implemented:
+
+| Feature | Status |
+|---------|--------|
+| Priority contacts | Configurable per-user priority contact list with 1-business-day threshold |
+| Distribution lists | Graph group membership expansion creates per-member tracking rows |
+| Nudge batching | Daily digest mode delivers all nudges in a single card |
+| Holiday exclusion | Holiday calendar table with per-org and per-user holidays |
+| Pagination | Unbounded processing via Dataverse paginationPolicy and Graph @odata.nextLink loops |
+| Time-based snooze | User-selectable snooze duration (1-14 days) with Flow 15 timer |
+| Canvas App | Full 5-screen app: Settings, Priority Contacts, Holiday Calendar, Nudge History, Analytics |

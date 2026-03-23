@@ -59,7 +59,7 @@ Generate a follow-up email draft that is:
 - **Appropriately toned** based on recipient type:
   - Internal: Casual-professional ("Hi [Name], just circling back on...")
   - External: Formal-professional ("Dear [Name], I wanted to follow up regarding...")
-  - Priority: Direct and concise ("Quick follow-up on...")
+  - Priority: Direct and concise, respecting their time ("Quick follow-up on..." — keep it brief, these contacts are VIPs)
   - General: Neutral-professional
 
 The draft should be a **complete email body** (no subject line — the original subject with "Re:" prefix will be used).
@@ -70,9 +70,11 @@ Rate the follow-up urgency:
 
 | Priority | Criteria |
 |----------|----------|
-| **High** | Priority contact, time-sensitive topic, >2x the configured follow-up period has passed, or explicit deadline mentioned |
+| **High** | RECIPIENT_TYPE is "Priority" (on user's priority contact list), time-sensitive topic, >2x the configured follow-up period has passed, or explicit deadline mentioned |
 | **Medium** | Standard follow-up within expected timeframe, clear action item pending |
 | **Low** | FYI-adjacent, no hard deadline, recipient type is General |
+
+> **Priority contacts**: When RECIPIENT_TYPE is "Priority", always assign nudgePriority = "High" unless the email is clearly FYI/informational (in which case, SKIP). Priority contacts have been explicitly marked as important by the user.
 
 ---
 

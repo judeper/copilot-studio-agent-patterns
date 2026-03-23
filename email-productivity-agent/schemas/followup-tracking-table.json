@@ -107,6 +107,14 @@
       "type": "DateTime",
       "required": false,
       "description": "Timestamp of the last time the Response Detection flow checked this row for a reply. Used as a race condition guard — the flow re-queries the row before sending a nudge to confirm the state hasn't changed."
+    },
+    {
+      "logicalName": "cr_dlsourceemail",
+      "displayName": "Distribution List Source",
+      "type": "Text",
+      "maxLength": 250,
+      "required": false,
+      "description": "When this tracking row was created via distribution list expansion, stores the original DL email address. Null for direct recipients. Flow 1 checks each To-line recipient against the Graph Groups API; if the recipient is a DL, it expands members and creates per-member rows with this field set to the DL address."
     }
   ],
   "notes": {

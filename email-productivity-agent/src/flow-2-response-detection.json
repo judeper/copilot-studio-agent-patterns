@@ -109,14 +109,13 @@
           ]
         }
       },
-      "List_Overdue_FollowUps": {
+      "List_TodayHoliday": {
         "type": "OpenApiConnection",
         "inputs": {
           "parameters": {
-            "entityName": "cr_followuptrackings",
-            "$filter": "_ownerid_value eq '@{first(outputs('Lookup_Dataverse_UserId')?['body/value'])?['systemuserid']}' and cr_responsereceived eq false and cr_nudgesent eq false and cr_dismissedbyuser eq false and cr_followupdate le @{utcNow()}",
-            "$orderby": "cr_followupdate asc",
-            "$top": 50
+            "entityName": "cr_holidaycalendars",
+            "$filter": "(cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' or cr_isorgwide eq true) and cr_holidaydate eq @{formatDateTime(utcNow(), 'yyyy-MM-dd')}",
+            "$top": 1
           },
           "host": {
             "connectionName": "shared_commondataserviceforapps",
@@ -126,6 +125,67 @@
         },
         "runAfter": {
           "Condition_Nudges_Enabled": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_Not_Holiday": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@length(outputs('List_TodayHoliday')?['body/value'])",
+                0
+              ]
+            },
+            {
+              "equals": [
+                "@coalesce(first(outputs('List_NudgeConfig')?['body/value'])?['cr_skipholidaynudges'], true)",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Terminate_Holiday_Skip": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded"
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "List_TodayHoliday": [
+            "Succeeded"
+          ]
+        }
+      },
+      "List_Overdue_FollowUps": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_followuptrackings",
+            "$filter": "_ownerid_value eq '@{first(outputs('Lookup_Dataverse_UserId')?['body/value'])?['systemuserid']}' and cr_responsereceived eq false and cr_nudgesent eq false and cr_dismissedbyuser eq false and cr_followupdate le @{utcNow()}",
+            "$orderby": "cr_followupdate asc",
+            "$top": 5000
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          },
+          "runtimeConfiguration": {
+            "paginationPolicy": {
+              "minimumItemCount": 5000
+            }
+          }
+        },
+        "runAfter": {
+          "Condition_Not_Holiday": [
             "Succeeded"
           ]
         }

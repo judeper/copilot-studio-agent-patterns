@@ -86,6 +86,32 @@
       "maxLength": 200,
       "required": false,
       "description": "Graph folder ID of the user's managed EPA-Snoozed folder. Created on first use by the Snooze Detection flow. Null until Phase 2 (Snooze Auto-Removal) is deployed."
+    },
+    {
+      "logicalName": "cr_digestmode",
+      "displayName": "Digest Mode",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": false,
+      "description": "When true, Flow 2 collects all nudge-worthy items and delivers them as a single daily digest card instead of individual cards per follow-up. Default false preserves the existing per-item card behavior."
+    },
+    {
+      "logicalName": "cr_skipholidaynudges",
+      "displayName": "Skip Holiday Nudges",
+      "type": "Boolean",
+      "required": true,
+      "defaultValue": true,
+      "description": "When true, Flow 2 skips nudge delivery if today is a holiday (per cr_holidaycalendar). The Sent Items Tracker still logs emails and adjusts follow-up dates around holidays regardless of this setting."
+    },
+    {
+      "logicalName": "cr_defaultsnoozehours",
+      "displayName": "Default Snooze Hours",
+      "type": "WholeNumber",
+      "minValue": 1,
+      "maxValue": 720,
+      "required": true,
+      "defaultValue": 48,
+      "description": "Default snooze duration in hours when a user snoozes a nudge. 48 hours (2 days) matches the original hardcoded behavior. Maximum 720 hours (30 days). The nudge card presents preset options but this value controls the pre-selected default."
     }
   ],
   "notes": {

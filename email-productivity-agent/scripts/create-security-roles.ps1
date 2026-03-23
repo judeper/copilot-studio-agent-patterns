@@ -235,7 +235,124 @@ try {
 }
 
 # ─────────────────────────────────────
-# 7. Summary
+# 7. Add Privileges for PriorityContact
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on PriorityContact table..." -ForegroundColor Cyan
+
+$priorityLogicalName = "${PublisherPrefix}_prioritycontact"
+
+try {
+    $priorityEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$priorityLogicalName')?`$select=ObjectTypeCode" -Headers $headers
+
+    $priorityPrivilegeNames = @(
+        "prvCreate${priorityLogicalName}",
+        "prvRead${priorityLogicalName}",
+        "prvWrite${priorityLogicalName}",
+        "prvDelete${priorityLogicalName}",
+        "prvAppend${priorityLogicalName}",
+        "prvAppendTo${priorityLogicalName}"
+    )
+
+    foreach ($privName in $priorityPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{ Depth = "Basic"; PrivilegeId = $privId; BusinessUnitId = $rootBuId })
+                } | ConvertTo-Json -Depth 5)
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  PriorityContact table not found — skipping. Run provision-environment.ps1 first."
+}
+
+# ─────────────────────────────────────
+# 8. Add Privileges for HolidayCalendar
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on HolidayCalendar table..." -ForegroundColor Cyan
+
+$holidayLogicalName = "${PublisherPrefix}_holidaycalendar"
+
+try {
+    $holidayEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$holidayLogicalName')?`$select=ObjectTypeCode" -Headers $headers
+
+    $holidayPrivilegeNames = @(
+        "prvCreate${holidayLogicalName}",
+        "prvRead${holidayLogicalName}",
+        "prvWrite${holidayLogicalName}",
+        "prvDelete${holidayLogicalName}",
+        "prvAppend${holidayLogicalName}",
+        "prvAppendTo${holidayLogicalName}"
+    )
+
+    foreach ($privName in $holidayPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{ Depth = "Basic"; PrivilegeId = $privId; BusinessUnitId = $rootBuId })
+                } | ConvertTo-Json -Depth 5)
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  HolidayCalendar table not found — skipping. Run provision-environment.ps1 first."
+}
+
+# ─────────────────────────────────────
+# 9. Add Privileges for NudgeAnalytics
+# ─────────────────────────────────────
+Write-Host "Configuring privileges on NudgeAnalytics table..." -ForegroundColor Cyan
+
+$analyticsLogicalName = "${PublisherPrefix}_nudgeanalytics"
+
+try {
+    $analyticsEntityMeta = Invoke-RestMethod -Uri "$apiBase/EntityDefinitions(LogicalName='$analyticsLogicalName')?`$select=ObjectTypeCode" -Headers $headers
+
+    $analyticsPrivilegeNames = @(
+        "prvCreate${analyticsLogicalName}",
+        "prvRead${analyticsLogicalName}",
+        "prvWrite${analyticsLogicalName}",
+        "prvDelete${analyticsLogicalName}",
+        "prvAppend${analyticsLogicalName}",
+        "prvAppendTo${analyticsLogicalName}"
+    )
+
+    foreach ($privName in $analyticsPrivilegeNames) {
+        try {
+            $privResult = Invoke-RestMethod -Uri "$apiBase/privileges?`$filter=name eq '$privName'&`$select=privilegeid" -Headers $headers
+            if ($privResult.value.Count -gt 0) {
+                $privId = $privResult.value[0].privilegeid
+                Invoke-RestMethod -Uri "$apiBase/roles($roleId)/Microsoft.Dynamics.CRM.AddPrivilegesRole" -Method Post -Headers $headers -Body (@{
+                    Privileges = @(@{ Depth = "Basic"; PrivilegeId = $privId; BusinessUnitId = $rootBuId })
+                } | ConvertTo-Json -Depth 5)
+                Write-Host "  Granted: $privName (Basic depth)" -ForegroundColor Green
+            } else {
+                Write-Warning "  Privilege '$privName' not found. Run provision-environment.ps1 first."
+            }
+        } catch {
+            Write-Warning "  Failed to assign privilege '$privName': $($_.Exception.Message)"
+        }
+    }
+} catch {
+    Write-Warning "  NudgeAnalytics table not found — skipping. Run provision-environment.ps1 first."
+}
+
+# ─────────────────────────────────────
+# 10. Summary
 # ─────────────────────────────────────
 Write-Host ""
 Write-Host "═══════════════════════════════════════════" -ForegroundColor Cyan
@@ -247,6 +364,9 @@ Write-Host "Tables:" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_followuptracking (Follow-Up Tracking)" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_nudgeconfiguration (Nudge Configuration)" -ForegroundColor White
 Write-Host "  - ${PublisherPrefix}_snoozedconversation (Snoozed Conversations) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_prioritycontact (Priority Contacts) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_holidaycalendar (Holiday Calendar) — if provisioned" -ForegroundColor White
+Write-Host "  - ${PublisherPrefix}_nudgeanalytics (Nudge Analytics) — if provisioned" -ForegroundColor White
 Write-Host "Depth: Basic (User-level) — each user sees only their own rows" -ForegroundColor White
 Write-Host ""
 Write-Host "NEXT STEP:" -ForegroundColor Yellow

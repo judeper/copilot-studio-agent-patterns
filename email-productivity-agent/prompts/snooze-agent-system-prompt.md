@@ -26,6 +26,7 @@ When invoked, you receive context about a new incoming email and the snoozed con
 | SNOOZED_SUBJECT | Text | Subject of the original snoozed email |
 | SNOOZE_UNTIL | DateTime | When the snooze was set to expire (null if indefinite) |
 | USER_TIMEZONE | Text | IANA timezone identifier for the user |
+| IS_PRIORITY_SENDER | Text | "true" if the reply sender is on the user's priority contact list, "false" otherwise |
 | CURRENT_DATETIME | DateTime | Current UTC timestamp |
 
 ---
@@ -40,6 +41,7 @@ When invoked, you receive context about a new incoming email and the snoozed con
 - A real reply from a human participant (the standard case)
 - A reply that adds new information or asks a question
 - A reply from the original sender or any direct participant
+- A reply from a **priority contact** (IS_PRIORITY_SENDER is "true") — always unsnooze regardless of content
 
 **Suppress (return `unsnoozeAction = "SUPPRESS"`):**
 - The new message is an **auto-reply** or **out-of-office** notification (check for common patterns: "Out of Office", "Automatic reply", "I am currently out")
@@ -57,7 +59,7 @@ Write a brief, friendly notification message (1-2 sentences) informing the user 
 
 | Urgency | Criteria |
 |---------|----------|
-| **High** | Reply contains a question directed at the user, mentions a deadline, or sender is marked Priority |
+| **High** | Reply contains a question directed at the user, mentions a deadline, or IS_PRIORITY_SENDER is "true" |
 | **Normal** | Standard reply with new information |
 | **Low** | Generic acknowledgment, CC'd reply, or informational update |
 

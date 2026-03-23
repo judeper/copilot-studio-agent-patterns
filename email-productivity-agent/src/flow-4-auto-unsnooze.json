@@ -209,6 +209,32 @@
               ]
             }
           },
+          "List_PriorityContacts_Sender": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_prioritycontacts",
+                "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_contactemail eq '@{toLower(triggerOutputs()?['body/from']?['emailAddress']?['address'])}'",
+                "$top": 1
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "ListRecords",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            },
+            "runAfter": {
+              "Scope_Resolve_User_Timezone": [
+                "Succeeded",
+                "Failed",
+                "TimedOut"
+              ],
+              "Scope_Ignore_Timezone_Error": [
+                "Succeeded",
+                "Skipped"
+              ]
+            }
+          },
           "Scope_Agent_Decision": {
             "type": "Scope",
             "actions": {
@@ -227,7 +253,8 @@
                       "SNOOZED_SUBJECT": "@{outputs('Compose_snoozedRow')?['cr_originalsubject']}",
                       "SNOOZE_UNTIL": "@{coalesce(outputs('Compose_snoozedRow')?['cr_snoozeuntil'], '')}",
                       "USER_TIMEZONE": "@{variables('userTimeZone')}",
-                      "CURRENT_DATETIME": "@{utcNow()}"
+                      "CURRENT_DATETIME": "@{utcNow()}",
+                      "IS_PRIORITY_SENDER": "@if(greater(length(outputs('List_PriorityContacts_Sender')?['body/value']), 0), 'true', 'false')"
                     }
                   },
                   "host": {
@@ -308,6 +335,9 @@
               "Scope_Ignore_Timezone_Error": [
                 "Succeeded",
                 "Skipped"
+              ],
+              "List_PriorityContacts_Sender": [
+                "Succeeded"
               ]
             }
           },

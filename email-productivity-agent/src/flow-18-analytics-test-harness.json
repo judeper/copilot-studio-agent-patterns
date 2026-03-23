@@ -1,0 +1,298 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_my_profile_(V2)": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {},
+          "host": {
+            "connectionName": "shared_office365users",
+            "operationId": "MyProfile_V2",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users"
+          }
+        },
+        "runAfter": {}
+      },
+      "Lookup_Dataverse_UserId": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "systemusers",
+            "$filter": "azureactivedirectoryobjectid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}'",
+            "$select": "systemuserid",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Get_my_profile_(V2)": ["Succeeded"]
+        }
+      },
+      "Compose_PeriodStart": {
+        "type": "Compose",
+        "inputs": "@startOfDay(addDays(utcNow(), sub(0, dayOfWeek(utcNow()))))",
+        "runAfter": {
+          "Lookup_Dataverse_UserId": ["Succeeded"]
+        }
+      },
+      "Compose_PeriodLabel": {
+        "type": "Compose",
+        "inputs": "@concat('Week of ', formatDateTime(outputs('Compose_PeriodStart'), 'yyyy-MM-dd'))",
+        "runAfter": {
+          "Compose_PeriodStart": ["Succeeded"]
+        }
+      },
+      "Compose_PeriodEnd": {
+        "type": "Compose",
+        "inputs": "@addDays(outputs('Compose_PeriodStart'), 7)",
+        "runAfter": {
+          "Compose_PeriodLabel": ["Succeeded"]
+        }
+      },
+      "List_Period_Trackings": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_followuptrackings",
+            "$filter": "_ownerid_value eq '@{first(outputs('Lookup_Dataverse_UserId')?['body/value'])?['systemuserid']}' and createdon ge @{outputs('Compose_PeriodStart')} and createdon lt @{outputs('Compose_PeriodEnd')}",
+            "$top": 5000
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          },
+          "runtimeConfiguration": {
+            "paginationPolicy": {
+              "minimumItemCount": 5000
+            }
+          }
+        },
+        "runAfter": {
+          "Compose_PeriodEnd": ["Succeeded"]
+        }
+      },
+      "Compose_TotalTracked": {
+        "type": "Compose",
+        "inputs": "@length(outputs('List_Period_Trackings')?['body/value'])",
+        "runAfter": {
+          "List_Period_Trackings": ["Succeeded"]
+        }
+      },
+      "Filter_Replied": {
+        "type": "Query",
+        "inputs": {
+          "from": "@outputs('List_Period_Trackings')?['body/value']",
+          "where": "@equals(item()?['cr_responsereceived'], true)"
+        },
+        "runAfter": {
+          "Compose_TotalTracked": ["Succeeded"]
+        }
+      },
+      "Compose_TotalReplied": {
+        "type": "Compose",
+        "inputs": "@length(body('Filter_Replied'))",
+        "runAfter": {
+          "Filter_Replied": ["Succeeded"]
+        }
+      },
+      "Filter_Nudged": {
+        "type": "Query",
+        "inputs": {
+          "from": "@outputs('List_Period_Trackings')?['body/value']",
+          "where": "@equals(item()?['cr_nudgesent'], true)"
+        },
+        "runAfter": {
+          "Compose_TotalReplied": ["Succeeded"]
+        }
+      },
+      "Compose_TotalNudged": {
+        "type": "Compose",
+        "inputs": "@length(body('Filter_Nudged'))",
+        "runAfter": {
+          "Filter_Nudged": ["Succeeded"]
+        }
+      },
+      "Filter_Dismissed": {
+        "type": "Query",
+        "inputs": {
+          "from": "@outputs('List_Period_Trackings')?['body/value']",
+          "where": "@equals(item()?['cr_dismissedbyuser'], true)"
+        },
+        "runAfter": {
+          "Compose_TotalNudged": ["Succeeded"]
+        }
+      },
+      "Compose_TotalDismissed": {
+        "type": "Compose",
+        "inputs": "@length(body('Filter_Dismissed'))",
+        "runAfter": {
+          "Filter_Dismissed": ["Succeeded"]
+        }
+      },
+      "List_Existing_Analytics": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "cr_nudgeanalyticses",
+            "$filter": "cr_owneruserid eq '@{outputs('Get_my_profile_(V2)')?['body/id']}' and cr_periodlabel eq '@{outputs('Compose_PeriodLabel')}'",
+            "$top": 1
+          },
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          }
+        },
+        "runAfter": {
+          "Compose_TotalDismissed": ["Succeeded"]
+        }
+      },
+      "Condition_Analytics_Exists": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@length(outputs('List_Existing_Analytics')?['body/value'])",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Update_Existing_Analytics": {
+            "type": "OpenApiConnection",
+            "inputs": {
+              "parameters": {
+                "entityName": "cr_nudgeanalyticses",
+                "recordId": "@first(outputs('List_Existing_Analytics')?['body/value'])?['cr_nudgeanalyticsid']",
+                "item/cr_periodlabel": "@outputs('Compose_PeriodLabel')",
+                "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                "item/cr_periodstart": "@outputs('Compose_PeriodStart')",
+                "item/cr_totaltracked": "@int(outputs('Compose_TotalTracked'))",
+                "item/cr_totalreplied": "@int(outputs('Compose_TotalReplied'))",
+                "item/cr_totalnudged": "@int(outputs('Compose_TotalNudged'))",
+                "item/cr_totaldismissed": "@int(outputs('Compose_TotalDismissed'))",
+                "item/cr_avgreplydays": null
+              },
+              "host": {
+                "connectionName": "shared_commondataserviceforapps",
+                "operationId": "UpdateRecord",
+                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Create_New_Analytics": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "entityName": "cr_nudgeanalyticses",
+                  "item/cr_periodlabel": "@outputs('Compose_PeriodLabel')",
+                  "item/cr_owneruserid": "@outputs('Get_my_profile_(V2)')?['body/id']",
+                  "item/cr_periodstart": "@outputs('Compose_PeriodStart')",
+                  "item/cr_totaltracked": "@int(outputs('Compose_TotalTracked'))",
+                  "item/cr_totalreplied": "@int(outputs('Compose_TotalReplied'))",
+                  "item/cr_totalnudged": "@int(outputs('Compose_TotalNudged'))",
+                  "item/cr_totaldismissed": "@int(outputs('Compose_TotalDismissed'))",
+                  "item/cr_avgreplydays": null
+                },
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                }
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "List_Existing_Analytics": ["Succeeded"]
+        }
+      },
+      "Response_Success": {
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "body": {
+            "status": "completed",
+            "periodLabel": "@{outputs('Compose_PeriodLabel')}",
+            "periodStart": "@{outputs('Compose_PeriodStart')}",
+            "periodEnd": "@{outputs('Compose_PeriodEnd')}",
+            "totalTracked": "@{outputs('Compose_TotalTracked')}",
+            "totalReplied": "@{outputs('Compose_TotalReplied')}",
+            "totalNudged": "@{outputs('Compose_TotalNudged')}",
+            "totalDismissed": "@{outputs('Compose_TotalDismissed')}",
+            "upsertAction": "@{if(greater(length(outputs('List_Existing_Analytics')?['body/value']), 0), 'updated', 'created')}",
+            "computedAt": "@{utcNow()}"
+          }
+        },
+        "runAfter": {
+          "Condition_Analytics_Exists": ["Succeeded"]
+        }
+      },
+      "Scope_Handle_Errors": {
+        "type": "Scope",
+        "actions": {
+          "Compose_ErrorDetails": {
+            "type": "Compose",
+            "inputs": "Flow 18 analytics test harness error: @{actions()}"
+          },
+          "Response_Error": {
+            "type": "Response",
+            "kind": "Http",
+            "inputs": {
+              "statusCode": 500,
+              "body": {
+                "status": "error",
+                "message": "@{outputs('Compose_ErrorDetails')}",
+                "computedAt": "@{utcNow()}"
+              }
+            },
+            "runAfter": {
+              "Compose_ErrorDetails": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Condition_Analytics_Exists": ["Failed", "TimedOut"]
+        }
+      }
+    }
+  },
+  "_metadata": {
+    "flowName": "EPA - Flow 18: Analytics Test Harness",
+    "description": "HTTP-triggered test harness for Flow 17 (Analytics Aggregation). Runs analytics computation on demand.",
+    "requiredConnections": [
+      "shared_office365users (Office 365 Users)",
+      "shared_commondataserviceforapps (Microsoft Dataverse)"
+    ],
+    "notes": {
+      "trigger": "Invoke over HTTP to run the analytics aggregation immediately. The request body is optional.",
+      "timeZone": "Not applicable. This harness is invoked on demand via HTTP rather than recurrence.",
+      "differences": "Uses HTTP Response actions instead of Terminate for result reporting. Returns computed analytics as JSON. Otherwise identical logic to Flow 17."
+    }
+  }
+}

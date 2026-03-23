@@ -58,6 +58,18 @@
                   "string",
                   "boolean"
                 ]
+              },
+              "digestMode": {
+                "type": [
+                  "string",
+                  "boolean"
+                ]
+              },
+              "defaultSnoozeHours": {
+                "type": [
+                  "number",
+                  "string"
+                ]
               }
             }
           }
@@ -89,7 +101,9 @@
           "externalDays": "@min(30, max(1, int(coalesce(body('Parse_Settings_Response')?['externalDays'], '5'))))",
           "priorityDays": "@min(30, max(1, int(coalesce(body('Parse_Settings_Response')?['priorityDays'], '1'))))",
           "generalDays": "@min(30, max(1, int(coalesce(body('Parse_Settings_Response')?['generalDays'], '7'))))",
-          "nudgesEnabled": "@equals(toLower(string(coalesce(body('Parse_Settings_Response')?['nudgesEnabled'], 'true'))), 'true')"
+          "nudgesEnabled": "@equals(toLower(string(coalesce(body('Parse_Settings_Response')?['nudgesEnabled'], 'true'))), 'true')",
+          "digestMode": "@equals(coalesce(body('Parse_Settings_Response')?['digestMode'], 'false'), 'true')",
+          "defaultSnoozeHours": "@max(1, min(720, int(coalesce(body('Parse_Settings_Response')?['defaultSnoozeHours'], '48'))))"
         },
         "runAfter": {
           "Get_Responder_Profile": [
@@ -117,7 +131,9 @@
               "externalDays": 5,
               "priorityDays": 1,
               "generalDays": 7,
-              "nudgesEnabled": true
+              "nudgesEnabled": true,
+              "digestMode": false,
+              "defaultSnoozeHours": 48
             }
           }
         },
@@ -155,7 +171,9 @@
                 "item/cr_externaldays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 5, outputs('Compose_Validated_Values')?['externalDays'])",
                 "item/cr_prioritydays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 1, outputs('Compose_Validated_Values')?['priorityDays'])",
                 "item/cr_generaldays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 7, outputs('Compose_Validated_Values')?['generalDays'])",
-                "item/cr_nudgesenabled": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), true, outputs('Compose_Validated_Values')?['nudgesEnabled'])"
+                "item/cr_nudgesenabled": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), true, outputs('Compose_Validated_Values')?['nudgesEnabled'])",
+                "item/cr_digestmode": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), false, outputs('Compose_Validated_Values')?['digestMode'])",
+                "item/cr_defaultsnoozehours": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 48, outputs('Compose_Validated_Values')?['defaultSnoozeHours'])"
               },
               "host": {
                 "connectionName": "shared_commondataserviceforapps",
@@ -178,7 +196,9 @@
                   "item/cr_externaldays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 5, outputs('Compose_Validated_Values')?['externalDays'])",
                   "item/cr_prioritydays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 1, outputs('Compose_Validated_Values')?['priorityDays'])",
                   "item/cr_generaldays": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 7, outputs('Compose_Validated_Values')?['generalDays'])",
-                  "item/cr_nudgesenabled": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), true, outputs('Compose_Validated_Values')?['nudgesEnabled'])"
+                  "item/cr_nudgesenabled": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), true, outputs('Compose_Validated_Values')?['nudgesEnabled'])",
+                  "item/cr_digestmode": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), false, outputs('Compose_Validated_Values')?['digestMode'])",
+                  "item/cr_defaultsnoozehours": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 48, outputs('Compose_Validated_Values')?['defaultSnoozeHours'])"
                 },
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -200,7 +220,7 @@
       },
       "Compose_Confirmation": {
         "type": "Compose",
-        "inputs": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '\u2705 Settings restored to defaults (Internal: 3, External: 5, Priority: 1, General: 7 days, Nudges: ON)', concat('\u2705 Settings saved \u2014 Internal: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '3', outputs('Compose_Validated_Values')?['internalDays']), ', External: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '5', outputs('Compose_Validated_Values')?['externalDays']), ', Priority: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '1', outputs('Compose_Validated_Values')?['priorityDays']), ', General: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '7', outputs('Compose_Validated_Values')?['generalDays']), ' days, Nudges: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 'ON', if(outputs('Compose_Validated_Values')?['nudgesEnabled'], 'ON', 'OFF'))))",
+        "inputs": "@if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '\u2705 Settings restored to defaults (Internal: 3, External: 5, Priority: 1, General: 7 days, Nudges: ON, Digest: OFF, Snooze: 48h)', concat('\u2705 Settings saved \u2014 Internal: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '3', outputs('Compose_Validated_Values')?['internalDays']), ', External: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '5', outputs('Compose_Validated_Values')?['externalDays']), ', Priority: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '1', outputs('Compose_Validated_Values')?['priorityDays']), ', General: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '7', outputs('Compose_Validated_Values')?['generalDays']), ' days, Nudges: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 'ON', if(outputs('Compose_Validated_Values')?['nudgesEnabled'], 'ON', 'OFF')), ', Digest: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), 'OFF', if(outputs('Compose_Validated_Values')?['digestMode'], 'ON', 'OFF')), ', Snooze: ', if(equals(body('Parse_Settings_Response')?['action'], 'restore_defaults'), '48', outputs('Compose_Validated_Values')?['defaultSnoozeHours']), 'h'))",
         "runAfter": {
           "Upsert_NudgeConfiguration": [
             "Succeeded"
