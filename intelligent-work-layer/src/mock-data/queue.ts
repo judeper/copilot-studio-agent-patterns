@@ -30,17 +30,17 @@ export const mockQueue: WorkQueueItem[] = [
     },
     sourceContext: [
       {
-        id: "outlook-thread-unum-scope",
+        id: "outlook-thread-pinnacle-scope",
         source: "Outlook",
-        label: "UNUM follow-up on scope",
-        deepLink: "msteams://m365/outlook/mail/unum-scope-thread",
+        label: "Pinnacle follow-up on scope",
+        deepLink: "msteams://m365/outlook/mail/pinnacle-scope-thread",
         previewAvailable: true
       }
     ],
     relatedEntities: [
       { id: "person-derek", entityType: "person", label: "Derek D'Amore" },
-      { id: "customer-unum", entityType: "customer", label: "UNUM" },
-      { id: "meeting-workshop", entityType: "meeting", label: "UNUM workshop planning" }
+      { id: "customer-pinnacle", entityType: "customer", label: "Pinnacle" },
+      { id: "meeting-workshop", entityType: "meeting", label: "Pinnacle workshop planning" }
     ],
     updatedAtUtc: "2026-03-08T08:34:00Z",
     producedBy: {

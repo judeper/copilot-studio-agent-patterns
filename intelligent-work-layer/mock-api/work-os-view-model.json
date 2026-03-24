@@ -110,10 +110,10 @@
       },
       "sourceContext": [
         {
-          "id": "outlook-thread-unum-scope",
+          "id": "outlook-thread-pinnacle-scope",
           "source": "Outlook",
-          "label": "UNUM follow-up on scope",
-          "deepLink": "msteams://m365/outlook/mail/unum-scope-thread",
+          "label": "Pinnacle follow-up on scope",
+          "deepLink": "msteams://m365/outlook/mail/pinnacle-scope-thread",
           "previewAvailable": true
         }
       ],

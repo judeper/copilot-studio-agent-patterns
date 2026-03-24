@@ -1,18 +1,18 @@
 import type { InterruptionWorkbenchModel } from "../models/messaging";
 
 export const mockInterruptionWorkbench: InterruptionWorkbenchModel = {
-  selectedItemId: "msg-unum-scope",
+  selectedItemId: "msg-pinnacle-scope",
   items: [
     {
-      id: "msg-unum-scope",
+      id: "msg-pinnacle-scope",
       source: "Outlook",
       senderDisplayName: "Derek D'Amore",
-      title: "UNUM follow-up on scope",
+      title: "Pinnacle follow-up on scope",
       summary: "Needs confirmation of workshop scope, owners, and expected deliverables.",
       rationale: "Customer risk + meeting dependency",
       confidence: 92,
       draft: {
-        id: "draft-unum-scope",
+        id: "draft-pinnacle-scope",
         content:
           `Hi Derek,
 
@@ -34,10 +34,10 @@ Jude`,
       },
       sourceContext: [
         {
-          id: "outlook-thread-unum-scope",
+          id: "outlook-thread-pinnacle-scope",
           source: "Outlook",
-          label: "UNUM follow-up on scope",
-          deepLink: "msteams://m365/outlook/mail/unum-scope-thread",
+          label: "Pinnacle follow-up on scope",
+          deepLink: "msteams://m365/outlook/mail/pinnacle-scope-thread",
           previewAvailable: true
         }
       ],
