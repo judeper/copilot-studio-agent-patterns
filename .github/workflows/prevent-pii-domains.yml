@@ -1,0 +1,91 @@
+name: Prevent PII Domains
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  scan-repository:
+    name: Scan for non-approved email domains
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Scan tracked files
+        shell: python {0}
+        run: |
+          import fnmatch
+          import pathlib
+          import re
+          import subprocess
+          import sys
+
+          allowed_email_domains = {
+              "example.com",
+              "izs.me",
+          }
+
+          banned_path_globs = [
+              "*.msapp",
+              "*_all_topics_dump.txt",
+              "*/deploy-*.log",
+              "*/epa-config.json",
+              "*/epa-mail-app.json",
+              "*/src/Solutions/bin/*",
+              "*/src/Solutions/obj/*",
+          ]
+
+          email_re = re.compile(
+              r"(?<![A-Za-z0-9_./-])([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Za-z]{2,})(?![A-Za-z0-9_./-])"
+          )
+
+          tracked_files = subprocess.check_output(
+              ["git", "ls-files"], text=True, encoding="utf-8"
+          ).splitlines()
+
+          banned_paths = []
+          bad_domains = []
+
+          for relative_path in tracked_files:
+              normalized = relative_path.replace("\\", "/")
+              if any(fnmatch.fnmatch(normalized, pattern) for pattern in banned_path_globs):
+                  banned_paths.append(normalized)
+                  continue
+
+              path = pathlib.Path(relative_path)
+              try:
+                  content = path.read_text(encoding="utf-8", errors="ignore")
+              except OSError:
+                  continue
+
+              for local_part, domain in email_re.findall(content):
+                  domain = domain.lower()
+                  if domain == "odata.bind":
+                      continue
+                  if domain not in allowed_email_domains:
+                      bad_domains.append(f"{normalized}: {local_part}@{domain}")
+
+          if banned_paths or bad_domains:
+              print("PII/domain guardrail failed.")
+              if banned_paths:
+                  print("\nBanned generated or backup files detected:")
+                  for item in banned_paths:
+                      print(f"  - {item}")
+              if bad_domains:
+                  print("\nNon-approved email domains detected:")
+                  for item in bad_domains[:100]:
+                      print(f"  - {item}")
+                  if len(bad_domains) > 100:
+                      print(f"  ... and {len(bad_domains) - 100} more")
+              sys.exit(1)
+
+          print("Repository scan passed. Only approved email domains remain in tracked files.")
