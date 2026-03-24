@@ -9,6 +9,8 @@ generated/
 # Solution packages
 *.zip
 *.msapp
+*.log
+_all_topics_dump.txt
 
 # Environment
 .env
