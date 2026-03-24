@@ -28,6 +28,12 @@ npm run build
 npx pac-sdk push     # or: pac code push
 ```
 
+## Security and PII Hygiene
+
+- Never commit real customer, partner, or tenant emails, domains, UPNs, org URLs, runtime config files, logs, dumps, or generated backup artifacts from local environments.
+- Use `example.com` for all sample email addresses and domains in fixtures, mock data, prompts, docs, and test content.
+- If a change touches any email-like value, run a PII scan before finalizing. The repo-level guardrail in `.github/workflows/prevent-pii-domains.yml` is the source of truth for the allowed tracked-file patterns.
+
 ## Key Architecture Differences from PCF
 
 | Aspect | PCF (Legacy) | Code App (This) |

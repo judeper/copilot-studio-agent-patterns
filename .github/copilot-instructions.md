@@ -148,6 +148,7 @@ The output JSON schema (`schemas/output-schema.json`), agent prompts (`prompts/`
 - URL sanitization via `utils/urlSanitizer.ts` — strict allowlist (`https:` and `mailto:` only) for any user-facing links
 - Agent prompts include prompt-injection defenses: payload content is treated as DATA, not instructions
 - Dataverse uses ownership-based RLS — each user sees only their own cards
+- PII hygiene is mandatory: never commit real customer, partner, or tenant emails, domains, UPNs, org URLs, runtime configs, logs, dumps, or generated backups. Use neutral placeholders under `example.com` for all sample addresses/domains, and if a change touches prompts, docs, mock data, fixtures, or scripts with email-like values, scan for PII before finalizing. The repo guardrail in `.github/workflows/prevent-pii-domains.yml` is the enforced baseline.
 
 ### Provisioning Scripts
 
