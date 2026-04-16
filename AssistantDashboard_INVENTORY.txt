@@ -1,0 +1,633 @@
+================================================================================
+                    ASSISTANTDASHBOARD INVENTORY
+                 PCF Dependency Analysis & Port Feasibility
+================================================================================
+
+EXECUTIVE SUMMARY
+================================================================================
+
+  Total Source Files: 18
+  Total Lines of Code: 3,370
+  
+  ✓ PORTABLE AS-IS: 16 files (92% of codebase) = ~3,045 lines
+  ✗ REQUIRES REWRITE: 2 files (8% of codebase) = ~308 lines
+  
+  Bottom Line: All UI/presentation logic ports. Only data layer rewrites needed.
+
+================================================================================
+                    FILE-BY-FILE INVENTORY
+================================================================================
+
+## 1. index.ts (198 lines)
+   Path: AssistantDashboard/index.ts
+   Status: ✗ REQUIRES REWRITE
+   
+   PCF Imports:
+     - IInputs, IOutputs from ./generated/ManifestTypes
+     - ComponentFramework.ReactControl<IInputs, IOutputs>
+     - ComponentFramework.Context<IInputs>
+     - ComponentFramework.PropertyTypes.DataSet
+   
+   PCF API Usage:
+     - Implements PCF control lifecycle: init(), updateView(), getOutputs(), destroy()
+     - Uses dataset.sortedRecordIds (line 145)
+     - Uses dataset.records[cardId] (line 146)
+     - Uses record.getValue("cr_cardoutcome") (line 147)
+     - Uses context.mode.trackContainerResize() (line 88)
+     - Uses context.mode.allocatedWidth/allocatedHeight (lines 134-135)
+     - Reads context.parameters properties (lines 161-170)
+   
+   Exports:
+     - AssistantDashboard class (PCF control)
+     - AppWrapper functional component (can be kept)
+   
+   What Needs Fixing:
+     - Remove ComponentFramework.ReactControl base class
+     - Replace dataset API with service/API calls
+     - Replace context.mode with window/container events
+     - Replace context.parameters with component props
+     - Move action handling to callback functions
+     
+   Action Items:
+     - Keep AppWrapper as React component (lines 12-57)
+     - Create mock/real data provider
+     - Convert to standalone React component
+     - Implement output callbacks as prop functions
+
+---
+
+## 2. hooks/useCardData.ts (110 lines)
+   Path: AssistantDashboard/hooks/useCardData.ts
+   Status: ✗ REQUIRES REWRITE (Moderate)
+   
+   PCF API Usage (HEAVY):
+     - Uses dataset.sortedRecordIds (line 45)
+     - Uses dataset.records (line 52)
+     - Uses record.getValue("cr_fulljson") (line 56) - JSON blob with card data
+     - Uses record.getValue("cr_cardstatus") (line 78)
+     - Uses record.getValue("cr_humanizeddraft") (line 83)
+     - Uses record.getValue("cr_originalsenderemail") (line 87)
+     - Uses record.getValue("cr_originalsenderdisplay") (line 88)
+     - Uses record.getValue("cr_originalsubject") (line 89)
+     - Uses record.getValue("cr_conversationclusterid") (line 91)
+     - Uses record.getValue("cr_sourcesignalid") (line 92)
+     - Uses record.getFormattedValue("cr_cardstatus") (line 78)
+     - Uses record.getFormattedValue("cr_cardoutcome") (line 86)
+     - Uses record.getFormattedValue("createdon") (line 84)
+     - Uses record.getRecordId() (line 62)
+   
+   Exports:
+     - useCardData(dataset: DataSet, version: number): AssistantCard[]
+     - compositeSort(cards: AssistantCard[]): AssistantCard[]
+     - parseCardOutcome() helper function
+   
+   DataSet Interface (lines 4-12):
+     - Defines local mock of PCF DataSet API
+     - Can be kept as abstraction layer
+   
+   What Needs Fixing:
+     - Replace getValue/getFormattedValue calls with API service
+     - Keep compositeSort logic (it's pure, no PCF deps)
+     - Keep parsing logic, just change data source
+   
+   Action Items:
+     - Create CardService/CardDataProvider interface matching DataSet shape
+     - Implement with real API or mock for development
+     - useMemo logic can stay as-is (just depends on version parameter)
+
+---
+
+## 3. components/types.ts (149 lines)
+   Path: AssistantDashboard/components/types.ts
+   Status: ✓ PORTABLE AS-IS
+   
+   Exports:
+     - TriggerType (10 variants: EMAIL, TEAMS_MESSAGE, CALENDAR_SCAN, etc.)
+     - HeartbeatTriggerType (4 variants: PREP_REQUIRED, STALE_TASK, etc.)
+     - FeedSection interface
+     - CommandCardLink, CommandSideEffect, OrchestratorResponse (Sprint 3)
+     - TriageTier, Priority, TemporalHorizon, CardStatus, CardOutcome enums
+     - BriefingType, BriefingActionItem, BriefingFyiItem, BriefingStaleAlert
+     - MorningBriefingData, EndOfDayData (Sprint 2)
+     - BriefingScheduleConfig (Sprint 2)
+     - VerifiedSource, DraftPayload interfaces
+     - AssistantCard (main card data structure)
+     - AppProps (root App component props)
+   
+   Dependencies: None (pure TypeScript)
+   
+   Notes: Core data model. No changes needed.
+
+---
+
+## 4. components/constants.ts (57 lines)
+   Path: AssistantDashboard/components/constants.ts
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - @fluentui/react-components (tokens)
+   
+   Exports:
+     - PRIORITY_COLORS map (High/Medium/Low → Fluent color tokens)
+     - EWA_COLORS object (design color palette)
+     - HEARTBEAT_TRIGGER_TYPES array
+     - FEED_SECTIONS object
+     - DEFAULT_COMMAND_CHIPS, DETAIL_COMMAND_CHIPS
+     - getConfidenceState(score: number) helper function
+   
+   Notes: Pure constants and helper functions. Fluent UI token usage is standard.
+
+---
+
+## 5. components/App.tsx (353 lines)
+   Path: AssistantDashboard/components/App.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, @fluentui/react-components
+     - Sub-components: CardGallery, CardDetail, BriefingCard, CommandBar,
+       ConfidenceCalibration, DayGlance, ErrorBoundary, FilterBar, StatusBar
+     - Types: AssistantCard, AppProps
+   
+   Exports:
+     - App: React.FC<AppProps>
+   
+   Key Features:
+     - Root presentation component
+     - View state management (gallery vs calibration mode)
+     - Filtering logic (trigger type, priority, status, temporal horizon)
+     - Card partitioning (briefing vs regular)
+     - Dark mode detection via matchMedia
+     - Focus restoration on panel transitions
+     - Escape key handling for detail panel
+   
+   Notes: Pure React component. No PCF dependencies.
+
+---
+
+## 6. components/BriefingCard.tsx (593 lines)
+   Path: AssistantDashboard/components/BriefingCard.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, useState
+     - @fluentui/react-components (Button, Badge, Card, Select, Checkbox, Switch)
+     - @fluentui/react-icons (numerous icons)
+     - Types: AssistantCard, DailyBriefing, BriefingActionItem, etc.
+   
+   Exports:
+     - BriefingCard: React.FC<BriefingCardProps>
+   
+   Key Features (Sprint 2):
+     - Specialized card format for DAILY_BRIEFING trigger type
+     - Parses briefing JSON from draft_payload
+     - Renders action items with urgency ranking
+     - FYI section for informational items
+     - Stale alerts with recommended actions
+     - Morning briefing data (decisions, focus blocks, meetings)
+     - End-of-day review data (completed, deferred, carry forward)
+     - Schedule configuration dialog for briefing timing
+     - Jump-to-card, dismiss, and update-schedule actions
+   
+   Notes: Largest component. Pure React with complex data formatting.
+
+---
+
+## 7. components/CardDetail.tsx (546 lines)
+   Path: AssistantDashboard/components/CardDetail.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, @fluentui/react-components
+     - @fluentui/react-icons
+     - Types: AssistantCard, DraftPayload
+     - Utils: isSafeUrl, levenshteinRatio, focusAfterRender
+     - Constants: PRIORITY_COLORS, EWA_COLORS, getConfidenceState
+   
+   Exports:
+     - CardDetail: React.FC<CardDetailProps>
+   
+   Key Features:
+     - Detail view for individual card (right panel)
+     - Research log, key findings, verified sources
+     - Safe link validation (HTTPS and mailto only)
+     - Draft editor with live character count
+     - Confidence score display with color coding
+     - Edit distance ratio tracking (detects if user edited draft)
+     - Send, Copy, Dismiss, Save draft actions
+     - Outcome tracking (shows if already sent/edited/dismissed)
+     - MessageBar warnings for low confidence
+     - Sender and recipient context information
+   
+   Notes: Complex but purely presentational. Uses edit distance utility.
+
+---
+
+## 8. components/CardGallery.tsx (171 lines)
+   Path: AssistantDashboard/components/CardGallery.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, @fluentui/react-components (Button)
+     - Types: AssistantCard
+     - Sub-component: CardItem
+     - Constants: HEARTBEAT_TRIGGER_TYPES, FEED_SECTIONS
+     - Hook: compositeSort from ../hooks/useCardData
+   
+   Exports:
+     - groupCards(cards: AssistantCard[]): FeedSection[]
+     - CardGallery: React.FC<CardGalleryProps>
+   
+   Key Features:
+     - Groups cards into feed sections (action, heartbeat, signals, fyi, stale)
+     - Section collapsing with icon chevron
+     - Tracks completion transitions for animation
+     - "Show next 5" pagination
+     - Empty state message ("You're all caught up")
+   
+   Notes: Pure React, no external dependencies beyond Fluent UI and utilities.
+
+---
+
+## 9. components/CardItem.tsx (173 lines)
+   Path: AssistantDashboard/components/CardItem.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, @fluentui/react-components (Card, Badge, Text)
+     - @fluentui/react-icons (MailRegular, ChatRegular, CalendarRegular, etc.)
+     - Types: AssistantCard
+     - Constants: getConfidenceState
+   
+   Exports:
+     - formatRelativeTime(dateStr: string): string
+     - CardItem: React.FC<CardItemProps>
+   
+   Key Features:
+     - Individual card in gallery view
+     - Icon for trigger type (email, teams, calendar, etc.)
+     - Sender name with relative timestamp (e.g., "2h ago")
+     - 2-line clamped summary
+     - Urgency text extracted from research log
+     - Badges for status (LOW_CONFIDENCE, SUMMARY_ONLY, etc.)
+     - Confidence pill with color coding
+     - Stale indicator with hours old
+     - Keyboard/click handling (Enter or Space to select)
+     - Full ARIA labels for accessibility
+   
+   Notes: Standard React card component. No special dependencies.
+
+---
+
+## 10. components/CommandBar.tsx (305 lines)
+   Path: AssistantDashboard/components/CommandBar.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React hooks (useState, useCallback, useRef, useEffect)
+     - @fluentui/react-components (Button, Input, Spinner, Text)
+     - @fluentui/react-icons (SendRegular, DismissCircleRegular)
+     - Types: OrchestratorResponse, CommandCardLink, CommandSideEffect
+     - Constants: DEFAULT_COMMAND_CHIPS, DETAIL_COMMAND_CHIPS
+     - Utils: focusAfterRender
+   
+   Exports:
+     - CommandBar: React.FC<CommandBarProps>
+   
+   Key Features (Sprint 3):
+     - Persistent bottom panel for user commands
+     - Text input for custom commands
+     - Suggested command chips (context-aware)
+     - Conversation history (user messages + assistant responses)
+     - Processing spinner while awaiting orchestrator response
+     - Displays response text and card links
+     - Activity log for side effects (UPDATE_CARD, CREATE_CARD, REFINE_DRAFT)
+     - Expandable conversation/activity views
+     - Focus management on send action
+   
+   Notes: Complex state management but purely presentational.
+
+---
+
+## 11. components/ConfidenceCalibration.tsx (327 lines)
+   Path: AssistantDashboard/components/ConfidenceCalibration.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React hooks (useState, useMemo)
+     - @fluentui/react-components (Button, Badge, Card, TabList, Tab, tokens)
+     - @fluentui/react-icons (ArrowLeftRegular)
+     - Types: AssistantCard
+     - Constants: getConfidenceState
+   
+   Exports:
+     - ConfidenceCalibration: React.FC<ConfidenceCalibrationProps>
+   
+   Key Features (Sprint 4):
+     - Analytics dashboard for agent performance
+     - Accuracy buckets (predicted vs actual outcomes)
+     - Triage accuracy metrics (FULL tier → acted/dismissed/not-completed)
+     - Draft quality trend (edit distance over time)
+     - Top senders by engagement
+     - Tabbed interface (accuracy, triage, drafts, senders)
+     - Client-side computation (should move to server for large datasets)
+   
+   Notes: Analytics component. Pure client-side computation. No API calls.
+
+---
+
+## 12. components/DayGlance.tsx (26 lines)
+   Path: AssistantDashboard/components/DayGlance.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Exports:
+     - DayGlance: React.FC<DayGlanceProps>
+   
+   What It Does:
+     - Displays today's meetings + briefing summary
+     - Shows up to 4 calendar or briefing cards
+     - Minimal UI strip
+   
+   Notes: Trivial component. No special dependencies.
+
+---
+
+## 13. components/ErrorBoundary.tsx (46 lines)
+   Path: AssistantDashboard/components/ErrorBoundary.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, @fluentui/react-components (Button)
+   
+   Exports:
+     - ErrorBoundary class component
+   
+   What It Does:
+     - React error boundary for catching render errors
+     - Shows recovery UI on error
+     - "Try Again" button to retry
+   
+   Notes: Standard React pattern. Class component required for error boundary.
+
+---
+
+## 14. components/FilterBar.tsx (132 lines)
+   Path: AssistantDashboard/components/FilterBar.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, @fluentui/react-components (Switch)
+     - Types: AssistantCard
+     - Constants: HEARTBEAT_TRIGGER_TYPES
+   
+   Exports:
+     - FilterBar: React.FC<FilterBarProps>
+   
+   Key Features:
+     - Filter chips (all, email, teams, calendar, proactive, stale)
+     - Sort toggle (newest, priority, staleness)
+     - Quiet mode toggle (holds cards for batch review)
+     - Computes counts for each filter chip
+   
+   Notes: Pure React filtering logic. No external dependencies.
+
+---
+
+## 15. components/StatusBar.tsx (81 lines)
+   Path: AssistantDashboard/components/StatusBar.tsx
+   Status: ✓ PORTABLE AS-IS
+   
+   Imports:
+     - React, @fluentui/react-components (Button, Badge)
+     - @fluentui/react-icons (BrainCircuitRegular, SettingsRegular)
+   
+   Exports:
+     - StatusBar: React.FC<StatusBarProps>
+   
+   What It Does:
+     - Top navigation bar
+     - Shows action count, new count
+     - Memory active indicator (pulsing when updated)
+     - Quiet mode status
+     - Next meeting time
+     - Settings button
+   
+   Notes: Simple presentational component.
+
+---
+
+## 16. hooks/useCardData.ts (110 lines)
+   Path: AssistantDashboard/hooks/useCardData.ts
+   Status: ✗ REQUIRES REWRITE (Moderate)
+   
+   [See detailed analysis above - this is the 2nd file needing rewrite]
+
+---
+
+## 17. utils/focusUtils.ts (11 lines)
+   Path: AssistantDashboard/utils/focusUtils.ts
+   Status: ✓ PORTABLE AS-IS
+   
+   Exports:
+     - focusAfterRender(callback: () => void): void
+   
+   What It Does:
+     - Schedules callback after next animation frame
+     - Falls back to setTimeout if requestAnimationFrame unavailable
+   
+   Notes: Pure utility. No dependencies.
+
+---
+
+## 18. utils/levenshtein.ts (36 lines)
+   Path: AssistantDashboard/utils/levenshtein.ts
+   Status: ✓ PORTABLE AS-IS
+   
+   Exports:
+     - levenshteinRatio(a: string, b: string): number
+       Returns 0-100 normalized edit distance
+   
+   What It Does:
+     - Calculates Levenshtein edit distance between two strings
+     - Used to detect if user edited draft before sending
+     - Two-row iterative algorithm, O(min(m,n)) space
+   
+   Notes: Pure algorithm. No dependencies.
+
+---
+
+## 19. utils/urlSanitizer.ts (33 lines)
+   Path: AssistantDashboard/utils/urlSanitizer.ts
+   Status: ✓ PORTABLE AS-IS
+   
+   Exports:
+     - SAFE_PROTOCOLS: Set { "https:", "mailto:" }
+     - isSafeUrl(url: string | null | undefined): boolean
+   
+   What It Does:
+     - Validates URLs before rendering as clickable links
+     - Only allows https: and mailto: schemes
+     - Rejects dangerous schemes (javascript:, data:, vbscript:)
+   
+   Notes: Pure utility using browser URL constructor.
+
+---
+
+## 20. generated/ManifestTypes.d.ts (25 lines)
+   Path: AssistantDashboard/generated/ManifestTypes.d.ts
+   Status: ✗ REQUIRES REPLACEMENT
+   
+   Auto-Generated From: ControlManifest.Input.xml
+   
+   Exports:
+     - IInputs interface (cardDataset, filter properties, orchestratorResponse, etc.)
+     - IOutputs interface (selectedCardId, sendDraftAction, dismissCardAction, etc.)
+   
+   Action Items:
+     - Delete this file (auto-generated for PCF)
+     - Create mock IInputs/IOutputs for standalone use
+     - Or import from Canvas app types
+
+================================================================================
+                     PCF API USAGE SUMMARY
+================================================================================
+
+Only 2 files use PCF APIs:
+
+### index.ts Uses:
+  1. ComponentFramework.ReactControl<IInputs, IOutputs> (class base)
+  2. ComponentFramework.Context<IInputs> (init/updateView parameter)
+  3. context.mode.trackContainerResize(true)
+  4. context.mode.allocatedWidth / allocatedHeight
+  5. context.parameters.* property access
+  6. dataset.sortedRecordIds
+  7. dataset.records[cardId]
+  8. record.getValue("cr_cardoutcome")
+
+### useCardData.ts Uses:
+  1. dataset.sortedRecordIds
+  2. dataset.records[cardId]
+  3. record.getRecordId()
+  4. record.getValue() - multiple columns
+  5. record.getFormattedValue() - multiple columns
+
+NO OTHER FILES use PCF APIs.
+
+================================================================================
+                    DATAVERSE COLUMNS REFERENCED
+================================================================================
+
+The following Dataverse columns are accessed via PCF DataSet API:
+
+  cr_fulljson          - Full JSON blob with card data (core payload)
+  cr_cardstatus        - Card status (READY, LOW_CONFIDENCE, SUMMARY_ONLY, etc.)
+  cr_cardoutcome       - Card outcome (PENDING, SENT_AS_IS, SENT_EDITED, etc.)
+  cr_humanizeddraft    - Humanized draft text
+  cr_originalsenderemail
+  cr_originalsenderdisplay
+  cr_originalsubject
+  cr_conversationclusterid
+  cr_sourcesignalid
+  createdon            - Created timestamp
+
+When porting, you'll need to provide these either via:
+  A) Real Dataverse API calls
+  B) Mock data for development
+  C) REST API that mirrors this structure
+
+================================================================================
+                    REACT DEPENDENCIES
+================================================================================
+
+All files use React. Component libraries:
+
+  @fluentui/react-components
+    - Used in: All 13 components
+    - Components: Button, Badge, Card, Text, Link, Textarea, Spinner,
+                  MessageBar, Select, Checkbox, Switch, Input, TabList, Tab
+    - Tokens: design tokens for colors (PRIORITY_COLORS)
+  
+  @fluentui/react-icons
+    - Used in: 8 components (CardItem, CardDetail, BriefingCard, CommandBar,
+                StatusBar, ConfidenceCalibration, CommandBar)
+    - Icons: MailRegular, ChatRegular, CalendarRegular, DismissRegular, etc.
+  
+  React Built-in:
+    - Used everywhere
+    - Hooks: useState, useCallback, useRef, useEffect, useMemo
+
+All React usage is standard and portable. No custom hooks except useCardData.
+
+================================================================================
+                    PORTING CHECKLIST
+================================================================================
+
+1. CREATE DATA LAYER:
+   [ ] Create CardDataProvider/CardService interface
+   [ ] Implement mock provider for development
+   [ ] Implement real Dataverse provider for production
+   [ ] Create AssistantCard[] provider via React Context
+   
+2. REWRITE index.ts:
+   [ ] Remove class inheritance from ComponentFramework.ReactControl
+   [ ] Create standalone App wrapper component
+   [ ] Pass CardDataProvider via Context or props
+   [ ] Remove lifecycle methods (init, updateView, getOutputs, destroy)
+   [ ] Create action handlers as props (onSelectCard, onSendDraft, etc.)
+   [ ] Remove context.mode calls
+   [ ] Replace context.parameters with component props
+   [ ] Create mock IInputs/IOutputs for development
+   
+3. REWRITE hooks/useCardData.ts:
+   [ ] Inject data provider as parameter (keep as abstraction)
+   [ ] Replace record.getValue/getFormattedValue calls
+   [ ] Keep DataSet interface for type safety
+   [ ] Keep compositeSort logic (no changes needed)
+   [ ] Keep parseCardOutcome logic
+   
+4. DELETE OR REPLACE:
+   [ ] Delete generated/ManifestTypes.d.ts
+   [ ] Create mock IInputs/IOutputs types
+   [ ] Or import from Canvas app type definitions
+   
+5. VERIFY COMPONENTS:
+   [ ] All 13 components should work unchanged
+   [ ] Verify Fluent UI imports still work
+   [ ] Test with mock data
+   [ ] Check accessibility (ARIA labels)
+   
+6. CREATE TEST FIXTURES:
+   [ ] Sample AssistantCard[] data
+   [ ] Mock action callbacks
+   [ ] Mock CardDataProvider implementation
+   
+7. INTEGRATION:
+   [ ] Wire up real data provider
+   [ ] Test with Dataverse API
+   [ ] Handle Canvas app output (action callbacks)
+
+================================================================================
+                        ESTIMATED EFFORT
+================================================================================
+
+Low Effort (Can keep as-is):
+  - 13 components: ~2,045 lines (mostly copy-paste into new project)
+  - 1 types file: 149 lines
+  - 1 constants file: 57 lines
+  - 3 utilities: 80 lines
+  Total: ~2,331 lines (100% portable)
+
+Moderate Effort (Rewrite required):
+  - index.ts: 198 lines (rewrite ~60% of it, keep AppWrapper)
+  - useCardData.ts: 110 lines (refactor for data layer)
+  - ManifestTypes.d.ts: 25 lines (delete + create mock)
+  Total: ~308 lines (rewrite)
+
+Total Rewrite Time: 2-4 days for one developer
+  - Day 1: Extract components to new React project
+  - Day 2: Create data layer abstraction + mock provider
+  - Day 3: Rewrite index.ts and useCardData.ts
+  - Day 4: Integration testing + Dataverse API provider
+
+Key Risk: Data layer implementation (depends on how you fetch cards from Dataverse)
+

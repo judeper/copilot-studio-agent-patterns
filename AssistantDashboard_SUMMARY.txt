@@ -1,0 +1,369 @@
+================================================================================
+                        QUICK REFERENCE SUMMARY
+================================================================================
+
+FILE INVENTORY & PORTABILITY
+================================================================================
+
+Component Files (PORTABLE AS-IS):
+  ✓ App.tsx                       353 lines   React root component
+  ✓ BriefingCard.tsx              593 lines   Daily briefing card (Sprint 2)
+  ✓ CardDetail.tsx                546 lines   Detail panel for card editing
+  ✓ CardGallery.tsx               171 lines   Card feed with grouping & pagination
+  ✓ CardItem.tsx                  173 lines   Individual card in gallery
+  ✓ CommandBar.tsx                305 lines   Command input (Sprint 3)
+  ✓ ConfidenceCalibration.tsx     327 lines   Analytics dashboard (Sprint 4)
+  ✓ DayGlance.tsx                  26 lines   Today summary strip
+  ✓ ErrorBoundary.tsx              46 lines   Error catch boundary
+  ✓ FilterBar.tsx                 132 lines   Filter/sort controls
+  ✓ StatusBar.tsx                  81 lines   Top navigation bar
+  ✓ types.ts                      149 lines   Type definitions (CORE)
+  ✓ constants.ts                   57 lines   Color constants & helpers
+  
+  Subtotal: 13 files, ~3,045 lines - ALL PORTABLE
+
+Utility Files (PORTABLE AS-IS):
+  ✓ hooks/useCardData.ts*         110 lines   [See note below]
+  ✓ utils/focusUtils.ts            11 lines   Focus management
+  ✓ utils/levenshtein.ts           36 lines   Edit distance calculation
+  ✓ utils/urlSanitizer.ts          33 lines   URL validation
+  
+  Subtotal: 4 files, ~190 lines
+
+PCF-Specific Files (REQUIRES REWRITE):
+  ✗ index.ts                      198 lines   PCF control class
+  ✗ generated/ManifestTypes.d.ts   25 lines   Auto-generated types
+
+  Subtotal: 2 files, ~223 lines
+
+* NOTE: useCardData.ts is technically portable but needs refactoring to
+  replace PCF DataSet API calls with a service/provider pattern.
+  The hook logic itself and compositeSort function are reusable.
+
+================================================================================
+                        CRITICAL FILE ANALYSIS
+================================================================================
+
+index.ts (198 lines) - THE MAIN PCF INTEGRATION POINT
+════════════════════════════════════════════════════════════
+
+Structure:
+  - AppWrapper functional component (lines 12-57) - CAN KEEP
+  - AssistantDashboard PCF control class (lines 59-213) - MUST REPLACE
+
+PCF Lifecycle Methods:
+  ✗ init(context, notifyOutputChanged)        line 83-127
+  ✗ updateView(context)                       line 130-184
+  ✗ getOutputs()                              line 186-208
+  ✗ destroy()                                 line 210-212
+
+Data Access:
+  ✗ context.parameters.cardDataset            line 133
+  ✗ context.parameters.filterTriggerType      line 167
+  ✗ context.parameters.filterPriority         line 168
+  ✗ context.mode.allocatedWidth               line 134
+  ✗ context.mode.allocatedHeight              line 135
+  ✗ context.mode.trackContainerResize(true)   line 88
+  ✗ dataset.sortedRecordIds                   line 145
+  ✗ dataset.records[cardId]                   line 146
+  ✗ record.getValue("cr_cardoutcome")         line 147
+
+Action Outputs:
+  - selectedCardId, sendDraftAction, copyDraftAction, dismissCardAction,
+    jumpToCardAction, commandAction, saveDraftAction, updateScheduleAction
+
+What to Keep:
+  - AppWrapper functional component (lines 12-57)
+  - All state management logic (lines 74-81)
+  - All callback handlers (lines 90-127)
+  - The getOutputs() logic (lines 186-208) for reference
+
+What to Rewrite:
+  - Extend React.Component or use function component instead
+  - Replace init/updateView/destroy with React lifecycle (useEffect)
+  - Provide data via Context or props
+  - Emit actions via callback functions
+
+═════════════════════════════════════════════════════════════════════════════
+
+hooks/useCardData.ts (110 lines) - DATA MAPPING LAYER
+════════════════════════════════════════════════════════════
+
+Structure:
+  - DataSet interface (lines 4-7)      - KEEP (abstraction)
+  - DataSetRecord interface (lines 9-12) - KEEP (abstraction)
+  - parseCardOutcome() (lines 19-27)   - KEEP (reuse)
+  - useCardData() (lines 38-107)       - REFACTOR
+  - compositeSort() (lines 112-125)    - KEEP (reuse)
+
+PCF API Calls to Replace:
+  ✗ dataset.sortedRecordIds          line 45
+  ✗ dataset.records[id]              line 52
+  ✗ record.getRecordId()             line 62
+  ✗ record.getValue("cr_fulljson")   line 56
+  ✗ record.getValue("cr_cardstatus") line 78
+  ✗ record.getValue("cr_humanizeddraft") line 83
+  ✗ record.getValue("cr_originalsenderemail") line 87
+  ✗ record.getValue("cr_originalsenderdisplay") line 88
+  ✗ record.getValue("cr_originalsubject") line 89
+  ✗ record.getValue("cr_conversationclusterid") line 91
+  ✗ record.getValue("cr_sourcesignalid") line 92
+  ✗ record.getFormattedValue("cr_cardstatus") line 78
+  ✗ record.getFormattedValue("cr_cardoutcome") line 86
+  ✗ record.getFormattedValue("createdon") line 84
+
+Refactoring Strategy:
+  1. Keep the DataSet interface as abstraction
+  2. Create CardDataProvider service interface
+  3. Inject provider into useCardData hook
+  4. Replace getValue/getFormattedValue with provider methods
+  5. Keep all parsing and filtering logic
+
+Example Refactored Signature:
+  export function useCardData(
+    provider: CardDataProvider | undefined,
+    version: number
+  ): AssistantCard[]
+
+═════════════════════════════════════════════════════════════════════════════
+
+components/types.ts (149 lines) - THE DATA MODEL (NO CHANGES NEEDED)
+════════════════════════════════════════════════════════════════════════════════
+
+Core Interfaces:
+  ✓ AssistantCard - main card data structure
+  ✓ AppProps - root component props
+  ✓ DraftPayload - email/Teams draft data
+  ✓ VerifiedSource - research source links
+  ✓ DailyBriefing - briefing card structure
+  ✓ BriefingScheduleConfig - briefing schedule
+
+Enums:
+  ✓ TriggerType (10 types: EMAIL, TEAMS_MESSAGE, CALENDAR_SCAN, etc.)
+  ✓ TriageTier ("SKIP" | "LIGHT" | "FULL")
+  ✓ Priority ("High" | "Medium" | "Low" | "N/A")
+  ✓ CardStatus ("READY" | "LOW_CONFIDENCE" | "SUMMARY_ONLY" | etc.)
+  ✓ CardOutcome ("PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISMISSED")
+
+This is the single source of truth for all data shapes. Use it everywhere.
+
+═════════════════════════════════════════════════════════════════════════════
+
+components/constants.ts (57 lines) - HELPER UTILITIES
+════════════════════════════════════════════════════════════════════════════════
+
+Key Exports:
+  ✓ PRIORITY_COLORS - badge colors for High/Medium/Low
+  ✓ EWA_COLORS - comprehensive color palette
+  ✓ HEARTBEAT_TRIGGER_TYPES - array of proactive trigger types
+  ✓ FEED_SECTIONS - section definitions with defaults
+  ✓ DEFAULT_COMMAND_CHIPS - suggested commands (gallery mode)
+  ✓ DETAIL_COMMAND_CHIPS - suggested commands (detail mode)
+  ✓ getConfidenceState(score) - returns label + colors for confidence
+
+Pure utility file. No changes needed.
+
+================================================================================
+                    REACT & FLUENT UI USAGE
+================================================================================
+
+React Imports Found:
+  ✓ import * as React from "react"
+  ✓ import { FC, ReactNode, useState, useCallback, useRef, useEffect, useMemo }
+  ✓ React.useMemo, React.useCallback, React.useState, React.useRef, React.useEffect
+  ✓ React.createElement (in index.ts)
+
+Fluent UI Components Used:
+  ✓ FluentProvider, webLightTheme, webDarkTheme
+  ✓ Button, Badge, Card, Text, Link, Input, Textarea, Select, Checkbox, Switch
+  ✓ MessageBar, MessageBarBody, Spinner, TabList, Tab
+  ✓ tokens (design tokens)
+
+Fluent UI Icons Used:
+  ✓ MailRegular, ChatRegular, CalendarRegular, WeatherSunnyRegular,
+    WeatherMoonRegular, AlertRegular, DismissRegular, SendRegular,
+    CopyRegular, ArrowLeftRegular, CheckmarkCircleRegular,
+    BrainCircuitRegular, SettingsRegular, ChevronDownRegular,
+    ChevronRightRegular, ArrowRightRegular, ChatBubblesQuestionRegular,
+    LightbulbRegular, SlideTextRegular
+
+All React usage is standard. No custom hooks beyond useCardData.
+All Fluent UI usage is standard component library patterns.
+
+================================================================================
+                        DATAVERSE COLUMNS
+================================================================================
+
+The following Dataverse columns are accessed. You'll need these fields
+in your replacement data source:
+
+  cr_fulljson              The JSON blob containing all card data
+  cr_cardstatus            Card status enum (choice field)
+  cr_cardoutcome           Card outcome enum (choice field)
+  cr_humanizeddraft        Formatted draft text
+  cr_originalsenderemail   Email address of message sender
+  cr_originalsenderdisplay Display name of sender
+  cr_originalsubject       Original message subject line
+  cr_conversationclusterid Cluster ID for grouping related messages
+  cr_sourcesignalid        Source signal identifier
+  createdon                System created timestamp
+
+When replacing PCF DataSet with your own API, ensure you can fetch these fields.
+
+================================================================================
+                    COMPONENT DEPENDENCY GRAPH
+================================================================================
+
+App.tsx (root)
+├── StatusBar
+├── ErrorBoundary
+├── FilterBar (filters regularCards, emits onFilteredCards + quietMode)
+├── CardGallery (displays filtered cards)
+│   ├── CardItem (individual card in gallery, emits onSelectCard)
+│   │   └── Constants (getConfidenceState, trigger icons)
+│   └── Utils (compositeSort from useCardData)
+├── BriefingCard (displayed if selected + detailOpen OR standalone)
+│   └── Types (DailyBriefing, BriefingActionItem, etc.)
+├── CardDetail (displayed if selected + detailOpen)
+│   ├── Types (AssistantCard, DraftPayload)
+│   ├── Constants (PRIORITY_COLORS, EWA_COLORS)
+│   └── Utils (isSafeUrl, levenshteinRatio)
+├── CommandBar (bottom panel, Sprint 3)
+│   ├── Types (OrchestratorResponse, CommandCardLink, CommandSideEffect)
+│   └── Constants (DEFAULT_COMMAND_CHIPS, DETAIL_COMMAND_CHIPS)
+├── DayGlance (today summary)
+└── ConfidenceCalibration (modal, Sprint 4)
+    ├── Types (AssistantCard)
+    └── Constants (getConfidenceState)
+
+AppWrapper → App (passed via props in index.ts)
+
+useCardData hook:
+  - Transforms PCF DataSet[AssistantCard[]]
+  - Used by: index.ts, CardGallery (indirectly)
+
+Data Flow:
+  index.ts (getData from PCF dataset)
+    → useCardData (converts to AssistantCard[])
+    → AppWrapper → App
+    → Filters & display components
+    → Action callbacks back to index.ts (onSelectCard, onSendDraft, etc.)
+    → index.ts outputs to PCF (selectedCardId, sendDraftAction, etc.)
+
+================================================================================
+                    ACTION CALLBACKS (PCF OUTPUTS)
+================================================================================
+
+The following callbacks are emitted from components → index.ts → Canvas app:
+
+  onSelectCard(cardId: string)
+    - Emitted by: CardItem, BriefingCard
+    - Output: selectedCardId
+    - Canvas app uses: Read card details
+
+  onSendDraft(cardId: string, finalText: string, editDistanceRatio: number)
+    - Emitted by: CardDetail
+    - Output: sendDraftAction = { cardId, finalText, editDistanceRatio }
+    - Canvas app uses: Send email/teams message, track edit distance
+    - Edit distance: 0 = sent as-is, >0 = edited
+
+  onCopyDraft(cardId: string)
+    - Emitted by: CardDetail
+    - Output: copyDraftAction
+    - Canvas app uses: Copy to clipboard (user interaction)
+
+  onDismissCard(cardId: string)
+    - Emitted by: CardItem (context menu), CardDetail, BriefingCard
+    - Output: dismissCardAction
+    - Canvas app uses: Update cr_cardoutcome = "DISMISSED"
+    - Retry logic: index.ts retries dismissals every 5 seconds for 3 attempts
+
+  onJumpToCard(cardId: string)
+    - Emitted by: BriefingCard action items
+    - Output: jumpToCardAction
+    - Canvas app uses: Navigate to related card (Sprint 2)
+
+  onExecuteCommand(command: string, currentCardId: string | null)
+    - Emitted by: CommandBar
+    - Output: commandAction = { command, currentCardId }
+    - Canvas app uses: Call PowerAutomate orchestrator (Sprint 3)
+
+  onSaveDraft(cardId: string, editedText: string)
+    - Emitted by: CardDetail
+    - Output: saveDraftAction = { cardId, editedText }
+    - Canvas app uses: Persist draft edits to cr_humanizeddraft (Phase 18)
+
+  onUpdateSchedule(config: BriefingScheduleConfig)
+    - Emitted by: BriefingCard
+    - Output: updateScheduleAction = JSON.stringify(config)
+    - Canvas app uses: Set briefing schedule (Sprint 2)
+
+When porting, you'll replace PCF output mechanism with:
+  - Event emitters / callbacks
+  - Context API
+  - State management (Redux, Zustand, etc.)
+  - API calls to your backend
+
+================================================================================
+                            QUICK START
+================================================================================
+
+1. EXTRACT ALL PORTABLE FILES:
+   Copy these 16 files as-is to your new project:
+   
+   src/components/
+     - App.tsx
+     - BriefingCard.tsx
+     - CardDetail.tsx
+     - CardGallery.tsx
+     - CardItem.tsx
+     - CommandBar.tsx
+     - ConfidenceCalibration.tsx
+     - DayGlance.tsx
+     - ErrorBoundary.tsx
+     - FilterBar.tsx
+     - StatusBar.tsx
+     - types.ts
+     - constants.ts
+   
+   src/utils/
+     - focusUtils.ts
+     - levenshtein.ts
+     - urlSanitizer.ts
+   
+   src/hooks/
+     - useCardData.ts (will be refactored)
+
+2. CREATE DATA LAYER:
+   
+   Create src/services/CardDataProvider.ts:
+   
+   interface CardDataProvider {
+     async getCards(): Promise<AssistantCard[]>;
+     async getCard(id: string): Promise<AssistantCard | null>;
+   }
+   
+   Implement for your data source (Dataverse API, mock, etc.)
+
+3. REFACTOR useCardData.ts:
+   
+   Import provider instead of using PCF DataSet directly
+   
+4. REWRITE index.ts:
+   
+   Create standalone App wrapper component
+   Accept CardDataProvider via Context
+   Emit actions via callback props
+
+5. CREATE MOCK DATA:
+   
+   Create src/fixtures/sampleCards.ts with test AssistantCard[] data
+
+6. TEST WITH STORYBOOK OR JEST:
+   
+   All components should work with mock props
+
+================================================================================
+
+For detailed analysis, see: AssistantDashboard_INVENTORY.txt
+

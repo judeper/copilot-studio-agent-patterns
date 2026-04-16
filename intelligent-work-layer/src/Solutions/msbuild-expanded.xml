@@ -1,0 +1,188 @@
+<!--
+============================================================================================================================================
+C:\Dev\copilot-studio-agent-patterns\intelligent-work-layer\src\Solutions\Solution.cdsproj
+============================================================================================================================================
+-->
+<Project DefaultTargets="Build">
+  <!--
+============================================================================================================================================
+  <Import Project="Sdk.props" Sdk="Microsoft.PowerApps.MSBuild.Solution/1.0.6">
+  This import was added implicitly because the Project element's Sdk attribute specified "Microsoft.PowerApps.MSBuild.Solution/1.0.6".
+
+C:\Users\judep\.nuget\packages\microsoft.powerapps.msbuild.solution\1.0.6\Sdk\Sdk.props
+============================================================================================================================================
+-->
+  <PropertyGroup xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ProjectSystemBase>$(MSBuildProjectDirectory)</ProjectSystemBase>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <OutputPath Condition="'$(OutputPath)' == ''">bin\Debug\</OutputPath>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <IntermediateOutputPath Condition="'$(IntermediateOutputPath)' == ''">obj\Debug\</IntermediateOutputPath>
+    <SolutionPackageType Condition="'$(SolutionPackageType)' == ''">Unmanaged</SolutionPackageType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <OutputPath Condition="'$(OutputPath)' == ''">bin\Release\</OutputPath>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <IntermediateOutputPath Condition="'$(IntermediateOutputPath)' == ''">obj\Release\</IntermediateOutputPath>
+    <SolutionPackageType Condition="'$(SolutionPackageType)' == ''">Managed</SolutionPackageType>
+  </PropertyGroup>
+  <PropertyGroup xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <TaskFolder Condition="'$(MSBuildRuntimeType)' == 'Core'">netstandard2.0</TaskFolder>
+    <TaskFolder Condition="'$(MSBuildRuntimeType)' != 'Core'">net462</TaskFolder>
+    <TaskAssembly>$(MSBuildThisFileDirectory)..\tasks\$(TaskFolder)\Microsoft.PowerApps.MSBuild.Tasks.dll</TaskAssembly>
+  </PropertyGroup>
+  <UsingTask TaskName="Tasks.ProcessCdsProjectReferencesOutputs" AssemblyFile="$(TaskAssembly)" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+  <UsingTask TaskName="Tasks.StartTelemetryTask" AssemblyFile="$(TaskAssembly)" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+  <UsingTask TaskName="Tasks.EndTelemetryTask" AssemblyFile="$(TaskAssembly)" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+  <!--
+============================================================================================================================================
+  </Import>
+
+C:\Dev\copilot-studio-agent-patterns\intelligent-work-layer\src\Solutions\Solution.cdsproj
+============================================================================================================================================
+-->
+  <PropertyGroup>
+    <SolutionPackageType>Unmanaged</SolutionPackageType>
+    <SolutionUniqueName>EnterpriseWorkAssistant</SolutionUniqueName>
+    <SolutionVersion>1.0.0</SolutionVersion>
+    <SolutionLocalizedName>Intelligent Work Layer</SolutionLocalizedName>
+    <SolutionDescription>PCF dashboard component for the Intelligent Work Layer agent.</SolutionDescription>
+    <OutputPath>$(MSBuildThisFileDirectory)bin\Debug</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AssistantDashboard.pcfproj" />
+  </ItemGroup>
+  <!--
+============================================================================================================================================
+  <Import Project="Sdk.targets" Sdk="Microsoft.PowerApps.MSBuild.Solution/1.0.6">
+  This import was added implicitly because the Project element's Sdk attribute specified "Microsoft.PowerApps.MSBuild.Solution/1.0.6".
+
+C:\Users\judep\.nuget\packages\microsoft.powerapps.msbuild.solution\1.0.6\Sdk\Sdk.targets
+============================================================================================================================================
+-->
+  <!--
+
+***********************************************************************************************
+
+Microsoft.PowerApps.MSBuild.Solution.targets
+
+
+
+WARNING:  DO NOT MODIFY this file unless you are knowledgeable about MSBuild and have
+
+          created a backup copy.  Incorrect changes to this file will make it
+
+          impossible to load or build your projects from the command-line or the IDE.
+
+
+
+This file defines the steps in the build process for Microsoft PowerApps Solution projects.
+
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+***********************************************************************************************
+
+-->
+  <!-- Moving these properties to props file doesn't evaluate the OutputPath & IntermediateOutputPath property after project evaluation 
+       These properties should be moved to props file if this needs to be visible at design time.
+  -->
+  <PropertyGroup xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <SolutionPackagerExePath Condition="'$(SolutionPackagerExePath)' == ''">$(MSBuildThisFileDirectory)..\content\</SolutionPackagerExePath>
+    <SolutionPackageErrorLevel Condition="'$(SolutionPackageErrorLevel)' == ''">Info</SolutionPackageErrorLevel>
+    <SolutionPackageEnableLocalization Condition="'$(SolutionPackageEnableLocalization)' == ''">false</SolutionPackageEnableLocalization>
+    <SolutionPackagerWorkingDirectory Condition="'$(SolutionPackagerWorkingDirectory)' == ''">$(IntermediateOutputPath)</SolutionPackagerWorkingDirectory>
+    <SolutionPackageLogFilePath Condition="'$(SolutionPackageLogFilePath)' == ''">$(OutputPath)SolutionPackager.log</SolutionPackageLogFilePath>
+    <SolutionPackageZipFilePath Condition="'$(SolutionPackageZipFilePath)' == ''">$(OutputPath)$(MSBuildProjectName).zip</SolutionPackageZipFilePath>
+    <SolutionPackageMapArgument Condition="'$(SolutionPackageMapFilePath)' != ''">/map:$(SolutionPackageMapFilePath)</SolutionPackageMapArgument>
+    <SolutionPackageLocalizeArgument Condition="'$(SolutionPackageEnableLocalization)' == 'true'">/src /loc</SolutionPackageLocalizeArgument>
+    <PcfForceUpdate Condition="'$(PcfForceUpdate)' == ''">false</PcfForceUpdate>
+    <TelemtrySessionId>$([System.Guid]::NewGuid())</TelemtrySessionId>
+    <TelemetryExePath>$(MSBuildThisFileDirectory)..\content\</TelemetryExePath>
+  </PropertyGroup>
+  <!--The CreateManifestResourceNames target create the manifest resource names from the .RESX -->
+  <Target Name="CreateManifestResourceNames" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+  <!-- Prevent Csc from being called -->
+  <Target Name="CoreCompile" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+  <!-- Prevent copy of non-existent exe -->
+  <Target Name="CopyFilesToOutputDirectory" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+  <!--The StartTelemetryTask target logs the start events to the telemetry -->
+  <Target Name="StartTelemetryTask" BeforeTargets="BeforeBuild" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <StartTelemetryTask SessionId="$(TelemtrySessionId)" TelemetryExePath="$(TelemetryExePath)" Verb="solution" SubVerb="build">
+      <Output TaskParameter="BuildStartTick" PropertyName="BuildStartTick" />
+    </StartTelemetryTask>
+  </Target>
+  <Target Name="CopyCdsSolutionContent" BeforeTargets="ProcessCdsProjectReferencesOutputs" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+      <SourceSolutionFilePath>$(MSBuildProjectDirectory)\**</SourceSolutionFilePath>
+      <SolutionPackageLogPath>$([System.IO.Directory]::GetParent($(SolutionPackageLogFilePath)))</SolutionPackageLogPath>
+      <SolutionPackageZipPath>$([System.IO.Directory]::GetParent($(SolutionPackageZipFilePath)))</SolutionPackageZipPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <ExcludeDirectories Include="bin\**" />
+      <ExcludeDirectories Include="obj\**" />
+      <ExcludeDirectories Include="$(SolutionPackageZipPath)\**" />
+      <ExcludeDirectories Include="$(SolutionPackagerWorkingDirectory)\**" />
+      <ExcludeDirectories Include="$(SolutionPackageLogFilePath)\**" />
+      <ExcludeDirectories Include="*.cdsproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <SourceSolutionFiles Include="$(SourceSolutionFilePath)" Exclude="@(ExcludeDirectories)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SourceSolutionFiles)" DestinationFiles="@(SourceSolutionFiles -> '$(SolutionPackagerWorkingDirectory)\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+  <!-- 
+    Project References are already built. Find the Output Path & Copy the output to Cds working directory 
+    
+    Allow all project types to be referenced from/to cdsproj. We don't block any project reference creation
+    as it is also used to define build order sometime in a solution while running in VS.
+
+    However, cdsproj would not process any project reference output that it doesn't understand. GetProjectOutputPath
+    Target must be defined in each of the valid referenced projects
+    Currently it understands pcfproj & csproj (plugins) only.
+  
+  -->
+  <Target Name="ProcessCdsProjectReferencesOutputs" BeforeTargets="PowerAppsPackage" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <MSBuild Projects="@(ProjectReference)" Targets="GetProjectOutputPath">
+      <Output TaskParameter="TargetOutputs" ItemName="ProjectReferenceCopyLocalPaths" />
+    </MSBuild>
+    <ProcessCdsProjectReferencesOutputs WorkingDirectoryPath="$(SolutionPackagerWorkingDirectory)" SourceFileItems="@(ProjectReferenceCopyLocalPaths)" PcfForceUpdateFlag="$(PcfForceUpdate)" />
+  </Target>
+  <Target Name="PowerAppsPackage" AfterTargets="AfterBuild" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Message Importance="High" Text="Running Solution Packager to build package type: $(SolutionPackageType) $(SolutionPackageZipFilePath)" />
+    <Exec Command="&quot;$(SolutionPackagerExePath)SolutionPackager.exe&quot; /action:Pack /packagetype:$(SolutionPackageType) $(SolutionPackageMapArgument) /folder:$(SolutionPackagerWorkingDirectory) /zipfile:&quot;$(SolutionPackageZipFilePath)&quot; $(SolutionPackageLocalizeArgument) /errorlevel:$(SolutionPackageErrorLevel) /l:&quot;$(SolutionPackageLogFilePath)&quot;" WorkingDirectory="$(RunWorkingDirectory)" />
+    <Message Importance="High" Text="Solution: $(SolutionPackageZipFilePath) generated." />
+    <Message Importance="High" Text="Solution Package Type: $(SolutionPackageType) generated." />
+    <Message Importance="Normal" Text="Solution Packager log path: $(SolutionPackageLogFilePath)." />
+    <Message Importance="Normal" Text="Solution Packager error level: $(SolutionPackageErrorLevel)." />
+  </Target>
+  <!--The EndTelemetryTask target logs the end events to the telemetry -->
+  <Target Name="EndTelemetryTask" AfterTargets="PowerAppsPackage" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <EndTelemetryTask SessionId="$(TelemtrySessionId)" TelemetryExePath="$(TelemetryExePath)" Verb="solution" BuildStartTick="$(BuildStartTick)" SubVerb="build" />
+  </Target>
+  <!-- Run this after core clean-->
+  <Target Name="AfterClean" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <StartTelemetryTask SessionId="$(TelemtrySessionId)" TelemetryExePath="$(TelemetryExePath)" Verb="solution" SubVerb="clean">
+      <Output TaskParameter="BuildStartTick" PropertyName="BuildStartTick" />
+    </StartTelemetryTask>
+    <PropertyGroup>
+      <SolutionPackageManagedZipFilePath Condition="'$(SolutionPackageType)' == 'both'"> $(SolutionPackageZipFilePath.Replace(".zip","_managed.zip"))</SolutionPackageManagedZipFilePath>
+    </PropertyGroup>
+    <Message Importance="High" Text="Cleaning output directory: $(OutputPath), Intermediate directory: $(IntermediateOutputPath) and Solution Packager working directory: $(SolutionPackagerWorkingDirectory)" />
+    <RemoveDir Directories="$(OutputPath); $(IntermediateOutputPath); $(SolutionPackagerWorkingDirectory)" ContinueOnError="WarnAndContinue" />
+    <Message Importance="High" Text="Removing log file: $(SolutionPackageLogFilePath) and generated solution package: $(SolutionPackageZipFilePath)" />
+    <Message Importance="High" Condition="'$(SolutionPackageManagedZipFilePath)' != ''" Text="Removing generated managed solution package: $(SolutionPackageManagedZipFilePath)" />
+    <Delete Files="$(SolutionPackageLogFilePath); $(SolutionPackageZipFilePath); $(SolutionPackageManagedZipFilePath)" TreatErrorsAsWarnings="True" />
+    <EndTelemetryTask SessionId="$(TelemtrySessionId)" TelemetryExePath="$(TelemetryExePath)" BuildStartTick="$(BuildStartTick)" Verb="solution" SubVerb="clean" />
+  </Target>
+  <!--
+============================================================================================================================================
+  </Import>
+
+C:\Dev\copilot-studio-agent-patterns\intelligent-work-layer\src\Solutions\Solution.cdsproj
+============================================================================================================================================
+-->
+</Project>

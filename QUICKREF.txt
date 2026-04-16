@@ -1,0 +1,232 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║           ASSISTANTDASHBOARD - QUICK REFERENCE (One-Page)                 ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┌─ SKILLS FOR COPILOT STUDIO PLUGIN ────────────────────────────────────────┐
+│                                                                            │
+│  Install (one-time):                                                       │
+│    /plugin marketplace add microsoft/skills-for-copilot-studio            │
+│    /plugin install copilot-studio@skills-for-copilot-studio               │
+│    → Enable auto-updates in plugin settings after install                 │
+│                                                                            │
+│  Commands:                                                                 │
+│    /copilot-studio:author       Author/edit YAML (topics, actions,        │
+│                                 knowledge, triggers, variables)            │
+│    /copilot-studio:test         Test published agent (point-tests,        │
+│                                 batch suites, eval analysis)              │
+│    /copilot-studio:troubleshoot Debug routing, validation errors,         │
+│                                 disambiguation issues                     │
+│                                                                            │
+│  Dev loop:                                                                 │
+│    Clone (VS Code Extension) → :author → :troubleshoot →                  │
+│    Push+Publish (VS Code + Copilot Studio UI) → :test → iterate          │
+│                                                                            │
+│  IWL guide:  intelligent-work-layer/docs/skills-plugin-guide.md           │
+│  EPA guide:  email-productivity-agent/docs/skills-plugin-guide.md         │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌─ EXECUTIVE SUMMARY ─────────────────────────────────────────────────────┐
+│                                                                          │
+│  ✓ 92% PORTABLE (3,235 lines)     All UI, logic, utilities              │
+│  ✗ 8% NEEDS REWRITE (223 lines)   Only data layer & PCF lifecycle       │
+│                                                                          │
+│  Bottom Line: Copy 16 files as-is. Rewrite 2 files. 8-12 hours work.  │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌─ FILE INVENTORY ────────────────────────────────────────────────────────┐
+│                                                                          │
+│  PORTABLE COMPONENTS (13 files, 2,045 lines):                           │
+│  ├─ App.tsx ........................... Root layout & routing           │
+│  ├─ BriefingCard.tsx (593 lines) ...... Sprint 2: Daily briefings     │
+│  ├─ CardDetail.tsx (546 lines) ........ Detail panel for editing      │
+│  ├─ CardGallery.tsx ................... Card feed with grouping        │
+│  ├─ CardItem.tsx ...................... Card display                   │
+│  ├─ CommandBar.tsx (305 lines) ........ Sprint 3: Command interface   │
+│  ├─ ConfidenceCalibration.tsx (327) ... Sprint 4: Analytics           │
+│  ├─ DayGlance.tsx ..................... Today summary                  │
+│  ├─ ErrorBoundary.tsx ................. Error handling                 │
+│  ├─ FilterBar.tsx ..................... Filters & sorting              │
+│  ├─ StatusBar.tsx ..................... Top navigation                 │
+│  ├─ types.ts (149 lines) .............. DATA MODEL (CORE)              │
+│  └─ constants.ts (57 lines) ........... Design tokens & helpers        │
+│                                                                          │
+│  UTILITIES (4 files, 90 lines) - ALL PURE FUNCTIONS:                   │
+│  ├─ hooks/useCardData.ts .............. Maps DataSet → AssistantCard[]  │
+│  ├─ utils/focusUtils.ts ............... Post-render focus               │
+│  ├─ utils/levenshtein.ts .............. Edit distance ratio             │
+│  └─ utils/urlSanitizer.ts ............ Safe URL validation            │
+│                                                                          │
+│  PCF-SPECIFIC (2 files, 223 lines):                                     │
+│  ├─ index.ts .......................... PCF Control class → REWRITE     │
+│  └─ generated/ManifestTypes.d.ts ...... Auto-gen types → DELETE        │
+│                                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌─ PCF API USAGE ─────────────────────────────────────────────────────────┐
+│                                                                          │
+│  ONLY 2 FILES USE PCF APIs (index.ts + useCardData.ts):                │
+│                                                                          │
+│  ComponentFramework APIs:                                              │
+│    - ComponentFramework.ReactControl<IInputs, IOutputs>  [index.ts]    │
+│    - ComponentFramework.Context<IInputs>                [index.ts]     │
+│                                                                          │
+│  Context APIs:                                                          │
+│    - context.mode.trackContainerResize(true)            [index.ts]     │
+│    - context.mode.allocatedWidth / allocatedHeight      [index.ts]     │
+│    - context.parameters[name].raw                       [index.ts]     │
+│                                                                          │
+│  DataSet APIs:                                                          │
+│    - dataset.sortedRecordIds        [index.ts + useCardData.ts]        │
+│    - dataset.records[id]            [index.ts + useCardData.ts]        │
+│    - record.getRecordId()           [useCardData.ts]                   │
+│    - record.getValue(column)        [useCardData.ts]                   │
+│    - record.getFormattedValue(col)  [useCardData.ts]                   │
+│                                                                          │
+│  Dataverse Columns Accessed:                                            │
+│    cr_fulljson, cr_cardstatus, cr_cardoutcome, cr_humanizeddraft,     │
+│    cr_originalsenderemail, cr_originalsenderdisplay, cr_originalsubject,
+│    cr_conversationclusterid, cr_sourcesignalid, createdon              │
+│                                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌─ WHAT NEEDS REWRITING ──────────────────────────────────────────────────┐
+│                                                                          │
+│  index.ts (198 lines) ........................ PCF CONTROL CLASS        │
+│  ├─ REMOVE: AssistantDashboard extends ComponentFramework.ReactControl  │
+│  ├─ REMOVE: init(), updateView(), getOutputs(), destroy() methods      │
+│  ├─ REMOVE: context.mode and context.parameters calls                  │
+│  ├─ REMOVE: dataset.records access                                     │
+│  ├─ KEEP: AppWrapper functional component (lines 12-57)                │
+│  ├─ KEEP: All action handlers and state management logic                │
+│  └─ ACTION: Create standalone React component + mock data provider     │
+│                                                                          │
+│  useCardData.ts (110 lines) ................. DATA TRANSFORMATION        │
+│  ├─ REFACTOR: Replace dataset parameter with DataProvider service      │
+│  ├─ REPLACE: record.getValue() calls with provider methods             │
+│  ├─ REPLACE: record.getFormattedValue() calls                          │
+│  ├─ KEEP: compositeSort() function                                     │
+│  ├─ KEEP: parseCardOutcome() function                                  │
+│  ├─ KEEP: DataSet interface abstraction                                │
+│  └─ ACTION: Create DataProvider interface & implement for your backend │
+│                                                                          │
+│  generated/ManifestTypes.d.ts (25 lines) ... AUTO-GENERATED            │
+│  ├─ DELETE: This file (auto-generated from ControlManifest.xml)        │
+│  └─ ACTION: Create mock IInputs/IOutputs types or import from Canvas   │
+│                                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌─ PORTING STEPS ─────────────────────────────────────────────────────────┐
+│                                                                          │
+│  STEP 1: Create new React project                    (15 min)          │
+│    $ npm create vite -- --template react             or CRA/Next.js    │
+│    npm install @fluentui/react-components @fluentui/react-icons        │
+│                                                                          │
+│  STEP 2: Copy portable files (1 hour)                                  │
+│    Copy 13 components → src/components/                                │
+│    Copy 4 utilities → src/utils/ + src/hooks/                          │
+│    Copy types.ts + constants.ts                                        │
+│                                                                          │
+│  STEP 3: Create mock data (1-2 hours)                                  │
+│    Create src/fixtures/sampleCards.ts with AssistantCard[] samples     │
+│    Create React Context for data provider                              │
+│                                                                          │
+│  STEP 4: Rewrite data layer (2-3 hours)                                │
+│    Create src/services/CardDataProvider.ts interface                   │
+│    Implement MockCardDataProvider for development                      │
+│    Refactor useCardData.ts to accept provider                          │
+│                                                                          │
+│  STEP 5: Rewrite index.ts (2-3 hours)                                  │
+│    Delete AssistantDashboard class                                     │
+│    Create standalone App wrapper component                             │
+│    Implement action callbacks (onSelectCard, onSendDraft, etc.)        │
+│    Replace context.mode with window events                             │
+│                                                                          │
+│  STEP 6: Test & validate (2-3 hours)                                   │
+│    Test all components with mock data                                  │
+│    Create Storybook stories                                            │
+│    Add unit tests for utilities                                        │
+│                                                                          │
+│  ────────────────────────────────────────────                           │
+│  TOTAL EFFORT: 8-12 hours (1 developer)                                │
+│                                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌─ IMPORTS TO KEEP ──────────────────────────────────────────────────────┐
+│                                                                          │
+│  ✓ import * as React from "react"                                      │
+│  ✓ import { ... } from "@fluentui/react-components"                    │
+│  ✓ import { ... } from "@fluentui/react-icons"                         │
+│  ✓ import type { AssistantCard, ... } from "./types"                   │
+│  ✓ import { ... } from "./constants"                                   │
+│  ✓ import { useCardData } from "./hooks/useCardData"                   │
+│  ✓ import { isSafeUrl } from "./utils/urlSanitizer"                    │
+│  ✓ import { levenshteinRatio } from "./utils/levenshtein"              │
+│  ✓ import { focusAfterRender } from "./utils/focusUtils"               │
+│                                                                          │
+│  ✗ DO NOT IMPORT:                                                      │
+│  ✗ import { ComponentFramework } from "pcf-template-cli"               │
+│  ✗ import { IInputs, IOutputs } from "./generated/ManifestTypes"       │
+│  ✗ PCF-specific APIs                                                   │
+│                                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌─ REACT DEPENDENCIES ────────────────────────────────────────────────────┐
+│                                                                          │
+│  Package Dependencies:                                                  │
+│    • react                 (required)                                   │
+│    • @fluentui/react-components  (UI components)                        │
+│    • @fluentui/react-icons       (icons)                                │
+│    • @fluentui/tokens            (design tokens)                        │
+│                                                                          │
+│  React Hooks Used:                                                      │
+│    ✓ useState, useCallback, useRef, useEffect, useMemo                  │
+│    ✓ Standard React patterns (no custom hooks except useCardData)       │
+│                                                                          │
+│  Fluent UI Components Used:                                             │
+│    Button, Badge, Card, Text, Link, Input, Textarea, Select,          │
+│    Checkbox, Switch, MessageBar, Spinner, TabList, Tab, Badge          │
+│                                                                          │
+│  Fluent UI Icons Used:                                                  │
+│    MailRegular, ChatRegular, CalendarRegular, DismissRegular,          │
+│    SendRegular, CopyRegular, ArrowLeftRegular, CheckmarkCircleRegular, │
+│    BrainCircuitRegular, SettingsRegular, etc. (20+ icons total)        │
+│                                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌─ CORE DATA STRUCTURE ──────────────────────────────────────────────────┐
+│                                                                          │
+│  // From components/types.ts (149 lines) - THE SOURCE OF TRUTH         │
+│                                                                          │
+│  interface AssistantCard {                                              │
+│    id: string;                           // Record GUID                │
+│    trigger_type: TriggerType;            // EMAIL, TEAMS, CALENDAR...  │
+│    triage_tier: TriageTier;              // SKIP, LIGHT, FULL          │
+│    item_summary: string;                 // 1-2 line summary           │
+│    priority: Priority | null;            // High, Medium, Low, N/A     │
+│    temporal_horizon: TemporalHorizon | null; // TODAY, THIS_WEEK...    │
+│    research_log: string | null;          // Research notes             │
+│    key_findings: string | null;          // Key findings               │
+│    verified_sources: VerifiedSource[] | null; // Links with tier       │
+│    confidence_score: number | null;      // 0-100                      │
+│    card_status: CardStatus;              // READY, LOW_CONFIDENCE...   │
+│    draft_payload: DraftPayload | null;   // Email/Teams draft          │
+│    humanized_draft: string | null;       // Formatted draft            │
+│    created_on: string;                   // ISO timestamp              │
+│    card_outcome: CardOutcome;            // PENDING, SENT_AS_IS...     │
+│    original_sender_email: string | null; // Sender email               │
+│    original_sender_display: string | null; // Sender name              │
+│    original_subject: string | null;      // Email/Teams subject        │
+│    conversation_cluster_id: string | null; // Clustering ID            │
+│    source_signal_id: string | null;      // Signal source              │
+│    hours_stale: number | null;           // Hours pending              │
+│  }                                                                      │
+│                                                                          │
+│  Use this as the single source of truth for all data shapes.            │
+│                                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║  See AssistantDashboard_INVENTORY.txt for detailed analysis (21.6 KB)    ║
+║  See AssistantDashboard_SUMMARY.txt for quick reference (15.6 KB)        ║
+╚════════════════════════════════════════════════════════════════════════════╝

@@ -1,0 +1,108 @@
+name: Validate Copilot Studio YAML
+
+on:
+  pull_request:
+    paths:
+      - '**/copilot-studio/**/*.mcs.yml'
+      - '**/copilot-studio/**/*.yaml'
+
+jobs:
+  validate-yaml:
+    name: Validate agent YAML files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint Intelligent Work Layer YAML
+        run: |
+          yamllint \
+            --config-data '{extends: relaxed, rules: {line-length: {max: 200}, truthy: {allowed-values: ["true", "false"]}}}' \
+            intelligent-work-layer/copilot-studio/
+
+      - name: Lint Email Productivity Agent YAML
+        run: |
+          yamllint \
+            --config-data '{extends: relaxed, rules: {line-length: {max: 200}, truthy: {allowed-values: ["true", "false"]}}}' \
+            email-productivity-agent/copilot-studio/
+
+      - name: Check required agent files
+        shell: python {0}
+        run: |
+          import os
+          import sys
+
+          required = {
+            "intelligent-work-layer/copilot-studio/agent.mcs.yml",
+            "intelligent-work-layer/copilot-studio/settings.mcs.yml",
+            "email-productivity-agent/copilot-studio/agent.mcs.yml",
+            "email-productivity-agent/copilot-studio/settings.mcs.yml",
+          }
+
+          missing = [f for f in required if not os.path.isfile(f)]
+          if missing:
+            print("ERROR: Required agent files are missing:")
+            for f in missing:
+              print(f"  - {f}")
+            sys.exit(1)
+
+          print("All required agent files present.")
+
+      - name: Check topic files have required fields
+        shell: python {0}
+        run: |
+          import os
+          import sys
+          import glob
+
+          REQUIRED_FIELDS = ["kind", "beginDialog", "inputType", "outputType"]
+          errors = []
+
+          topic_files = glob.glob("**/copilot-studio/topics/*.topic.mcs.yml", recursive=True)
+          system_topics = {
+            "conversation-start", "conversational-boosting", "end-of-conversation",
+            "escalate", "fallback", "goodbye", "greeting", "multiple-topics-matched",
+            "on-error", "reset-conversation", "sign-in", "start-over", "thank-you",
+          }
+
+          for filepath in sorted(topic_files):
+            basename = os.path.basename(filepath).replace(".topic.mcs.yml", "")
+            if basename in system_topics:
+              continue  # System topics have a different structure
+
+            with open(filepath) as f:
+              content = f.read()
+
+            for field in REQUIRED_FIELDS:
+              if field + ":" not in content:
+                errors.append(f"{filepath}: missing required field '{field}'")
+
+          if errors:
+            print("ERROR: Topic validation failed:")
+            for e in errors:
+              print(f"  - {e}")
+            sys.exit(1)
+
+          checked = len([f for f in topic_files
+                         if os.path.basename(f).replace(".topic.mcs.yml", "") not in system_topics])
+          print(f"Validated {checked} custom topic files. All checks passed.")
+
+      - name: Report summary
+        if: always()
+        run: |
+          echo "## Copilot Studio YAML Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Validated files in:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`intelligent-work-layer/copilot-studio/\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`email-productivity-agent/copilot-studio/\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checks run: YAML lint, required agent files, custom topic field validation" >> $GITHUB_STEP_SUMMARY
