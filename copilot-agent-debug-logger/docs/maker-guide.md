@@ -46,7 +46,7 @@ The logger also uses Dataverse system columns such as `createdon`, `modifiedon`,
 | `cr_correlationid` | Main stitching key across related rows. |
 | `cr_agentname` | Friendly name of the calling agent. |
 | `cr_source` | Choice: `POWER_AUTOMATE_FLOW`, `TOOL_FLOW`, or `COPILOT_TOPIC`. |
-| `cr_sourcename` | Name of the flow or topic that emitted the row. |
+| `cr_sourcename` | _(documented but not stored — see README **Known Issues**. Dataverse Picklist `cr_source` auto-generates a Virtual `cr_sourcename`; the Text(200) column was blocked at provision time. The trigger still accepts a `source_name` input but it is not persisted.)_ |
 | `cr_stepname` | Name of the specific step being logged. |
 | `cr_direction` | Choice: `REQUEST`, `RESPONSE`, or `EVENT`. |
 | `cr_sequence` | Caller-supplied per-caller tie-breaker. Not a global counter. |
@@ -207,11 +207,13 @@ Use **Errors Only** when troubleshooting failed actions.
 ### 5. Payload truncation (A15)
 Both `flow-1-log-agent-trace` and `tool-log-agent-trace` truncate `payload` before the Dataverse write.
 
-Implementation pattern:
+Implementation pattern (Workflow Definition Language native):
 
 ```text
-left(string(...), 900000)
+substring(string(...), 0, min(900000, length(string(...))))
 ```
+
+> **Why not `left()`?** `left()` is a Power Apps Canvas-formula function, not WDL. Early drafts of the flows used it and the Flow Management API rejected with `'left' is not defined or not valid`. See PR #42 for the fix.
 
 Why 900,000 characters:
 
@@ -349,7 +351,7 @@ div(sub(ticks(utcNow()), ticks(outputs('Compose_StartTime'))), 10000)
 ### Payload truncation reminder
 
 You do not need to truncate before calling the child flow.
-The child flow truncates with `left(string(triggerBody()?['payload']), 900000)`.
+The child flow truncates with `substring(string(triggerBody()?['payload']), 0, min(900000, length(string(triggerBody()?['payload']))))` (WDL native; `left()` is Power Apps Canvas only — see PR #42).
 Still, avoid logging unnecessary fields because the payload is raw and not redacted.
 
 ### ⚠️ `cr_sequence` per-caller-only warning (A8/D4)
@@ -614,7 +616,7 @@ Then re-enable the full variant only during an active debugging window.
 3. Confirm the chat shows an italic trace message.
 4. Open **Agent Debug Console**.
 5. Select **Recent Traces**.
-6. Confirm a row with `cr_sourcename = log-chain-of-thoughts`.
+6. Confirm a row whose `cr_tracelabel` begins with `COPILOT_TOPIC/CoT @` (the source/step is encoded in the label because the documented `cr_sourcename` column is unwritable — see README **Known Issues**).
 7. Confirm `cr_correlationid` matches the conversation ID when using the full variant.
 
 ## Pattern D — Import ConvHistory topic
@@ -702,7 +704,7 @@ Without Pattern E, the console can show separate correlation groups.
 2. Trigger the topic manually by saying `save conversation history`, or reach your configured end/escalation path.
 3. Open **Agent Debug Console**.
 4. Select **Recent Traces**.
-5. Confirm a row with `cr_sourcename = save-conversation-history`.
+5. Confirm a row whose `cr_tracelabel` begins with `COPILOT_TOPIC/ConversationHistory @` (the source/step is encoded in the label because the documented `cr_sourcename` column is unwritable — see README **Known Issues**).
 6. Open the row and confirm `cr_payload` contains the transcript text.
 
 ## Pattern E (OPTIONAL) — End-to-end correlation across CS + PA
