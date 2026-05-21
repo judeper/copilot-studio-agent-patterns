@@ -1,0 +1,33 @@
+# Name: Save Conversation History (Blog-Pure)
+# Drop-in topic for the Copilot Agent Debug Logger POC.
+# Pattern source: Power CAT Custom Engine blog (Oct 2025) — verbatim, no
+# extensions. Captures conversation history into the Topic.conversationHistory
+# variable only; no Dataverse persistence; zero dependencies on the rest
+# of the solution. Use to confirm the variable is being captured before
+# wiring downstream actions (ticket, escalation, MCP, Outlook).
+# For the persistent variant, use save-conversation-history.topic.mcs.yml (D6).
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: conversationHistory
+    description: "Entire conversation history in the format 'User: …, Agent: …'"
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent:
+    displayName: Save Conversation History (Blog-Pure)
+    modelDescription: "Captures the current conversation history into a topic variable. No Dataverse persistence; verify capture before wiring downstream actions."
+    includeInOnSelectIntent: false
+    triggerQueries:
+      - save conversation history
+
+  actions:
+    # Capture-only: no SendActivity and no flow call. The variable
+    # Topic.conversationHistory is populated by the AutomaticTaskInput,
+    # then the topic completes. Wire downstream by extending this YAML
+    # (ticket / escalation / MCP / Outlook patterns documented in
+    # docs/maker-guide.md Pattern D).
+    - kind: EndDialog
+      id: endDialog_BlogPureComplete
