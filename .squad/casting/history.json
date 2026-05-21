@@ -1,0 +1,26 @@
+{
+  "universe_usage_history": [
+    {
+      "universe": "Ocean's Eleven",
+      "assigned_at": "2026-05-21",
+      "team_size": 7,
+      "reason": "Heist-crew specialization mapping matches Power Platform domain roles 1:1 (mastermind/planner/inside-man/mechanical/apprentice/timing/storyteller). Zero overlap with EssAgent (Marvel + DC heavy)."
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "2026-05-21_initial_cast": {
+      "assignment_id": "initial-cast-2026-05-21",
+      "universe": "Ocean's Eleven",
+      "members": [
+        {"slot": "Lead", "cast_name": "Danny", "full_name": "Danny Ocean"},
+        {"slot": "Reviewer", "cast_name": "Rusty", "full_name": "Rusty Ryan"},
+        {"slot": "Schema & Solution", "cast_name": "Frank", "full_name": "Frank Catton"},
+        {"slot": "Flow Author", "cast_name": "Virgil", "full_name": "Virgil Malloy"},
+        {"slot": "Topic Author", "cast_name": "Linus", "full_name": "Linus Caldwell"},
+        {"slot": "Scripts & ALM", "cast_name": "Basher", "full_name": "Basher Tarr"},
+        {"slot": "Docs & Maker UX", "cast_name": "Saul", "full_name": "Saul Bloom"}
+      ],
+      "exempt_members": ["Scribe", "Ralph"]
+    }
+  }
+}

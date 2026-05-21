@@ -1,0 +1,85 @@
+{
+  "agents": {
+    "danny": {
+      "persistent_name": "Danny",
+      "full_name": "Danny Ocean",
+      "universe": "Ocean's Eleven",
+      "role": "Lead",
+      "created_at": "2026-05-21",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "rusty": {
+      "persistent_name": "Rusty",
+      "full_name": "Rusty Ryan",
+      "universe": "Ocean's Eleven",
+      "role": "Reviewer",
+      "created_at": "2026-05-21",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "frank": {
+      "persistent_name": "Frank",
+      "full_name": "Frank Catton",
+      "universe": "Ocean's Eleven",
+      "role": "Schema & Solution",
+      "created_at": "2026-05-21",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "virgil": {
+      "persistent_name": "Virgil",
+      "full_name": "Virgil Malloy",
+      "universe": "Ocean's Eleven",
+      "role": "Flow Author",
+      "created_at": "2026-05-21",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "linus": {
+      "persistent_name": "Linus",
+      "full_name": "Linus Caldwell",
+      "universe": "Ocean's Eleven",
+      "role": "Topic Author",
+      "created_at": "2026-05-21",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "basher": {
+      "persistent_name": "Basher",
+      "full_name": "Basher Tarr",
+      "universe": "Ocean's Eleven",
+      "role": "Scripts & ALM",
+      "created_at": "2026-05-21",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "saul": {
+      "persistent_name": "Saul",
+      "full_name": "Saul Bloom",
+      "universe": "Ocean's Eleven",
+      "role": "Docs & Maker UX",
+      "created_at": "2026-05-21",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "scribe": {
+      "persistent_name": "Scribe",
+      "full_name": "Scribe",
+      "universe": "framework-exempt",
+      "role": "Session Logger",
+      "created_at": "2026-05-21",
+      "legacy_named": true,
+      "status": "active"
+    },
+    "ralph": {
+      "persistent_name": "Ralph",
+      "full_name": "Ralph",
+      "universe": "framework-exempt",
+      "role": "Persistent Memory / Work Queue Monitor",
+      "created_at": "2026-05-21",
+      "legacy_named": true,
+      "status": "idle"
+    }
+  }
+}
