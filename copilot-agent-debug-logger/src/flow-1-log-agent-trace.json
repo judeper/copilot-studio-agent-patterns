@@ -1,0 +1,208 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "manual": {
+        "type": "Request",
+        "kind": "Button",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "correlation_id": {
+                "type": "string",
+                "title": "correlation_id",
+                "description": "Correlation key stitching CS-side and PA-side trace rows. Optional — defaults to coalesce(triggerBody, workflow().run.name) when not supplied."
+              },
+              "agent_name": {
+                "type": "string",
+                "title": "agent_name",
+                "description": "Name of the calling Copilot Studio agent (e.g. 'Intelligent Work Layer')."
+              },
+              "source": {
+                "type": "string",
+                "title": "source",
+                "description": "Which side of the call generated this trace row. One of POWER_AUTOMATE_FLOW / TOOL_FLOW / COPILOT_TOPIC."
+              },
+              "source_name": {
+                "type": "string",
+                "title": "source_name",
+                "description": "Name of the originating flow or topic."
+              },
+              "step_name": {
+                "type": "string",
+                "title": "step_name",
+                "description": "Name of the discrete step (e.g. 'ExecuteAgentAndWait', 'CoT')."
+              },
+              "direction": {
+                "type": "string",
+                "title": "direction",
+                "description": "REQUEST / RESPONSE / EVENT"
+              },
+              "sequence": {
+                "type": "integer",
+                "title": "sequence",
+                "description": "Optional. Caller-supplied integer starting at 1 — per-caller tie-breaker (A8). NOT a global step counter."
+              },
+              "payload": {
+                "type": "string",
+                "title": "payload",
+                "description": "JSON-serialized inputs/outputs. Raw, no redaction. Truncated to 900,000 chars before write (A15)."
+              },
+              "duration_ms": {
+                "type": "integer",
+                "title": "duration_ms",
+                "description": "Optional. Step duration in milliseconds — populate on RESPONSE rows."
+              },
+              "status": {
+                "type": "string",
+                "title": "status",
+                "description": "Optional. OK (default) / ERROR."
+              },
+              "error_message": {
+                "type": "string",
+                "title": "error_message",
+                "description": "Optional. Populate when status = ERROR."
+              }
+            },
+            "required": [
+              "source",
+              "source_name",
+              "step_name",
+              "direction"
+            ]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_DebugLoggerEnabled": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "host": {
+            "connectionName": "shared_commondataserviceforapps",
+            "operationId": "GetEnvironmentVariableValue",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+          },
+          "parameters": {
+            "schemaName": "cr_DebugLoggerEnabled"
+          }
+        },
+        "runAfter": {}
+      },
+      "Compose_EnabledFlag": {
+        "type": "Compose",
+        "inputs": "@equals(toLower(string(coalesce(outputs('Get_DebugLoggerEnabled')?['body/value/value'], outputs('Get_DebugLoggerEnabled')?['body/value'], false))), 'true')",
+        "runAfter": {
+          "Get_DebugLoggerEnabled": [
+            "Succeeded",
+            "Failed",
+            "TimedOut",
+            "Skipped"
+          ]
+        }
+      },
+      "Condition_IsEnabled": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@outputs('Compose_EnabledFlag')",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Scope_Write": {
+            "type": "Scope",
+            "actions": {
+              "Compose_TraceLabel": {
+                "type": "Compose",
+                "inputs": "@concat(triggerBody()?['source'], '/', triggerBody()?['step_name'], ' @ ', utcNow())",
+                "runAfter": {}
+              },
+              "Compose_PayloadTruncated": {
+                "type": "Compose",
+                "inputs": "@left(string(triggerBody()?['payload']), 900000)",
+                "runAfter": {}
+              },
+              "Compose_CorrelationId": {
+                "type": "Compose",
+                "inputs": "@coalesce(triggerBody()?['correlation_id'], workflow()?['run']?['name'])",
+                "runAfter": {}
+              },
+              "Create_AgentTrace_Row": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "host": {
+                    "connectionName": "shared_commondataserviceforapps",
+                    "operationId": "CreateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                  },
+                  "parameters": {
+                    "entityName": "cr_agenttraces",
+                    "item/cr_tracelabel": "@outputs('Compose_TraceLabel')",
+                    "item/cr_correlationid": "@outputs('Compose_CorrelationId')",
+                    "item/cr_agentname": "@triggerBody()?['agent_name']",
+                    "item/cr_source": "@if(equals(triggerBody()?['source'], 'TOOL_FLOW'), 100000001, if(equals(triggerBody()?['source'], 'COPILOT_TOPIC'), 100000002, 100000000))",
+                    "item/cr_sourcename": "@triggerBody()?['source_name']",
+                    "item/cr_stepname": "@triggerBody()?['step_name']",
+                    "item/cr_direction": "@if(equals(triggerBody()?['direction'], 'RESPONSE'), 100000001, if(equals(triggerBody()?['direction'], 'EVENT'), 100000002, 100000000))",
+                    "item/cr_sequence": "@triggerBody()?['sequence']",
+                    "item/cr_payload": "@outputs('Compose_PayloadTruncated')",
+                    "item/cr_durationms": "@triggerBody()?['duration_ms']",
+                    "item/cr_status": "@if(equals(coalesce(triggerBody()?['status'], 'OK'), 'ERROR'), 100000001, 100000000)",
+                    "item/cr_errormessage": "@triggerBody()?['error_message']"
+                  }
+                },
+                "runAfter": {
+                  "Compose_TraceLabel": [
+                    "Succeeded"
+                  ],
+                  "Compose_PayloadTruncated": [
+                    "Succeeded"
+                  ],
+                  "Compose_CorrelationId": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Terminate_AfterWrite_Failure": {
+            "type": "Terminate",
+            "inputs": {
+              "runStatus": "Succeeded"
+            },
+            "runAfter": {
+              "Scope_Write": [
+                "Failed",
+                "TimedOut"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Terminate_Disabled": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Succeeded"
+              },
+              "runAfter": {}
+            }
+          }
+        },
+        "runAfter": {
+          "Compose_EnabledFlag": [
+            "Succeeded"
+          ]
+        }
+      }
+    }
+  }
+}
