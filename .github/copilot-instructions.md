@@ -40,6 +40,16 @@ The **Email Productivity Agent** (`email-productivity-agent/`) provides Gmail-li
 - **POC state**: Flow 2 mocked, Flow 4 deterministic bypass; Copilot assets available for re-enabling
 - **Lab wizard** (`tools/lab-wizard/wizard.py`): Python CLI automating full deployment in 9 phases
 
+The **Copilot Agent Debug Logger** (`copilot-agent-debug-logger/`) is a maker-focused POC that fills 3 specific gaps in the native Copilot Studio + Power Automate debugging stack: Power Automate request/response payload capture, shared correlation ID stitching across CS-side topic events and PA-side flow events, and drop-in Chain-of-Thought + Conversation History topic templates from the Power CAT Custom Engine blog (Oct 2025). Key artifacts:
+- **1 Dataverse table** (`cr_agenttrace`) — 13 columns, UserOwned, primary column `cr_tracelabel` is plain Text (NO formula per council decision A1; populated explicitly via Compose in the flow)
+- **1 Boolean env var** (`cr_DebugLoggerEnabled`) — single global kill switch; default `false`; fail-open on read failure (deleted var = disabled)
+- **2 flows** — `flow-1-log-agent-trace` (child flow callable via "Run a Child Flow") + `tool-log-agent-trace` (PVA-trigger flow mirroring `intelligent-work-layer/src/tool-search-sharepoint.json` lines 117-207 verbatim for the Compose → Respond-with-error → Terminate_Graceful pattern per council decision A2/D3)
+- **4 topic YAMLs** — CoT + ConvHistory × full (with `InvokeFlowAction`) + blog-pure (zero deps) per decision D6
+- **3 PowerShell scripts** — `provision-environment.ps1`, `deploy-solution.ps1`, `inject-flow-guid.ps1` (B1 placeholder substitution for `{{TOOL_LOG_AGENT_TRACE_FLOW_ID}}`)
+- **Unmanaged solution scaffold** (D8 v1) + **Phase-0 manual MDA authoring** (D7 — `docs/phase-0-mda-authoring.md` walks the maker portal click-path)
+- **5 docs** — native-debugging-cheatsheet, deployment-guide, maker-guide (with Patterns A-E), skills-plugin-guide, phase-0-mda-authoring
+- **POC scope**: no PII redaction, no retention, no per-user roles, no PCF JSON viewer — all listed as extension points
+
 ## Build, Test, and Lint (PCF Component — Legacy)
 
 All commands run from `intelligent-work-layer/src/`:
@@ -183,3 +193,16 @@ PowerShell 7+ scripts in `intelligent-work-layer/scripts/` handle environment se
 ### Planning Structure
 
 The `.planning/` directory contains project management artifacts (milestones, phases, research). It uses a structured phase/plan system where each phase has numbered plans (e.g., `16-01-PLAN.md`, `16-01-SUMMARY.md`). `STATE.md` tracks current position. These files are for project context only — don't modify them when making code changes.
+
+### Copilot Agent Debug Logger — POC Constraints
+
+- **A1 — `cr_tracelabel` is plain Text(200) primary column with NO formula.** Flow populates it explicitly via Compose: `concat(triggerBody()?['source'], '/', triggerBody()?['step_name'], ' @ ', utcNow())`. Adding `formulaDefinition` breaks the contract.
+- **A2/D3 — tool flow error pattern is verbatim from IWL.** `tool-log-agent-trace`'s `Scope_Handle_Errors` mirrors `intelligent-work-layer/src/tool-search-sharepoint.json` lines 117-207. On Failed/TimedOut: `Compose_ErrorDetails` → `Respond_with_error` (PowerVirtualAgentsResponseV2, statusCode 200, body `{ "logged": false }`) → `Terminate_Graceful(Failed)`. Respond-before-terminate is non-negotiable — otherwise the calling topic hangs.
+- **A3/D4 — child flow fail-open.** `flow-1-log-agent-trace`'s `Scope_Write` has `Configure run after → Failed/TimedOut → Terminate(Succeeded)` so a logger failure never propagates to the caller.
+- **A4 — env-var fail-open.** Both flows treat a deleted/failed env-var read as `enabled = false`. Implementation: `Compose_EnabledFlag` with `coalesce(outputs('Get_DebugLoggerEnabled')?[...], false)` and `runAfter` covering `Succeeded, Failed, TimedOut, Skipped`.
+- **A15 — payload truncation.** Both flows apply `left(string(triggerBody()?['payload']), 900000)` before the Dataverse write — Memo field is ~1 MB; 900 KB leaves headroom.
+- **D5/B1 — topic GUID lifecycle is Path B.** Topics ship with `{{TOOL_LOG_AGENT_TRACE_FLOW_ID}}` placeholder; `scripts/inject-flow-guid.ps1` substitutes the actual GUID into `dist/topics/*.topic.mcs.yml` after import (output dir gitignored).
+- **D6 — every topic ships in TWO variants.** Full (with `InvokeFlowAction` → tool flow → cr_agenttrace) + blog-pure (Message-only / capture-only, zero deps). Modify both when changing a topic's contract.
+- **D7 — MDA is Phase-0 manual.** Authored once in Maker portal then `pac solution clone && pac solution unpack` into `src/Solutions/CanvasApps/`. `deploy-solution.ps1` fails loudly with a pointer to `docs/phase-0-mda-authoring.md` when the MDA folder is missing.
+- **D8 — unmanaged-only v1.** No managed-build artifacts; deferred to customer extension.
+- **PVA tool flow cannot be deployed via Flow Management API.** `tool-log-agent-trace` JSON is a reference; the actual flow is created when added as an Action on a consumer agent in Copilot Studio. First-deploy ordering: `deploy-solution.ps1 -SkipInjectFlowGuid` → attach tool flow as Action on at least one agent → re-run `deploy-solution.ps1` (no flag) to substitute placeholders.
