@@ -1,0 +1,29 @@
+# Name: Log Chain of Thoughts (Blog-Pure)
+# Drop-in topic for the Copilot Agent Debug Logger POC.
+# Pattern source: Power CAT Custom Engine blog (Oct 2025) — verbatim, no
+# extensions. Emits the visible italic chat trace ONLY; no Dataverse
+# persistence; zero dependencies on the rest of the solution.
+# Use this variant when you want the blog UX without registering the tool
+# flow or enabling the env var.
+# For the persistent variant, use log-chain-of-thoughts.topic.mcs.yml (D6).
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: CoT
+    description: "Full intermediate chain of thought / rationale from the model for the current step"
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent:
+    displayName: Log Chain of Thoughts (Blog-Pure)
+    modelDescription: "Logs the orchestrator's intermediate chain-of-thought reasoning as a visible italic chat message. No Dataverse persistence."
+    includeInOnSelectIntent: false
+    triggerQueries:
+      - log chain of thoughts
+
+  actions:
+    - kind: SendActivity
+      id: sendActivity_CoTBlogPure
+      activity: "*{Topic.CoT}*"
