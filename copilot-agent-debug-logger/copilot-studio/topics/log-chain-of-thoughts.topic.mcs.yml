@@ -1,0 +1,50 @@
+# Name: Log Chain of Thoughts
+# Drop-in topic for the Copilot Agent Debug Logger POC.
+# Pattern source: Power CAT Custom Engine blog (Oct 2025).
+# Resolves by name via /Log Chain of Thoughts AND auto-invokes when the
+# consumer agent's instructions tell the orchestrator to call it after
+# every step (see docs/maker-guide.md Pattern C).
+# Variant: FULL — emits the visible italic chat trace AND persists to
+# cr_agenttrace via the tool-log-agent-trace flow. For the zero-deps
+# alternative, use log-chain-of-thoughts-blog-pure.topic.mcs.yml (D6).
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: CoT
+    description: "Full intermediate chain of thought / rationale from the model for the current step"
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent:
+    displayName: Log Chain of Thoughts
+    modelDescription: "Logs the orchestrator's intermediate chain-of-thought reasoning. Called after every step so makers can audit the model's decision trail."
+    includeInOnSelectIntent: false
+    triggerQueries:
+      - log chain of thoughts
+
+  actions:
+    # Step 1: emit the visible italic trace so the blog's UX semantics are preserved
+    # even when the Dataverse write is disabled (env-var OFF) or fails.
+    - kind: SendActivity
+      id: sendActivity_CoT
+      activity: "*{Topic.CoT}*"
+
+    # Step 2: always invoke the tool flow. The flow itself is gated on
+    # cr_DebugLoggerEnabled (D1); when the env var is false the flow returns
+    # { logged: false } without writing — no Dataverse activity, no failure.
+    - kind: InvokeFlowAction
+      id: invokeFlowAction_LogCoT
+      flowId: "{{TOOL_LOG_AGENT_TRACE_FLOW_ID}}"
+      input:
+        binding:
+          source: "COPILOT_TOPIC"
+          source_name: "log-chain-of-thoughts"
+          step_name: "CoT"
+          direction: "EVENT"
+          payload: =Topic.CoT
+          correlation_id: =System.Conversation.Id
+      output:
+        binding:
+          logged: Topic.Logged
