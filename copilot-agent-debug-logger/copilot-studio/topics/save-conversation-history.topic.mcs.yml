@@ -1,0 +1,44 @@
+# Name: Save Conversation History
+# Drop-in topic for the Copilot Agent Debug Logger POC.
+# Pattern source: Power CAT Custom Engine blog (Oct 2025).
+# Resolves by name via /Save Conversation History; can also be wired by
+# the maker to auto-invoke at end-of-conversation, on-escalation, or via
+# a Recognize Intent at a chosen point (see docs/maker-guide.md Pattern D).
+# Variant: FULL — persists the conversation history to cr_agenttrace via
+# the tool-log-agent-trace flow. For the zero-deps variant (capture only),
+# use save-conversation-history-blog-pure.topic.mcs.yml (D6).
+kind: AdaptiveDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: conversationHistory
+    description: "Entire conversation history in the format 'User: …, Agent: …'"
+    shouldPromptUser: false
+
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent:
+    displayName: Save Conversation History
+    modelDescription: "Captures and persists the current conversation history to the debug logger trace table for post-mortem review."
+    includeInOnSelectIntent: false
+    triggerQueries:
+      - save conversation history
+
+  actions:
+    # The tool flow is gated on cr_DebugLoggerEnabled (D1); when the env var is
+    # false the flow returns { logged: false } without writing — no Dataverse
+    # activity, no failure.
+    - kind: InvokeFlowAction
+      id: invokeFlowAction_SaveConvHistory
+      flowId: "{{TOOL_LOG_AGENT_TRACE_FLOW_ID}}"
+      input:
+        binding:
+          source: "COPILOT_TOPIC"
+          source_name: "save-conversation-history"
+          step_name: "ConversationHistory"
+          direction: "EVENT"
+          payload: =Topic.conversationHistory
+          correlation_id: =System.Conversation.Id
+      output:
+        binding:
+          logged: Topic.Logged
