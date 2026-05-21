@@ -1,0 +1,16 @@
+{
+  "schemaName": "cr_DebugLoggerEnabled",
+  "displayName": "Debug Logger Enabled",
+  "description": "Single kill switch for the Copilot Agent Debug Logger. When true, the child flow (flow-1-log-agent-trace) and the tool flow (tool-log-agent-trace) write trace rows to cr_agenttrace. When false (default) or when this variable cannot be read, both flows exit gracefully without writing — the calling agent/flow continues unaffected (A4 fail-open). Topics never read this variable directly per D1 — the gate lives inside the flows only.",
+  "type": "Boolean",
+  "defaultValue": false,
+  "currentValue": false,
+  "isRequired": false,
+  "secretStore": null,
+  "notes": {
+    "design_rationale": "Single global toggle keeps the POC scope honest — no per-user / per-agent toggles in v1 (those land in a customer extension). Boolean (not String/Number) keeps the in-flow Condition check trivial: `equals(outputs('Get_DebugLoggerEnabled')?['body/value/value'], 'true')`.",
+    "failure_mode": "If a maker deletes this env var from the solution, the `Get_DebugLoggerEnabled` action fails. Per A4, both flows have `Configure run after → Failed/TimedOut/Skipped` routing to a Compose that sets `enabled = false`, so deletion = disabled = fail-open. This is documented in the deployment-guide Troubleshooting section.",
+    "topic_isolation": "Per D1, Copilot Studio topics never read environment variables directly (no platform precedent). The full-variant topics ALWAYS invoke the tool flow; the tool flow no-ops when this env var is false. This preserves the blog-faithful topic shape while keeping a single source of truth for the on/off decision.",
+    "provisioning": "Created by `scripts/provision-environment.ps1` via Dataverse Web API POST /api/data/v9.2/environmentvariabledefinitions. Default value defined here; current value defaulted to false; maker flips to true via Power Apps Solutions UI → Copilot Agent Debug Logger → Environment variables → cr_DebugLoggerEnabled → Edit current value → true (click-path documented in deployment-guide.md)."
+  }
+}
