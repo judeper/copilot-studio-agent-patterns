@@ -1,0 +1,310 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_agent_calls_the_flow": {
+        "type": "Request",
+        "kind": "PowerVirtualAgents",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "correlation_id": {
+                "type": "string",
+                "description": "Correlation key — System.Conversation.Id or maker-packed override."
+              },
+              "agent_name": {
+                "type": "string",
+                "description": "Name of the calling Copilot Studio agent."
+              },
+              "source": {
+                "type": "string",
+                "description": "POWER_AUTOMATE_FLOW / TOOL_FLOW / COPILOT_TOPIC"
+              },
+              "source_name": {
+                "type": "string",
+                "description": "Originating flow or topic name."
+              },
+              "step_name": {
+                "type": "string",
+                "description": "Step name (e.g. CoT, ConversationHistory, ExecuteAgentAndWait)."
+              },
+              "direction": {
+                "type": "string",
+                "description": "REQUEST / RESPONSE / EVENT"
+              },
+              "sequence": {
+                "type": "integer",
+                "description": "Optional caller-supplied integer; per-caller tie-breaker (A8)."
+              },
+              "payload": {
+                "type": "string",
+                "description": "JSON-serialized inputs/outputs. Truncated to 900 KB pre-write (A15)."
+              },
+              "duration_ms": {
+                "type": "integer",
+                "description": "Optional. Step duration in ms."
+              },
+              "status": {
+                "type": "string",
+                "description": "Optional. OK (default) / ERROR."
+              },
+              "error_message": {
+                "type": "string",
+                "description": "Optional. Populate when status = ERROR."
+              }
+            },
+            "required": [
+              "source",
+              "source_name",
+              "step_name",
+              "direction"
+            ]
+          }
+        },
+        "description": "Captures one trace row to cr_agenttrace from a Copilot Studio topic InvokeFlowAction. Used by log-chain-of-thoughts and save-conversation-history topic templates."
+      }
+    },
+    "actions": {
+      "Get_DebugLoggerEnabled": {
+        "type": "OpenApiConnection",
+        "inputs": {
+          "parameters": {
+            "entityName": "environmentvariabledefinitions",
+            "$select": "schemaname,defaultvalue",
+            "$filter": "schemaname eq 'cr_DebugLoggerEnabled'",
+            "$expand": "environmentvariabledefinition_environmentvariablevalue($select=value)",
+            "$top": 1
+          },
+          "host": {
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+            "connectionName": "shared_commondataserviceforapps"
+          },
+          "retryPolicy": {
+            "type": "exponential",
+            "count": 3,
+            "interval": "PT10S",
+            "maximumInterval": "PT1M"
+          }
+        },
+        "runAfter": {}
+      },
+      "Compose_EnabledFlag": {
+        "type": "Compose",
+        "inputs": "@equals(toLower(string(coalesce(actions('Get_DebugLoggerEnabled')?['outputs']?['body']?['value']?[0]?['environmentvariabledefinition_environmentvariablevalue']?[0]?['value'], actions('Get_DebugLoggerEnabled')?['outputs']?['body']?['value']?[0]?['defaultvalue'], 'false'))), 'true')",
+        "runAfter": {
+          "Get_DebugLoggerEnabled": [
+            "Succeeded",
+            "Failed",
+            "TimedOut",
+            "Skipped"
+          ]
+        }
+      },
+      "Condition_IsEnabled": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@outputs('Compose_EnabledFlag')",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Scope_Write_Trace": {
+            "type": "Scope",
+            "actions": {
+              "Compose_TraceLabel": {
+                "type": "Compose",
+                "inputs": "@concat(triggerBody()?['source'], '/', triggerBody()?['step_name'], ' @ ', utcNow())",
+                "runAfter": {}
+              },
+              "Compose_PayloadTruncated": {
+                "type": "Compose",
+                "inputs": "@left(string(triggerBody()?['payload']), 900000)",
+                "runAfter": {
+                  "Compose_TraceLabel": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Compose_CorrelationId": {
+                "type": "Compose",
+                "inputs": "@coalesce(triggerBody()?['correlation_id'], workflow()?['run']?['name'])",
+                "runAfter": {
+                  "Compose_PayloadTruncated": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Create_AgentTrace_Row": {
+                "type": "OpenApiConnection",
+                "inputs": {
+                  "parameters": {
+                    "entityName": "cr_agenttraces",
+                    "item/cr_tracelabel": "@outputs('Compose_TraceLabel')",
+                    "item/cr_correlationid": "@outputs('Compose_CorrelationId')",
+                    "item/cr_agentname": "@triggerBody()?['agent_name']",
+                    "item/cr_source": "@if(equals(triggerBody()?['source'], 'TOOL_FLOW'), 100000001, if(equals(triggerBody()?['source'], 'COPILOT_TOPIC'), 100000002, 100000000))",
+                    "item/cr_sourcename": "@triggerBody()?['source_name']",
+                    "item/cr_stepname": "@triggerBody()?['step_name']",
+                    "item/cr_direction": "@if(equals(triggerBody()?['direction'], 'RESPONSE'), 100000001, if(equals(triggerBody()?['direction'], 'EVENT'), 100000002, 100000000))",
+                    "item/cr_sequence": "@triggerBody()?['sequence']",
+                    "item/cr_payload": "@outputs('Compose_PayloadTruncated')",
+                    "item/cr_durationms": "@triggerBody()?['duration_ms']",
+                    "item/cr_status": "@if(equals(triggerBody()?['status'], 'ERROR'), 100000001, 100000000)",
+                    "item/cr_errormessage": "@triggerBody()?['error_message']"
+                  },
+                  "host": {
+                    "operationId": "CreateRecord",
+                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                    "connectionName": "shared_commondataserviceforapps"
+                  },
+                  "retryPolicy": {
+                    "type": "exponential",
+                    "count": 3,
+                    "interval": "PT10S",
+                    "maximumInterval": "PT1M"
+                  }
+                },
+                "runAfter": {
+                  "Compose_CorrelationId": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {}
+          },
+          "Respond_to_PVA_Success": {
+            "type": "Request",
+            "kind": "PowerVirtualAgentsResponseV2",
+            "inputs": {
+              "statusCode": 200,
+              "body": {
+                "logged": true
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logged": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Scope_Write_Trace": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Scope_Handle_Errors": {
+            "type": "Scope",
+            "actions": {
+              "Compose_ErrorDetails": {
+                "type": "Compose",
+                "inputs": {
+                  "error": "tool-log-agent-trace write failed",
+                  "flow": "tool-log-agent-trace",
+                  "correlation_id": "@triggerBody()?['correlation_id']",
+                  "step_name": "@triggerBody()?['step_name']",
+                  "timestamp": "@utcNow()"
+                },
+                "runAfter": {}
+              },
+              "Respond_with_error": {
+                "type": "Request",
+                "kind": "PowerVirtualAgentsResponseV2",
+                "inputs": {
+                  "statusCode": 200,
+                  "body": {
+                    "logged": false
+                  },
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "logged": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Compose_ErrorDetails": [
+                    "Succeeded"
+                  ]
+                }
+              },
+              "Terminate_Graceful": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "AgentTraceWriteFailed",
+                    "message": "@{string(outputs('Compose_ErrorDetails'))}"
+                  }
+                },
+                "runAfter": {
+                  "Respond_with_error": [
+                    "Succeeded"
+                  ]
+                }
+              }
+            },
+            "runAfter": {
+              "Scope_Write_Trace": [
+                "Failed",
+                "TimedOut"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Respond_to_PVA_Disabled": {
+              "type": "Request",
+              "kind": "PowerVirtualAgentsResponseV2",
+              "inputs": {
+                "statusCode": 200,
+                "body": {
+                  "logged": false
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logged": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "runAfter": {}
+            },
+            "Terminate_Disabled": {
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Succeeded"
+              },
+              "runAfter": {
+                "Respond_to_PVA_Disabled": [
+                  "Succeeded"
+                ]
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "Compose_EnabledFlag": [
+            "Succeeded"
+          ]
+        }
+      }
+    }
+  }
+}
