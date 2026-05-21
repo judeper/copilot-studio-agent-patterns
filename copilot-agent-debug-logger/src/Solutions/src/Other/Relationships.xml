@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<EntityRelationships xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <EntityRelationship Name="business_unit_cr_agenttrace" />
+  <EntityRelationship Name="lk_cr_agenttrace_createdby" />
+  <EntityRelationship Name="lk_cr_agenttrace_modifiedby" />
+  <EntityRelationship Name="owner_cr_agenttrace" />
+  <EntityRelationship Name="team_cr_agenttrace" />
+  <EntityRelationship Name="user_cr_agenttrace" />
+</EntityRelationships>

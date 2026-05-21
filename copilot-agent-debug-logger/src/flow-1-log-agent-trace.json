@@ -80,20 +80,30 @@
       "Get_DebugLoggerEnabled": {
         "type": "OpenApiConnection",
         "inputs": {
-          "host": {
-            "connectionName": "shared_commondataserviceforapps",
-            "operationId": "GetEnvironmentVariableValue",
-            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-          },
           "parameters": {
-            "schemaName": "cr_DebugLoggerEnabled"
+            "entityName": "environmentvariabledefinitions",
+            "$select": "schemaname,defaultvalue",
+            "$filter": "schemaname eq 'cr_DebugLoggerEnabled'",
+            "$expand": "environmentvariabledefinition_environmentvariablevalue($select=value)",
+            "$top": 1
+          },
+          "host": {
+            "operationId": "ListRecords",
+            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+            "connectionName": "shared_commondataserviceforapps"
+          },
+          "retryPolicy": {
+            "type": "exponential",
+            "count": 3,
+            "interval": "PT10S",
+            "maximumInterval": "PT1M"
           }
         },
         "runAfter": {}
       },
       "Compose_EnabledFlag": {
         "type": "Compose",
-        "inputs": "@equals(toLower(string(coalesce(outputs('Get_DebugLoggerEnabled')?['body/value/value'], outputs('Get_DebugLoggerEnabled')?['body/value'], false))), 'true')",
+        "inputs": "@equals(toLower(string(coalesce(actions('Get_DebugLoggerEnabled')?['outputs']?['body']?['value']?[0]?['environmentvariabledefinition_environmentvariablevalue']?[0]?['value'], actions('Get_DebugLoggerEnabled')?['outputs']?['body']?['value']?[0]?['defaultvalue'], 'false'))), 'true')",
         "runAfter": {
           "Get_DebugLoggerEnabled": [
             "Succeeded",
@@ -126,7 +136,7 @@
               },
               "Compose_PayloadTruncated": {
                 "type": "Compose",
-                "inputs": "@left(string(triggerBody()?['payload']), 900000)",
+                "inputs": "@substring(string(triggerBody()?['payload']), 0, min(900000, length(string(triggerBody()?['payload']))))",
                 "runAfter": {}
               },
               "Compose_CorrelationId": {
@@ -148,7 +158,6 @@
                     "item/cr_correlationid": "@outputs('Compose_CorrelationId')",
                     "item/cr_agentname": "@triggerBody()?['agent_name']",
                     "item/cr_source": "@if(equals(triggerBody()?['source'], 'TOOL_FLOW'), 100000001, if(equals(triggerBody()?['source'], 'COPILOT_TOPIC'), 100000002, 100000000))",
-                    "item/cr_sourcename": "@triggerBody()?['source_name']",
                     "item/cr_stepname": "@triggerBody()?['step_name']",
                     "item/cr_direction": "@if(equals(triggerBody()?['direction'], 'RESPONSE'), 100000001, if(equals(triggerBody()?['direction'], 'EVENT'), 100000002, 100000000))",
                     "item/cr_sequence": "@triggerBody()?['sequence']",

@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="cr_DebugLoggerEnabled">
+  <defaultvalue>false</defaultvalue>
+  <description default="Single kill switch for the Copilot Agent Debug Logger. When true, the child flow (flow-1-log-agent-trace) and the tool flow (tool-log-agent-trace) write trace rows to cr_agenttrace. When false (default) or when this variable cannot be read, both flows exit gracefully without writing — the calling agent/flow continues unaffected (A4 fail-open). Topics never read this variable directly per D1 — the gate lives inside the flows only.">
+    <label description="Single kill switch for the Copilot Agent Debug Logger. When true, the child flow (flow-1-log-agent-trace) and the tool flow (tool-log-agent-trace) write trace rows to cr_agenttrace. When false (default) or when this variable cannot be read, both flows exit gracefully without writing — the calling agent/flow continues unaffected (A4 fail-open). Topics never read this variable directly per D1 — the gate lives inside the flows only." languagecode="1033" />
+  </description>
+  <displayname default="Debug Logger Enabled">
+    <label description="Debug Logger Enabled" languagecode="1033" />
+  </displayname>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000002</type>
+</environmentvariabledefinition>
