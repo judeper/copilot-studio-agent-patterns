@@ -56,7 +56,7 @@
       "type": "Text",
       "maxLength": 200,
       "required": false,
-      "description": "Name of the originating flow or topic (e.g. 'flow-1-log-agent-trace', 'log-chain-of-thoughts'). Optional."
+      "description": "Name of the originating flow or topic (e.g. 'flow-1-log-agent-trace', 'log-chain-of-thoughts'). Optional. **KNOWN COLLISION (deploy-time discovered):** Dataverse auto-generates a Virtual column named `cr_sourcename` as the formatted-value reflection of the `cr_source` Picklist column, which blocks creation of this Text column AND prevents flows from writing to it. Both the provision script and the flow CreateRecord actions skip this column for now. Follow-up PR will rename this column to `cr_originname` to remove the collision. Until then the trace label (`concat(source, '/', step_name, ' @ ', utcNow())`) is the canonical source identifier."
     },
     {
       "logicalName": "cr_stepname",

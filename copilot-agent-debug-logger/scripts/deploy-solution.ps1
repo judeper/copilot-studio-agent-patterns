@@ -105,12 +105,17 @@ try {
     Write-Host "`nChecking Phase-0 model-driven app presence..." -ForegroundColor Cyan
     if (-not (Test-Path $SolutionPath)) { Stop-Deploy 3 "Solution path not found: $SolutionPath" }
     $resolvedSolutionPath = (Resolve-Path $SolutionPath).Path
-    $mdaPattern = Join-Path $resolvedSolutionPath "CanvasApps\AgentDebugConsole_*"
-    $mdaFolders = @(Get-ChildItem -Path $mdaPattern -Directory -ErrorAction SilentlyContinue)
-    if (-not $mdaFolders) {
-        Stop-Deploy 2 "Phase-0 MDA authoring not done. See copilot-agent-debug-logger/docs/phase-0-mda-authoring.md before running deploy. The Agent Debug Console MDA must be authored in the Maker portal and unpacked into src/Solutions/CanvasApps/ before deploy-solution.ps1 can succeed."
+    # Per pac solution clone/unpack convention the MDA lives under src\AppModules\
+    # (Microsoft's official layout). Earlier scaffold expected CanvasApps\AgentDebugConsole_*
+    # which is the legacy MDA folder pattern that the modern PAC CLI no longer produces.
+    $mdaPattern = Join-Path $resolvedSolutionPath "src\AppModules\cr_AgentDebugConsole"
+    # The MDA folder is a leaf containing AppModule.xml + AppModule_managed.xml — use
+    # Test-Path -PathType Container to check the dir itself, NOT Get-ChildItem -Directory
+    # which would return its CHILD directories (none, since it only holds files).
+    if (-not (Test-Path -Path $mdaPattern -PathType Container)) {
+        Stop-Deploy 2 "Phase-0 MDA authoring not done. See copilot-agent-debug-logger/docs/phase-0-mda-authoring.md before running deploy. The Agent Debug Console MDA must be authored in the Maker portal and pulled into src/Solutions/src/AppModules/cr_AgentDebugConsole/ via 'pac solution clone' before deploy-solution.ps1 can succeed."
     }
-    Write-Host "  MDA folder present: $($mdaFolders[0].Name)" -ForegroundColor Green
+    Write-Host "  MDA folder present: $mdaPattern" -ForegroundColor Green
 
 # -----------------------------------------
 # 3. Select Target Environment
@@ -134,8 +139,14 @@ try {
 # 4. Pack Solution
 # -----------------------------------------
     Write-Host "`nPacking solution..." -ForegroundColor Cyan
-    $cdsProjPath = Join-Path $resolvedSolutionPath "Solution.cdsproj"
-    if (-not (Test-Path $cdsProjPath)) { Stop-Deploy 3 "Solution.cdsproj not found: $cdsProjPath" }
+    # Discover the cdsproj. PAC solution clone produces <SolutionName>.cdsproj
+    # (e.g. CopilotAgentDebugLogger.cdsproj); earlier scaffolds used Solution.cdsproj.
+    # Glob for any single .cdsproj in the SolutionPath to handle both shapes.
+    $cdsProjs = @(Get-ChildItem -Path $resolvedSolutionPath -Filter "*.cdsproj" -File -ErrorAction SilentlyContinue)
+    if ($cdsProjs.Count -eq 0) { Stop-Deploy 3 "No .cdsproj found in $resolvedSolutionPath." }
+    if ($cdsProjs.Count -gt 1) { Stop-Deploy 3 "Multiple .cdsproj files found in ${resolvedSolutionPath}: $(($cdsProjs.Name) -join ', ')." }
+    $cdsProjPath = $cdsProjs[0].FullName
+    $cdsProjFile = $cdsProjs[0].Name
     $zipPath = $null
     $buildStatus = "Skipped by WhatIf"
 
@@ -145,10 +156,10 @@ try {
         Push-Location $resolvedSolutionPath
         try {
             Write-Host "  Restoring NuGet packages..." -ForegroundColor Gray
-            dotnet restore .\Solution.cdsproj --verbosity minimal
+            dotnet restore ".\$cdsProjFile" --verbosity minimal
             if ($LASTEXITCODE -ne 0) { Stop-Deploy 3 "dotnet restore failed for $cdsProjPath." }
             Write-Host "  Building solution package..." -ForegroundColor Gray
-            dotnet build .\Solution.cdsproj --configuration Debug --nologo --verbosity minimal
+            dotnet build ".\$cdsProjFile" --configuration Debug --nologo --verbosity minimal
             if ($LASTEXITCODE -ne 0) { Stop-Deploy 3 "dotnet build failed for $cdsProjPath." }
         } finally { Pop-Location }
 

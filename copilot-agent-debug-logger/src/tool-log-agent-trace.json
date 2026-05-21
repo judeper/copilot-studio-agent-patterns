@@ -126,7 +126,7 @@
               },
               "Compose_PayloadTruncated": {
                 "type": "Compose",
-                "inputs": "@left(string(triggerBody()?['payload']), 900000)",
+                "inputs": "@substring(string(triggerBody()?['payload']), 0, min(900000, length(string(triggerBody()?['payload']))))",
                 "runAfter": {
                   "Compose_TraceLabel": [
                     "Succeeded"
@@ -151,7 +151,6 @@
                     "item/cr_correlationid": "@outputs('Compose_CorrelationId')",
                     "item/cr_agentname": "@triggerBody()?['agent_name']",
                     "item/cr_source": "@if(equals(triggerBody()?['source'], 'TOOL_FLOW'), 100000001, if(equals(triggerBody()?['source'], 'COPILOT_TOPIC'), 100000002, 100000000))",
-                    "item/cr_sourcename": "@triggerBody()?['source_name']",
                     "item/cr_stepname": "@triggerBody()?['step_name']",
                     "item/cr_direction": "@if(equals(triggerBody()?['direction'], 'RESPONSE'), 100000001, if(equals(triggerBody()?['direction'], 'EVENT'), 100000002, 100000000))",
                     "item/cr_sequence": "@triggerBody()?['sequence']",

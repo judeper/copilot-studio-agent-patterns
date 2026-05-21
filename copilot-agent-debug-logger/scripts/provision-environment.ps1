@@ -129,10 +129,23 @@ Write-Host "`n1. Auth + Environment Selection" -ForegroundColor Cyan
 pac auth select --environment $EnvironmentId | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "PAC auth select failed for environment '$EnvironmentId'. Run 'pac auth create' first, then retry." }
 Write-Host "  PAC auth selected environment $EnvironmentId." -ForegroundColor Green
+# PAC CLI 2.x dropped `pac admin list-environments` (returns "Not a valid command" with
+# exit code 0 — must also sniff for JSON-like output, not just exit code).
+function Test-LooksLikeJson {
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Text)
+    $trimmed = $Text.TrimStart()
+    return ($trimmed.StartsWith('[') -or $trimmed.StartsWith('{'))
+}
 $envListRaw = pac admin list-environments --json 2>$null
-if ($LASTEXITCODE -ne 0 -or -not $envListRaw) { $envListRaw = pac admin list --json 2>$null }
-if ($LASTEXITCODE -ne 0 -or -not $envListRaw) { throw "Unable to list Power Platform environments with PAC CLI." }
-$envList = $envListRaw | Out-String | ConvertFrom-Json
+$envListText = ($envListRaw | Out-String)
+if ($LASTEXITCODE -ne 0 -or -not $envListRaw -or -not (Test-LooksLikeJson -Text $envListText)) {
+    $envListRaw = pac admin list --json 2>$null
+    $envListText = ($envListRaw | Out-String)
+}
+if ($LASTEXITCODE -ne 0 -or -not $envListRaw -or -not (Test-LooksLikeJson -Text $envListText)) {
+    throw "Unable to list Power Platform environments with PAC CLI."
+}
+$envList = $envListText | ConvertFrom-Json
 $environment = @($envList | Where-Object {
     (Get-ObjectValue -Object $_ -Names @("EnvironmentId", "Environment ID", "EnvironmentName", "Name", "environmentid", "id")) -eq $EnvironmentId
 }) | Select-Object -First 1
@@ -321,6 +334,15 @@ foreach ($column in $tableSchema.columns) {
         continue
     }
     if ($logicalName -eq $primaryColumnName) { throw "Primary name attribute '$logicalName' is missing; recreate the table so it can be set during EntityDefinitions POST." }
+    # Dataverse auto-creates the primary key (<tablename>id) as a UniqueIdentifier when the
+    # table is created (CreateRequest API). Custom UniqueIdentifier columns CANNOT be added
+    # via the SDK / Web API (Dataverse rejects with 0x80040203). Skip the schema-documented
+    # PK entry; the platform-managed PK is queryable via the auto-created <tablename>id
+    # attribute (e.g. cr_agenttraceid).
+    if ([string]$column.type -eq "UniqueIdentifier") {
+        Write-Host "  Column '$logicalName' (UniqueIdentifier) skipped — Dataverse manages the PK as $($tableLogicalName)id automatically." -ForegroundColor DarkGray
+        continue
+    }
     $columnBody = New-AttributeMetadata -Column $column | ConvertTo-Json -Depth 20
     Invoke-DvPost -Uri "$apiBase/EntityDefinitions($entityId)/Attributes" -Body $columnBody -InSolution | Out-Null
     $createdCount++
