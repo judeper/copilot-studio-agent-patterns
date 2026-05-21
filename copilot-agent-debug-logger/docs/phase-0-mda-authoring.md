@@ -75,7 +75,7 @@ This makes the app, form, views, and Quick Find solution-aware before unpack.
 4. Select **Create**.
 5. Confirm the model-driven app designer opens for **Agent Debug Console**.
 6. Confirm the generated unique name will unpack with an `AgentDebugConsole` prefix.
-Expected result: the future deploy precheck can find `src/Solutions/CanvasApps/AgentDebugConsole_*` after unpack.
+Expected result: after `pac solution clone`, the deploy precheck can find `src/Solutions/src/AppModules/cr_AgentDebugConsole/` (Microsoft's canonical layout produced by `pac solution unpack`). The legacy `CanvasApps/AgentDebugConsole_*` path is no longer used — see PR #42.
 
 ### Step 4 — Add the Trace site map
 1. App designer → left rail → **Site map**.
@@ -100,7 +100,7 @@ Use this field order:
 2. `cr_correlationid`.
 3. `cr_agentname`.
 4. `cr_source`.
-5. `cr_sourcename`.
+5. `cr_sourcename` — _(documented but not stored; see README **Known Issues**. Skip this field from the form or display it read-only; the platform reflects the Choice formatted value here instead of the intended Text(200) source name. The trace label encodes source/step.)_
 6. `cr_stepname`.
 7. `cr_direction`.
 8. `cr_sequence`.
@@ -275,11 +275,13 @@ The friendly failure should point back to this file.
 The intended precheck pattern is:
 
 ```powershell
-$mdaPattern = 'src/Solutions/CanvasApps/AgentDebugConsole_*'
-if (-not (Get-ChildItem -Path $mdaPattern -ErrorAction SilentlyContinue)) {
+$mdaPattern = Join-Path $resolvedSolutionPath "src\AppModules\cr_AgentDebugConsole"
+if (-not (Test-Path -Path $mdaPattern -PathType Container)) {
     throw "Phase-0 MDA authoring not done. See docs/phase-0-mda-authoring.md before running deploy."
 }
 ```
+
+(`Test-Path -PathType Container` is critical: `Get-ChildItem -Directory` on this path returns CHILD directories of the MDA folder — which has only XML files inside — and incorrectly evaluates as "empty". See PR #42 for the verified deploy-solution.ps1 implementation.)
 
 This prevents a false-success deployment that lacks the **Agent Debug Console**.
 
@@ -291,6 +293,6 @@ Jude still needs to execute the Maker portal steps and commit the unpacked XML a
 
 Basher's deploy-script work should add the fail-loud precheck shown above.
 
-Until the manual unpack commit lands, `.gitkeep` is the only intentional file under `src/Solutions/CanvasApps/`.
+Until the manual unpack commit lands, the `CanvasApps/` placeholder from R1 may be the only file under `src/Solutions/` (it was kept by Frank's R2 scaffold but is now superseded by PR #42's restructure into the Microsoft-canonical `src/Solutions/src/...` layout).
 
 Do not treat `.gitkeep` as evidence that the MDA exists.

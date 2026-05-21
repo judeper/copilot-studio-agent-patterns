@@ -118,13 +118,14 @@ Why this comes first:
 
 If Phase-0 is not complete, deployment fails loudly with exit code `2` and points back to `docs\phase-0-mda-authoring.md`.
 
-Expected source state after Phase-0:
+Expected source state after Phase-0 (and after `pac solution clone --name CopilotAgentDebugLogger` extracts the MDA into source):
 
 ```powershell
-Get-ChildItem copilot-agent-debug-logger\src\Solutions\CanvasApps\AgentDebugConsole_* -Directory
+Test-Path copilot-agent-debug-logger\src\Solutions\src\AppModules\cr_AgentDebugConsole -PathType Container
+# returns True
 ```
 
-Do not treat `.gitkeep` as evidence that the MDA exists.
+(Use `Test-Path -PathType Container`, NOT `Get-ChildItem -Directory` which returns CHILD directories of the MDA folder — there are none, only XML files. See PR #42 for the verified deploy-solution.ps1 precheck.)
 
 ---
 
@@ -166,7 +167,7 @@ Expected result:
 
 - prerequisites pass;
 - Phase-0 MDA precheck passes;
-- solution package builds from `copilot-agent-debug-logger\src\Solutions\Solution.cdsproj`;
+- solution package builds from `copilot-agent-debug-logger\src\Solutions\CopilotAgentDebugLogger.cdsproj` (PAC-generated cdsproj after `pac solution clone`; produces `bin\Debug\CopilotAgentDebugLogger.zip`);
 - unmanaged solution imports to the environment;
 - GUID substitution is skipped intentionally.
 
@@ -459,7 +460,7 @@ Expected topic row values:
 
 - `cr_source = COPILOT_TOPIC`
 - `cr_stepname = CoT` or `ConversationHistory`
-- `cr_sourcename = log-chain-of-thoughts` or `save-conversation-history`
+- `cr_tracelabel` begins with `COPILOT_TOPIC/CoT @` or `COPILOT_TOPIC/ConversationHistory @` (the source/step is encoded in the label because `cr_sourcename` is unwritable — see README **Known Issues**)
 
 If the row does not appear, check the env var first, then the tool-flow GUID.
 
@@ -673,7 +674,7 @@ pwsh copilot-agent-debug-logger\scripts\inject-flow-guid.ps1 -EnvironmentId "<en
 Before handing the environment to another maker, verify each item.
 
 - [ ] `pac org who` points at the target environment.
-- [ ] Phase-0 MDA artifacts exist under `copilot-agent-debug-logger\src\Solutions\CanvasApps\AgentDebugConsole_*`.
+- [ ] Phase-0 MDA artifacts exist under `copilot-agent-debug-logger\src\Solutions\src\AppModules\cr_AgentDebugConsole\` (the Microsoft-canonical layout produced by `pac solution clone` per PR #42).
 - [ ] `provision-environment.ps1` completed without errors.
 - [ ] `deploy-solution.ps1 -SkipInjectFlowGuid` completed on first import.
 - [ ] `cr_DebugLoggerEnabled` current value is `true` only in the test environment.

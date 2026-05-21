@@ -4,8 +4,10 @@
 .DESCRIPTION
     Validates prerequisites (.NET SDK, PAC CLI 1.32+, PAC auth), verifies the
     Phase-0 Agent Debug Console model-driven app has been unpacked into source,
-    builds src\Solutions\Solution.cdsproj into a solution zip, imports it to the
-    target Power Platform environment, and runs inject-flow-guid.ps1 to prepare
+    builds src\Solutions\<SolutionName>.cdsproj into a solution zip (default name is
+    CopilotAgentDebugLogger.cdsproj after pac solution clone; legacy scaffolds may
+    use Solution.cdsproj — the script auto-detects via *.cdsproj glob), imports it
+    to the target Power Platform environment, and runs inject-flow-guid.ps1 to prepare
     Copilot Studio topic YAMLs for import. Supports -WhatIf and logs all output
     to a timestamped deploy-*.log file.
 
@@ -19,7 +21,9 @@
 .PARAMETER EnvironmentId
     Target Power Platform environment ID. Required.
 .PARAMETER SolutionPath
-    Path to the folder containing Solution.cdsproj. Default: ..\src\Solutions.
+    Path to the folder containing the *.cdsproj (auto-discovered via glob — accepts
+    either CopilotAgentDebugLogger.cdsproj from pac solution clone or legacy
+    Solution.cdsproj). Default: ..\src\Solutions.
 .PARAMETER SolutionName
     Unique name of the solution. Default: CopilotAgentDebugLogger.
 .PARAMETER SkipInjectFlowGuid

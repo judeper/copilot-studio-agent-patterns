@@ -101,14 +101,21 @@ copilot-agent-debug-logger/
 `-- src/
     |-- flow-1-log-agent-trace.json                <- child flow reference definition
     |-- tool-log-agent-trace.json                  <- PVA-trigger tool flow reference definition
-    `-- Solutions/                                 <- unmanaged solution scaffold (D8)
-        |-- Solution.cdsproj                       <- SolutionPackageType=Unmanaged
-        |-- other/
-        |   |-- Solution.xml                       <- solution manifest placeholder until unpack
-        |   `-- Customizations.xml                 <- solution components placeholder until unpack
-        `-- CanvasApps/
-            `-- .gitkeep                           <- AgentDebugConsole_* lands here after Phase-0
+    `-- Solutions/                                 <- unmanaged solution (Microsoft canonical layout)
+        |-- CopilotAgentDebugLogger.cdsproj        <- old-style cdsproj produced by `pac solution clone`
+        |-- .gitignore                             <- pac defaults (bin/, obj/, *.user)
+        `-- src/
+            |-- Other/
+            |   |-- Solution.xml                   <- manifest with RootComponents populated post-Phase-0
+            |   |-- Customizations.xml             <- empty stubs + Languages 1033
+            |   `-- Relationships*/                <- standard system relationships emitted by pac unpack
+            |-- Entities/cr_agenttrace/            <- Entity.xml + FormXml/ + SavedQueries/
+            |-- AppModules/cr_AgentDebugConsole/   <- MDA app definition (Phase-0 artifact)
+            |-- AppModuleSiteMaps/cr_AgentDebugConsole/   <- MDA site map (Phase-0 artifact)
+            `-- environmentvariabledefinitions/cr_DebugLoggerEnabled/   <- env var definition + value
 ```
+
+> **Layout note:** the R2 scaffold used a minimal `Solution.cdsproj` + `other/` + `CanvasApps/.gitkeep`. After the first deploy-time `pac solution clone` extracted the real solution into Microsoft's canonical `src/` layout (see PR #42), the scaffold was replaced with that layout. Future contributors should NOT recreate Frank's original three-file scaffold — work with the canonical layout produced by `pac solution unpack`.
 
 ## Quick Start
 
@@ -195,7 +202,7 @@ Typical rows:
 - `REQUEST` / `RESPONSE` around custom tool-flow internals when the maker uses Pattern B.
 - `ERROR` rows from a caller-owned failure branch.
 
-The child flow composes a trace label, truncates `payload` with `left(string(...), 900000)`, resolves `correlation_id`, and writes to `cr_agenttrace` only when the env var is true. If the write fails, `Scope_Write` routes to a succeeded terminate so the caller keeps running.
+The child flow composes a trace label, truncates `payload` with `substring(string(...), 0, min(900000, length(string(...))))` (Workflow Definition Language native; the `left()` function used in earlier drafts is Power Apps Canvas-only and does not exist in WDL — see PR #42), resolves `correlation_id`, and writes to `cr_agenttrace` only when the env var is true. If the write fails, `Scope_Write` routes to a succeeded terminate so the caller keeps running.
 
 ### 3. The tool flow captures Copilot Studio-side topic events
 
@@ -238,7 +245,7 @@ Key columns:
 | `cr_correlationid` | Stitching key across topic, child-flow, and tool-flow rows. |
 | `cr_agentname` | Friendly name of the calling agent. |
 | `cr_source` | `POWER_AUTOMATE_FLOW`, `TOOL_FLOW`, or `COPILOT_TOPIC`. |
-| `cr_sourcename` | Flow or topic that emitted the row. |
+| `cr_sourcename` | _(documented but not stored; see Known Issues — collides with Dataverse-auto-generated Virtual reflection of `cr_source` Picklist)._ The flow trigger still accepts a `source_name` input for forward-compat. |
 | `cr_stepname` | Step under inspection, such as `ExecuteAgentAndWait`, `CoT`, or `ConversationHistory`. |
 | `cr_direction` | `REQUEST`, `RESPONSE`, or `EVENT`. |
 | `cr_sequence` | Per-caller tie-breaker only; not a global counter. |
@@ -294,7 +301,7 @@ This POC is intentionally lean. Treat each item below as a customer hardening pr
 - **No retention policy.** Rows accumulate until the customer deletes or archives them.
 - **No per-user roles.** v1 relies on standard Dataverse ownership and built-in maker/admin roles.
 - **No per-agent roles.** Any consumer agent configured with the tool flow can write when the global switch is on.
-- **No managed-solution ALM.** `Solution.cdsproj` builds an unmanaged package only.
+- **No managed-solution ALM.** `CopilotAgentDebugLogger.cdsproj` builds an unmanaged package only.
 - **No code-first MDA.** The Agent Debug Console must be authored once in Maker portal and unpacked per [`docs/phase-0-mda-authoring.md`](docs/phase-0-mda-authoring.md).
 
 ## Native Debugging Stack to Exhaust First
@@ -309,6 +316,17 @@ Microsoft already ships the supported baseline. Use these before reaching for th
 - **Power CAT Copilot Studio Kit - Agent Insights Hub** for dashboards, governance, and batch regression testing across an agent fleet.
 
 Full cheat sheet: [`docs/native-debugging-cheatsheet.md`](docs/native-debugging-cheatsheet.md).
+
+## Known Issues (deploy-time discoveries)
+
+These were surfaced the first time the POC was deployed end-to-end (see PR #42 commit log for the verified hot-fixes already applied):
+
+- **`cr_sourcename` schema collision.** Dataverse auto-generates a Virtual column named `cr_sourcename` as the formatted-value reflection of the `cr_source` Picklist. That blocks creation of the documented `Text(200)` and prevents flows from writing to it. The provision script skips this column and the flow `CreateRecord` actions omit `item/cr_sourcename`. The trace label (`concat(source, '/', step_name, ' @ ', utcNow())`) is the canonical source identifier until a follow-up renames the column to `cr_originname`. See backlog todo `rename-cr-sourcename`.
+- **Maker portal Boolean env vars store as `"yes"` / `"no"`.** The `cr_DebugLoggerEnabled` toggle UI writes the literal string `"yes"` rather than `"true"`. The current `Compose_EnabledFlag` only compares to `'true'`, so flows would skip the write even when the maker thinks the logger is enabled. Workaround today: `PATCH /environmentvariablevalues(<id>)` with `{"value":"true"}` via the Dataverse Web API. Proper fix: make `Compose_EnabledFlag` tolerant of `true` / `yes` / `1` in both flows. See backlog todo `boolean-envvar-tolerance`.
+- **PVA-trigger tool flow is materialized only via Copilot Studio Action add.** `tool-log-agent-trace` cannot be created through the Flow Management API (Microsoft platform constraint). Until a maker adds it as a tool on at least one consumer agent in Copilot Studio, the workflow row will not exist and `scripts/inject-flow-guid.ps1` will exit non-zero. See backlog todo `add-tool-flow-action-cs`.
+- **Phase-0 MDA: `pac solution clone` produces a nested project layout.** The clone creates `src/Solutions/<SolutionName>/<SolutionName>.cdsproj` plus `src/Solutions/<SolutionName>/src/...` (Microsoft's canonical solution-project structure). The R2 scaffold expected files directly under `src/Solutions/`. PR #42 restructured the source tree to the canonical layout and pointed the deploy script at the new paths. Phase-0 instructions follow that layout now.
+- **Custom `UniqueIdentifier` columns cannot be created via Dataverse Web API.** Dataverse rejects with `0x80040203`. The platform auto-creates `<tablename>id` as the primary key Guid (e.g. `cr_agenttraceid`); the documented `cr_traceid` schema entry is informational only and the provision script skips it.
+- **PAC CLI 2.x dropped `pac admin list-environments`.** It now returns "Not a valid command" with **exit code 0**, so any script using a `$LASTEXITCODE -ne 0` fallback for the modern command name silently feeds the error string to `ConvertFrom-Json`. The provision script now also requires the output to look like JSON (`[` / `{` prefix) before parsing.
 
 ## Cross-References
 
